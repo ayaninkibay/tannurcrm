@@ -1,4 +1,4 @@
-export default function Ateamcontent() {
+export default function ATeamContent() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">ATeamContent</h1>
