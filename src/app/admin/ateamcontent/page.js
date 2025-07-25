@@ -1,4 +1,4 @@
-import TempComponent from './ATeamContent'
+import ATeamContent from './ATeamContent'
 export default function Page() {
-  return <TempComponent />
+  return <ATeamContent />
 }
