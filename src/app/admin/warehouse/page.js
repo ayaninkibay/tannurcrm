@@ -1,6 +1,6 @@
 'use client';
-import Warehouse1 from './WareHouse1';
+import WareHouse from './WareHouse';
 
 export default function Page() {
-  return <Warehouse1 />;
+  return <WareHouse />;
 }
