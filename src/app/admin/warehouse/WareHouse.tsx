@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import ProductCardWare from '@/components/ui/ProductCardWare';
 
 export default function WareHouse() {
   const products = [
@@ -52,32 +53,25 @@ export default function WareHouse() {
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px]">
       {/* Верхняя панель */}
       <div className="w-full flex justify-end items-center gap-4 px-6 py-4">
-        {/* Уведомления */}
-        <button onClick={() => {}} className="relative w-10 h-10 bg-white rounded-full flex items-center justify-center hover:opacity-80 transition">
+        <button className="relative w-10 h-10 bg-white rounded-full flex items-center justify-center hover:opacity-80 transition">
           <Image src="/icons/Icon notifications.png" alt="уведомления" width={16} height={16} />
           <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full" />
         </button>
-
-        {/* Профиль */}
-        <button onClick={() => {}} className="flex items-center gap-2 bg-white px-3 py-1 rounded-full hover:opacity-90 transition cursor-pointer">
+        <button className="flex items-center gap-2 bg-white px-3 py-1 rounded-full hover:opacity-90 transition cursor-pointer">
           <img src="/avatars/user1.png" alt="User" className="w-6 h-6 rounded-full object-cover" />
           <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргоза Каныбат</span>
         </button>
-
-        {/* Кнопка выхода */}
-        <button onClick={() => {}} className="hover:opacity-80 transition">
+        <button className="hover:opacity-80 transition">
           <Image src="/icons/logout-red.png" alt="выйти" width={20} height={20} />
         </button>
       </div>
 
       {/* Основной контент */}
       <div className="flex gap-6 p-6">
-        {/* Левая колонка - контент */}
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-[#111] mb-1">Склад Tannur</h1>
           <p className="text-sm text-gray-400 mb-6">It is a long established fact that.</p>
 
-          {/* Статистика */}
           <div className="flex gap-4 mb-6">
             <div className="bg-white p-6 rounded-xl flex-1">
               <p className="text-sm text-gray-400 mb-1">📦 Товары на складе</p>
@@ -89,7 +83,7 @@ export default function WareHouse() {
             </div>
           </div>
 
-          {/* Таблица товаров */}
+          {/* Заголовок таблицы */}
           <div className="bg-white rounded-xl p-4">
             <div className="grid grid-cols-5 font-semibold text-gray-500 text-sm border-b pb-2 mb-2">
               <span>Наименование</span>
@@ -99,22 +93,22 @@ export default function WareHouse() {
               <span>Инфо</span>
             </div>
 
+            {/* Список товаров через компонент */}
             {products.map((product, index) => (
-              <div key={index} className="grid grid-cols-5 items-center py-3 border-b text-sm text-[#111]">
-                <div className="flex items-center gap-2">
-                  <img src={product.image} alt={product.name} className="w-10 h-10 rounded object-cover" />
-                  <span>{product.name}</span>
-                </div>
-                <span>{product.shopPrice}</span>
-                <span>{product.dealerPrice}</span>
-                <span>{product.quantity}</span>
-                <span className="text-xl text-gray-400">›››</span>
-              </div>
+              <ProductCardWare
+                key={index}
+                image={product.image}
+                title={product.name}
+                priceOld={product.shopPrice}
+                priceNew={product.dealerPrice}
+                count={product.quantity}
+                onClick={() => alert(`Открыть товар: ${product.name}`)}
+              />
             ))}
           </div>
         </div>
 
-        {/* Правая колонка - информация и действия */}
+        {/* Правая колонка */}
         <div className="w-[300px] flex flex-col gap-4">
           <div className="bg-white rounded-xl p-4">
             <p className="text-sm text-gray-400 mb-1">Заведующий складом</p>
@@ -150,4 +144,4 @@ export default function WareHouse() {
       </div>
     </div>
   );
-} 
+}
