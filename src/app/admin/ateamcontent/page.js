@@ -1,4 +1,4 @@
-import ATeamContent from './ATeamContent'
+import ATeam from './ATeam'
 export default function Page() {
-  return <ATeamContent/>
+  return <ATeam/>
 }
