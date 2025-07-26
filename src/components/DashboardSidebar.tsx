@@ -103,7 +103,10 @@ export default function DashboardSidebar() {
           return (
             <Link href={href} key={href} className="relative z-10">
               <div
-                ref={(el) => (itemRefs.current[index] = el)}
+ref={(el) => {
+  itemRefs.current[index] = el;
+}}
+
                 className="w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all hover:bg-[#ffffff33]"
                 title={label}
               >
