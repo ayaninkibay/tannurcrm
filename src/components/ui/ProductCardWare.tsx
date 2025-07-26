@@ -26,7 +26,7 @@ export default function ProductCardWare({
     <div
       onClick={onClick}
       className={cn(
-        "flex items-center justify-between rounded-xl px-4 py-2 transition cursor-pointer hover:bg-[#f3f3f3] h-[60px]",
+        "flex items-center justify-between rounded-xl px-4 py-3 transition cursor-pointer hover:bg-[#f3f3f3] h-[72px]",
         className
       )}
     >
@@ -34,9 +34,9 @@ export default function ProductCardWare({
       <div className="flex items-center gap-4 min-w-0">
         <Image
           src={image}
-          alt=""
-          width={40}
-          height={40}
+          alt="product"
+          width={50}
+          height={50}
           className="rounded-lg object-cover flex-shrink-0"
         />
         <span className="text-sm font-medium text-gray-900 truncate">{title}</span>
@@ -48,10 +48,10 @@ export default function ProductCardWare({
         <span>{priceNew}</span>
         <span className="text-black font-semibold">{count}</span>
         <Image
-          src="/icons/Icon arow botom.png"
+          src="/icons/IconArowBotomOrange.png"
           alt="arrow"
-          width={14}
-          height={14}
+          width={18}
+          height={18}
           className="justify-self-end"
         />
       </div>
