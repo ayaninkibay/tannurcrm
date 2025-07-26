@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 
-export default function Warehouse() {
+export default function Warehouse1() {
   const products = [
     {
       name: '9-А Шампунь+ Tannur',
