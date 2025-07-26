@@ -2,9 +2,9 @@
 
 import React from 'react';
 import DashboardSidebar from '@/components/DashboardSidebar';
-import Shop from './FilesContent';
+import Shop from './Team';
 
-export default function FilesContent() {
+export default function Team() {
   return (
     <div className="flex bg-[#f5f5f5] min-h-screen">
       {/* Сайдбар */}

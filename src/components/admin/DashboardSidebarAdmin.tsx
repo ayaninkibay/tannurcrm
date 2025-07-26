@@ -6,43 +6,43 @@ import Image from "next/image";
 
 const adminNavItems = [
   {
-    href: "/admin/adashboard",
+    href: "/admin/dashboard",
     icon: "/icons/Icon home white.png",
     iconGray: "/icons/Icon home gray.png",
     label: "Админ Главная",
   },
   {
-    href: "/admin/astore",
+    href: "/admin/store",
     icon: "/icons/Icon shop white.png",
     iconGray: "/icons/Icon shop gray.png",
     label: "Магазин",
   },
   {
-    href: "/admin/ateamcontent",
+    href: "/admin/teamcontent",
     icon: "/icons/Icon stats white.png",
-    iconGray: "/icons/Icon stats gray.png",
+    iconGray: "/icons/Icon stats white.png",
     label: "Команда",
   },
   {
-    href: "/admin/asettings",
+    href: "/admin/settings", 
     icon: "/icons/IconSettingsWhite.png",
-    iconGray: "/icons/IconSettingsGray.png",
+    iconGray: "/icons/IconSettingsWhite.png",
     label: "Настройки",
   },
   {
-    href: "/admin/aeducationcontent",
+    href: "/admin/educationcontent",
     icon: "/icons/Icon share white.png",
     iconGray: "/icons/Icon share gray.png",
     label: "Ваши финансы",
   },
   {
-    href: "/admin/awarehouse",
+    href: "/admin/warehouse",
     icon: "/icons/IconBoxWhite.png",
-    iconGray: "/icons/IconBoxGray.png",
+    iconGray: "/icons/IconBoxWhite.png",
     label: "Склад",
   },
   {
-    href: "/admin/aproducts",
+    href: "/admin/documents",
     icon: "/icons/Icon docs white.png",
     iconGray: "/icons/Icon docs gray.png",
     label: "Документы",
@@ -54,20 +54,20 @@ export default function DashboardSidebarAdmin() {
   const router = useRouter();
 
   return (
-    <aside className="h-screen w-36 bg-white border-r border-gray-300 flex flex-col items-center pt-10 pb-6 fixed left-0 top-0 z-10">
+    <aside className="h-screen w-36 bg-gray-100 border-r border-gray-300 flex flex-col items-center pt-14 pb-8 fixed left-0 top-0 z-10">
       {/* Логотип-кнопка */}
       <button
-        onClick={() => router.push("/admin/adashboard")}
+        onClick={() => router.push("/")}
         className={`mb-8 w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all ${
-          pathname === "/admin/adashboard" ? "bg-[#D77E6C]" : "hover:bg-gray-100"
+          pathname === "/" ? "bg-[#D77E6C]" : "hover:bg-gray-100"
         }`}
         title="Админ Главная"
       >
         <Image
-          src="/icons/Icon Tannur.png"
+          src="/icons/IconTannurBlack.png"
           alt="Логотип"
-          width={30}
-          height={30}
+          width={40}
+          height={40}
         />
       </button>
 
@@ -78,7 +78,7 @@ export default function DashboardSidebarAdmin() {
           return (
             <Link href={href} key={href}>
               <div
-                className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center transition-all ${
+                className={`w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all ${
                   isActive ? "bg-[#D77E6C]" : "hover:bg-gray-100"
                 }`}
                 title={label}

@@ -2,10 +2,10 @@
 
 import React from 'react';
 
-export default function FilesContent() {
+export default function EducationContent() {
   return (
     <div className="text-gray-800 text-xl font-semibold">
-      Это страница управления файлами (апродукты)
+      Админка: Контент Академии
     </div>
   );
 }
