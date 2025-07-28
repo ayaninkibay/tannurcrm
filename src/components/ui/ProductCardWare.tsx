@@ -43,7 +43,8 @@ export default function ProductCardWare({
       </div>
 
       {/* Правая часть — равномерная сетка */}
-      <div className="grid grid-cols-4 gap-6 items-center text-sm text-gray-600 min-w-[400px] text-right">
+     <div className="grid grid-cols-4 gap-4 items-center text-sm text-gray-600 min-w-[920px] text-right">
+
         <span>{priceOld}</span>
         <span>{priceNew}</span>
         <span className="text-black font-semibold">{count}</span>

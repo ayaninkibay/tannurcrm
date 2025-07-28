@@ -16,32 +16,37 @@ export default function WareHouse() {
 
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px]">
-      {/* Верхняя панель */}
-      <div className="w-full flex justify-end items-center gap-4 px-6 py-4">
-        <button className="relative w-10 h-10 bg-white rounded-full flex items-center justify-center hover:opacity-80 transition">
-          <Image src="/icons/Icon notifications.png" alt="уведомления" width={16} height={16} />
-          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full" />
-        </button>
-        <button className="flex items-center gap-3 bg-white px-4 py-2 rounded-full hover:opacity-90 transition cursor-pointer">
-          <img src="/Icons/Users avatar 6.png" alt="User" className="w-8 h-8 rounded-full object-cover" />
-          <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргоза Каныбат</span>
-        </button>
-        <button className="hover:opacity-80 transition">
-          <Image src="/Icons/IconOutRed.png" alt="выйти" width={20} height={20} />
-        </button>
+      {/* Верхняя панель с заголовком и кнопками */}
+      <div className="w-full flex justify-between items-center mt-6 px-6 py-4">
+        
+        {/* Заголовок и подзаголовок */}
+        <div>
+          <h1 className="text-2xl font-bold text-[#111]">Склад Tannur</h1>
+          <p className="text-sm text-gray-400">It is a long established fact that.</p>
+        </div>
+
+        {/* Кнопки */}
+        <div className="flex items-center gap-4">
+          <button className="relative w-10 h-10 bg-white rounded-full flex items-center justify-center hover:opacity-80 transition">
+            <Image src="/icons/Icon notifications.png" alt="уведомления" width={16} height={16} />
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full" />
+          </button>
+          <button className="flex items-center gap-3 bg-white px-4 py-2 rounded-full hover:opacity-90 transition cursor-pointer">
+            <img src="/Icons/Users avatar 6.png" alt="User" className="w-8 h-8 rounded-full object-cover" />
+            <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргоза Каныбат</span>
+          </button>
+          <button className="hover:opacity-80 transition">
+            <Image src="/Icons/IconOutRed.png" alt="выйти" width={20} height={20} />
+          </button>
+        </div>
       </div>
 
       {/* Основной контент */}
-      <div className="flex gap-6 px-6 pt-2 pb-6">
+      <div className="w-full h-px bg-gray-200 my-2" />
+      <div className="flex gap-6 px-6 pt-2 mt-7 pb-6">
+        <div className="flex-1 w-full max-w-[1380px] mx-auto px-4">
 
-
-        <div className="flex-1 max-w-[1100px]">
-          <h1 className="text-2xl font-bold text-[#111] mb-0">Склад Tannur</h1>
-<p className="text-sm text-gray-400 mb-1">It is a long established fact that.</p>
-
-
-          {/* Линия-разделитель */}
-          <div className="h-px bg-gray-200 mb-6" />
+          
 
           {/* Блок статистики */}
           <div className="bg-white rounded-xl flex justify-between items-center h-[160px] px-6 mb-4">
@@ -65,14 +70,25 @@ export default function WareHouse() {
           </div>
 
           {/* Таблица */}
-          <div className="bg-white rounded-xl p-4">
-            <div className="grid grid-cols-5 font-semibold text-gray-500 text-sm border-b pb-2 mb-2">
-              <span>Наименование</span>
-              <span>Цена Магазин</span>
-              <span>Цена Дилер</span>
-              <span>Кол-во</span>
-              <span>Инфо</span>
-            </div>
+          <div className="bg-white rounded-xl p-10">
+           <div className="flex items-center font-semibold text-gray-500 text-sm border-b pb-3 mb-2">
+
+           {/* Левая часть — наименование */}
+          <div className="flex items-center gap-4 min-w-[320px]">
+          <span>Наименование</span>
+          </div>
+
+    {/* Правая часть — остальное */}
+      <div className="grid grid-cols-4 gap-6 w-[900px] text-right">
+
+        <span>Цена Магазин</span>
+        
+        <span>Цена Дилер</span>
+        <span>Кол-во</span>
+        <span>Инфо</span>
+      </div>
+    </div>
+
             {products.map((product, index) => (
               <ProductCardWare
                 key={index}
@@ -88,7 +104,7 @@ export default function WareHouse() {
         </div>
 
         {/* Правая панель */}
-        <div className="w-[300px] border-l pl-6">
+        <div className="w-[300px]  border-l pl-6">
           <RightSidebar />
         </div>
       </div>

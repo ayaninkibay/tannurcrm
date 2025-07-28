@@ -14,7 +14,7 @@ export default function RightSidebar() {
           <p className="text-sm font-semibold text-[#111] cursor-pointer hover:text-blue-500">
             Заведующий складом
           </p>
-          <Image src="/icons/IconThreedots.png" alt="..." width={16} height={16} />
+          <Image src="/icons/IconThreedots.png" alt="..." width={3} height={3} />
         </div>
         <div className="flex items-center gap-3 mb-2">
           <img
@@ -34,7 +34,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Товары */}
-      <div className="bg-gray-100 rounded-xl p-4">
+      <div className="bg-[#F6F6F6] rounded-xl p-4">
         <p className="text-sm font-semibold mb-2 text-[#111]">Товары</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">
@@ -46,7 +46,7 @@ export default function RightSidebar() {
       </div>
 
       {/* История */}
-      <div className="bg-gray-100 rounded-xl p-4">
+      <div className="bg-[#F6F6F6] rounded-xl p-4">
         <p className="text-sm font-semibold mb-2 text-[#111]">История</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">
@@ -65,7 +65,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Товары (создание) */}
-      <div className="bg-gray-100 rounded-xl p-4">
+      <div className="bg-[#F6F6F6] rounded-xl p-4">
         <p className="text-sm font-semibold mb-2 text-[#111]">Товары</p>
         <button
           onClick={() => router.push('/admin/warehouse/create_product')}
@@ -80,7 +80,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Пользователи */}
-      <div className="bg-gray-100 rounded-xl p-4">
+      <div className="bg-[#F6F6F6] rounded-xl p-4">
         <p className="text-sm font-semibold mb-2 text-[#111]">Пользователи</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">
