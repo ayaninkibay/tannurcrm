@@ -10,11 +10,19 @@ export default function ProductView() {
   const [activeImage, setActiveImage] = useState(0);
 
   const productImages = [
-    '/Icons/Photo_icon_1.jpg',
-    '/Icons/Photo_icon_2.jpg',
-    '/Icons/Photo_icon_3.jpg',
-    '/Icons/Photo_icon_1.jpg',
+    '/icons/Photo_ico_1.jpg',
+    '/icons/Photo_ico_2.jpg',
+    '/icons/Photo_ico_3.jpg',
+    '/icons/Photo_ico_1.jpg',
   ];
+  <ProductCardWare
+  name="9-А Шампунь Tannur"
+  shopPrice="12 990 ₸"
+  dealerPrice="7 990 ₸"
+  quantity={897}
+  image="/icons/Photo icon 1.png"
+/>
+
 
   const handlePrev = () => {
     setActiveImage((prev) => (prev === 0 ? productImages.length - 1 : prev - 1));
