@@ -162,7 +162,7 @@ export default function ProductView() {
 
   {/* Карточка */}
   <ProductCardWare
-    image="/icons/Photo icon 1.jpg"
+    image="/icons/Photo_icon_1.jpg"
     title="9-А Шампунь Tannur"
     priceOld="12 990 ₸"
     priceNew="7 990 ₸"
