@@ -18,7 +18,6 @@ export default function WareHouse() {
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px]">
       {/* Верхняя панель с заголовком и кнопками */}
       <div className="w-full flex justify-between items-center mt-6 px-6 py-4">
-        
         {/* Заголовок и подзаголовок */}
         <div>
           <h1 className="text-2xl font-bold text-[#111]">Склад Tannur</h1>
@@ -44,10 +43,7 @@ export default function WareHouse() {
       {/* Основной контент */}
       <div className="w-full h-px bg-gray-200 my-2" />
       <div className="flex gap-6 px-6 pt-2 mt-7 pb-6">
-        <div className="flex-1 w-full max-w-[1380px] mx-auto px-4">
-
-          
-
+        <div className="flex-1 w-full max-w-[1240px] mx-auto px-4">
           {/* Блок статистики */}
           <div className="bg-white rounded-xl flex justify-between items-center h-[160px] px-6 mb-4">
             <div className="flex flex-col justify-between h-full py-4">
@@ -71,23 +67,20 @@ export default function WareHouse() {
 
           {/* Таблица */}
           <div className="bg-white rounded-xl p-10">
-           <div className="flex items-center font-semibold text-gray-500 text-sm border-b pb-3 mb-2">
+            <div className="flex items-center font-semibold text-gray-500 text-sm border-b pb-3 mb-2">
+              {/* Левая часть — наименование */}
+              <div className="flex items-center gap-4 min-w-[320px]">
+                <span>Наименование</span>
+              </div>
 
-           {/* Левая часть — наименование */}
-          <div className="flex items-center gap-4 min-w-[320px]">
-          <span>Наименование</span>
-          </div>
-
-    {/* Правая часть — остальное */}
-      <div className="grid grid-cols-4 gap-6 w-[900px] text-right">
-
-        <span>Цена Магазин</span>
-        
-        <span>Цена Дилер</span>
-        <span>Кол-во</span>
-        <span>Инфо</span>
-      </div>
-    </div>
+              {/* Правая часть — остальное */}
+              <div className="grid grid-cols-4 gap-6 w-[900px] text-right">
+                <span>Цена Магазин</span>
+                <span>Цена Дилер</span>
+                <span>Кол-во</span>
+                <span>Инфо</span>
+              </div>
+            </div>
 
             {products.map((product, index) => (
               <ProductCardWare
@@ -104,7 +97,7 @@ export default function WareHouse() {
         </div>
 
         {/* Правая панель */}
-        <div className="w-[300px]  border-l pl-6">
+        <div className="w-[360px] border-l pl-3">
           <RightSidebar />
         </div>
       </div>

@@ -7,7 +7,7 @@ export default function RightSidebar() {
   const router = useRouter();
 
   return (
-    <div className="w-[300px] flex flex-col gap-4">
+    <div className="w-full max-w-[420px] xl:max-w-[460px] 2xl:max-w-[480px] ml-auto pr-2 flex flex-col gap-4">
       {/* Заведующий складом */}
       <div className="bg-white rounded-xl p-4">
         <div className="flex justify-between items-start mb-2">
@@ -34,7 +34,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Товары */}
-      <div className="bg-[#F6F6F6] rounded-xl p-4">
+      <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">Товары</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">
@@ -46,7 +46,7 @@ export default function RightSidebar() {
       </div>
 
       {/* История */}
-      <div className="bg-[#F6F6F6] rounded-xl p-4">
+      <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">История</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">
@@ -65,7 +65,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Товары (создание) */}
-      <div className="bg-[#F6F6F6] rounded-xl p-4">
+      <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">Товары</p>
         <button
           onClick={() => router.push('/admin/warehouse/create_product')}
@@ -80,7 +80,7 @@ export default function RightSidebar() {
       </div>
 
       {/* Пользователи */}
-      <div className="bg-[#F6F6F6] rounded-xl p-4">
+      <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">Пользователи</p>
         <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
           <span className="flex items-center gap-2 text-[#111] font-medium">

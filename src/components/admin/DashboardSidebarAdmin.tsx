@@ -54,7 +54,7 @@ export default function DashboardSidebarAdmin() {
   const router = useRouter();
 
   return (
-    <aside className="h-screen w-36 bg-gray-100 border-r border-gray-300 flex flex-col items-center pt-14 pb-8 fixed left-0 top-0 z-10">
+    <aside className="h-screen w-36 bg-[#F6F6F6] border-r border-gray-300 flex flex-col items-center pt-14 pb-8 fixed left-0 top-0 z-10">
       {/* Логотип-кнопка */}
       <button
         onClick={() => router.push("/")}
