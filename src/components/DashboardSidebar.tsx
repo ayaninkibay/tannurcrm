@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 const navItems = [
   {
@@ -14,16 +14,16 @@ const navItems = [
     label: "Дэшборд",
   },
   {
+    href: "/dealer/myteam",
+    icon: "/icons/Icon share white.png",
+    iconGray: "/icons/Icon share gray.png",
+    label: "Моя команда",
+  },
+  {
     href: "/dealer/shop",
     icon: "/icons/Icon shop white.png",
     iconGray: "/icons/Icon shop gray.png",
     label: "Магазин",
-  },
-  {
-    href: "/dealer/team",
-    icon: "/icons/Icon share white.png",
-    iconGray: "/icons/Icon share gray.png",
-    label: "Ваша команда",
   },
   {
     href: "/dealer/education",
@@ -33,8 +33,8 @@ const navItems = [
   },
   {
     href: "/dealer/stats",
-    icon: "/icons/Icon stats white.png",
-    iconGray: "/icons/Icon stats gray.png",
+    icon: "/icons/IconStatsOpacity.svg",
+    iconGray: "/icons/IconStatsGray.svg",
     label: "Ваши финансы",
   },
   {
@@ -58,16 +58,25 @@ export default function DashboardSidebar() {
     }
   };
 
-  useEffect(() => {
-    const activeIndex = navItems.findIndex(item => item.href === pathname);
-    const activeEl = itemRefs.current[activeIndex];
-    const containerEl = containerRef.current;
+  useLayoutEffect(() => {
+    const updateActiveTop = () => {
+      const activeIndex = navItems.findIndex(item => item.href === pathname);
+      const activeEl = itemRefs.current[activeIndex];
+      const containerEl = containerRef.current;
 
-    if (activeEl && containerEl) {
-      const containerTop = containerEl.getBoundingClientRect().top;
-      const itemTop = activeEl.getBoundingClientRect().top;
-      setActiveTop(itemTop - containerTop);
-    }
+      if (activeEl && containerEl) {
+        const containerTop = containerEl.getBoundingClientRect().top;
+        const itemTop = activeEl.getBoundingClientRect().top;
+        setActiveTop(itemTop - containerTop);
+      }
+    };
+
+    updateActiveTop();
+
+    window.addEventListener("resize", updateActiveTop);
+    return () => {
+      window.removeEventListener("resize", updateActiveTop);
+    };
   }, [pathname]);
 
   return (
@@ -80,7 +89,7 @@ export default function DashboardSidebar() {
         }`}
         title="Главная"
       >
-        <Image src="/icons/Icon Tannur.png" alt="Логотип" width={30} height={30} />
+        <Image src="/icons/company/tannur_white.svg" alt="Логотип" width={70} height={70} />
       </button>
 
       {/* Навигация */}
@@ -94,6 +103,7 @@ export default function DashboardSidebar() {
           layoutId="active-indicator"
           className="absolute w-[60px] h-[60px] bg-white rounded-xl left-1/2 -translate-x-1/2 z-0"
           style={{ top: activeTop }}
+          initial={false}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         />
 
@@ -103,10 +113,9 @@ export default function DashboardSidebar() {
           return (
             <Link href={href} key={href} className="relative z-10">
               <div
-ref={(el) => {
-  itemRefs.current[index] = el;
-}}
-
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 className="w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all hover:bg-[#ffffff33]"
                 title={label}
               >

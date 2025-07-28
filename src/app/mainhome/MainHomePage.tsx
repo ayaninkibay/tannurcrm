@@ -10,7 +10,7 @@ export default function MainHomePage() {
     <main className="min-h-screen bg-[#f4f4f4] flex flex-col items-center justify-center text-gray-900">
       {/* Логотип */}
       <div className="absolute top-4 left-6">
-        <Image src="/icons/IconTannurBlack.png" alt="Tannur Logo" width={120} height={40} />
+        <Image src="/icons/company/tannur_black.svg" alt="Tannur Logo" width={120} height={40} />
       </div>
 
       {/* Контейнер */}
@@ -18,7 +18,7 @@ export default function MainHomePage() {
         {/* Левая часть - картинка */}
         <div className="w-1/2 h-full relative rounded-xl overflow-hidden">
           <Image
-            src="/images/LoginGraphic.png"
+            src="/icons/company/LoginGraphic.png"
             alt="CRM Preview"
             fill
             className="object-cover rounded-xl"

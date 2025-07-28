@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   LineChart, Line, XAxis, Tooltip, BarChart, Bar, ResponsiveContainer, Cell,
 } from 'recharts';
+import { TurnoverChart } from '@/components/TurnoverChart';
 
 export default function DashboardPage() {
   const handleCopy = () => {
@@ -18,6 +19,12 @@ export default function DashboardPage() {
     { month: 'Июль', value: 1120000 },
     { month: 'Авг', value: 1984321 },
     { month: 'Сен', value: 340000 },
+        { month: 'Окт', value: 1340000 },
+            { month: 'Нояб', value: 42000 },
+                { month: 'Дек', value: 0 },
+                    { month: 'Янв', value: 1640000 },
+                        { month: 'Фев', value: 510000 },
+                            { month: 'Март', value: 3213200 },
   ];
 
   const [activeIndex, setActiveIndex] = useState<number | null>(4);
@@ -95,16 +102,23 @@ export default function DashboardPage() {
         </div>
 
         {/* Блок 7 — Профиль */}
-        <div className="bg-white rounded-2xl p-4 flex flex-col gap-4 row-span-2">
-          <div className="flex flex-col gap-6">
-            <div className="w-[70px] h-[70px] rounded-[11px] bg-center bg-cover bg-no-repeat" style={{ backgroundImage: "url('/ICons/UsersAvatar1Box.png')" }} />
-            <div className="flex flex-col text-left">
-              <h3 className="text-sm font-semibold text-[#111] flex items-center gap-1">Инжу Ануарбек <span className="text-green-600 text-base">✔</span></h3>
-              <p className="text-xs text-gray-900">KZ848970</p>
-              <p className="text-xs p-1 text-gray-500">inzhu@gmail.com</p>
-              <p className="text-xs p-1 text-gray-500">+7 707 700 00 02</p>
-            </div>
-          </div>
+<div className="bg-white rounded-2xl p-4 flex flex-col gap-4 row-span-2 w-full max-w-sm mx-auto">
+  <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+    <div
+      className="w-[70px] h-[70px] rounded-[11px] bg-center bg-cover bg-no-repeat shrink-0"
+      style={{ backgroundImage: "url('/icons/UsersAvatar1Box.png')" }}
+    />
+    <div className="flex flex-col text-left">
+      <h3 className="text-sm font-semibold text-[#111] flex items-center gap-1">
+        Инжу Ануарбек <span className="text-green-600 text-base">✔</span>
+      </h3>
+      <p className="text-xs text-gray-900">KZ848970</p>
+      <p className="text-xs py-1 text-gray-500 break-words">inzhu@gmail.com</p>
+      <p className="text-xs py-1 text-gray-500">+7 707 700 00 02</p>
+    </div>
+  </div>
+
+
 
           <button onClick={() => {}} className="w-full flex items-center justify-between bg-[#F6F6F6] text-sm px-4 py-2 rounded-xl text-[#111] font-medium">
             <span className="flex items-center gap-2">
@@ -176,78 +190,35 @@ export default function DashboardPage() {
 
         {/* Нижний ряд: Блок 4 и 5 */}
 <div className="col-span-3 grid grid-cols-2 gap-6">
-  {/* Блок 4 — График оборота */}
-     <div className="bg-white rounded-2xl h-[370px] p-6 overflow-hidden relative">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-base text-gray-700">Товарооборот за всё время</p>
-          <h2 className="text-4xl text-gray-700 font-bold mt-2">7 412 000 ₸</h2>
-        </div>
-        <button className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
-          <img
-            src="/icons/Icon long arrow white.png"
-            className="w-3.5 h-3.5"
-            alt="Перейти"
-          />
-        </button>
-      </div>
-
-      <div className="mt-6 h-[200px] w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={graphData}
-onMouseMove={(state) => {
-  if (state.isTooltipActive) {
-    const index = Number(state.activeTooltipIndex);
-    setActiveIndex(!isNaN(index) ? index : null);
-  }
-}}
-
-            onMouseLeave={() => setActiveIndex(null)}
-            margin={{ top: 50, right: 30, left: 0, bottom: 0 }}
-          >
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 14, fill: "#555" }}
-            />
-            <Tooltip
-              cursor={{ fill: "transparent" }}
-              content={({ active, payload }) =>
-                active && payload && payload.length ? (
-                  <div className="relative z-20">
-                    <div className="bg-gray-900 text-white text-sm px-4 py-1 rounded-full">
-                      {payload[0].value.toLocaleString()} ₸
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-gray-900" />
-                    </div>
-                  </div>
-                ) : null
-              }
-            />
-            <Bar dataKey="value" radius={[8, 8, 8, 8]}>
-              {graphData.map((entry, index) => (
-                <Cell
-                  key={`bar-${index}`}
-                  fill={index === activeIndex ? "#db6a56" : "#e9d7d6"}
-                />
-              ))}
-            </Bar>
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#db6a56"
-              strokeWidth={2}
-              dot={false}
-              className="z-10"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+{/* Блок 4 — График оборота */}
+<div className="bg-white rounded-2xl h-[370px] p-6 overflow-hidden relative">
+  <div className="flex justify-between items-start">
+    <div>
+      <p className="text-base text-gray-700">Товарооборот за всё время</p>
+      <h2 className="text-4xl text-gray-700 font-bold mt-2">7 412 000 ₸</h2>
     </div>
+    <button className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
+      <img
+        src="/icons/Icon long arrow white.png"
+        className="w-3.5 h-3.5"
+        alt="Перейти"
+      />
+    </button>
+  </div>
+
+  <div className="mt-6 h-[200px] w-full relative">
+    <TurnoverChart
+      data={graphData}
+      colorBar="#e9d7d6"
+      colorLine="#db6a56"
+      lineOffset={1700000} // можно сделать 200000 или 400000 — по вкусу
+    />
+  </div>
+</div>
+
 
   {/* Блок 5 — Новости Tannur */}
-  <div className="rounded-2xl bg-white p-6 h-[370px] overflow-hidden shadow-md">
+  <div className="rounded-2xl bg-white p-6 h-[370px] overflow-hidden">
     <div className="flex justify-between items-center mb-4">
       <h2 className="text-2xl text-gray-700">Новости Tannur</h2>
       <button className="w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
@@ -270,7 +241,7 @@ onMouseMove={(state) => {
               <span className="text-xs text-gray-500">новости</span>
             </div>
           </div>
-          <img src="/icons/Ikon arow botom.png" className="w-6.5 h-6.5" alt="Подробнее" />
+          <img src="/icons/buttom/DoubleIconArrowOrange.svg" className="w-6.5 h-6.5" alt="Подробнее" />
         </div>
       ))}
     </div>
