@@ -11,6 +11,7 @@ interface ProductCardWareProps {
   count: number;
   onClick?: () => void;
   className?: string;
+  showArrow?: boolean;
 }
 
 export default function ProductCardWare({
@@ -20,7 +21,8 @@ export default function ProductCardWare({
   priceNew,
   count,
   onClick,
-  className
+  className,
+  showArrow = true,
 }: ProductCardWareProps) {
   return (
     <div
@@ -42,19 +44,25 @@ export default function ProductCardWare({
         <span className="text-sm font-medium text-gray-900 truncate">{title}</span>
       </div>
 
-      {/* Правая часть — равномерная сетка */}
-     <div className="grid grid-cols-4 gap-4 items-center text-sm text-gray-600 min-w-[820px] text-right">
-
+      {/* Правая часть — сетка */}
+      <div
+        className={cn(
+          "grid gap-4 items-center text-sm text-gray-600 min-w-[820px] text-right",
+          showArrow ? "grid-cols-4" : "grid-cols-3"
+        )}
+      >
         <span>{priceOld}</span>
         <span>{priceNew}</span>
         <span className="text-black font-semibold">{count}</span>
-        <Image
-          src="/icons/IconArowBotomOrange.png"
-          alt="arrow"
-          width={18}
-          height={18}
-          className="justify-self-end"
-        />
+        {showArrow && (
+          <Image
+            src="/icons/IconArowBotomOrange.png"
+            alt="arrow"
+            width={18}
+            height={18}
+            className="justify-self-end"
+          />
+        )}
       </div>
     </div>
   );
