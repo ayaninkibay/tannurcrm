@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import ActionButton from '@/components/ui/ActionButton';
+import ProductCardWare from '@/components/ui/ProductCardWare';
 import { useState } from 'react';
 
 export default function ProductView() {
@@ -41,7 +42,7 @@ export default function ProductView() {
           </button>
           <button className="flex items-center gap-3 bg-white px-4 py-2 rounded-full hover:opacity-90 transition cursor-pointer">
             <img src="/Icons/Users avatar 6.png" alt="User" className="w-8 h-8 rounded-full object-cover" />
-            <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргуза Кагыбат</span>
+            <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргоза Каныбат</span>
           </button>
           <button className="hover:opacity-80 transition">
             <Image src="/Icons/IconOutRed.png" alt="выйти" width={20} height={20} />
@@ -91,7 +92,7 @@ export default function ProductView() {
               <h2 className="text-xl font-bold text-[#111] mb-1">9-А Шампунь Tannur</h2>
               <p className="text-lg text-gray-500 mb-0 mt-4">Описание</p>
               <p className="text-sm text-gray-800 mb-8">
-                It is a long established fact that a reader will be distracted by the readablcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoute content of a page when looking at its layout.
+                It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
               </p>
               <div className="flex gap-6 border-b pb-2">
                 <button
@@ -100,7 +101,7 @@ export default function ProductView() {
                   }`}
                   onClick={() => setActiveTab('composition')}
                 >
-                  <Image src="/icons/IconChartOrange.svg" alt="composition" width={16} height={16} />
+                  <Image src="/icons/IconChartOrange.jpg" alt="composition" width={16} height={16} />
                   Состав
                 </button>
                 <button
@@ -109,14 +110,14 @@ export default function ProductView() {
                   }`}
                   onClick={() => setActiveTab('video')}
                 >
-                  <Image src="/icons/Icon video red.svg" alt="video" width={16} height={16} />
+                  <Image src="/icons/Icon video red.jpg" alt="video" width={16} height={16} />
                   Видео инструкция
                 </button>
               </div>
               <div className="text-sm text-[#111] mt-8">
                 {activeTab === 'composition' ? (
                   <p>
-                    It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layoutcontent of a page when looking at its layout.
+                    It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
                   </p>
                 ) : (
                   <div className="mt-4">
@@ -150,44 +151,40 @@ export default function ProductView() {
             </div>
           </div>
         </div>
+
         {/* Правая колонка — управление */}
         <div className="p-6 max-w-[460px] space-y-6 bg-[#F6F6F6] min-h-screen">
           <h2 className="text-xl font-bold text-[#111]">Управление товаром</h2>
           <p className="text-sm text-gray-500">
-            Любые изменения товара требуют подтверждения управляющего складом, а также сохраняются в истории.
+            Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.
           </p>
 
           <div className="space-y-3">
             <p className="text-sm font-semibold text-[#111]">Данные</p>
-            <ActionButton
-              icon="/icons/IconShoppingOrange.svg"
-              label="Изменить данные товара"
-              href="/admin/warehouse/edit_product"
-            />
+            <ActionButton icon="/icons/IconShoppingOrange.svg" label="Изменить данные товара" href="/admin/warehouse/edit_product" />
           </div>
 
           <div className="space-y-3">
             <p className="text-sm font-semibold text-[#111]">История</p>
-            <ActionButton
-              icon="/icons/IconProfileOrange.svg"
-              label="Составить отчет по товару"
-              href="/admin/warehouse/product_report"
-            />
-            <ActionButton
-              icon="/icons/IconProfileOrange.svg"
-              label="История движения на складе"
-              href="/admin/warehouse/move_history"
-            />
+            <ActionButton icon="/icons/IconProfileOrange.svg" label="Составить отчет по товару" href="/admin/warehouse/product_report" />
+            <ActionButton icon="/icons/IconProfileOrange.svg" label="История движения на складе" href="/admin/warehouse/move_history" />
           </div>
 
           <div className="space-y-3">
             <p className="text-sm font-semibold text-[#111]">Удаление</p>
-            <ActionButton
-              icon="/icons/IconProfileOrange.svg"
-              label="Удалить товар"
-              onClick={() => alert('Подтвердите удаление')}
-            />
+            <ActionButton icon="/icons/IconProfileOrange.svg" label="Удалить товар" onClick={() => alert('Подтвердите удаление')} />
           </div>
+        </div>
+      </div>
+
+      {/* Контент снизу */}
+      <div className="px-6 pt-10 space-y-6">
+        <h2 className="text-xl font-bold  text-[#111]">Доступные товары</h2>
+        <ProductCardWare name="9-А Шампунь Tannur" shopPrice="12 990 ₸" dealerPrice="7 990 ₸" quantity={897} image="/icons/Photo icon 1.jpg" />
+
+        <div className="grid grid-cols-2 gap-4 max-w-[760px]">
+          <ActionButton icon="/icons/IconProfileOrange.svg" label="Пополнить остаток" onClick={() => alert('Пополнение')} />
+          <ActionButton icon="/icons/IconProfileOrange.svg" label="Уменьшить остаток" onClick={() => alert('Уменьшение')} />
         </div>
       </div>
     </div>
