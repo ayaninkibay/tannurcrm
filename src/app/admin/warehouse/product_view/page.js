@@ -10,10 +10,10 @@ export default function ProductView() {
   const [activeImage, setActiveImage] = useState(0);
 
   const productImages = [
-    '/icons/Photo_ico_1.jpg',
-    '/icons/Photo_ico_2.jpg',
-    '/icons/Photo_ico_3.jpg',
-    '/icons/Photo_ico_1.jpg',
+    '/icons/Photo_icon_1.jpg',
+    '/icons/Photo_icon_2.jpg',
+    '/icons/Photo_icon_3.jpg',
+    '/icons/Photo_icon_1.jpg',
   ];
   <ProductCardWare
   name="9-А Шампунь Tannur"
