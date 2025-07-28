@@ -25,7 +25,7 @@ export default function ProductView() {
   };
 
   return (
-    <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px] dashboard-scale">
+    <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px]">
       {/* Верхняя панель */}
       <div className="w-full flex justify-between items-center mt-6 px-6 py-4">
         <div>
