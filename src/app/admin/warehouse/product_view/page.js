@@ -10,10 +10,10 @@ export default function ProductView() {
   const [activeImage, setActiveImage] = useState(0);
 
   const productImages = [
-    '/Icons/Photo icon 1.jpg',
-    '/Icons/Photo icon 2.jpg',
-    '/Icons/Photo icon 3.jpg',
-    '/Icons/Photo icon 1.jpg',
+    '/Icons/Photo_icon_1.jpg',
+    '/Icons/Photo_icon_2.jpg',
+    '/Icons/Photo_icon_3.jpg',
+    '/Icons/Photo_icon_1.jpg',
   ];
 
   const handlePrev = () => {
@@ -178,7 +178,7 @@ export default function ProductView() {
       </div>
 
       {/* Контент снизу */}
-      <div className="px-6 pt-10 space-y-6">
+      <div className="px-6 pt-0 space-y-6">
         <h2 className="text-xl font-bold  text-[#111]">Доступные товары</h2>
         <ProductCardWare name="9-А Шампунь Tannur" shopPrice="12 990 ₸" dealerPrice="7 990 ₸" quantity={897} image="/icons/Photo icon 1.jpg" />
 
