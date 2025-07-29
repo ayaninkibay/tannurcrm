@@ -2,53 +2,23 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import MoreHeader from '@/components/header/MoreHeader';
+
 
 const EducationContent = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
 
   return (
     <div className="min-h-screen bg-[#F3F3F3] flex flex-col px-10 pt-6">
-      {/* Верхняя панель */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-semibold text-black">Академия Tannur</h1>
 
-        <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition cursor-pointer"
-                      onClick={() => console.log('Уведомления нажаты')}
-                    >
-                      <img
-                        src="/icons/Icon notifications.png"
-                        alt="Уведомления"
-                        className="w-5 h-5"
-                      />
-                      <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full" />
-                    </button>
-                    <button
-                      type="button"
-                      className="flex items-center bg-white px-3 py-2 rounded-full hover:opacity-80 transition cursor-pointer"
-                      onClick={() => console.log('Профиль нажат')}
-                    >
-                      <Image
-                        src="/icons/Users avatar 1.png"
-                        alt="Avatar"
-                        width={40}
-                        height={40}
-                        className="rounded-full mr-4 object-cover"
-                      />
-                      <span className="font-medium text-black">Інжу Ануарбек</span>
-                      <img
-                        src="/icons/Icon arow botom.png"
-                        alt="Стрелка"
-                        className="w-4 h-4 ml-2"
-                      />
-                    </button>
-                  </div>
-      </div>
+      <MoreHeader
+  title="Академия TNBA"
+  name="Інжу Ануарбек"
+  avatarUrl="/icons/Users avatar 1.png"
+  onProfile={() => console.log("Переход в профиль")}
+  onSignOut={() => console.log("Выход из системы")}
+/>
 
-      {/* Разделитель */}
-      <div className="h-[2px] bg-gray-900 rounded-full my-4" />
 
 
       {/* Переключатель вкладок */}

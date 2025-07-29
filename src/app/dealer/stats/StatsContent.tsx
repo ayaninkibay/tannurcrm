@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import MoreHeader from '@/components/header/MoreHeader';
 
 const stats = [
   {
@@ -38,44 +39,14 @@ const StatsContent = () => {
   return (
     <div className="flex flex-col gap-6 ml-[40px] mt-6 pr-[40px]">
       {/* Верхняя панель */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-semibold text-black">Ваши финансы</h1>
 
-        <div className="flex items-center gap-4 z-10">
-          <button
-            type="button"
-            className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition cursor-pointer"
-            onClick={() => console.log('Уведомления нажаты')}
-          >
-            <img
-              src="/icons/Icon notifications.png"
-              alt="Уведомления"
-              className="w-5 h-5"
-            />
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full" />
-          </button>
-
-          <button
-            type="button"
-            className="flex items-center bg-white px-3 py-2 rounded-full hover:opacity-80 transition cursor-pointer"
-            onClick={() => console.log('Профиль нажат')}
-          >
-            <Image
-              src="/icons/Users avatar 1.png"
-              alt="Avatar"
-              width={40}
-              height={40}
-              className="rounded-full mr-4 object-cover"
-            />
-            <span className="font-medium text-black">Інжу Ануарбек</span>
-            <img
-              src="/icons/Icon arow botom.png"
-              alt="Стрелка"
-              className="w-4 h-4 ml-2"
-            />
-          </button>
-        </div>
-      </div>
+      <MoreHeader
+  title="Ваши финансы"
+  name="Інжу Ануарбек"
+  avatarUrl="/icons/Users avatar 1.png"
+  onProfile={() => console.log("Переход в профиль")}
+  onSignOut={() => console.log("Выход из системы")}
+/>
 
       {/* Первый длинный блок */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">

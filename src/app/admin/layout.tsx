@@ -1,9 +1,9 @@
-import DashboardSidebarAdmin from '@/components/admin/DashboardSidebarAdmin';
+import SidebarAdmin from '@/components/admin/SidebarAdmin';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex bg-[#f5f5f5] min-h-screen">
-      <DashboardSidebarAdmin />
+      <SidebarAdmin />
       <main className="flex-1 p-6">
         {children}
       </main>

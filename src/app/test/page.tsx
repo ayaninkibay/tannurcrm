@@ -1,11 +1,27 @@
 'use client';
 
 import ProductCardWare from "@/components/ui/ProductCardWare";
+import SimpleHeader from "@/components/header/SimpleHeader";
+import MoreHeader from "@/components/header/MoreHeader";
 
 export default function TestPage() {
+  const showMoreHeader = true; // переключи на false, чтобы увидеть SimpleHeader
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5] py-10 px-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl p-8 shadow-sm">
+    <div className="min-h-screen bg-[#f5f5f5] pb-10 px-4">
+      {showMoreHeader ? (
+       <MoreHeader
+  title="Склад Tannur"
+  avatarUrl="/img/Inzhu.png"
+  name="Марғұза Қағыбат"
+  onProfile={() => console.log('Профиль')}
+  onSignOut={() => console.log('Выход')}
+/>
+      ) : (
+        <SimpleHeader title="Склад Tannur" />
+      )}
+
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl p-8 shadow-sm mt-6">
         <h1 className="text-xl font-semibold text-gray-900 mb-6">Товары</h1>
 
         <div className="grid grid-cols-1 gap-3">
@@ -17,7 +33,6 @@ export default function TestPage() {
             count={897}
             onClick={() => alert("Клик по товару 1")}
           />
-
           <ProductCardWare
             image="/img/product2.png"
             title="Отбеливающая маска Tannur"
@@ -26,7 +41,6 @@ export default function TestPage() {
             count={231}
             onClick={() => alert("Клик по товару 2")}
           />
-
           <ProductCardWare
             image="/img/product3.png"
             title="Гелеон маска Tannur"
@@ -35,7 +49,6 @@ export default function TestPage() {
             count={421}
             onClick={() => alert("Клик по товару 3")}
           />
-
           <ProductCardWare
             image="/img/product4.png"
             title="Кушон 3 в 1 Tannur"
@@ -44,7 +57,6 @@ export default function TestPage() {
             count={321}
             onClick={() => alert("Клик по товару 4")}
           />
-
           <ProductCardWare
             image="/img/product5.png"
             title="Набор из 6 кремов Tannur"

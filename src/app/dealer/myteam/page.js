@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
+import Sidebar from '@/components/Sidebar';
 import Shop from './myteam';
 
 export default function myteam() {
   return (
     <div className="flex bg-[#f5f5f5] min-h-screen">
       {/* Сайдбар */}
-      <DashboardSidebar />
+      <Sidebar/>
 
       {/* Контент магазина */}
       <main className="flex-1 ml-[140px] p-6">

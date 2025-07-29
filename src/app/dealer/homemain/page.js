@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
+import DashboardSidebar from '@/components/Sidebar';
 import Shop from './homemain';
 
 export default function home() {

@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  LineChart, Line, XAxis, Tooltip, BarChart, Bar, ResponsiveContainer, Cell,
-} from 'recharts';
+import SimpleHeader from '@/components/header/SimpleHeader';
 import { TurnoverChart } from '@/components/TurnoverChart';
 
 export default function DashboardPage() {
@@ -32,19 +30,7 @@ export default function DashboardPage() {
   return (
     <div className="w-full mt-6 flex flex-col gap-6">
 
-      {/* Верхний блок: Дешборд и кнопки */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-semibold text-black">Дэшборд</h1>
-        <div className="flex gap-3">
-          <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition" onClick={() => {}}>
-            <img src="/icons/Icon notifications.png" alt="notif" className="w-4 h-4" />
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full" />
-          </button>
-          <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition" onClick={() => {}}>
-            <img src="/icons/Icon profile.png" alt="profile" className="w-3 h-3" />
-          </button>
-        </div>
-      </div>
+            <SimpleHeader title="Дэшборд" />
 
       {/* Блок 0 — Приветствие */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
+import Sidebar from '@/components/Sidebar';
 import Image from 'next/image';
+import SimpleHeader from '@/components/header/SimpleHeader';
 
 export default function TeamPage() {
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'products'>('subscriptions');
@@ -11,39 +12,11 @@ export default function TeamPage() {
     <>
       <div className="min-h-screen w-full">
         <div className="flex min-h-screen">
-          <DashboardSidebar />
+          <Sidebar />
           <main className="flex-1 p-4 overflow-y-auto">
             {/* Header */}
-            <div className="flex justify-between items-center mb-3">
-              <h1 className="text-xl font-bold text-black">Ваша команда</h1>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition cursor-pointer"
-                  onClick={() => console.log('Уведомления нажаты')}
-                >
-                  <img
-                    src="/icons/Icon notifications.png"
-                    alt="Уведомления"
-                    className="w-4 h-4"
-                  />
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full" />
-                </button>
-                <button
-                  type="button"
-                  className="relative w-10 h-10 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition cursor-pointer"
-                  onClick={() => console.log('Уведомления нажаты')}
-                >
-                  <img
-                    src="/icons/Icon profile.png"
-                    alt="Уведомления"
-                    className="w-3 h-3"
-                  />
-                </button>
-              </div>
-            </div>
+            <SimpleHeader title="Ваша команда" />
 
-            <hr className="mb-4 p-3 border-gray-100" />
 
             {/* Основная сетка */}
             <div className="flex w-full h-[50vh] gap-3">

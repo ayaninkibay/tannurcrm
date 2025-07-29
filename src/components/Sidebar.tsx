@@ -45,7 +45,7 @@ const navItems = [
   },
 ];
 
-export default function DashboardSidebar() {
+export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
