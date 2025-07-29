@@ -40,13 +40,7 @@ const StatsContent = () => {
     <div className="flex flex-col gap-6 ml-[40px] mt-6 pr-[40px]">
       {/* Верхняя панель */}
 
-      <MoreHeader
-  title="Ваши финансы"
-  name="Інжу Ануарбек"
-  avatarUrl="/icons/Users avatar 1.png"
-  onProfile={() => console.log("Переход в профиль")}
-  onSignOut={() => console.log("Выход из системы")}
-/>
+        <MoreHeader title="Ваши финансы" />
 
       {/* Первый длинный блок */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">
