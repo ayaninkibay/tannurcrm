@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import MoreHeader from '@/components/header/MoreHeader';
 
 const FilesContent = () => {
   const fileBlock = (title: string, files: string[], iconSrc: string) => (
@@ -49,46 +50,7 @@ const FilesContent = () => {
     <div className="flex gap-6 mt-6 ml-[40px] items-start pr-[40px]">
       {/* Контент */}
       <div className="flex-1 flex flex-col gap-6">
-        {/* Хедер */}
-        <div className="flex justify-between items-center mt-6">
-          <h1 className="text-3xl font-semibold text-black">Ваши файлы</h1>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="relative w-12 h-12 rounded-full bg-white flex items-center justify-center hover:opacity-80 transition cursor-pointer"
-              onClick={() => console.log('Уведомления нажаты')}
-            >
-              <img
-                src="/icons/Icon notifications.png"
-                alt="Уведомления"
-                className="w-5 h-5"
-              />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-600 rounded-full" />
-            </button>
-            <button
-              type="button"
-              className="flex items-center bg-white px-3 py-2 rounded-full hover:opacity-80 transition cursor-pointer"
-              onClick={() => console.log('Профиль нажат')}
-            >
-              <Image
-                src="/icons/Users avatar 1.png"
-                alt="Avatar"
-                width={40}
-                height={40}
-                className="rounded-full mr-4 object-cover"
-              />
-              <span className="font-medium text-black">Інжу Ануарбек</span>
-              <img
-                src="/icons/Icon arow botom.png"
-                alt="Стрелка"
-                className="w-4 h-4 ml-2"
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Разделитель */}
-        <div className="h-[2px] bg-gray-300 rounded-full my-3" />
+                <MoreHeader title="Магазин Tannur" />
 
         {/* Блоки с файлами */}
         <div className="flex gap-6 flex-wrap">
