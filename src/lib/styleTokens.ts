@@ -27,7 +27,7 @@ export const breakpoints = {
 
 export const layout = {
   // паддинги по бокам для всего контента справа от sidebar
-pagePadding: 'px-1 sm:px-2 md:px-6 lg:px-8',
+pagePadding: 'px-1 sm:px-4 md:px-6 lg:px-8',
   // у нас больше нет ни center, ни maxWidth
   maxWidth:    '',
   center:      '',
