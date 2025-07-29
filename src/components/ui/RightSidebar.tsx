@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function RightSidebar() {
   const router = useRouter();
@@ -49,20 +50,24 @@ export default function RightSidebar() {
       {/* История */}
       <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">История</p>
-        <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
-          <span className="flex items-center gap-2 text-[#111] font-medium">
-            <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-            Составить отчет по остаткам
-          </span>
-          <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-        </button>
-        <button className="flex justify-between items-center text-sm py-3 px-4 mt-2 rounded-xl bg-white hover:bg-gray-100 w-full transition">
-          <span className="flex items-center gap-2 text-[#111] font-medium">
-            <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-            История движения на складе
-          </span>
-          <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-        </button>
+       <Link href="/admin/teamcontent/create_dealer" className="block w-full">
+  <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
+    <span className="flex items-center gap-2 text-[#111] font-medium">
+      <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
+      Составить отчет по остаткам
+    </span>
+    <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
+  </button>
+</Link>
+         <Link href="/admin/teamcontent/create_star" className="block w-full">
+  <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl mt-2 bg-white hover:bg-gray-100 w-full transition">
+    <span className="flex items-center gap-2 text-[#111] font-medium">
+      <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
+      История движения товара на складе
+    </span>
+    <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
+  </button>
+</Link>
       </div>
 
       {/* Товары (создание) */}
