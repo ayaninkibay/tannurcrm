@@ -10,13 +10,7 @@ export default function TestPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] pb-10 px-4">
       {showMoreHeader ? (
-       <MoreHeader
-  title="Склад Tannur"
-  avatarUrl="/img/Inzhu.png"
-  name="Марғұза Қағыбат"
-  onProfile={() => console.log('Профиль')}
-  onSignOut={() => console.log('Выход')}
-/>
+        <MoreHeader title="Магазин Tannur" />
       ) : (
         <SimpleHeader title="Склад Tannur" />
       )}
