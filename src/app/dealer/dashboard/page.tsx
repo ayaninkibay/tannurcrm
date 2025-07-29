@@ -19,12 +19,6 @@ export default function DashboardPage() {
     { month: 'Июль', value: 1120000 },
     { month: 'Авг', value: 1984321 },
     { month: 'Сен', value: 340000 },
-    { month: 'Окт', value: 1340000 },
-    { month: 'Нояб', value: 42000 },
-    { month: 'Дек', value: 0 },
-    { month: 'Янв', value: 1640000 },
-    { month: 'Фев', value: 510000 },
-    { month: 'Март', value: 3213200 },
   ]
 
   return (
