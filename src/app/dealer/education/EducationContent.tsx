@@ -11,14 +11,7 @@ const EducationContent = () => {
   return (
     <div className="min-h-screen bg-[#F3F3F3] flex flex-col px-10 pt-6">
 
-      <MoreHeader
-  title="Академия TNBA"
-  name="Інжу Ануарбек"
-  avatarUrl="/icons/Users avatar 1.png"
-  onProfile={() => console.log("Переход в профиль")}
-  onSignOut={() => console.log("Выход из системы")}
-/>
-
+        <MoreHeader title="Академия TNBA" />
 
 
       {/* Переключатель вкладок */}
