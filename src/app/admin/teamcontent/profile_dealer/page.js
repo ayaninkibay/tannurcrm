@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import MoreHeader from '@/components/header/MoreHeader';
 import { ThirdTemplate } from '@/components/layouts/TannurPageTemplates';
+import DealerPost from '@/components/ui/DealerPost';
 
 export default function ProfileDealer() {
   return (
@@ -18,6 +19,7 @@ export default function ProfileDealer() {
           }
         />
       }
+      // Левая колонка: команда и инструкция
       column1={
         <>
           {/* Команда + ссылка */}
@@ -45,58 +47,71 @@ export default function ProfileDealer() {
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             <Image src="/icons/LogoTannur.svg" alt="Tannur" width={80} height={30} className="mb-3" />
             <p className="text-xs text-gray-500 leading-relaxed space-y-2 mb-4">
-              <span>
-                It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.
-              </span>
-              <br />
-              <span>
-                Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text,
-                and a search for 'lorem ipsum' will uncover many web sites still in their infancy.
-              </span>
-              <br />
-              <span>
-                Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
-              </span>
-            </p>
+             It is a long established fact that a reader will be distracted by the readable content .</p>
             <p className="text-xs text-[#111] font-medium underline cursor-pointer">Перейти на сайт</p>
           </div>
         </>
       }
+      // Правая колонка: блок дилера, лента и галерея
       column2={
         <>
           {/* Блок Алина Аскарова */}
-          <div className="bg-gradient-to-r from-[#E79DBB] via-[#EAD2DC] to-[#BAC7EB] rounded-2xl p-6 md:p-8 flex items-center gap-6">
-            <img
-              src="/icons/Usersavatar6.png"
-              alt="dealer"
-              className="w-[100px] h-[100px] rounded-2xl object-cover"
-            />
-            <div className="flex flex-col gap-1 flex-1">
-              <p className="text-lg font-semibold text-[#111] flex items-center gap-1">
-                Алина Аскарова
-                <Image src="/icons/IconCheckMarkBlue.svg" alt="verify" width={16} height={16} />
-              </p>
-              <p className="text-sm text-gray-600">Эксперт</p>
-              <p className="text-sm text-gray-500">inzhu@gmail.com</p>
-              <p className="text-sm text-gray-500">+7 707 700 00 02</p>
-            </div>
-            <div className="text-right hidden md:block">
-              <p className="text-xs text-gray-500">Товарооборот</p>
-              <p className="text-xl font-semibold text-[#111] flex items-center gap-1">
-                7 412 000 ₸
-                <Image src="/icons/IconArrowGrow.svg" alt="up" width={16} height={16} />
-              </p>
+          <div className="relative rounded-2xl bg-white overflow-hidden min-h-[280px]">
+            {/* Градиентная полоса сверху (фиксированная высота) */}
+            <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-r from-[#E79DBB] via-[#EAD2DC] to-[#BAC7EB]" />
+
+            {/* Контент, сдвинутый вниз на высоту градиента */}
+            <div className="relative pt-36 p-6 md:p-8 flex items-center gap-6">
+              {/* Аватар, частично врезающийся в градиент */}
+              <img
+                src="/Icons/UsersAvatarPrew.jpg"
+                alt="dealer"
+                className="w-[230px] h-[230px]  rounded-2xl object-cover mt-10"
+              />
+              {/* Информация о дилере */}
+              <div className="flex flex-col gap-1 flex-1">
+                <p className="text-2xl font-semibold text-[#111] flex items-center mt-30 gap-1">
+                  Алина Аскарова
+                  <Image src="/icons/IconCheckMarkBlue.svg" alt="verify" width={16} height={16} />
+                </p>
+                <p className="text-sg text-gray-800">Эксперт</p>
+                <p className="text-sm text-gray-500">inzhu@gmail.com</p>
+                <p className="text-sm text-gray-500">+7 707 700 00 02</p>
+              </div>
+              {/* Товарооборот, внизу справа на белой части */}
+              <div className="absolute bottom-3 right-6 flex flex-col items-end">
+                <p className="text-sg pr-15 text-black">Товарооборот</p>
+                <p className="text-2xl font-semibold text-gray-600 flex items-center gap-1">
+                  7 412 000 ₸
+                  <Image src="/icons/IconStongs.png" alt="up" width={40} height={40} />
+                </p>
+              </div>
             </div>
           </div>
 
-{/* Галерея - 3 пустых блока */}
+          {/* Лента */}
+          <div className="flex justify-between items-center px-6 md:px-8 text-[#111] text-sm font-semibold mb-6">
+            <span>Лента</span>
+            <Image src="/icons/IconSettingsBlack.svg" alt="settings" width={16} height={16} />
+          </div>
+
+          {/* Галерея */}
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="w-full h-[200px] bg-white rounded-xl"
-              />
-            ))}
+            <DealerPost
+              imageSrc="/images/gallery1.jpg"
+              alt="Gallery image 1"
+              title="It is a long established fact"
+            />
+            <DealerPost
+              imageSrc="/images/gallery2.jpg"
+              alt="Gallery image 2"
+              title="It is a long established fact"
+            />
+            <DealerPost
+              imageSrc="/images/gallery3.jpg"
+              alt="Gallery image 3"
+              title="It is a long established fact"
+            />
           </div>
         </>
       }
