@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
 @font-face {
   font-family: 'Gilroy';
   src: url('/fonts/Gilroy-Light.woff') format('woff');

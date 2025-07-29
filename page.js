@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Sidebar from '@/components/Sidebar';
+
 import Shop from './Dashboard';
 
 export default function MainContent() {
