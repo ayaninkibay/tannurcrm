@@ -88,13 +88,26 @@ export default function RightSidebar() {
       {/* Пользователи */}
       <div className="rounded-xl">
         <p className="text-sm font-semibold mb-2 text-[#111]">Пользователи</p>
-        <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
-          <span className="flex items-center gap-2 text-[#111] font-medium">
-            <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-            Создать менеджера
-          </span>
-          <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-        </button>
+           <button
+      onClick={() => router.push('/admin/teamcontent/profile_dealer')}
+      className="flex justify-between items-center text-sm py-3 px-4 mt-2 rounded-xl bg-white hover:bg-gray-100 w-full transition"
+    >
+      <span className="flex items-center gap-2 text-[#111] font-medium">
+        <Image
+          src="/icons/IconProfileOrange.png"
+          alt="icon"
+          width={16}
+          height={16}
+        />
+        Создать менеджера
+      </span>
+      <Image
+        src="/icons/Icon arow botom.png"
+        alt="arrow"
+        width={18}
+        height={18}
+      />
+    </button>
       </div>
     </div>
   );
