@@ -1,9 +1,8 @@
-// src/components/Sidebar.tsx
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -52,6 +51,7 @@ export default function Sidebar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [activeTop, setActiveTop] = useState(0);
+  const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
   const goToHome = () => {
     if (pathname !== '/') {
@@ -76,17 +76,46 @@ export default function Sidebar() {
     return () => window.removeEventListener('resize', updateActiveTop);
   }, [pathname]);
 
+  useEffect(() => {
+    setLoadingIndex(null);
+  }, [pathname]);
+
+  const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
+    e.preventDefault();
+    if (pathname !== href) {
+      setLoadingIndex(idx);
+      router.push(href);
+    }
+  };
+
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-36 bg-[#e08672] z-10 flex-col items-center pt-12 pb-6">
+    <aside
+      className="
+        hidden
+        [@media(min-width:900px)]:flex
+        fixed left-0 top-0 h-screen
+        w-36 xl:w-28
+        bg-[#e08672] z-10 flex-col items-center pt-12 pb-6
+      "
+    >
       {/* Логотип */}
       <button
         onClick={goToHome}
-        className={`mb-6 mt-4 w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all ${
-          pathname === '/' ? 'bg-[#d9d9d9]' : 'hover:bg-white/20'
-        }`}
+        className={`
+          mb-6 mt-4
+          w-[60px] h-[60px]
+          xl:w-[50px] xl:h-[50px]
+          rounded-xl flex items-center justify-center transition-all
+          ${pathname === '/' ? 'bg-[#d9d9d9]' : 'hover:bg-white/20'}
+        `}
         title="Главная"
       >
-        <Image src="/icons/company/tannur_white.svg" alt="Логотип" width={70} height={70} />
+        <Image
+          src="/icons/company/tannur_white.svg"
+          alt="Логотип"
+          width={70}
+          height={70}
+        />
       </button>
 
       {/* Навигация */}
@@ -94,35 +123,52 @@ export default function Sidebar() {
         ref={containerRef}
         className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"
       >
-        {/* Анимированный фон */}
         <motion.div
           layout
           layoutId="active-indicator"
-          className="absolute w-[60px] h-[60px] bg-white rounded-xl left-1/2 -translate-x-1/2 z-0"
+          className="
+            absolute
+            w-[60px] h-[60px]
+            xl:w-[50px] xl:h-[50px]
+            bg-white rounded-xl left-1/2 -translate-x-1/2 z-0
+          "
           style={{ top: activeTop }}
           initial={false}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         />
 
-        {/* Пункты меню */}
         {navItems.map((item, idx) => {
           const isActive = pathname === item.href;
           return (
-            <Link href={item.href} key={item.href} className="relative z-10">
+            <Link
+              href={item.href}
+              key={item.href}
+              prefetch={false}
+              onClick={(e) => handleClick(e, idx, item.href)}
+              className="relative z-10"
+            >
               <div
-                // Здесь явно указываем, что el может быть HTMLDivElement или null
-                ref={(el: HTMLDivElement | null) => {
+                ref={(el) => {
                   itemRefs.current[idx] = el;
                 }}
-                className="w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all hover:bg-[#ffffff33]"
+                className="
+                  w-[60px] h-[60px]
+                  xl:w-[50px] xl:h-[50px]
+                  rounded-xl flex items-center justify-center
+                  transition-all hover:bg-[#ffffff33]
+                "
                 title={item.label}
               >
-                <Image
-                  src={isActive ? item.iconGray : item.icon}
-                  alt={item.label}
-                  width={22}
-                  height={22}
-                />
+                {loadingIndex === idx ? (
+                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <Image
+                    src={isActive ? item.iconGray : item.icon}
+                    alt={item.label}
+                    width={22}
+                    height={22}
+                  />
+                )}
               </div>
             </Link>
           );
