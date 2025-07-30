@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -25,7 +25,7 @@ export default function DashboardSidebarAdmin() {
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {
-    function calculateActiveTop() {
+    const updateActiveTop = () => {
       const idx = adminNavItems.findIndex(item => item.href === pathname);
       const activeEl = itemRefs.current[idx];
       const containerEl = containerRef.current;
@@ -33,64 +33,107 @@ export default function DashboardSidebarAdmin() {
         const offset = activeEl.getBoundingClientRect().top - containerEl.getBoundingClientRect().top;
         setActiveTop(offset);
       }
-    }
+    };
 
-    calculateActiveTop();
-    window.addEventListener('resize', calculateActiveTop);
-    return () => window.removeEventListener('resize', calculateActiveTop);
+    updateActiveTop();
+    window.addEventListener('resize', updateActiveTop);
+    return () => window.removeEventListener('resize', updateActiveTop);
   }, [pathname]);
 
+  useEffect(() => {
+    setLoadingIndex(null);
+  }, [pathname]);
+
+  const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
+    e.preventDefault();
+    if (pathname !== href) {
+      setLoadingIndex(idx);
+      router.push(href);
+    }
+  };
+
+  const goToHome = () => {
+    if (pathname !== '/') {
+      router.push('/');
+    }
+  };
+
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-36 bg-[#F6F6F6] border-r border-gray-300 z-10 flex-col items-center pt-14 pb-8">
+    <aside
+      className="
+        hidden
+        lg:flex
+        fixed left-0 top-0
+        h-screen w-36
+        bg-[#f6f6f6] z-10
+        flex-col items-center pt-12 pb-6
+        border-r border-gray-300
+      "
+    >
       {/* Логотип */}
       <button
-        onClick={() => router.push('/')}
-        className={`mb-8 w-[70px] h-[70px] rounded-xl flex items-center justify-center transition-all ${
-          pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-gray-100'
-        }`}
-        title="Админ Главная"
+        onClick={goToHome}
+        className={`
+          mb-6 mt-4
+          w-[60px] h-[60px]
+          xl:w-[50px] xl:h-[50px]
+          rounded-xl flex items-center justify-center transition-all
+          ${pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
+        `}
+        title="Главная"
       >
-        <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={70} height={70} />
+        <Image
+          src="/icons/company/tannur_black.svg"
+          alt="Логотип"
+          width={70}
+          height={70}
+        />
       </button>
 
       {/* Навигация */}
-      <div ref={containerRef} className="relative flex-grow flex flex-col justify-center items-center gap-6">
-        {/* Анимированная подложка активного пункта */}
+      <div
+        ref={containerRef}
+        className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"
+      >
         <motion.div
           layout
           layoutId="admin-active-indicator"
-          className="absolute w-[60px] h-[60px] bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0"
+          className="
+            absolute
+            w-[60px] h-[60px]
+            xl:w-[50px] xl:h-[50px]
+            bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0
+          "
           style={{ top: activeTop }}
           initial={false}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         />
 
-        {/* Пункты меню */}
         {adminNavItems.map((item, idx) => {
           const isActive = pathname === item.href;
-          const isLoading = loadingIndex === idx;
-
-          const handleClick = async (e: React.MouseEvent) => {
-            e.preventDefault();
-
-            if (!isActive) {
-              setLoadingIndex(idx);
-              await router.push(item.href);
-              setTimeout(() => setLoadingIndex(null), 300); // убрать спиннер после перехода
-            }
-          };
 
           return (
-            <Link href={item.href} key={item.href} className="relative z-10" onClick={handleClick}>
+            <Link
+              href={item.href}
+              key={item.href}
+              prefetch={false}
+              onClick={(e) => handleClick(e, idx, item.href)}
+              className="relative z-10"
+            >
               <div
-                ref={el => { itemRefs.current[idx] = el; }}
-                className={`w-[60px] h-[60px] rounded-xl flex items-center justify-center transition-all ${
-                  isActive ? '' : 'hover:bg-gray-100'
-                }`}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                className="
+                  w-[60px] h-[60px]
+                  xl:w-[50px] xl:h-[50px]
+                  rounded-xl flex items-center justify-center
+                  transition-all hover:bg-[#00000011]
+                "
                 title={item.label}
               >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                {loadingIndex === idx ? (
+                  <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
                 ) : (
                   <Image
                     src={isActive ? item.iconGray : item.icon}

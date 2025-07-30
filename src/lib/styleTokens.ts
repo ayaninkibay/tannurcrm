@@ -1,4 +1,5 @@
 // src/lib/styleTokens.ts
+import { breakpoints } from '@/components/breakpoints'
 
 /**
  * 1. Точки останова (breakpoints)
@@ -7,17 +8,7 @@
  *   • В Tailwind: lg:bg-red-500, 3xl:text-xl и т.д.
  *   • В JS-логике: window.matchMedia(`(min-width: ${breakpoints.lg})`)
  */
-export const breakpoints = {
-  mobile: '480px',   // очень узкие экраны (старые телефоны)
-  sm:     '640px',   // телефоны
-  md:     '768px',   // планшеты в портрете
-  lg:     '1024px',  // планшеты в ландшафте / маленькие ноуты
-  xl:     '1280px',  // стандартный десктоп
-  xl2:    '1400px',  // большие десктопы
-  '2xl':  '1536px',  // крупные мониторы
-  '3xl':  '1920px',  // FullHD / телевизоры
-  '4xl':  '3440px',  // ультраширокие
-}
+export { breakpoints }
 
 /**
  * 2. Отступы и контейнеры
