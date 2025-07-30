@@ -1,36 +1,34 @@
-'use client';
-
+// src/components/ui/DealerPost.tsx
 import Image from 'next/image';
-import React from 'react';
 
 interface DealerPostProps {
-  /** Путь до картинки */
   imageSrc: string;
-  /** Альтернативный текст для изображения */
-  alt?: string;
-  /** Заголовок или название поста */
+  alt: string;
   title: string;
+  description?: string;       // новый пропс
 }
 
-/**
- * Компонент карточки поста дилера: изображение + название
- * Использование:
- * <DealerPost imageSrc="/images/...jpg" alt="Описание" title="Заголовок" />
- */
-export default function DealerPost({ imageSrc, alt = '', title }: DealerPostProps) {
+export default function DealerPost({
+  imageSrc,
+  alt,
+  title,
+  description,
+}: DealerPostProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <div className="w-full h-[180px] relative">
+    <div className="bg-white rounded-xl shadow p-4 flex flex-col">
+      <div className="overflow-hidden rounded-lg border border-gray-200 mb-3">
         <Image
           src={imageSrc}
           alt={alt}
-          fill
-          className="object-cover"
+          width={300}
+          height={200}
+          className="w-full h-auto object-cover"
         />
       </div>
-      <div className="p-4">
-        <p className="text-sm text-gray-500">{title}</p>
-      </div>
+      <h3 className="text-normal font-semibold text-black mb-2">{title}</h3>
+      {description && (
+        <p className="text-sm text-gray-600">{description}</p>
+      )}
     </div>
   );
 }
