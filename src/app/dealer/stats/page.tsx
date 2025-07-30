@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import MoreHeader from '@/components/header/MoreHeader';
 
+
 const stats = [
   {
     label: 'Выплаты за подписки',
@@ -32,12 +33,12 @@ const stats = [
   },
 ];
 
-const StatsContent = () => {
+
+export default function StatsContent() {
   const [activeTab, setActiveTab] = useState('subscriptions');
 
-  
   return (
-    <div className="flex flex-col gap-6 ml-[40px] mt-6 pr-[40px]">
+    <div className="flex flex-col gap-6 ml-[10px] mt-6 pr-[10px]">
       {/* Верхняя панель */}
 
         <MoreHeader title="Ваши финансы" />
@@ -399,8 +400,5 @@ const StatsContent = () => {
 
 
     </div>
-
-);
-};
-
-export default StatsContent;
+  );
+}

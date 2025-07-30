@@ -162,7 +162,7 @@ export default function DashboardPage() {
 column2={
         <>
           {/* Блок 1 — Баланс */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
             <div className="bg-[#3D3D3D] text-white rounded-2xl p-6 flex flex-col justify-between">
               <div>
                 <p className="text-sm text-gray-400 mb-2">Ваш баланс</p>
