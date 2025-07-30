@@ -92,10 +92,11 @@ export default function Sidebar() {
     <aside
       className="
         hidden
-        [@media(min-width:900px)]:flex
-        fixed left-0 top-0 h-screen
-        w-36 xl:w-28
-        bg-[#e08672] z-10 flex-col items-center pt-12 pb-6
+        lg:flex                /* показываем с md+ */
+        fixed left-0 top-0
+        h-screen w-36          /* 9rem — ширина сайдбара */
+        bg-[#e08672] z-10
+        flex-col items-center pt-12 pb-6
       "
     >
       {/* Логотип */}
