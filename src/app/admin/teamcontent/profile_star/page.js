@@ -121,62 +121,66 @@ export default function ProfileStarPage() {
       column2={
         <>{
   <>
-     <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col gap-6">
-      {/* Заголовок внутри блока */}
-      <h3 className="text-lg font-semibold text-[#111]">О компании</h3>
+     {/* Заголовок над блоком */}
+    <h3 className="text-lg font-semibold text-[#111] mt-7 mb-7">О компании</h3>
 
-      {/* Логотип */}
-      <div className="flex justify-center">
+    {/* Сам блок */}
+    <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col gap-6">
+      {/* Логотип по центру */}
+      <div className="flex mt-5 justify-center">
         <Image
-          src="/icons/LogoTannur.svg"
+          src="/icons/IconlogoTannur.jpg"
           alt="Tannur"
           width={80}
-          height={30}
+          height={80}
         />
       </div>
 
-      {/* Основной текст */}
-      <p className="text-xs text-gray-500 leading-relaxed">
+      {/* Описание */}
+      <p className="text-xs text-gray-500 mb-15 leading-relaxed">
         It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more‑or‑less normal distribution of letters, as opposed to using 'Content here', making it look like readable English.
       </p>
-
-      {/* Дополнительный текст */}
-      <p className="text-xs text-gray-500 leading-relaxed">
+      <p className="text-xs text-gray-500 mb-0 leading-relaxed">
         Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy.
       </p>
-
+       <p className="text-xs text-gray-500 mb-15 leading-relaxed">
+        Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
+      </p>
       {/* Сегментированные кнопки */}
-      <div className="inline-flex overflow-hidden rounded-lg border border-[#DC7C67]">
-        {/* Перейти на сайт */}
-        <a
-          href="#"
-          onClick={handleCopy}
-          className="flex items-center gap-2 px-4 py-2 bg-[#DC7C67] text-white text-sm"
-        >
-          <Image
-            src="/icons/IconLink.svg"
-            alt="link"
-            width={16}
-            height={16}
-          />
-          Перейти на сайт
-        </a>
+ {/* Сегментированная кнопка‑пилюля */}
+<div className="inline-flex items-center rounded-full border border-[#DC7C67] overflow-hidden">
+  {/* Левая «активная» половинка */}
+  <a
+    href="#"
+    className="flex items-center gap-2 px-3 py-1.5 bg-[#DC7C67] text-white text-xs"
+  >
+    <Image
+      src="/icons/IconGalleryWhite.svg"
+      alt="link"
+      width={16}
+      height={16}
+    />
+    Перейти на сайт
+  </a>
 
-        {/* Завод Tannur */}
-        <a
-          href="#"
-          className="flex items-center gap-2 px-4 py-2 bg-white text-[#111] text-sm"
-        >
-          <Image
-            src="/icons/IconFactory.svg"
-            alt="factory"
-            width={16}
-            height={16}
-          />
-          Завод Tannur
-        </a>
-      </div>
+  {/* Правая «неактивная» половинка */}
+  <a
+    href="#"
+    className="flex items-center gap-2 px-3 py-1.5 bg-white text-[#111] text-xs"
+  >
+    <Image
+      src="/icons/IconStarBlack.svg"
+      alt="factory"
+      width={16}
+      height={16}
+    />
+    Завод Tannur
+  </a>
+</div>
+
+
     </div>
+    
   </>
 }
 
@@ -251,6 +255,33 @@ export default function ProfileStarPage() {
               ))}
             </div>
           </div>
+          {/* Фотографии */}
+<div className="mt-10 px-6 md:px-8">
+  <h2 className="text-2xl font-semibold text-[#111] mb-4">Фотографии</h2>
+  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+    <img
+      src="/icons/gallery1.jpg"
+      alt="Фото 1"
+      className="w-full h-40 object-cover rounded-2xl"
+    />
+    <img
+      src="/icons/gallery2.jpg"
+      alt="Фото 2"
+      className="w-full h-40 object-cover rounded-2xl"
+    />
+    <img
+      src="/icons/gallery3.jpg"
+      alt="Фото 3"
+      className="w-full h-40 object-cover rounded-2xl"
+    />
+    <img
+      src="/icons/gallery4.jpg"
+      alt="Фото 4"
+      className="w-full h-40 object-cover rounded-2xl"
+    />
+  </div>
+</div>
+
         </>
       }
     />
