@@ -155,10 +155,10 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
               animate={{ x: '60%' }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3 }}
-              className="fixed top-0 right-0 h-full w-[120%] bg-gradient-to-b from-[#F4ECEB] to-white z-50 flex flex-col items-start p-6 space-y-4 md:hidden shadow-lg"
+              className="fixed top-0 right-0 h-full w-[160%] bg-gradient-to-b from-[#eeecec] to-white z-50 flex flex-col items-start p-6 space-y-4 lg:hidden shadow-lg"
             >
-              <div className="w-full flex justify-between items-center mb-4">
-                <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={120} height={24} />
+              <div className="w-full flex justify-between items-center pl-3 mb-10">
+                <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={80} height={24} />
                 <button onClick={() => setMenuOpen(false)} className="text-3xl">×</button>
               </div>
               {menuItems.map(({ label, href, icon, activeIcon }) => {
