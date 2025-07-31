@@ -6,6 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lottie from 'lottie-react';
+import hamburgerAnimation from '@/lotties/Menu.json';
 
 interface MoreHeaderProps {
   title: string;
@@ -72,7 +74,7 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
           <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
             {title}
           </h1>
-          <p className="text-sm md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
+          <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
             Tannur Cosmetics © 2025. All Rights Reserved.
           </p>
         </div>
@@ -83,10 +85,10 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
             className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white flex items-center justify-center"
           >
             <Image
-              src="/icons/buttom/IconBell.svg"
+              src="/icons/notification_red.svg"
               alt="Уведомления"
-              width={16}
-              height={16}
+              width={24}
+              height={24}
             />
           </button>
 
@@ -115,14 +117,15 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="w-8 h-8 rounded-full flex items-center justify-center lg:hidden"
+            className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
           >
-            <Image
-              src="/icons/hamburger.svg"
-              alt="Меню"
-              width={22}
-              height={22}
-            />
+            <Lottie
+            animationData={hamburgerAnimation}
+            loop={true}
+            autoplay={true}
+            className="w-10 h-10"
+          />
+
           </button>
 
           <button
