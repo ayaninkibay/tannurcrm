@@ -228,8 +228,14 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <h2 className="text-lg font-semibold mb-2">Tannur CRM был разработан в Inqo Technologies</h2>
-              <p className="text-sm text-gray-500">www.inqo.tech</p>
+                <div className="p-4 rounded-2xl text-center max-w-xs w-full">
+                  <Image src="/icons/inqo.svg" alt="Inqo Logo" width={48} height={48} className="mx-auto mb-4" />
+                  <h2 className="text-md font-semibold mb-2">
+                    Tannur CRM был разработан в<br />Inqo Technologies
+                  </h2>
+                  <p className="text-sm text-gray-500">www.inqo.tech</p>
+                </div>
+
             </motion.div>
           </motion.div>
         )}
