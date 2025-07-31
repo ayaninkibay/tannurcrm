@@ -4,22 +4,22 @@
 import React, { useState } from 'react'
 import SimpleHeader from '@/components/header/SimpleHeader'
 import { ThirdTemplate } from '@/components/layouts/TannurPageTemplates'
-import { TurnoverChart } from '@/components/TurnoverChart'
+import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
+import { generateMonthlyData } from '@/components/generateData';
+
+
+
 
 export default function DashboardPage() {
+    const rawData: MonthValue[] = generateMonthlyData(
+    new Date(2024, 8, 1), 
+    12
+  );
+  
   const handleCopy = () => {
     navigator.clipboard.writeText('tannur.app/KZ848970')
     alert('Ссылка скопирована!')
   }
-
-  const graphData = [
-    { month: 'Апр', value: 1210000 },
-    { month: 'Май', value: 980000 },
-    { month: 'Июнь', value: 750000 },
-    { month: 'Июль', value: 1120000 },
-    { month: 'Авг', value: 1984321 },
-    { month: 'Сен', value: 340000 },
-  ]
 
   return (
     <ThirdTemplate
@@ -229,14 +229,12 @@ column2={
                   />
                 </button>
               </div>
-              <div className="mt-6 h-[200px] w-full relative">
                 <TurnoverChart
-                  data={graphData}
-                  colorBar="#e9d7d6"
-                  colorLine="#db6a56"
-                  lineOffset={1700000}
-                />
-              </div>
+                       data={rawData}
+                       colorBar="#E9D7D6"
+                       colorLine="#DB6A56"
+                       lineOffset={300000}
+                     />
             </div>
 
             {/* Блок 5 — Новости Tannur */}

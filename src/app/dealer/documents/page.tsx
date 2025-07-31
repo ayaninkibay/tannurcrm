@@ -3,6 +3,8 @@
 import React from 'react';
 import Image from 'next/image';
 import MoreHeader from '@/components/header/MoreHeader';
+import Footer from '@/components/Footer';
+
 
 export default function DocumentsPage() {
   const fileBlock = (title: string, files: string[], iconSrc: string) => (
@@ -45,7 +47,7 @@ export default function DocumentsPage() {
   )
 
 return (
-  <div className="flex gap-6 mt-6 ml-[10px] items-start pr-[10px]">
+      <div className="relative min-h-screen flex gap-6 mt-6 ml-[10px] items-start pr-[10px]">
     {/* Контент */}
     <div className="flex-1 flex flex-col gap-6">
       <MoreHeader title="Магазин Tannur" />
@@ -75,6 +77,9 @@ return (
         ], '/icons/Icon video red.png')}</div>
       </div>
     </div>
+          <div className="absolute bottom-4 right-4">
+        <Footer />
+      </div>
   </div>
 );
 

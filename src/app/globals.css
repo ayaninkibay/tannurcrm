@@ -2,6 +2,9 @@
 
 @import "tailwindcss";
 
+.recharts-surface:focus {
+  outline: none;
+}
 
 @font-face {
   font-family: 'Gilroy';
