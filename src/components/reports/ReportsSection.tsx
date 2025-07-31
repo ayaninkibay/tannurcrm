@@ -54,39 +54,40 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ role }) => {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Заголовок и табы */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Отчеты</h2>
+  {/* 1 строка: только заголовок */}
+  <h2 className="text-md lg:text-2xl font-semibold">Отчеты</h2>
 
-        <div className="relative overflow-x-auto w-70 max-w-md">
-          {/* Табы через flex */}
-          <div className="flex bg-white rounded-full p-1 relative">
-            {/* Индикатор */}
-            <span
-              className="absolute top-1 bottom-1 bg-[#DC7C67] rounded-full transition-all z-10"
-              style={{
-                left: `${tabWidthPercent * activeIndex}%`,
-                width: `${tabWidthPercent}%`,
-              }}
+  {/* 2 строка: табы справа */}
+  <div className="flex justify-end">
+    <div className="relative overflow-x-auto max-w-xl w-full">
+      {/* Табы через flex */}
+      <div className="flex bg-white rounded-full p-1 relative">
+        {/* Индикатор */}
+        <span
+          className="absolute top-1 bottom-1 bg-[#DC7C67] rounded-full transition-all z-10"
+          style={{
+            left: `${tabWidthPercent * activeIndex}%`,
+            width: `${tabWidthPercent}%`,
+          }}
+        />
+
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActive(tab.key)}
+            className={`flex items-center justify-center gap-2 flex-1 relative z-20 min-w-[80px] py-2 text-xs md:text-sm font-medium rounded-full transition-colors ${
+              active === tab.key ? 'text-white' : 'text-black'
+            }`}
+          >
+            <Image
+              src={tabIcons[tab.key]}
+              alt={tab.label}
+              width={20}
+              height={20}
+              className="object-contain"
             />
-
-            {tabs.map((tab) => (
-  <button
-    key={tab.key}
-    onClick={() => setActive(tab.key)}
-    className={`flex items-center justify-center gap-2 flex-1 relative z-20 min-w-[80px] py-2 text-sm font-medium rounded-full transition-colors ${
-      active === tab.key ? 'text-white' : 'text-black'
-    }`}
-  >
-    <Image
-      src={tabIcons[tab.key]}
-      alt={tab.label}
-      width={20}
-      height={20}
-      className="object-contain"
-    />
-    <span>{tab.label}</span>
-  </button>
+            <span>{tab.label}</span>
+          </button>
 ))}
 
           </div>

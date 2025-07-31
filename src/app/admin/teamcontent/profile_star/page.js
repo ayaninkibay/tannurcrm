@@ -147,7 +147,7 @@ export default function ProfileStarPage() {
         Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
       </p>
       {/* Сегментированные кнопки */}
- {/* Сегментированная кнопка‑пилюля */}
+ {/* Сегментированная кнопка‑пилюля */} 
 <div className="inline-flex items-center rounded-full border border-[#DC7C67] overflow-hidden">
   {/* Левая «активная» половинка */}
   <a

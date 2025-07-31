@@ -51,8 +51,8 @@ export default function StatsContent() {
       {/* Section 2: Финансы */}
       <section className="space-y-4 grid grid-cols-8 gap-4">
         
-        <div className="col-span-8 md:col-span-4 xl:col-span-2 bg-white w-full h-full p-4 rounded-2xl">
-          <BalanceCard balance="890 020" variant="light" />
+        <div className="col-span-8 md:col-span-4 xl:col-span-2 bg-white w-full h-full rounded-2xl">
+          <BalanceCard balance="890 020" variant="dark" />
           </div>
 
 
@@ -80,9 +80,7 @@ export default function StatsContent() {
                                                       className="object-contain"
                                                     />
                                                   </div>
-
-
-                                                  </div>
+</div>
 
                                                   <span>Скачать договор</span>
                                                 </button>
