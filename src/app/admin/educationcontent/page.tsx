@@ -19,7 +19,7 @@ export default function DealerStatsPage() {
   );
 
   return (
-    <div className="space-y-8 p-6 bg-gray-100">
+    <div className="space-y-8 p-1 lg:p-6 bg-gray-100">
       {/* Заголовок */}
       <header>
         <MoreHeader title="Статистика дилера" />
