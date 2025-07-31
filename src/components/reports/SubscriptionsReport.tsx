@@ -83,7 +83,7 @@ const SubscriptionsReport: React.FC<Props> = ({ period, onPeriodChange }) => {
         <table className="min-w-[600px] w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
-              <th className="flex py-2 pl-15">Имя</th>
+              <th className="flex py-2 pl-10">Имя</th>
               <th className="py-2 md:table-cell">Профессия</th>
               <th className="py-2 lg:table-cell">Дата</th>
               <th className="py-2 lg:table-cell">ID</th>

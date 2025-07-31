@@ -2,12 +2,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import SimpleHeader from '@/components/header/MoreHeader'
 import { ThirdTemplate } from '@/components/layouts/TannurPageTemplates'
 import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
 import { generateMonthlyData } from '@/components/generateData';
 import MoreHeader from '@/components/header/MoreHeader';
-
+import BalanceCard from '@/components//blocks/BalanceCard';
+import Lottie from 'lottie-react';
+import moneyAnimation from '@/lotties/reports_gray.json';
 
 
 
@@ -164,16 +165,8 @@ column2={
         <>
           {/* Блок 1 — Баланс */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
-            <div className="bg-[#3D3D3D] text-white rounded-2xl p-6 flex flex-col justify-between">
-              <div>
-                <p className="text-sm text-gray-400 mb-2">Ваш баланс</p>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-semibold">890 020 ₸</h2>
-                  <button className="text-xs text-white border border-white px-3 py-1 rounded-full hover:opacity-90 transition">
-                    ↗ Вывод средств
-                  </button>
-                </div>
-              </div>
+            <div>           <BalanceCard balance="890 020" variant="light" />
+
             </div>
 
             {/* Блок 2 — Моя команда */}
@@ -212,31 +205,40 @@ column2={
           {/* Нижний ряд: Блок 4 и 5 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             {/* Блок 4 — График оборота */}
-            <div className="bg-white rounded-2xl h-[370px] p-6 overflow-hidden relative">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-base text-gray-700">
-                    Товарооборот за всё время
-                  </p>
-                  <h2 className="text-4xl text-gray-700 font-bold mt-2">
-                    7 412 000 ₸
-                  </h2>
+                <div className="bg-white rounded-2xl h-[370px] p-6 overflow-hidden relative">
+                  <div className="flex justify-start items-start">
+                    {/* Левая часть: иконка + текст */}
+                    <div className="flex items-center">
+                      <Lottie
+                        animationData={moneyAnimation}
+                        loop
+                        autoplay
+                        className="w-8 h-8 -pl-5"
+                      />
+                      <p className="text-md lg:text-2xl font-medium text-gray-700">
+                        Информация о заработке
+                      </p>
+                    </div>
+
+                    {/* Кнопка справа */}
+                    <button className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
+                      <img
+                        src="/icons/Icon long arrow white.png"
+                        className="w-3.5 h-3.5"
+                        alt="Перейти"
+                      />
+                    </button>
+                  </div>
+
+                  <div className="mt-10">
+                    <TurnoverChart
+                      data={rawData}
+                      colorBar="#E9D7D6"
+                      colorLine="#DB6A56"
+                      lineOffset={300000}
+                    />
+                  </div>
                 </div>
-                <button className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
-                  <img
-                    src="/icons/Icon long arrow white.png"
-                    className="w-3.5 h-3.5"
-                    alt="Перейти"
-                  />
-                </button>
-              </div>
-                <TurnoverChart
-                       data={rawData}
-                       colorBar="#E9D7D6"
-                       colorLine="#DB6A56"
-                       lineOffset={300000}
-                     />
-            </div>
 
             {/* Блок 5 — Новости Tannur */}
             <div className="rounded-2xl bg-white p-6 h-[370px] overflow-hidden">
