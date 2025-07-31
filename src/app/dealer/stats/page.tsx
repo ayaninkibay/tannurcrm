@@ -56,93 +56,93 @@ export default function StatsContent() {
           </div>
 
 
-          <div className="grid col-span-8 md:col-span-4 xl:col-span-2 gap-4 w-full h-full rounded-2xl">
+        <div className="grid col-span-8 md:col-span-4 xl:col-span-2 gap-4 w-full h-full rounded-2xl">
 
-             <div className="bg-white w-full p-4 rounded-2xl">
-                 <div>
-                    <h2 className="text-lg font-semibold text-black mb-4">Условия сотрудничества</h2>
-                    <ul className="text-sm text-gray-500 space-y-1">
-                      <li>8% – с оборота команды</li>
-                      <li>15% – с покупки в магазине</li>
-                      <li>50% – с подписки диллеров</li>
-                      <li>3% – бонусов от Tannur</li>
-                    </ul>
-                  </div>
-                  <div className="flex justify-end">
-                    <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
-                      <div className="w-[14px] h-[14px] relative">
-<div className="relative w-[14px] h-[14px]">
-  <Image
-    src="/icons/Icon download.png"
-    alt="download"
-    fill
-    sizes="14px"
-    className="object-contain"
-  />
-</div>
+                                        <div className="bg-white w-full p-4 rounded-2xl">
+                                            <div>
+                                                <h2 className="text-lg font-semibold text-black mb-4">Условия сотрудничества</h2>
+                                                <ul className="text-sm text-gray-500 space-y-1">
+                                                  <li>8% – с оборота команды</li>
+                                                  <li>15% – с покупки в магазине</li>
+                                                  <li>50% – с подписки диллеров</li>
+                                                  <li>3% – бонусов от Tannur</li>
+                                                </ul>
+                                              </div>
+                                              <div className="flex justify-end">
+                                                <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
+                                                  <div className="w-[14px] h-[14px] relative">
+                                                  <div className="relative w-[14px] h-[14px]">
+                                                    <Image
+                                                      src="/icons/Icon download.png"
+                                                      alt="download"
+                                                      fill
+                                                      sizes="14px"
+                                                      className="object-contain"
+                                                    />
+                                                  </div>
 
 
-                      </div>
+                                                  </div>
 
-                      <span>Скачать договор</span>
-                    </button>
-                  </div>
-              </div> 
+                                                  <span>Скачать договор</span>
+                                                </button>
+                                              </div>
+                                          </div> 
 
-              <div className="bg-white w-full h-full p-4 rounded-2xl">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-lg font-semibold text-black">Отчеты</h2>
-                      <button className="flex items-center gap-1 text-sm text-black bg-[#f2f2f2] px-3 py-1 rounded-full hover:opacity-80 transition">
-                        За всё время
-<div className="relative w-[14px] h-[14px]">
-  <Image
-    src="/icons/Icon download.png"
-    alt="download"
-    fill
-    sizes="14px"
-    className="object-contain"
-  />
-</div>
+                                          <div className="bg-white w-full h-full p-4 rounded-2xl">
+                                                <div className="flex justify-between items-center">
+                                                  <h2 className="text-lg font-semibold text-black">Отчеты</h2>
+                                                  <button className="flex items-center gap-1 text-sm text-black bg-[#f2f2f2] px-3 py-1 rounded-full hover:opacity-80 transition">
+                                                    За всё время
+                                                  <div className="relative w-[14px] h-[14px]">
+                                                    <Image
+                                                      src="/icons/Icon download.png"
+                                                      alt="download"
+                                                      fill
+                                                      sizes="14px"
+                                                      className="object-contain"
+                                                    />
+                                                  </div>
 
-                      </button>
-                    </div>
-                    <div className="flex flex-col gap-1 mt-4">
-                      <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
-                      <Image src="/icons/Icon download.png" alt="download" width={14} height={14} />
-                        <span>Скачать отчет за товарооборот</span>
-                      </button>
-                      <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
-<div className="relative w-[14px] h-[14px]">
-  <Image
-    src="/icons/Icon download.png"
-    alt="download"
-    fill
-    sizes="14px"
-    className="object-contain"
-  />
-</div>
+                                                  </button>
+                                                </div>
+                                                <div className="flex flex-col gap-1 mt-4">
+                                                  <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
+                                                  <Image src="/icons/Icon download.png" alt="download" width={14} height={14} />
+                                                    <span>Скачать отчет за товарооборот</span>
+                                                  </button>
+                                                  <button className="flex items-center gap-2 text-black text-sm hover:underline transition">
+                                                        <div className="relative w-[14px] h-[14px]">
+                                                          <Image
+                                                            src="/icons/Icon download.png"
+                                                            alt="download"
+                                                            fill
+                                                            sizes="14px"
+                                                            className="object-contain"
+                                                          />
+                                                        </div>
 
-                        <span>Скачать отчет за подписки</span>
-                      </button>
-                    </div>
-                </div>
+                                                    <span>Скачать отчет за подписки</span>
+                                                  </button>
+                                                </div>
+                                            </div>
           </div>
 
 
-              <div className=" col-span-8 md:col-span-8 xl:col-span-4 bg-white w-full h-full p-4 rounded-2xl">
+          <div className=" col-span-8 md:col-span-8 xl:col-span-4 bg-white w-full h-full p-4 rounded-2xl">
                  <TurnoverChart
-        data={rawData}
-        colorBar="#E9D7D6"
-        colorLine="#DB6A56"
-        lineOffset={300000}
-      />
-                </div>
+                  data={rawData}
+                  colorBar="#E9D7D6"
+                  colorLine="#DB6A56"
+                  lineOffset={300000}
+                />
+          </div>
 
       </section>
 
       {/* Section 3: Отчет */}
              <section>
-      <div className="w-full p-4 rounded-2xl grid grid-cols-1 gap-4">
+      <div className="w-full rounded-2xl grid grid-cols-1 gap-4">
         {/* Отчёты для дилера */}
         <ReportsSection role="dealer" />
       </div>

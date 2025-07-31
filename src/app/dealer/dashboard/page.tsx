@@ -2,10 +2,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import SimpleHeader from '@/components/header/SimpleHeader'
+import SimpleHeader from '@/components/header/MoreHeader'
 import { ThirdTemplate } from '@/components/layouts/TannurPageTemplates'
 import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
 import { generateMonthlyData } from '@/components/generateData';
+import MoreHeader from '@/components/header/MoreHeader';
 
 
 
@@ -26,7 +27,7 @@ export default function DashboardPage() {
       header={
         <>
           {/* 1) Основная шапка */}
-          <SimpleHeader title="Дэшборд" />
+          <MoreHeader title="Дэшборд" />
           {/* 2) Приветственный блок над колонками */}
           <div className="mt-6 bg-white p-6 rounded-2xl flex justify-between items-center">
             <span className="text-gray-700 font-medium text-base">

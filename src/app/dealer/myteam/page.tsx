@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import React from 'react'
-import SimpleHeader from '@/components/header/SimpleHeader'
 import { FirstTemplate } from '@/components/layouts/TannurPageTemplates'
 import Image from 'next/image'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
 import Footer from '@/components/Footer';
+import MoreHeader from '@/components/header/MoreHeader'
 
 
 
@@ -19,7 +19,7 @@ export default function TeamPage() {
 
   return (
     <FirstTemplate
-      header={<SimpleHeader title="Моя команда" />}
+      header={<MoreHeader title="Моя команда" />}
       column1={
         <div className="w-full flex flex-col lg:flex-row gap-4">
           {/* Левая колонка */}
