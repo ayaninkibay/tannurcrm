@@ -17,7 +17,18 @@ module.exports = {
       ...breakpoints,
     },
     extend: {
-      // сюда можно добавлять цвета, отступы и т.д.
+      animation: {
+        shimmer: 'shimmer 1.5s infinite linear',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+      },
+      backgroundSize: {
+        shimmer: '200% 100%',
+      },
     },
   },
   plugins: [],

@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import './globals.css'
+import { UserProvider } from '@/context/UserContext'
 
 export const metadata = {
   title: 'Tannur CRM',
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-white text-black">
-        {children}
+        <UserProvider>
+          {children}
+        </UserProvider>
       </body>
     </html>
   )

@@ -1,29 +1,29 @@
 'use client'
 
-import React from 'react'
-import ReferralLink from '@/components/Button'
-import TannurButton from '@/components/Button'
+import BonusCard from '@/components/blocks/BonusCard'
 
-export default function ReferralPage() {
+export default function TestPage() {
   return (
-    <div className="min-h-screen bg-[#f5f5f5] p-6">
-      <h1 className="text-xl font-semibold mb-4">Приглашения</h1>
-      
-      <TannurButton
-  text="Мой профиль"
-  href="/dealer/profile"
-  iconSrc="/icons/userblack.svg"
-  arrow="black"
-  variant="gray"
-/>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        {/* Цветной вариант */}
+        <BonusCard
+          variant="color"
+          turnover={7412000}
+          goal={9800000}
+          remaining={2388000}
+        />
 
-<TannurButton
-  text="Моя команда"
-  href="/dealer/myteam"
-  iconSrc="/icons/IconBulbPink.svg"
-  arrow="orange"
-  variant="white"
-/>
+        <div className="h-6" />
+
+        {/* Белый вариант */}
+        <BonusCard
+          variant="white"
+          turnover={7412000}
+          goal={9800000}
+          remaining={2388000}
+        />
+      </div>
     </div>
   )
 }

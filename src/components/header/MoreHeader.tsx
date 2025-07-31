@@ -8,12 +8,17 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/lotties/Menu.json';
+import { useUser } from '@/context/UserContext'
+
+
 
 interface MoreHeaderProps {
   title: string;
 }
 
 export default function MoreHeader({ title }: MoreHeaderProps) {
+  const { profile, loading } = useUser(); // ✅
+
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
@@ -21,34 +26,12 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
-  useEffect(() => {
-    async function loadProfile() {
-      const {
-        data: { user },
-        error: getUserError,
-      } = await supabase.auth.getUser();
-
-      if (getUserError || !user) {
-        setName('Гость');
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('first_name, last_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-
-      if (profile && !profileError) {
-        setName(`${profile.first_name} ${profile.last_name}`);
-        setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
-      } else {
-        setName(user.email ?? 'Пользователь');
-      }
-    }
-
-    loadProfile();
-  }, []);
+useEffect(() => {
+  if (!loading && profile) {
+    setName(`${profile.first_name} ${profile.last_name}`);
+    setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
+  }
+}, [profile, loading]);
 
   const handleProfile = () => router.push('/myprofile');
   const handleNotifications = () => router.push('/notifications');

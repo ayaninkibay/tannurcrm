@@ -5,7 +5,7 @@ import React from 'react'
 import { FirstTemplate } from '@/components/layouts/TannurPageTemplates'
 import Image from 'next/image'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
-import Footer from '@/components/Footer';
+import TeamCard from '@/components/blocks/TeamCard'
 import MoreHeader from '@/components/header/MoreHeader'
 
 
@@ -25,39 +25,15 @@ export default function TeamPage() {
           {/* Левая колонка */}
           <div className="flex flex-col gap-4 w-full lg:w-2/5">
             {/* Команда */}
-<div className="bg-white rounded-xl p-6 flex-1 h-full flex flex-col justify-between">
-  {/* Верхняя часть */}
-  <div className="flex justify-between items-start">
-    <div className="flex flex-col justify-start">
-      <p className="text-sm text-gray-500 mb-1">Инжу, в вашей команде</p>
-      <h2 className="text-4xl font-bold text-black mb-2">68 человек</h2>
-    </div>
-    <div className="relative w-[200px] h-[130px]">
-      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
-        <line x1="100" y1="15" x2="80" y2="50" stroke="#e38c8c" strokeWidth="2" strokeDasharray="4 4" />
-        <line x1="80" y1="50" x2="110" y2="70" stroke="#e38c8c" strokeWidth="2" strokeDasharray="4 4" />
-        <line x1="60" y1="100" x2="110" y2="70" stroke="#e38c8c" strokeWidth="2" strokeDasharray="4 4" />
-        <line x1="160" y1="100" x2="110" y2="70" stroke="#e38c8c" strokeWidth="2" strokeDasharray="4 4" />
-      </svg>
-      <img src="/icons/Users avatar 1.png" className="w-9 h-9 rounded-full border-2 border-red-300 absolute top-[2px] left-[90px]" />
-      <img src="/icons/Users avatar 2.png" className="w-9 h-9 rounded-full border-2 border-red-300 absolute top-[40px] left-[60px]" />
-      <img src="/icons/Users avatar 3.png" className="w-11 h-11 rounded-full border-2 border-black absolute top-[60px] left-[100px] z-10" />
-      <img src="/icons/Users avatar 5.png" className="w-9 h-9 rounded-full border-2 border-red-300 absolute top-[95px] left-[50px]" />
-      <img src="/icons/Users avatar 4.png" className="w-9 h-9 rounded-full border-2 border-red-300 absolute top-[92px] left-[160px]" />
-    </div>
-  </div>
-
-  {/* Нижняя часть */}
-  <div className="mt-4">
-    <p className="text-sm text-gray-500 mb-2">
-      До награды <span className="text-black font-semibold">“Автомобиль Tannur”</span> осталось{' '}
-      <span className="text-black font-semibold">32 человек</span>
-    </p>
-    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-      <div className="bg-[#5C6AC4] h-full" style={{ width: '68%' }} />
-    </div>
-  </div>
-</div>
+      <div className="w-full h-full">
+        <TeamCard
+          title="Моя команда"
+          count={68}
+          goal={100}
+          showButton={false}
+          variant="purple"
+        />
+      </div>
 
 
             {/* Товарооборот */}
