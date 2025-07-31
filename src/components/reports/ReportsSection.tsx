@@ -30,7 +30,7 @@ const reportsConfig: Record<Role, ReportItem[]> = {
     { key: 'subscriptions', label: 'Подписки' },
     { key: 'purchases', label: 'Покупки' },
     { key: 'sales', label: 'Продажи' },
-    { key: 'users', label: 'Пользователи' },
+    { key: 'users', label: 'Подарки' },
   ],
   celebrity: [
     { key: 'sales', label: 'Продажи' },

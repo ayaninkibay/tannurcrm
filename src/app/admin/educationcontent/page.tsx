@@ -26,7 +26,7 @@ export default function DealerStatsPage() {
       </header>
 
       {/* Два графика */}
-      <section className="grid grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl p-6 ">
           <TurnoverChart
             data={sampleData}
