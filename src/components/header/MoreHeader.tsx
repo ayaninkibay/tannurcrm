@@ -17,6 +17,7 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
   const [name, setName] = useState<string>('Загрузка...');
   const [avatarUrl, setAvatarUrl] = useState<string>('/img/avatar-default.png');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -71,7 +72,7 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
           <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
             {title}
           </h1>
-          <p className="text-xs md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
+          <p className="text-sm md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
             Tannur Cosmetics © 2025. All Rights Reserved.
           </p>
         </div>
@@ -91,7 +92,7 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
 
           <button
             onClick={handleProfile}
-            className="flex items-center bg-white rounded-full py-1 pl-1 pr-2 md:pr-3 gap-1 md:gap-2"
+            className="flex items-center bg-white rounded-full py-1 pl-1 pr-1 md:pr-3 gap-1 md:gap-2"
           >
             <Image
               src={avatarUrl}
@@ -108,18 +109,19 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
               alt="arrow"
               width={16}
               height={16}
+              className="hidden lg:block"
             />
           </button>
 
           <button
             onClick={() => setMenuOpen(true)}
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center lg:hidden"
+            className="w-8 h-8 rounded-full flex items-center justify-center lg:hidden"
           >
             <Image
               src="/icons/hamburger.svg"
               alt="Меню"
-              width={16}
-              height={16}
+              width={22}
+              height={22}
             />
           </button>
 
@@ -201,12 +203,35 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
                 </div>
               </div>
 
-              <div className="w-full text-[10px] text-gray-400 text-start mt-auto px-4">
+              <div className="w-full text-[12px] text-gray-400 text-start mt-auto px-4">
                 Tannur Cosmetics (C) 2025.<br />
-                Created by Inqo Technologies.
+                Created by <span className="text-red-400 cursor-pointer" onClick={() => setShowInqoInfo(true)}>Inqo Technologies</span>.
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showInqoInfo && (
+          <motion.div
+            className="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-black/40 px-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowInqoInfo(false)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-8 text-center text-black shadow-xl"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className="text-lg font-semibold mb-2">Tannur CRM был разработан в Inqo Technologies</h2>
+              <p className="text-sm text-gray-500">www.inqo.tech</p>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
