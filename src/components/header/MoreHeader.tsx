@@ -162,7 +162,7 @@ export default function MoreHeader({ title }: MoreHeaderProps) {
             >
               <div className="w-full">
                 <div className="w-full flex justify-between items-center mb-4">
-                  <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={100} height={24} />
+                  <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={70} height={24} />
                   <button onClick={() => setMenuOpen(false)} className="text-3xl">×</button>
                 </div>
                 <div className="w-full h-px bg-gray-300 mt-5 mb-10" />
