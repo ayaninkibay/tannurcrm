@@ -16,7 +16,7 @@ export default function DealerLayout({ children }: { children: ReactNode }) {
           • p-6    — внутренние паддинги
           • ml-0   — без смещения на <md
           • md:ml-36 — ровно 9rem отступ, когда показываем Sidebar */}
-      <main className="flex-1 p-0 ml-0 lg:ml-36">
+      <main className="flex-1 p-2 ml-0 lg:ml-36">
         {children}
       </main>
     </div>
