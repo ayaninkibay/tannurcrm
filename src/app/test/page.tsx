@@ -51,7 +51,7 @@ export default function TestDealerProductPage() {
           dealerPrice={89850}
           clientPrice={123499}
           showClientPrice={showClientPrices}
-          imageUrl="/img/productBig.jpg"
+          imageUrl="/img/product.jpg"
         />
       </div>
 

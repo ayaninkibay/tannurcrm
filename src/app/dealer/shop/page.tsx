@@ -48,7 +48,7 @@ export default function ShopPage() {
   }
 
   return (
-    <main className="flex flex-col gap-6 p-6 bg-[#F5F5F5] min-h-screen">
+    <div className="flex flex-col gap-6 p-2 md:p-6 bg-[#F5F5F5] min-h-screen">
       <MoreHeader title="Магазин Tannur" />
 
       {/* Верхний блок: Дилерский магазин */}
@@ -125,6 +125,6 @@ export default function ShopPage() {
         </div>
 
       </section>
-    </main>
+    </div>
   )
 }

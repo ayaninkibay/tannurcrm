@@ -8,7 +8,7 @@ export default function EducationContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
 
   return (
-    <div className="min-h-screen bg-[#F3F3F3] flex p-2 flex-col ">
+    <div className="min-h-screen bg-[#F3F3F3] flex p-2 md:p-6 flex-col ">
       <MoreHeader title="Академия TNBA" />
 
       {/* Категории курсов */}

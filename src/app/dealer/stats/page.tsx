@@ -25,7 +25,7 @@ const stats = [
 export default function StatsContent() {
 
   return (
-    <div className="space-y-8 p-1 xl:p-2 bg-gray-100">
+    <div className="space-y-8 p-2 md:p-6 bg-gray-100">
               <MoreHeader title="Ваши финансы" />
       {/* Section 1: Товарооборот */}
       <section>
