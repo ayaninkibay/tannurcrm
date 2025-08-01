@@ -10,6 +10,7 @@ interface DealerProductCardProps {
   clientPrice: number;
   showClientPrice: boolean;
   imageUrl: string;
+  className?: string;
 }
 
 export default function DealerProductCard({
@@ -50,8 +51,11 @@ export default function DealerProductCard({
       {/* Контентная часть */}
       <div className="p-4 pt-5">
         {/* Название + флагман */}
-        <div className="flex justify-between items-start mb-3">
-          <h3 className="text-base font-bold text-[#1C1C1C] max-w-[70%]">{name}</h3>
+        <div className="flex justify-between items-start -mb-2">
+          <h3 className="text-base font-bold text-[#1C1C1C] line-clamp-2 min-h-[3.5rem]">
+            {name}
+          </h3>
+
           <span className="bg-[#D77E6C] text-white text-[10px] font-medium px-3 py-1 rounded-full whitespace-nowrap">
             Флагман продукт
           </span>

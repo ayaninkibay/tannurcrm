@@ -10,6 +10,7 @@ interface DealerProductCardProps {
   clientPrice: number;
   showClientPrice: boolean;
   imageUrl: string;
+  className?: string;
 }
 
 export default function DealerProductCard({
@@ -23,11 +24,11 @@ export default function DealerProductCard({
   const [liked, setLiked] = useState(false);
 
   return (
-    <div className="bg-white rounded-3xl p-2 relative text-left w-full max-w-[320px]">
+    <div className="bg-white rounded-3xl p-2 relative w-full max-w-full">
       {/* Кнопка лайка */}
       <button
         onClick={() => setLiked(!liked)}
-        className="absolute top-4 right-4 z-10"
+        className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10"
       >
         <Image
           src={liked ? '/icons/heart_white.svg' : '/icons/heart_red.svg'}
@@ -38,7 +39,7 @@ export default function DealerProductCard({
       </button>
 
       {/* Фото */}
-      <div className="w-full aspect-[1/1] relative rounded-2xl overflow-hidden">
+      <div className="w-full aspect-square relative rounded-2xl overflow-hidden">
         <Image
           src={imageUrl}
           alt={name}
@@ -47,26 +48,27 @@ export default function DealerProductCard({
         />
       </div>
 
-      {/* 🧱 Внутренний блок: текст, цены, кнопка */}
+      {/* Текст и цены */}
       <div className="p-2 md:p-4 pt-2">
-        {/* Название */}
-        <h3 className="text-base font-bold text-[#1C1C1C] mb-3">{name}</h3>
+        <h3 className="text-sm sm:text-base font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[3.5rem]">
+          {name}
+        </h3>
 
-        {/* Цены + стрелка */}
-        <div className="flex items-end justify-between gap-2">
-          {/* Блок цен */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+          {/* Цены */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
             <div>
               <p className="text-xs text-[#8C8C8C] leading-none">Диллерская цена</p>
-              <p className="text-base font-semibold text-[#1C1C1C]">
+              <p className="text-sm sm:text-base font-semibold text-[#1C1C1C]">
                 {dealerPrice.toLocaleString()}₸
               </p>
             </div>
 
             {showClientPrice && (
               <div>
-                <p className="text-[10px] md:text-xs text-[#8C8C8C] leading-none">Цена</p>
-                <p className="text-xs md:text-base font-semibold text-[#D77E6C]">
+                <p className="text-xs text-[#8C8C8C] leading-none">Цена</p>
+                <p className="text-sm sm:text-base font-semibold text-[#D77E6C]">
                   {clientPrice.toLocaleString()}₸
                 </p>
               </div>
@@ -74,7 +76,7 @@ export default function DealerProductCard({
           </div>
 
           {/* Кнопка → */}
-          <div className="shrink-0">
+          <div className="shrink-0 self-end sm:self-auto">
             <Image
               src="/icons/buttom/DoubleIconArrowOrange.svg"
               alt="arrow"

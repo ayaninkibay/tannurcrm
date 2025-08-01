@@ -1,40 +1,73 @@
 'use client';
 
-import PickupAddressBlock from '@/components/product/HidderElements/PickupAddressBlock';
-import PickupDeliverBlock from '@/components/product/HidderElements/PickupDeliverBlock';
-import SortProductBlock from '@/components/product/HidderElements/SortProductsBlock';
-import OrderCard from '@/components/product/OrderCard'; // 👈 импортируем карточку заказа
+import { useState } from 'react';
+import DealerProductCard from '@/components/product/DealerProductCard';
+import DealerBigProductCard from '@/components/product/DealerBigProductCard'; // 👈 импорт нового компонента
 
-export default function SomePage() {
+export default function TestDealerProductPage() {
+  const [showClientPrices, setShowClientPrices] = useState(false);
+
+  const mockProducts = [
+    {
+      id: 1,
+      name: '9-A шампунь Tannur',
+      dealerPrice: 89850,
+      clientPrice: 123499,
+      imageUrl: '/img/product1.jpg',
+    },
+    {
+      id: 2,
+      name: 'Сыворотка B5 Active',
+      dealerPrice: 75900,
+      clientPrice: 101900,
+      imageUrl: '/img/product2.jpg',
+    },
+    {
+      id: 3,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product3.jpg',
+    },
+  ];
+
   return (
-    <div className="p-6 bg-[#F5F5F5] min-h-screen flex flex-col gap-6">
-      {/* Верхний блок с фильтрами */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="flex items-center text-right p-6">
-            <h2 className="text-lg font-semibold text-[#1C1C1C]">
-              Дилерский магазин
-            </h2>
-          </div>
-          <PickupAddressBlock />
-          <PickupDeliverBlock />
-          <SortProductBlock />
-        </div>
+    <div className="min-h-screen bg-[#E5E5E5] p-6">
+      {/* Кнопка */}
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => setShowClientPrices((prev) => !prev)}
+          className="bg-[#D77E6C] text-white px-5 py-2 rounded-full text-sm hover:bg-[#c56c5c] transition"
+        >
+          {showClientPrices ? 'Скрыть клиентские цены' : 'Показать клиентские цены'}
+        </button>
       </div>
 
-      {/* Нижняя карточка в контейнере шириной 100px */}
-      <div className="max-w-120 p-2">
-        <OrderCard
-          orderNumber="21431421"
-          date="22.02.2025"
-          items={[
-            '9-A Крем для волос Tannur 2шт',
-            '6 Этапный уходовый набор Tannur',
-            'Отбеливающая маска Tannur',
-          ]}
-          status="Оплачено"
-          total={247721}
+      {/* Флагман продукт */}
+      <div className="mb-10">
+        <DealerBigProductCard
+          id={7}
+          name="6 Этапный уходовый набор Tannur"
+          dealerPrice={89850}
+          clientPrice={123499}
+          showClientPrice={showClientPrices}
+          imageUrl="/img/productBig.jpg"
         />
+      </div>
+
+      {/* Сетка карточек */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+        {mockProducts.map((product) => (
+          <DealerProductCard
+            key={product.id}
+            id={product.id}
+            name={product.name}
+            dealerPrice={product.dealerPrice}
+            clientPrice={product.clientPrice}
+            showClientPrice={showClientPrices}
+            imageUrl={product.imageUrl}
+          />
+        ))}
       </div>
     </div>
   );

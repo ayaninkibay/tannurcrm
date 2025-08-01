@@ -24,9 +24,9 @@ export default function OrderCard({
   total,
 }: OrderCardProps) {
   return (
-    <div className="bg-white rounded-[24px] border border-[#dbdbdb] p-6 flex gap-6 w-full max-w-full">
-      {/* Левая часть */}
-      <div className="shrink-0 flex flex-col items-start">
+    <div className="bg-white rounded-[24px] border border-[#dbdbdb] p-4 w-full grid grid-cols-1 lg:grid-cols-2">
+      {/* Левая часть: Картинка, номер, дата */}
+      <div className="flex flex-col items-start">
         <Image
           src="/img/order_vector.svg"
           alt="Order"
@@ -40,9 +40,8 @@ export default function OrderCard({
         <p className="text-sm text-[#8C8C8C]">Дата: {date}</p>
       </div>
 
-      {/* Правая часть */}
-      <div className="flex flex-col justify-between w-full">
-        {/* Товары */}
+      {/* Правая часть: Товары, Статус, Сумма */}
+      <div className="flex flex-col">
         <div>
           <p className="text-sm text-[#8C8C8C] mb-1">Товары</p>
           {items.map((item, idx) => (
@@ -52,8 +51,8 @@ export default function OrderCard({
           ))}
         </div>
 
-        {/* Статус и сумма справа внизу */}
-        <div className="flex flex-col justify-between gap-2 mt-10">
+        <div className="flex flex-col gap-2 mt-6">
+          {/* Статус */}
           <div className="flex justify-between gap-2">
             <p className="text-sm text-[#8C8C8C]">Статус</p>
             <span
@@ -62,9 +61,11 @@ export default function OrderCard({
               {status}
             </span>
           </div>
+
+          {/* Сумма */}
           <div className="flex justify-between gap-2">
             <p className="text-sm text-[#8C8C8C]">Сумма</p>
-            <p className="text-xl font-bold text-[#1C1C1C]">
+            <p className="text-sm md:text-lg font-bold text-[#1C1C1C]">
               {total.toLocaleString()} ₸
             </p>
           </div>

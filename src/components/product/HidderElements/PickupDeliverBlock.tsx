@@ -50,8 +50,8 @@ export default function PickupDeliverBlock() {
             className="mt-2"
           />
           <div>
-            <p className="text-sm text-[#8C8C8C]">Адрес доставки</p>
-            <p className="text-base font-semibold text-[#1C1C1C]">
+            <p className="text-xs md:text-sm text-[#8C8C8C]">Адрес доставки</p>
+            <p className="text-sm md:text-md font-semibold text-[#1C1C1C]">
               {selected}
             </p>
           </div>
