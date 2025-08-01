@@ -48,7 +48,7 @@ export default function MainHomePage() {
             </button>
 
             <button
-              onClick={() => router.push('/celebrity')}
+              onClick={() => router.push('celebrity/dashboard')}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-[#b68ff5] text-white rounded-full hover:opacity-90 transition font-medium"
             >
               <Image src="/icons/Icon share white.png" alt="celebrity icon" width={20} height={20} />

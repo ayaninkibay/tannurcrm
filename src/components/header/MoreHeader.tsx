@@ -51,7 +51,7 @@ useEffect(() => {
   ];
 
   return (
-    <div className="w-full border-b border-black/20 mb-10 relative">
+    <div className="w-full border-b border-black/20 relative">
       <div className="h-[72px] flex items-center justify-between">
         <div className="flex flex-col justify-center">
           <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">

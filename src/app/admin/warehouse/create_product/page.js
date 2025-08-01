@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export default function CreateProductPage() {
   return (
-    <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px] px-6 pt-7 pb-7">
+    <div className="flex flex-col bg-[#F6F6F6] min-h-screen px-6 pt-7 pb-7">
       {/* Верхняя панель с заголовком и кнопками */}
       <div className="w-full flex justify-between items-start gap-4 mb-6">
         {/* Заголовок слева */}
