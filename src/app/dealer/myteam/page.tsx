@@ -20,7 +20,7 @@ import AddDealerCard from '@/components/blocks/AddDealerCard'
 export default function TeamPage() {
 
   return (
-<div className="flex flex-col min-h-screen p-6 bg-[#F5F5F5]">
+<div className="flex flex-col min-h-screen p-2 md:p-6 bg-[#F5F5F5]">
       
       {/* Верхний хедер */}
       <MoreHeader title="Моя команда" />

@@ -2,6 +2,7 @@
 import './globals.css'
 import { UserProvider } from '@/context/UserContext'
 
+
 export const metadata = {
   title: 'Tannur CRM',
 }
