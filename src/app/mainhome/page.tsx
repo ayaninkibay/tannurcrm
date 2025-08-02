@@ -6,11 +6,14 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/context/UserContext';
 import { useRouter } from 'next/navigation';
+import VerticalMediaScroll from '@/components/homemain/VerticalMediaScroll';
+import Lottie from 'lottie-react';
+import eventsAnimation from '@/lotties/events.json'; // путь может отличаться
 
 const tabs = [
   'Главная',
   'О компании',
-  'Магазин',
+  'ТОП-10',
   'Экскурсия',
   'Документы'
 ];
@@ -22,19 +25,130 @@ export default function HomePage() {
 
   const tabBlocks: Record<string, React.ReactNode[]> = {
     'Главная': [
-      <div key="Главная-1" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Главная — Блок 1</div>,
-      <div key="Главная-2" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Главная — Блок 2</div>,
-      <div key="Главная-3" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Главная — Блок 3</div>,
+      <div key="Главная-1" className="bg-white grid grid-cols-5 rounded-2xl p-10 min-h-[400px]">
+                      <div className="col-span-5 sm:col-span-2 md:col-span-2 lg:col-span-3 p-2 flex flex-col items-start text-start gap-6">
+
+                        {/* Иконка + количество человек */}
+                        <div className="flex items-center gap-2 mt-2 md:mt-10 border border-black/20 rounded-full px-4 py-2 text-xs font-medium text-black">
+                          <Image src="/icons/buttom/IconProfile.svg" alt="Community" width={18} height={18} />
+                          <span>2 234 человек вместе с нами</span>
+                        </div>
+
+                        {/* Заголовок */}
+                        <h2 className="text-2xl sm:text-3xl font-semibold text-[#1C1C1C]">
+                          Сообщество Tannur Cosmetics
+                        </h2>
+
+                        {/* Подзаголовок / описание */}
+                        <p className="text-gray-500 text-sm mb-2 md:mb-10 xl:mb-40 sm:text-base max-w-md">
+                          It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. 
+                          The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters...
+                        </p>
+
+                        {/* Кнопки */}
+                        <div className="flex flex-col sm:flex-row mb-10 md:mb-1 items-start gap-4">
+                          <button className="bg-[#D2776A] text-white px-6 py-3 line-clamp-2 rounded-full font-semibold text-sm hover:bg-[#b86457] transition">
+                            О TNBA
+                          </button>
+                          <button className="border border-black/20 px-6 py-3 rounded-full font-semibold text-sm hover:bg-black hover:text-white transition">
+                            Связаться с менеджером
+                          </button>
+                        </div>
+                      </div>
+
+
+                  <div className="col-span-5 sm:col-span-3 md:col-span-3 lg:col-span-2 p-2">
+                <VerticalMediaScroll/>
+                  </div>
+      </div>,
+
+
+
+                <div key="Главная-2" className="flex flex-col bg-white rounded-2xl p-10 h-full">
+                  <div className="text-black text-lg font-semibold mb-8">События за Август</div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Левая колонка: события */}
+                    <div className="flex flex-col gap-10">
+                      {[
+                        { title: 'Новый филиал в Алматы', icon: 'Icon cover 1.png' },
+                        { title: 'Путевка в Египет за 50 человек', icon: 'Icon cover 2.png' },
+                        { title: 'TNBA – Новый спикер в Академии', icon: 'Icon cover 3.png' },
+                        { title: 'Мероприятие Tannur Event 08 в Astana Arena', icon: 'Icon cover 4.png' },
+                      ].map(({ title, icon }, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img src={`/icons/${icon}`} className="w-12 h-12 rounded-xl object-cover" alt="Иконка" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-gray-900 line-clamp-2">{title}</span>
+                              <span className="text-xs text-gray-500">новости</span>
+                            </div>
+                          </div>
+                          <img src="/icons/buttom/DoubleIconArrowOrange.svg" className="w-6 h-6" alt="Подробнее" />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Правая колонка — можно что-то вставить */}
+                <div className="bg-[#FFF1EE] rounded-xl h-full p-4 flex items-center justify-center">
+                  <Lottie animationData={eventsAnimation} loop={true} className="w-full max-w-[300px]" />
+                </div>
+                  </div>
+                </div>,
+      
+                <div key="Главная-3" className="bg-white rounded-2xl p-10 min-h-[400px] mb-50">
+                  {/* Заголовок */}
+                  <h2 className="text-lg sm:text-xl font-semibold text-[#111] mb-4">Новости Tannur</h2>
+
+                  {/* Сетка новостей */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      {
+                        title: 'Новый филиал в Алматы',
+                        date: '22.07.2025',
+                        image: '/icons/news1.png',
+                      },
+                      {
+                        title: 'Путевка в Египет за 50 человек',
+                        date: '22.07.2025',
+                        image: '/icons/news2.png',
+                      },
+                      {
+                        title: 'TNBA — Новый спикер в Академии',
+                        date: '22.07.2025',
+                        image: '/Icons/news3.png',
+                      },
+                      {
+                        title: 'Мероприятие в Astana Arena',
+                        date: '22.07.2025',
+                        image: '/Icons/news4.png',
+                      },
+                    ].map((card, index) => (
+                      <div key={index} className="bg-gray-50 rounded-xl overflow-hidden shadow-sm">
+                        <img src={card.image} alt={card.title} className="w-full h-[150px] p-1 rounded-2xl object-cover" />
+                        <div className="p-4">
+                          <h3 className="text-sm font-medium text-[#111] mb-2">{card.title}</h3>
+                          <p className="text-xs text-gray-400">{card.date}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>,
     ],
+
+
+
+
+
     'О компании': [
       <div key="О компании-1" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">О компании — Блок 1</div>,
       <div key="О компании-2" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">О компании — Блок 2</div>,
       <div key="О компании-3" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">О компании — Блок 3</div>,
     ],
-    'Магазин': [
-      <div key="Магазин-1" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 1</div>,
-      <div key="Магазин-2" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 2</div>,
-      <div key="Магазин-3" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 3</div>,
+    'ТОП-10': [
+      <div key="ТОП-10-1" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 1</div>,
+      <div key="ТОП-10-2" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 2</div>,
+      <div key="ТОП-10-3" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Магазин — Блок 3</div>,
     ],
     'Экскурсия': [
       <div key="Экскурсия-1" className="bg-white rounded-2xl p-6 min-h-[400px] shadow-sm">Экскурсия — Блок 1</div>,
