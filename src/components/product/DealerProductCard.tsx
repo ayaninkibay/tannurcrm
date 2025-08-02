@@ -35,6 +35,7 @@ export default function DealerProductCard({
           alt="like"
           width={24}
           height={24}
+          className="hidden md:block"
         />
       </button>
 
@@ -50,16 +51,16 @@ export default function DealerProductCard({
 
       {/* Текст и цены */}
       <div className="p-2 md:p-4 pt-2">
-        <h3 className="text-sm sm:text-base font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[3.5rem]">
+        <h3 className="text-sm sm:text-base font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[1.5rem]">
           {name}
         </h3>
 
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+        <div className="flex flex-row sm:items-center justify-between gap-2 sm:gap-4">
           {/* Цены */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
             <div>
-              <p className="text-xs text-[#8C8C8C] leading-none">Диллерская цена</p>
+              <p className="text-xs text-[#8C8C8C] mb-1 leading-none">Диллерская цена</p>
               <p className="text-sm sm:text-base font-semibold text-[#1C1C1C]">
                 {dealerPrice.toLocaleString()}₸
               </p>

@@ -39,22 +39,35 @@ export default function PickupDeliverBlock() {
       {/* Основной блок */}
       <div
         onClick={handleToggle}
-        className="cursor-pointer rounded-xl p-4 transition hover:bg-gray-50"
+        className="cursor-pointer p-3 rounded-2xl transition hover:bg-gray-50"
       >
-        <div className="flex items-start gap-3">
-          <Image
-            src="/icons/buttom/delivery_black.svg"
-            alt="delivery"
-            width={28}
-            height={28}
-            className="mt-2"
-          />
-          <div>
-            <p className="text-xs md:text-sm text-[#8C8C8C]">Адрес доставки</p>
-            <p className="text-sm md:text-md font-semibold text-[#1C1C1C]">
-              {selected}
-            </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Image
+              src="/icons/buttom/delivery_black.svg"
+              alt="delivery"
+              width={28}
+              height={28}
+              className="mt-2"
+            />
+            <div>
+              <p className="text-xs md:text-sm text-[#8C8C8C]">Адрес доставки</p>
+              <p className="text-sm md:text-md font-semibold text-[#1C1C1C]">
+                {selected}
+              </p>
+            </div>
           </div>
+
+          {/* Иконка стрелки */}
+          <Image
+            src="/icons/buttom/updown_black.svg"
+            alt="toggle"
+            width={16}
+            height={16}
+            className={`mt-2 transition-transform duration-300 ${
+              dropdownOpen ? 'rotate-180' : ''
+            }`}
+          />
         </div>
       </div>
 

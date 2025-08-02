@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import MoreHeader from '@/components/header/MoreHeader'
 import PickupAddressBlock from '@/components/product/HidderElements/PickupAddressBlock'
 import PickupDeliverBlock from '@/components/product/HidderElements/PickupDeliverBlock'
 import SortProductBlock from '@/components/product/HidderElements/SortProductsBlock'
-import OrderCard from '@/components/product/OrderCard'
 import DealerProductCard from '@/components/product/DealerProductCard'
 import DealerBigProductCard from '@/components/product/DealerBigProductCard'
 import Lottie from 'lottie-react';
@@ -37,6 +35,41 @@ export default function ShopPage() {
       clientPrice: 94700,
       imageUrl: '/img/product3.jpg',
     },
+        {
+      id: 4,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product4.jpg',
+    },
+        {
+      id: 5,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product5.jpg',
+    },
+        {
+      id: 3,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product6.jpg',
+    },
+        {
+      id: 6,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product7.jpg',
+    },
+        {
+      id: 7,
+      name: 'Крем Snail Therapy',
+      dealerPrice: 68900,
+      clientPrice: 94700,
+      imageUrl: '/img/product8.jpg',
+    },
   ]
 
   const bigProduct = {
@@ -53,76 +86,62 @@ export default function ShopPage() {
 
       {/* Верхний блок: Дилерский магазин */}
       <section className="bg-white rounded-2xl w-full p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-[#EAEAEA] gap-6">
-          <div className="flex items-center justify-start p-2 gap-3">
-            {/* Анимация слева */}
-            <div className="w-10 h-10 md:w-15 md:h-15">
-              <Lottie animationData={retailAnimation} loop autoplay />
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-[#EAEAEA] gap-6 items-stretch">
+                  {/* 1 */}
+                  <div className="flex rounded-2xl bg-[#fff7f7] items-center justify-center p-2 h-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 md:w-15 md:h-15">
+                        <Lottie animationData={retailAnimation} loop autoplay />
+                      </div>
+                      <h2 className=" text-lg md:text-lg font-semibold text-[#1C1C1C]">Дилерский магазин</h2>
+                    </div>
+                  </div>
 
-            {/* Текст */}
-            <h2 className="text-md md:text-lg font-semibold text-[#1C1C1C]">
-              Дилерский магазин
-            </h2>
-          </div>
-          <PickupAddressBlock />
-          <PickupDeliverBlock />
-          <SortProductBlock />
-        </div>
+                  {/* 2 */}
+                  <div className="flex items-center justify-center h-full">
+                    <PickupAddressBlock />
+                  </div>
+
+                  {/* 3 */}
+                  <div className="flex items-center justify-center h-full">
+                    <PickupDeliverBlock />
+                  </div>
+
+                  {/* 4 */}
+                  <div className="flex items-center justify-center h-full">
+                    <SortProductBlock />
+                  </div>
+                </div>
+
       </section>
 
       {/* Основной контент */}
       <section className="grid grid-cols-1 lg:grid-cols-6 gap-4">
         {/* Левая часть */}
-        <div className="col-span-6 grid grid-rows-2 gap-4">
-          {/* Товары */}
-                          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                            {/* Сначала большой товар (занимает 2 колонки) */}
-                            <div className="col-span-2">
-                              <DealerBigProductCard
-                                {...bigProduct}
-                                showClientPrice={showClientPrices}
-                                className="h-full w-full"
-                              />
-                            </div>
+<div className="col-span-6 grid gap-4">
+  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    {/* Первый товар — большой */}
+    <div className="col-span-2">
+      <DealerBigProductCard
+        {...bigProduct}
+        showClientPrice={showClientPrices}
+        className="h-full w-full"
+      />
+    </div>
 
-                            {/* Обычные товары */}
-                            <div className="col-span-1">
-                              <DealerProductCard
-                                {...products[0]}
-                                showClientPrice={showClientPrices}
-                                className="h-full w-full"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <DealerProductCard
-                                {...products[1]}
-                                showClientPrice={showClientPrices}
-                                className="h-full w-full"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <DealerProductCard
-                                {...products[2]}
-                                showClientPrice={showClientPrices}
-                                className="h-full w-full"
-                              />
-                            </div>
-                          </div>
+    {/* Остальные товары */}
+    {products.slice(0, 8).map((product, idx) => (
+      <div key={idx} className="col-span-1">
+        <DealerProductCard
+          {...product}
+          showClientPrice={showClientPrices}
+          className="h-full w-full"
+        />
+      </div>
+    ))}
+  </div>
+</div>
 
-
-          {/* Второй ряд - статичные заглушки */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl h-32 w-full flex items-center justify-center text-[#1C1C1C] font-medium"
-              >
-                Товар
-              </div>
-            ))}
-          </div>
-        </div>
 
       </section>
     </div>

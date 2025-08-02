@@ -35,6 +35,7 @@ export default function DealerProductCard({
           alt="like"
           width={24}
           height={24}
+          className="hidden md:block"
         />
       </button>
 
@@ -57,7 +58,7 @@ export default function DealerProductCard({
           </h3>
 
           <span className="bg-[#D77E6C] text-white text-[10px] font-medium px-3 py-1 rounded-full whitespace-nowrap">
-            Флагман продукт
+            Хит продаж
           </span>
         </div>
 
