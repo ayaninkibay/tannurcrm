@@ -153,10 +153,10 @@ export default function HomePage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 border outline-none ${
+            className={`px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 border outline-none ${
               activeTab === tab
-                ? 'bg-black text-white border-black'
-                : 'bg-white text-black border-transparent'
+                ? ' bg-black text-white border-black'
+                : ' bg-white text-black border-transparent'
             }`}
           >
             {tab}
