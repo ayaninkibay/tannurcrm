@@ -1,13 +1,22 @@
 'use client';
 
-import React from 'react';
 import Image from 'next/image';
+import { useState } from 'react';
 import MoreHeader from '@/components/header/MoreHeader';
 
-export default function CreateProductPage() {
+export default function CreateDealer() {
+  const [fileName, setFileName] = useState('');
+
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFileName(e.target.files[0].name);
+    }
+  };
+
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
-      <MoreHeader title="Админ панель" />
+      <MoreHeader title="Создать товар" />
 
       {/* Обёртка: одна колонка на мобилке, четыре — на lg */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-10">
@@ -32,13 +41,32 @@ export default function CreateProductPage() {
             </div>
 
             {/* Фотографии */}
-            <div className="sm:col-span-2 row-span-2">
-              <label className="block text-sm text-gray-500 mb-1">Фотографии</label>
-              <div className="border border-dashed border-gray-300 bg-gray-100 p-6 rounded-xl flex flex-col items-center justify-center h-full">
-                <Image src="/icons/UploadIcon.png" alt="upload" width={40} height={40} />
-                <p className="mt-2 text-sm text-[#111]">Выберите файл</p>
-              </div>
-            </div>
+    <div className="sm:col-span-2 row-span-2">
+  <label htmlFor="product-images" className="block h-full w-full ">
+    <span className="block text-sm  text-gray-500 mb-1">Фотографии</span>
+    {/* сам «кликатор» */}
+    <div className="border border-dashed border-gray-300 bg-gray-100 rounded-xl flex flex-col items-center justify-center h-full cursor-pointer">
+      <Image src="/icons/UploadIcon.png" alt="upload" width={40} height={40} />
+      <p className=" text-sm text-[#111]">Выберите файл</p>
+    </div>
+  </label>
+  {/* скрытый инпут */}
+  <input
+    id="product-images"
+    type="file"
+    accept="image/*"
+    multiple
+    className="hidden"
+    onChange={(e) => {
+      const files = e.target.files;
+      if (files && files.length) {
+        console.log('Выбраны файлы:', files);
+        // здесь можно сохранить их в state или отправить на сервер
+      }
+    }}
+  />
+</div>
+
 
             {/* Описание */}
             <div className="sm:col-span-2">

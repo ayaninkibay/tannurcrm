@@ -4,6 +4,7 @@ import Image from 'next/image';
 import ActionButton from '@/components/ui/ActionButton';
 import ProductCardWare from '@/components/ui/ProductCardWare';
 import { useState } from 'react';
+import MoreHeader from '@/components/header/MoreHeader';
 
 export default function ProductView() {
   const [activeTab, setActiveTab] = useState('composition');
@@ -25,31 +26,18 @@ export default function ProductView() {
   };
 
   return (
-    <div className="flex flex-col bg-[#F6F6F6] min-h-screen pl-[140px]">
-      {/* Верхняя панель */}
-      <div className="w-full flex justify-between items-center mt-6 px-6 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111]">
-            <span className="text-gray-400 font-medium">Склад Tannur / </span>
-            9-А Шампунь Tannur
-          </h1>
-          <p className="text-sm text-gray-400">It is a long established fact that.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="relative w-10 h-10 bg-white rounded-full flex items-center justify-center hover:opacity-80 transition">
-            <Image src="/icons/Icon notifications.png" alt="уведомления" width={16} height={16} />
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full" />
-          </button>
-          <button className="flex items-center gap-3 bg-white px-4 py-2 rounded-full hover:opacity-90 transition cursor-pointer">
-            <img src="/icons/Users avatar 6.png" alt="User" className="w-8 h-8 rounded-full object-cover" />
-            <span className="text-sm font-medium text-[#111] whitespace-nowrap">Маргуза Кагыбат</span>
-          </button>
-          <button className="hover:opacity-80 transition">
-            <Image src="/icons/IconOutRed.png" alt="выйти" width={20} height={20} />
-          </button>
-        </div>
-      </div>
-
+    
+    <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
+      <MoreHeader
+        title={
+          <span>
+            <span className="text-gray-400">Tannur</span>
+            <span className="mx-1 text-[#111]">/</span>
+            <span className="text-[#111]">Карточка товара</span>
+          </span>
+        }
+      />
+    
       <div className="w-full h-px bg-gray-300" />
 
       <div className="flex gap-6 px-6 pt-6">
@@ -181,7 +169,7 @@ export default function ProductView() {
         </div>
 
         {/* Правая колонка — управление */}
-        <div className="p-6 max-w-[460px] space-y-6 bg-[#F6F6F6] min-h-screen">
+        <div className="w-fullspace-y-6 bg-[#F6F6F6] min-h-screen">
           <h2 className="text-xl font-bold text-[#111]">Управление товаром</h2>
           <p className="text-sm text-gray-500">
             Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.

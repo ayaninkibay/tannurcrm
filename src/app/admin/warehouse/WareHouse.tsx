@@ -11,14 +11,14 @@ export default function WareHouse() {
     { name: '9-А Шампунь+ Tannur', shopPrice: '12 990 ₸', dealerPrice: '9 900 ₸', quantity: 897, image: '/icons/Photo icon 1.png' },
     { name: 'Отбеливающая маска Tannur', shopPrice: '5 990 ₸', dealerPrice: '3 900 ₸', quantity: 231, image: '/icons/Photo icon 2.png' },
     { name: 'Гелевая маска Tannur', shopPrice: '4 990 ₸', dealerPrice: '1 900 ₸', quantity: 157, image: '/icons/Photo icon 3.png' },
-    { name: 'Кусач 3 в 1 Tannur', shopPrice: '7 990 ₸', dealerPrice: '6 900 ₸', quantity: 321, image: '/icons/Photo icon 4.png' },
+    { name: 'Кушон 3 в 1 от Tannur', shopPrice: '7 990 ₸', dealerPrice: '6 900 ₸', quantity: 321, image: '/icons/Photo icon 4.png' },
     { name: 'Набор из 6 кремов Tannur', shopPrice: '8 990 ₸', dealerPrice: '6 900 ₸', quantity: 585, image: '/icons/Photo icon 5.png' },
     { name: '9-А Бальзам для волос Tannur', shopPrice: '11 990 ₸', dealerPrice: '8 900 ₸', quantity: 870, image: '/icons/Photo icon 6.png' },
   ];
 
   return (
-    <main className="min-h-screen bg-[#F3F3F3] p-6">
-      <MoreHeader title="Админ панель" />
+    <main className="min-h-screen bg-[#F3F3F3] ">
+      <MoreHeader title="Скалд Админа" />
 
       {/* 
         grid-cols-1 на мобилке,
@@ -55,9 +55,10 @@ export default function WareHouse() {
 
           {/* Список товаров */}
           <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
-            <div className="flex items-center font-semibold text-gray-500 text-sm border-b pb-3">
+            <div className="flex items-center font-semibold text-gray-500 text-sm border-b ">
               
-              <div className="grid grid-cols-5 gap-6 w-full justify-between text-center">
+              <div className="grid grid-cols-5 gap-9 w-full justify-between text-center
+                text-[10px] sm:text-sm md:text-base lg:text-lg">
                 <div>Наименование</div>
                 <span>Цена Магазин</span>
                 <span>Цена Дилер</span>

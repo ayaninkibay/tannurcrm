@@ -16,6 +16,7 @@ export interface RevenueCardProps {
   bgColor?: string;
 }
 
+// src/components/components_admins_dashboard/RevenueCard.tsx
 export const RevenueCard: React.FC<RevenueCardProps> = ({
   title,
   amount,
@@ -28,18 +29,26 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
       : amount;
 
   return (
-    <div className={` ${bgColor} rounded-2xl p-6 flex items-center justify-between`}>
-      <div>
-        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
-        <p className="mt-2 text-3xl font-bold text-gray-900">
+    <div
+      className={`
+        w-full                /* <-- растягиваем карточку на всю ширину ячейки */
+        ${bgColor}
+        rounded-2xl p-6
+        flex items-center justify-between
+      `}
+    >
+      {/* Текстовая часть: min-w-0 + truncate */}
+      <div className="min-w-0">
+        <h3 className="text-sm font-medium text-gray-700 truncate">
+          {title}
+        </h3>
+        <p className="mt-2 text-3xl font-bold text-gray-900 whitespace-nowrap">
           {formatted}
           <span className="ml-1 text-3xl font-normal">₸</span>
         </p>
       </div>
-      <Link
-        href={href}
-        className=""
-      >
+
+      <Link href={href}>
         <Image
           src="/icons/IconArrowBlack.svg"
           width={34}
@@ -50,12 +59,3 @@ export const RevenueCard: React.FC<RevenueCardProps> = ({
     </div>
   );
 };
-
-// Пример использования в странице
-// import { RevenueCard } from '@/components/components_admins_dashboard/RevenueCard';
-//
-// <RevenueCard
-//   title="Товарооборот магазина"
-//   amount={84213000}
-//   href="/admin/revenue"
-// />
