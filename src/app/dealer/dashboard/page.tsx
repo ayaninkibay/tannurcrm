@@ -25,9 +25,9 @@ export default function DashboardPage() {
       {/* Приветствие */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">
         <span className="text-gray-700 font-medium text-base">С возвращением, Інжу</span>
-        <button className="flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium text-white bg-[#DC7C67] hover:opacity-90 transition">
+        <button className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium text-white bg-[#DC7C67] hover:opacity-90 transition">
           <img src="/icons/IconShoppingWhite.png" className="w-3.5 h-3.5" alt="shop" />
-          Ваши покупки
+          Мои покупки
         </button>
       </div>
 

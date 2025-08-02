@@ -41,7 +41,7 @@ export default function TeamPage() {
                                                       count={68}
                                                       goal={100}
                                                       showButton={false}
-                                                      variant="purple"
+                                                      variant="white"
                                                     />
                                               </div>
                                               <div className="row-span-1 lg:row-span-1 xl:row-span-2 rounded-2xl bg-white h-full w-full">
