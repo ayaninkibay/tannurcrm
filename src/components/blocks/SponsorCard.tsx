@@ -78,7 +78,7 @@ export default function SponsorCard({ variant = 'black' }: SponsorCardProps) {
               width={12}
               height={12}
             />
-            Профиль
+            <div className=""> Профиль</div>
           </button>
 
           {/* Телефон */}

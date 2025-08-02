@@ -24,12 +24,12 @@ export default function TeamCard({
   const isPurple = variant === 'purple'
 
   return (
-    <div
-      className={clsx(
-        'rounded-2xl p-4 md:p-6 relative flex flex-col justify-between transition-all duration-300',
-        isPurple ? 'bg-[#E5E2FB]' : 'bg-white border border-gray-200'
-      )}
-    >
+        <div
+          className={clsx(
+            'rounded-2xl p-4 md:p-6 relative flex flex-col justify-between h-full',
+            isPurple ? 'bg-[#E5E2FB]' : 'bg-white border border-gray-200'
+          )}
+        >
       {/* Верхняя часть */}
       <div>
         <p className="text-sm text-gray-600 font-medium">{title}</p>

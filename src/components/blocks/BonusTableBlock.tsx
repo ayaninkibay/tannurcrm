@@ -27,8 +27,8 @@ export default function BonusTableBlock() {
         Для выхода на доход свыше 13%, необходимо лично пригласить в Бизнес Академию 10 человек.
       </p>
 
-      <div className="overflow-y-auto max-h-[400px] rounded-lg border border-gray-200 bg-white">
-        <table className="min-w-full text-left text-sm text-gray-700">
+      <div className="overflow-y-auto h-[300px] md:h-[500px] xl:h-full  rounded-lg border border-gray-200 bg-white">
+        <table className="min-w-full text-left text-[12px] md:text-sm text-gray-700">
           <thead className="bg-gray-100 text-gray-600 font-semibold sticky top-0 z-10">
             <tr>
               <th className="px-4 py-3 border-r border-gray-200">Товар оборот</th>

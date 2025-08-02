@@ -29,7 +29,7 @@ export default function UserProfileCard() {
           </div>
 
           <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
-            <div className="w-24 h-24 rounded-xl overflow-hidden border border-gray-300 shrink-0">
+            <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-300 shrink-0">
               <Image
                 src={profile.avatar_url || '/img/avatar-default.png'}
                 alt="avatar"
@@ -39,13 +39,13 @@ export default function UserProfileCard() {
               />
             </div>
 
-            <div className="flex flex-col justify-center flex-1 min-w-[200px]">
+            <div className="flex flex-col justify-center flex-1 min-w-[100px]">
               <div className="flex items-center gap-1 flex-wrap">
-                <p className="text-base font-semibold text-[#111] truncate">
+                <p className="text-sm md:text-md font-semibold text-[#111] truncate">
                   {profile.first_name} {profile.last_name}
                 </p>
                 {profile.is_confirmed && (
-                  <Image src="/icons/confirmed.svg" alt="confirmed" width={16} height={16} />
+                  <Image src="/icons/confirmed.svg" alt="confirmed" width={14} height={14} />
                 )}
               </div>
               <p className="text-sm text-[#111] font-medium truncate">{profile.referral_code}</p>
@@ -54,7 +54,7 @@ export default function UserProfileCard() {
             </div>
           </div>
 
-          <div className="mt-4 border-t border-gray-300" />
+          <div className="mt-4 border-t border-gray-100" />
         </>
       ) : null}
     </div>

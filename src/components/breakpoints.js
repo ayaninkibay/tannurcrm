@@ -6,9 +6,9 @@ module.exports = {
     md: '768px',
     lg: '1024px',
     xl: '1280px',
-    xxl: '1400px',
-    xxxl: '1920px',
-    xxxxl: '3440px',
+    '2xl': '1400px',
+    '3xl': '1920px',
+    '4xl': '3440px',
     sidebar: '900px',
   },
 }
