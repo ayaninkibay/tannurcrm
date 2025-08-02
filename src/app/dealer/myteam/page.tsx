@@ -1,7 +1,5 @@
 'use client'
 
-'use client'
-
 import React from 'react'
 import MoreHeader from '@/components/header/MoreHeader'
 import TeamCard from '@/components/blocks/TeamCard'
