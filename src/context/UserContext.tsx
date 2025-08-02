@@ -10,6 +10,7 @@ type UserProfile = {
   region: string
   avatar_url: string
   referral_code: string
+  role: string
   is_confirmed: boolean
 }
 
@@ -34,7 +35,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
       const { data, error } = await supabase
         .from('users')
-        .select('first_name, last_name, phone, region, avatar_url, referral_code, is_confirmed')
+        .select('first_name, last_name, phone, region, avatar_url, referral_code, is_confirmed, role')
         .eq('id', user.id)
         .single()
 

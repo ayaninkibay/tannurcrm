@@ -15,7 +15,7 @@ const tabs = [
   'Документы'
 ];
 
-export default function AnimatedTabsLayout() {
+export default function HomePage() {
   const router = useRouter();
   const { profile } = useUser();
   const [activeTab, setActiveTab] = useState('Главная');
@@ -63,7 +63,7 @@ export default function AnimatedTabsLayout() {
         {profile?.role && (
           <div className="flex gap-2">
             <button
-              onClick={() => router.push('/dealers/dashboard')}
+              onClick={() => router.push('/dealer/dashboard')}
               className="flex items-center gap-2 bg-white px-4 py-1 rounded-full text-xs font-medium hover:bg-[#D9D9D9] hover:text-white transition"
             >
               <Image src="/icons/buttom/crm_orange.svg" alt="CRM" width={16} height={16} />
