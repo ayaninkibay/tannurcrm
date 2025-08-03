@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/context/UserContext';
 import { useRouter } from 'next/navigation';
-import VerticalMediaScroll from '@/components/homemain/VerticalMediaScroll';
+import HorizontalMediaScroll from '@/components/homemain/HorizontalMediaScroll';
 import Lottie from 'lottie-react';
 import eventsAnimation from '@/lotties/events.json'; // путь может отличаться
 
@@ -26,45 +26,9 @@ export default function HomePage() {
   const tabBlocks: Record<string, React.ReactNode[]> = {
     'Главная': [
       <div key="Главная-1" className="bg-white grid grid-cols-5 rounded-2xl p-10 min-h-[400px]">
-                      <div className="col-span-5 sm:col-span-2 md:col-span-2 lg:col-span-3 p-2 flex flex-col items-start text-start gap-6">
 
-                        {/* Иконка + количество человек */}
-                        <div className="flex items-center gap-2 mt-2 md:mt-10 border border-black/20 rounded-full px-4 py-2 text-xs font-medium text-black">
-                          <Image
-                            src="/icons/buttom/IconProfile.svg"
-                            alt="Community"
-                            width={18}
-                            height={18}
-                          />
-
-                          <span>2 234 человек вместе с нами</span>
-                        </div>
-
-                        {/* Заголовок */}
-                        <h2 className="text-2xl sm:text-3xl font-semibold text-[#1C1C1C]">
-                          Сообщество Tannur Cosmetics
-                        </h2>
-
-                        {/* Подзаголовок / описание */}
-                        <p className="text-gray-500 text-sm mb-2 md:mb-10 xl:mb-40 sm:text-base max-w-md">
-                          It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. 
-                          The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters...
-                        </p>
-
-                        {/* Кнопки */}
-                        <div className="flex flex-col sm:flex-row mb-10 md:mb-1 items-start gap-4">
-                          <button className="bg-[#D2776A] text-white px-6 py-3 line-clamp-2 rounded-full font-semibold text-sm hover:bg-[#b86457] transition">
-                            О TNBA
-                          </button>
-                          <button className="border border-black/20 px-6 py-3 rounded-full font-semibold text-sm hover:bg-black hover:text-white transition">
-                            Связаться с менеджером
-                          </button>
-                        </div>
-                      </div>
-
-
-                  <div className="col-span-5 sm:col-span-3 md:col-span-3 lg:col-span-2 p-2">
-                <VerticalMediaScroll/>
+                  <div className="col-span-5 sm:col-span-3 md:col-span-3 lg:col-span-5 rounded-2xl">
+                <HorizontalMediaScroll/>
                   </div>
       </div>,
 
