@@ -64,7 +64,14 @@ export default function VerticalMediaScroll() {
     <div key={`${item.src}-${i}`} className="flex flex-col items-center gap-2">
       {!reverse && (
         <div className="relative w-[145px] h-[205px] md:w-[200px] md:h-[260px] overflow-hidden rounded-xl">
-          <Image src={item.src} alt={`Photo ${i}`} fill className="object-cover" />
+          <Image
+  src={item.src}
+  alt={`Photo ${i}`}
+  fill
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  className="object-cover"
+/>
+
         </div>
       )}
       <div className={`w-[150px] h-[60px] md:w-[200px] md:h-[80px] rounded-xl p-4 text-black flex flex-col justify-center bg-gradient-to-br ${item.color}`}>
@@ -73,7 +80,14 @@ export default function VerticalMediaScroll() {
       </div>
       {reverse && (
         <div className="relative w-[145px] h-[205px] md:w-[200px] md:h-[260px] overflow-hidden rounded-xl">
-          <Image src={item.src} alt={`Photo ${i}`} fill className="object-cover" />
+          <Image
+  src={item.src}
+  alt={`Photo ${i}`}
+  fill
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  className="object-cover"
+/>
+
         </div>
       )}
     </div>

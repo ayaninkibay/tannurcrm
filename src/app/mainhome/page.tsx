@@ -30,7 +30,13 @@ export default function HomePage() {
 
                         {/* Иконка + количество человек */}
                         <div className="flex items-center gap-2 mt-2 md:mt-10 border border-black/20 rounded-full px-4 py-2 text-xs font-medium text-black">
-                          <Image src="/icons/buttom/IconProfile.svg" alt="Community" width={18} height={18} />
+                          <Image
+                            src="/icons/buttom/IconProfile.svg"
+                            alt="Community"
+                            width={18}
+                            height={18}
+                          />
+
                           <span>2 234 человек вместе с нами</span>
                         </div>
 
@@ -168,7 +174,16 @@ export default function HomePage() {
     <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 pt-6 pb-4">
       {/* Логотип слева */}
       <div className="w-[60px] h-[36px] sm:w-[120px] sm:h-[36px] relative -mt-2">
-        <Image src="/icons/company/tannur_black.svg" alt="Tannur" fill className="object-contain" />
+        <div className="relative w-[150px] h-[40px]">
+  <Image
+    src="/icons/company/tannur_black.svg"
+    alt="Tannur"
+    fill
+    className="object-contain"
+    priority // 👈 ДОБАВЬ
+  />
+</div>
+
       </div>
 
       {/* Профиль + кнопки справа */}
