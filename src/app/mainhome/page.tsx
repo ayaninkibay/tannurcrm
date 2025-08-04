@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Trophy, Calendar, MapPin, Award, FileText, Play, Download, 
   ChevronRight, Star, TrendingUp, Building2, ShieldCheck, FileCheck,
-  Camera, Video, ImageIcon, Menu, X, User, Settings, LogIn, Heart
+  Camera, Video, ImageIcon, Menu, X, User, Cog, LogIn, Heart, ChartPie
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import HorizontalMediaScroll from '@/components/homemain/HorizontalMediaScroll';
@@ -25,7 +25,7 @@ const tabs = [
 export default function HomePage() {
   const { profile } = useUser();
   const [activeTab, setActiveTab] = useState('Главная');
-  const router = useRouter(); // Используем реальный роутер Next.js
+  const router = useRouter(); 
 
 
   const tabBlocks = {
@@ -650,15 +650,13 @@ export default function HomePage() {
       <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 pt-6 pb-4">
         {/* Логотип слева */}
       <div className="w-[60px] h-[36px] sm:w-[120px] sm:h-[36px] relative -mt-2">
-        <div className="relative w-[150px] h-[40px]">
   <Image
     src="/icons/company/tannur_black.svg"
     alt="Tannur"
     fill
     className="object-contain"
-    priority // 👈 ДОБАВЬ
+    priority 
   />
-</div>
 
       </div>
 
@@ -671,7 +669,7 @@ export default function HomePage() {
                 onClick={() => router.push('/dealer/dashboard')}
                 className="flex items-center gap-2 bg-white px-4 py-1 rounded-full text-xs font-medium hover:bg-[#D9D9D9] hover:text-white transition"
               >
-                <LogIn className="w-4 h-4 text-[#D77E6C]" />
+                <ChartPie className="w-5 h-5 text-[#D77E6C]" />
                 <span className="whitespace-nowrap">CRM</span>
               </button>
 
@@ -680,7 +678,7 @@ export default function HomePage() {
                   onClick={() => router.push('/admin/dashboard')}
                   className="flex items-center gap-2 bg-white px-4 py-2 rounded-full text-sm font-medium hover:bg-black hover:text-white transition"
                 >
-                  <Settings className="w-4 h-4 text-[#D77E6C]" />
+                  <Cog className="w-5 h-5 text-[#D77E6C]" />
                   Админ
                 </button>
               )}
