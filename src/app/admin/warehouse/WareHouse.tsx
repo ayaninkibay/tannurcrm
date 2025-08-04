@@ -55,10 +55,10 @@ export default function WareHouse() {
 
           {/* Список товаров */}
           <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
-            <div className="flex items-center font-semibold text-gray-500 text-sm border-b ">
+            <div className="flex items-center font-semibold text-gray-400 text-sm border-b ">
               
               <div className="grid grid-cols-5 gap-9 w-full justify-between text-center
-                text-[10px] sm:text-sm md:text-base lg:text-lg">
+                text-[9px] sm:text-sm md:text-base lg:text-lg p-3">
                 <div>Наименование</div>
                 <span>Цена Магазин</span>
                 <span>Цена Дилер</span>

@@ -29,46 +29,52 @@ export default function ProductCardWare({
     <div
       onClick={onClick}
       className={cn(
-        // теперь всегда flex-row + wrap, чтобы не ломаться на мобильных
-        "flex flex-row flex-wrap items-center justify-between" +
-        " rounded-xl px-2 py-2 sm:px-4 sm:py-3" +
-        " transition cursor-pointer hover:bg-[#f3f3f3]" +
-        " h-auto sm:h-[72px]",
+        // Используем ту же сетку, что и для заголовков в родительском компоненте
+        "grid grid-cols-5 gap-9 w-full items-center",
+        
+        // Общие стили для карточки
+        "rounded-xl px-2 py-2 sm:px-4 sm:py-3",
+        "transition cursor-pointer hover:bg-[#f3f3f3]",
+        "h-auto sm:h-[72px]",
+
+        // Адаптивный шрифт
+        "text-gray-600 text-[10px] sm:text-sm md:text-base lg:text-lg",
+        
         className
       )}
     >
-      {/* Левая часть — картинка + название */}
-      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+      {/* КОЛОНКА 1: Наименование */}
+      <div className="flex items-center gap-2 sm:gap-4 text-left overflow-hidden">
         <Image
           src={image}
           alt="product"
           width={50}
           height={50}
-          className="rounded-lg object-cover"
+          className="rounded-lg object-cover flex-shrink-0"
         />
-        <span className="text-[10px] sm:text-sm font-medium text-gray-900 truncate">
+        {/* Текст обрезается, чтобы не выходить за границы колонки */}
+        <span className="font-medium text-gray-900 truncate">
           {title}
         </span>
       </div>
 
-      {/* Правая часть — цены + количество + стрелка */}
-      <div
-        className={cn(
-          "flex flex-row flex-wrap items-center gap-2 sm:gap-4" +
-          " ml-auto" +                // чтобы при wrap правая часть уходила вправо
-          " text-[10px] sm:text-sm text-gray-600"
-        )}
-      >
-        <span className="whitespace-nowrap">{priceOld}</span>
-        <span className="whitespace-nowrap">{priceNew}</span>
-        <span className="text-black font-semibold whitespace-nowrap">{count}</span>
+      {/* КОЛОНКА 2: Цена Магазин */}
+      <span className="whitespace-nowrap text-center">{priceOld}</span>
+      
+      {/* КОЛОНКА 3: Цена Дилер */}
+      <span className="whitespace-nowrap text-center">{priceNew}</span>
+      
+      {/* КОЛОНКА 4: Кол-во */}
+      <span className="text-black font-semibold whitespace-nowrap text-center">{count}</span>
+      
+      {/* КОЛОНКА 5: Инфо */}
+      <div className="flex justify-center">
         {showArrow && (
           <Image
             src="/icons/IconArowBotomOrange.png"
             alt="arrow"
             width={18}
             height={18}
-            className="whitespace-nowrap"
           />
         )}
       </div>
