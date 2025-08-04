@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Package, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Package,
   Calendar,
   BarChart3,
   PieChart,
@@ -38,8 +38,8 @@ import {
   Cell
 } from 'recharts';
 
-// Define the type for a single order
-interface Order {
+// Определяем тип для одного заказа
+interface Заказ {
   date: string;
   product: string;
   profit: number;
@@ -47,15 +47,15 @@ interface Order {
   category: string;
 }
 
-// Define the type for monthly data statistics
-interface MonthlyStats {
+// Определяем тип для ежемесячной статистики
+interface МесячнаяСтатистика {
   profit: number;
   cost: number;
   orders: number;
 }
 
-// Define the type for product statistics
-interface ProductStats {
+// Определяем тип для статистики по продуктам
+interface СтатистикаПродукта {
   name: string;
   profit: number;
   cost: number;
@@ -64,11 +64,11 @@ interface ProductStats {
 }
 
 const SalesDashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [выбранныйМесяц, setВыбранныйМесяц] = useState<string>('all');
+  const [поисковыйЗапрос, setПоисковыйЗапрос] = useState<string>('');
 
-  // Your hardcoded data
-  const orders: Order[] = [
+  // Ваши жестко закодированные данные
+  const orders: Заказ[] = [
     {date: '10.04.2025', product: 'Цифровое пианино Lapiano', profit: 81820, cost: 133980, category: 'Музыкальные инструменты'},
     {date: '01.04.2025', product: 'Проектор Mini', profit: 16282, cost: 24388, category: 'Проекторы'},
     {date: '01.04.2025', product: 'Проектор Lumi 1000', profit: 50350, cost: 73320, category: 'Проекторы'},
@@ -98,38 +98,38 @@ const SalesDashboard = () => {
     {date: '23.07.2025', product: 'Экран 150', profit: -25615, cost: 25615, category: 'Проекторы'}
   ];
 
-  // Memoized calculation for overall statistics based on selected month
-  const stats = useMemo(() => {
-    const filteredOrders = selectedMonth === 'all' 
-      ? orders 
-      : orders.filter(order => {
-          const month = order.date.split('.')[1];
-          return month === selectedMonth;
+  // Вычисляем общую статистику на основе выбранного месяца
+  const статистика = useMemo(() => {
+    const отфильтрованныеЗаказы = выбранныйМесяц === 'all'
+      ? orders
+      : orders.filter(заказ => {
+          const месяц = заказ.date.split('.')[1];
+          return месяц === выбранныйМесяц;
         });
 
-    const totalProfit = filteredOrders.reduce((sum, order) => sum + order.profit, 0);
-    const totalCost = filteredOrders.reduce((sum, order) => sum + order.cost, 0);
-    const totalRevenue = totalProfit + totalCost;
-    const roi = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-    const profitableProducts = filteredOrders.filter(order => order.profit > 0).length;
-    const unprofitableProducts = filteredOrders.filter(order => order.profit < 0).length;
+    const общаяПрибыль = отфильтрованныеЗаказы.reduce((sum, заказ) => sum + заказ.profit, 0);
+    const общиеЗатраты = отфильтрованныеЗаказы.reduce((sum, заказ) => sum + заказ.cost, 0);
+    const общийДоход = общаяПрибыль + общиеЗатраты;
+    const рентабельностьИнвестиций = общиеЗатраты > 0 ? (общаяПрибыль / общиеЗатраты) * 100 : 0;
+    const прибыльныеПродукты = отфильтрованныеЗаказы.filter(заказ => заказ.profit > 0).length;
+    const убыточныеПродукты = отфильтрованныеЗаказы.filter(заказ => заказ.profit < 0).length;
 
     return {
-      totalProfit,
-      totalCost,
-      totalRevenue,
-      roi,
-      profitableProducts,
-      unprofitableProducts,
-      totalProducts: filteredOrders.length
+      общаяПрибыль,
+      общиеЗатраты,
+      общийДоход,
+      рентабельностьИнвестиций,
+      прибыльныеПродукты,
+      убыточныеПродукты,
+      всегоПродуктов: отфильтрованныеЗаказы.length
     };
-  }, [selectedMonth, orders]);
+  }, [выбранныйМесяц, orders]);
 
-  // Memoized data for monthly statistics
-  const monthlyData = useMemo(() => {
-    const months: { [key: string]: MonthlyStats } = {};
-    orders.forEach(order => {
-      const month = order.date.split('.')[1];
+  // Данные для ежемесячной статистики
+  const ежемесячныеДанные = useMemo(() => {
+    const months: { [key: string]: МесячнаяСтатистика } = {};
+    orders.forEach(заказ => {
+      const month = заказ.date.split('.')[1];
       const monthName = {
         '04': 'Апрель',
         '05': 'Май',
@@ -140,108 +140,108 @@ const SalesDashboard = () => {
       if (!months[monthName]) {
         months[monthName] = { profit: 0, cost: 0, orders: 0 };
       }
-      months[monthName].profit += order.profit;
-      months[monthName].cost += order.cost;
+      months[monthName].profit += заказ.profit;
+      months[monthName].cost += заказ.cost;
       months[monthName].orders += 1;
     });
     return months;
   }, [orders]);
 
-  // Memoized data for top products, filtered and sorted
-  const topProducts = useMemo(() => {
-    const productStats: { [key: string]: ProductStats } = {};
-    const filteredOrders = selectedMonth === 'all' 
-      ? orders 
-      : orders.filter(order => {
-          const month = order.date.split('.')[1];
-          return month === selectedMonth;
+  // Данные для топовых продуктов, отфильтрованных и отсортированных
+  const топПродукты = useMemo(() => {
+    const статистикаПродуктов: { [key: string]: СтатистикаПродукта } = {};
+    const отфильтрованныеЗаказы = выбранныйМесяц === 'all'
+      ? orders
+      : orders.filter(заказ => {
+          const месяц = заказ.date.split('.')[1];
+          return месяц === выбранныйМесяц;
         });
 
-    filteredOrders.forEach(order => {
-      if (!productStats[order.product]) {
-        productStats[order.product] = {
-          name: order.product,
+    отфильтрованныеЗаказы.forEach(заказ => {
+      if (!статистикаПродуктов[заказ.product]) {
+        статистикаПродуктов[заказ.product] = {
+          name: заказ.product,
           profit: 0,
           cost: 0,
           orders: 0,
-          category: order.category
+          category: заказ.category
         };
       }
-      productStats[order.product].profit += order.profit;
-      productStats[order.product].cost += order.cost;
-      productStats[order.product].orders += 1;
+      статистикаПродуктов[заказ.product].profit += заказ.profit;
+      статистикаПродуктов[заказ.product].cost += заказ.cost;
+      статистикаПродуктов[заказ.product].orders += 1;
     });
 
-    return Object.values(productStats)
-      .filter((product: ProductStats) => searchTerm === '' || product.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      .sort((a: ProductStats, b: ProductStats) => b.profit - a.profit);
-  }, [selectedMonth, searchTerm, orders]);
+    return Object.values(статистикаПродуктов)
+      .filter((product: СтатистикаПродукта) => поисковыйЗапрос === '' || product.name.toLowerCase().includes(поисковыйЗапрос.toLowerCase()))
+      .sort((a: СтатистикаПродукта, b: СтатистикаПродукта) => b.profit - a.profit);
+  }, [выбранныйМесяц, поисковыйЗапрос, orders]);
 
-  // Utility function to format numbers
+  // Вспомогательная функция для форматирования чисел
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('ru-RU').format(Math.round(num));
   };
 
-  // Recharts data for the Contract Type pie chart
+  // Данные Recharts для круговой диаграммы "Тип контракта"
   const pieChartData = [
-    { name: 'Milestone', value: 140, color: '#34D399' },
-    { name: 'Bonuses', value: 48, color: '#60A5FA' },
-    { name: 'Hourly', value: 16, color: '#F87171' },
+    { name: 'Этап', value: 140, color: '#34D399' },
+    { name: 'Бонусы', value: 48, color: '#60A5FA' },
+    { name: 'Почасовая', value: 16, color: '#F87171' },
   ];
-  const totalContracts = pieChartData.reduce((sum, entry) => sum + entry.value, 0);
+  const всегоКонтрактов = pieChartData.reduce((sum, entry) => sum + entry.value, 0);
 
-  // Recharts data for the Activity bar chart
+  // Данные Recharts для столбчатой диаграммы "Активность"
   const activityData = [
-    { name: 'Mon', hours: 20 },
-    { name: 'Tue', hours: 30 },
-    { name: 'Wed', hours: 25 },
-    { name: 'Thu', hours: 40 },
-    { name: 'Fri', hours: 35 },
-    { name: 'Sat', hours: 80 },
-    { name: 'Sun', hours: 60 },
+    { name: 'Пн', hours: 20 },
+    { name: 'Вт', hours: 30 },
+    { name: 'Ср', hours: 25 },
+    { name: 'Чт', hours: 40 },
+    { name: 'Пт', hours: 35 },
+    { name: 'Сб', hours: 80 },
+    { name: 'Вс', hours: 60 },
   ];
 
-  // Recharts data for the Total Spent line chart
+  // Данные Recharts для линейного графика "Общие затраты"
   const spentData = [
-    { name: 'Mon', spent: 60 },
-    { name: 'Tue', spent: 45 },
-    { name: 'Wed', spent: 35 },
-    { name: 'Thu', spent: 50 },
-    { name: 'Fri', spent: 25 },
-    { name: 'Sat', spent: 40 },
-    { name: 'Sun', spent: 30 },
+    { name: 'Пн', spent: 60 },
+    { name: 'Вт', spent: 45 },
+    { name: 'Ср', spent: 35 },
+    { name: 'Чт', spent: 50 },
+    { name: 'Пт', spent: 25 },
+    { name: 'Сб', spent: 40 },
+    { name: 'Вс', spent: 30 },
   ];
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans antialiased text-gray-900 font-inter">
-      {/* Header */}
+      {/* Шапка */}
       <div className="bg-white border-b border-gray-200 shadow-sm px-4 md:px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Left side: Logo and Navigation */}
+          {/* Левая часть: Логотип и навигация */}
           <div className="flex items-center gap-4 lg:gap-8">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">Λ</span>
               </div>
             </div>
-            
+
             <nav className="hidden lg:flex items-center gap-4">
               <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium transition-all hover:bg-gray-800">
                 <BarChart3 className="w-4 h-4" />
-                Dashboard
+                Панель
               </button>
               <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">
                 <CreditCard className="w-4 h-4" />
-                Payments
+                Платежи
               </button>
               <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">
                 <BarChart3 className="w-4 h-4" />
-                Reports
+                Отчеты
               </button>
             </nav>
           </div>
 
-          {/* Right side: User Actions */}
+          {/* Правая часть: Действия пользователя */}
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex items-center gap-2">
               <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
@@ -263,7 +263,7 @@ const SalesDashboard = () => {
       </div>
 
       <div className="flex">
-        {/* Sidebar */}
+        {/* Боковая панель */}
         <div className="hidden md:flex flex-col w-16 bg-white border-r border-gray-200 py-6 items-center gap-6 shadow-sm">
           <button className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center transition-all hover:bg-gray-800 shadow-md">
             <Home className="w-5 h-5" />
@@ -282,19 +282,19 @@ const SalesDashboard = () => {
           </button>
         </div>
 
-        {/* Main Content */}
+        {/* Основное содержимое */}
         <div className="flex-1 p-4 md:p-6 lg:p-8">
-          {/* Breadcrumb */}
+          {/* "Хлебные крошки" */}
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
             <Home className="w-4 h-4" />
-            <span>Home Page</span>
+            <span>Главная</span>
             <span>/</span>
-            <span className="text-gray-900 font-medium">Dashboard</span>
+            <span className="text-gray-900 font-medium">Панель</span>
           </div>
 
-          {/* Page Header */}
+          {/* Заголовок страницы */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-            <h1 className="text-3xl font-light text-gray-900">Sales Dashboard</h1>
+            <h1 className="text-3xl font-light text-gray-900">Панель продаж</h1>
             <div className="flex flex-wrap items-center gap-2 md:gap-4">
               <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
                 <Search className="w-5 h-5" />
@@ -303,29 +303,29 @@ const SalesDashboard = () => {
                 <BarChart3 className="w-5 h-5" />
               </button>
               <select className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors">
-                <option>20-27 Jan 2025</option>
+                <option>20-27 Янв 2025</option>
               </select>
               <button className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg hover:bg-gray-800 transition-all">
                 <Plus className="w-4 h-4" />
-                Add Widget
+                Добавить виджет
               </button>
               <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-                Create a Report
+                Создать отчет
               </button>
             </div>
           </div>
 
-          {/* Dashboard Grid */}
+          {/* Сетка панели */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Pro Version Card */}
+            {/* Карточка "Pro Version" */}
             <div className="bg-white rounded-2xl p-6 relative overflow-hidden shadow-xl col-span-1 lg:col-span-2">
               <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
                 <MoreHorizontal className="w-5 h-5" />
               </button>
-              
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Pro Version</h3>
-              
-              {/* 3D Crystal Placeholder */}
+
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Pro версия</h3>
+
+              {/* Заполнитель 3D-кристалла */}
               <div className="flex justify-center mb-6">
                 <div className="relative">
                   <div className="w-24 h-24 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-400 rounded-xl transform rotate-45 opacity-80 shadow-2xl"></div>
@@ -335,38 +335,38 @@ const SalesDashboard = () => {
 
               <div className="bg-gray-50 rounded-xl p-4 mb-4 shadow-inner">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">Advantages</span>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">15 Days</span>
+                  <span className="text-sm font-medium text-gray-900">Преимущества</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">15 Дней</span>
                 </div>
-                <p className="text-xs text-gray-600 mb-4">Your earnings with the pro version</p>
-                
-                {/* Mini Chart Placeholder */}
+                <p className="text-xs text-gray-600 mb-4">Ваш доход с Pro версией</p>
+
+                {/* Заполнитель мини-графика */}
                 <div className="h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg mb-4"></div>
-                
+
                 <button className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium shadow-md hover:bg-gray-800 transition-all">
-                  Learn more
+                  Узнать больше
                 </button>
               </div>
-              
-              <p className="text-xs text-gray-500">Join the elite of the crypto world with <strong>Pro Version</strong></p>
+
+              <p className="text-xs text-gray-500">Присоединяйтесь к элите криптомира с <strong>Pro версией</strong></p>
             </div>
 
-            {/* Activity Chart */}
+            {/* График активности */}
             <div className="bg-white rounded-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Activity</h3>
+                <h3 className="text-lg font-medium text-gray-900">Активность</h3>
                 <div className="flex items-center gap-2 text-gray-400">
                   <BarChart3 className="w-4 h-4" />
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              
+
               <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-1">Worked this week</p>
-                <p className="text-2xl font-light text-gray-900">186<span className="text-sm text-gray-500">h</span></p>
+                <p className="text-xs text-gray-600 mb-1">Отработано на этой неделе</p>
+                <p className="text-2xl font-light text-gray-900">186<span className="text-sm text-gray-500">ч</span></p>
               </div>
 
-              {/* Bar Chart using Recharts */}
+              {/* Столбчатая диаграмма с использованием Recharts */}
               <ResponsiveContainer width="100%" height={128}>
                 <BarChart data={activityData}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} className="text-xs text-gray-500" />
@@ -375,34 +375,34 @@ const SalesDashboard = () => {
                   <Tooltip cursor={{ fill: 'transparent' }} />
                 </BarChart>
               </ResponsiveContainer>
-              
+
             </div>
 
-            {/* Virtual Cards */}
+            {/* Виртуальные карты */}
             <div className="bg-white rounded-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Virtual cards</h3>
+                <h3 className="text-lg font-medium text-gray-900">Виртуальные карты</h3>
                 <MoreHorizontal className="w-5 h-5 text-gray-400" />
               </div>
 
               <div className="mb-6">
-                <p className="text-xs text-gray-600 mb-1">Total Balance</p>
+                <p className="text-xs text-gray-600 mb-1">Общий баланс</p>
                 <p className="text-2xl font-light text-gray-900">$6,010<span className="text-lg text-gray-400">.29</span></p>
                 <p className="text-xs text-green-600">↗ $205.00</p>
               </div>
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Dollar</span>
+                  <span className="text-sm text-gray-600">Доллар</span>
                   <span className="text-sm font-medium">72%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Tether</span>
+                  <span className="text-sm text-gray-600">Тетер</span>
                   <span className="text-sm font-medium">28%</span>
                 </div>
               </div>
 
-              {/* VISA Card - Redesigned */}
+              {/* Карта VISA - переработанный дизайн */}
               <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-xl p-6 relative shadow-md">
                 <div className="flex items-center justify-between mb-8">
                   <div className="text-white font-bold text-lg">VISA</div>
@@ -416,10 +416,10 @@ const SalesDashboard = () => {
               </div>
             </div>
 
-            {/* Total Spent */}
+            {/* Общие затраты */}
             <div className="bg-white rounded-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Total Spent</h3>
+                <h3 className="text-lg font-medium text-gray-900">Общие затраты</h3>
                 <div className="flex items-center gap-2 text-gray-400">
                   <BarChart3 className="w-4 h-4" />
                   <TrendingUp className="w-4 h-4" />
@@ -427,23 +427,23 @@ const SalesDashboard = () => {
               </div>
 
               <div className="mb-6">
-                <p className="text-xs text-gray-600 mb-1">Spent this week</p>
+                <p className="text-xs text-gray-600 mb-1">Потрачено на этой неделе</p>
                 <p className="text-2xl font-light text-gray-900">$820<span className="text-lg text-gray-400">.65</span></p>
                 <p className="text-xs text-green-600">↗ $605.00</p>
               </div>
 
-              {/* Line Chart with dots */}
+              {/* Линейный график с точками */}
               <ResponsiveContainer width="100%" height={96}>
                 <LineChart data={spentData}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} className="text-xs text-gray-500" />
                   <YAxis hide={true} domain={['dataMin', 'dataMax + 10']} />
                   <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="spent" 
-                    stroke="#6B7280" 
-                    strokeWidth={2} 
-                    dot={{ stroke: '#6B7280', strokeWidth: 2, r: 4 }} 
+                  <Line
+                    type="monotone"
+                    dataKey="spent"
+                    stroke="#6B7280"
+                    strokeWidth={2}
+                    dot={{ stroke: '#6B7280', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, stroke: '#FCD34D', fill: '#FCD34D' }}
                   />
                 </LineChart>
@@ -452,27 +452,27 @@ const SalesDashboard = () => {
               <div className="flex justify-between text-xs text-gray-500 mt-4">
                 <div>
                   <div className="text-gray-900 font-medium">10</div>
-                  <div>Wallets</div>
+                  <div>Кошельков</div>
                 </div>
                 <div>
                   <div className="text-gray-900 font-medium">26</div>
-                  <div>Assets</div>
+                  <div>Активов</div>
                 </div>
               </div>
             </div>
 
-            {/* Contract Type */}
+            {/* Тип контракта */}
             <div className="bg-white rounded-2xl p-6 shadow-xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Contract Type</h3>
+                <h3 className="text-lg font-medium text-gray-900">Тип контракта</h3>
                 <TrendingUp className="w-4 h-4 text-gray-400" />
               </div>
 
               <div className="mb-6">
-                <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors">Learn more →</button>
+                <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors">Узнать больше →</button>
               </div>
 
-              {/* Donut Chart using Recharts */}
+              {/* Кольцевая диаграмма с использованием Recharts */}
               <div className="flex items-center justify-center mb-6 relative">
                 <ResponsiveContainer width="100%" height={128}>
                   <RechartsPieChart>
@@ -497,7 +497,7 @@ const SalesDashboard = () => {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
-                    <div className="text-lg font-medium text-gray-900">{((pieChartData[0].value / totalContracts) * 100).toFixed(0)}%</div>
+                    <div className="text-lg font-medium text-gray-900">{((pieChartData[0].value / всегоКонтрактов) * 100).toFixed(0)}%</div>
                   </div>
                 </div>
               </div>
@@ -512,11 +512,11 @@ const SalesDashboard = () => {
               </div>
             </div>
 
-            {/* Sales Data (Monthly Statistics) */}
+            {/* Данные о продажах (Ежемесячная статистика) */}
             <div className="bg-white rounded-2xl p-6 shadow-xl col-span-1 lg:col-span-2">
               <h3 className="text-lg font-medium text-gray-900 mb-6">Месячная статистика</h3>
               <div className="space-y-4">
-                {Object.entries(monthlyData).map(([month, data]) => (
+                {Object.entries(ежемесячныеДанные).map(([month, data]) => (
                   <div key={month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div>
                       <p className="font-medium text-gray-900 text-sm">{month}</p>
@@ -531,8 +531,8 @@ const SalesDashboard = () => {
                       </p>
                     </div>
                     <div className="flex-shrink-0">
-                      {data.profit >= 0 ? 
-                        <TrendingUp className="w-4 h-4 text-green-600" /> : 
+                      {data.profit >= 0 ?
+                        <TrendingUp className="w-4 h-4 text-green-600" /> :
                         <TrendingDown className="w-4 h-4 text-red-600" />
                       }
                     </div>
@@ -542,14 +542,14 @@ const SalesDashboard = () => {
             </div>
           </div>
 
-          {/* Products Table */}
+          {/* Таблица продуктов */}
           <div className="mt-8 bg-white rounded-2xl p-6 shadow-xl">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
               <h3 className="text-lg font-medium text-gray-900">Топ товары</h3>
               <div className="flex flex-wrap items-center gap-4">
-                <select 
-                  value={selectedMonth} 
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                <select
+                  value={выбранныйМесяц}
+                  onChange={(e) => setВыбранныйМесяц(e.target.value)}
                   className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors"
                 >
                   <option value="all">Все месяцы</option>
@@ -563,16 +563,16 @@ const SalesDashboard = () => {
                   <input
                     type="text"
                     placeholder="Поиск товаров..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={поисковыйЗапрос}
+                    onChange={(e) => setПоисковыйЗапрос(e.target.value)}
                     className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors"
                   />
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-3">
-              {topProducts.slice(0, 10).map((product, index) => (
+              {топПродукты.slice(0, 10).map((product, index) => (
                 <div key={product.name} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -593,8 +593,8 @@ const SalesDashboard = () => {
                       </p>
                     </div>
                     <div className="flex-shrink-0">
-                      {product.profit >= 0 ? 
-                        <TrendingUp className="w-4 h-4 text-green-600" /> : 
+                      {product.profit >= 0 ?
+                        <TrendingUp className="w-4 h-4 text-green-600" /> :
                         <TrendingDown className="w-4 h-4 text-red-600" />
                       }
                     </div>
