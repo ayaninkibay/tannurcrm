@@ -19,10 +19,7 @@
       }
     ],
     "strictNullChecks": true,
-
-    // теперь корень — вся папка проекта,
     "baseUrl": ".",
-    // а '@/…' разворачивается в 'src/…'
     "paths": {
       "@/*": ["src/*"]
     }
@@ -33,5 +30,8 @@
     "**/*.ts",
     "**/*.tsx"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions" 
+  ]
 }
