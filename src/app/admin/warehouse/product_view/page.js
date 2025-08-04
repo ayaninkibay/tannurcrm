@@ -23,9 +23,9 @@ export default function ProductView() {
       <div className="w-full h-px bg-gray-300" />
 
       {/* Основной контейнер, который теперь использует гибкую сетку */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-4 md:p-6 lg:p-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6  md:p-6 lg:p-8">
         
-        {/* Левая и центральная часть, теперь это вызов нового компонента */}
+        {/* Левая и центральная часть */}
         <div className="lg:col-span-3 flex flex-col gap-6">
           <ProductInfoBlock />
 
@@ -62,7 +62,7 @@ export default function ProductView() {
         </div>
 
         {/* Правая колонка — управление */}
-        <div className="lg:col-span-1 rounded-2xl p-6 flex flex-col gap-6">
+        <div className="lg:col-span-1 rounded-2xl  flex flex-col gap-6">
           <h2 className="text-xl font-bold text-[#111]">Управление товаром</h2>
           <p className="text-sm text-gray-500">
             Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.
