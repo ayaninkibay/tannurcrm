@@ -62,7 +62,7 @@ export default function ProductView() {
         </div>
 
         {/* Правая колонка — управление */}
-        <div className="lg:col-span-1 bg-white rounded-2xl p-6 flex flex-col gap-6">
+        <div className="lg:col-span-1 rounded-2xl p-6 flex flex-col gap-6">
           <h2 className="text-xl font-bold text-[#111]">Управление товаром</h2>
           <p className="text-sm text-gray-500">
             Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.
