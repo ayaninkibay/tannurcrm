@@ -35,7 +35,7 @@ export default function HomePage() {
         key="Главная-1" 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative bg-gradient-to-br from-[#D77E6C]/10 via-white to-[#FFE8E4]/20 backdrop-blur-sm rounded-3xl p-8 md:p-12 overflow-hidden"
+        className="relative bg-gradient-to-br from-[#D77E6C]/10 via-white to-[#FFE8E4]/20 backdrop-blur-sm shadow rounded-3xl p-8 md:p-12 overflow-hidden"
       >
         {/* Декоративные элементы */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#D77E6C]/10 rounded-full blur-3xl" />
@@ -74,7 +74,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -126,7 +126,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
           Прошедшие <span className="text-[#D77E6C]">мероприятия</span>
@@ -140,7 +140,7 @@ export default function HomePage() {
         key="О компании-1" 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div>
@@ -181,7 +181,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
           Наши <span className="text-[#D77E6C]">ценности</span>
@@ -226,7 +226,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h2 className="text-3xl font-bold text-gray-900 mb-8">
           Наша <span className="text-[#D77E6C]">миссия</span>
@@ -246,7 +246,7 @@ export default function HomePage() {
         key="ТОП-10-1" 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gray-900">
@@ -302,7 +302,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           Лидеры <span className="text-[#D77E6C]">роста</span>
@@ -349,7 +349,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           Статистика <span className="text-[#D77E6C]">успеха</span>
@@ -380,7 +380,7 @@ export default function HomePage() {
         key="Экскурсия-1" 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gray-900">
@@ -435,7 +435,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           Фото <span className="text-[#D77E6C]">галерея</span>
@@ -477,7 +477,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           3D <span className="text-[#D77E6C]">тур</span>
@@ -501,7 +501,7 @@ export default function HomePage() {
         key="Документы-1" 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-gray-900">
@@ -575,7 +575,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           Правовые <span className="text-[#D77E6C]">документы</span>
@@ -615,7 +615,7 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow"
       >
         <h3 className="text-2xl font-bold text-gray-900 mb-6">
           Обучающие <span className="text-[#D77E6C]">материалы</span>
@@ -645,7 +645,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-[#FFE8E4]/20 via-white to-[#D77E6C]/10">
+    <div className="w-full h-full bg-[#F4F4F4]">
       {/* Верх: логотип + профиль + кнопки */} 
       <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 pt-6 pb-4">
         {/* Логотип слева */}
@@ -744,45 +744,45 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Разделительная линия */}
-      <div className="w-full flex justify-center mb-4">
-        <div className="w-full max-w-[1150px] border-b border-black/10" />
-      </div>
+            {/* Разделительная линия */}
+            <div className="w-full flex justify-center mb-4">
+              <div className="w-full max-w-[1150px] border-b border-black/10" />
+            </div>
 
-      {/* Табы */}
-      <div className="max-w-[1200px] mx-auto px-6 mb-10">
-        <div className="flex flex-wrap gap-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 border outline-none ${
-                activeTab === tab
-                  ? ' bg-black text-white border-black'
-                  : ' bg-white text-black border-transparent'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
+            {/* Табы */}
+            <div className="max-w-[1200px] mx-auto px-6 mb-10">
+              <div className="flex flex-wrap gap-4">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 border outline-none ${
+                      activeTab === tab
+                        ? ' bg-black text-white border-black'
+                        : ' bg-white text-black border-transparent'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-      {/* Контент таба */}
-      <div className="max-w-[1200px] mx-auto px-6 pb-12">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col gap-6"
-          >
-            {tabBlocks[activeTab]}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+              {/* Контент таба */}
+              <div className="max-w-[1200px] mx-auto px-6 pb-12">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex flex-col gap-6"
+                  >
+                    {tabBlocks[activeTab]}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
     </div>
   );
 }
