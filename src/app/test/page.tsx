@@ -1,612 +1,791 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Package,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Filter,
-  Search,
-  ShoppingCart,
-  Target,
-  Home,
-  Settings,
-  Bell,
-  Mail,
-  Plus,
-  MoreHorizontal,
-  Activity,
-  CreditCard,
-  Users
+import { useState, useEffect } from 'react';
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Users, Trophy, Calendar, MapPin, Award, FileText, Play, Download, 
+  ChevronRight, Star, TrendingUp, Building2, ShieldCheck, FileCheck,
+  Camera, Video, ImageIcon, Menu, X, User, Settings, LogIn, Heart
 } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import { useUser } from '@/context/UserContext';
+import HorizontalMediaScroll from '@/components/homemain/HorizontalMediaScroll';
+import Image from 'next/image';
 
-// Определяем тип для одного заказа
-interface Заказ {
-  date: string;
-  product: string;
-  profit: number;
-  cost: number;
-  category: string;
-}
+const tabs = [
+  'Главная',
+  'О компании',
+  'ТОП-10',
+  'Экскурсия',
+  'Документы'
+];
 
-// Определяем тип для ежемесячной статистики
-interface МесячнаяСтатистика {
-  profit: number;
-  cost: number;
-  orders: number;
-}
 
-// Определяем тип для статистики по продуктам
-interface СтатистикаПродукта {
-  name: string;
-  profit: number;
-  cost: number;
-  orders: number;
-  category: string;
-}
+export default function HomePage() {
+    const { profile } = useUser();
+  const [activeTab, setActiveTab] = useState('Главная');
+  
 
-const SalesDashboard = () => {
-  const [выбранныйМесяц, setВыбранныйМесяц] = useState<string>('all');
-  const [поисковыйЗапрос, setПоисковыйЗапрос] = useState<string>('');
 
-  // Ваши жестко закодированные данные
-  const orders: Заказ[] = [
-    {date: '10.04.2025', product: 'Цифровое пианино Lapiano', profit: 81820, cost: 133980, category: 'Музыкальные инструменты'},
-    {date: '01.04.2025', product: 'Проектор Mini', profit: 16282, cost: 24388, category: 'Проекторы'},
-    {date: '01.04.2025', product: 'Проектор Lumi 1000', profit: 50350, cost: 73320, category: 'Проекторы'},
-    {date: '01.04.2025', product: 'Ирригатор', profit: 3697, cost: 7010, category: 'Здоровье'},
-    {date: '01.04.2025', product: 'Очиститель TRC3000', profit: 12409, cost: 16276, category: 'Бытовая техника'},
-    {date: '22.04.2025', product: 'Цифровое пианино Leni', profit: 61636, cost: 104240, category: 'Музыкальные инструменты'},
-    {date: '23.04.2025', product: 'Цифровое пианино Leni', profit: 78653, cost: 103947, category: 'Музыкальные инструменты'},
-    {date: '24.04.2025', product: 'Цифровое пианино Lapiano', profit: 81425, cost: 134375, category: 'Музыкальные инструменты'},
-    {date: '24.04.2025', product: 'Цифровое пианино Daisy', profit: 125193, cost: 190208, category: 'Музыкальные инструменты'},
-    {date: '02.05.2025', product: 'Цифровое пианино Lapiano', profit: 81425, cost: 134375, category: 'Музыкальные инструменты'},
-    {date: '02.05.2025', product: 'Проектор Lumi 1000', profit: 43585, cost: 80085, category: 'Проекторы'},
-    {date: '21.05.2025', product: 'Пылесос авто чип', profit: 6086, cost: 8854, category: 'Автотовары'},
-    {date: '22.05.2025', product: 'Пылесос авто алюмин', profit: 11331, cost: 12739, category: 'Автотовары'},
-    {date: '25.05.2025', product: 'Пылесос для клещей', profit: 36973, cost: 35403, category: 'Бытовая техника'},
-    {date: '24.04.2025', product: 'Цифровое пианино Lapiano', profit: 80803, cost: 134582, category: 'Музыкальные инструменты'},
-    {date: '01.04.2025', product: 'Очиститель TRC3000', profit: 14513, cost: 25742, category: 'Бытовая техника'},
-    {date: '02.05.2025', product: 'Проектор Lumi 1000', profit: 86271, cost: 78069, category: 'Проекторы'},
-    {date: '25.05.2025', product: 'Пылесос для клещей', profit: 47103, cost: 27597, category: 'Бытовая техника'},
-    {date: '26.06.2025', product: 'Пылесос для клещей с паром', profit: 66437, cost: 38973, category: 'Бытовая техника'},
-    {date: '26.06.2025', product: 'Проектор Lumi 1000', profit: 91440, cost: 72900, category: 'Проекторы'},
-    {date: '06.07.2025', product: 'Офисное детское кресло', profit: -126000, cost: 126000, category: 'Мебель'},
-    {date: '11.07.2025', product: 'Проектор Lumi 1000', profit: 88335, cost: 76005, category: 'Проекторы'},
-    {date: '11.07.2025', product: 'Проектор Mini', profit: 19029, cost: 19982, category: 'Проекторы'},
-    {date: '14.07.2025', product: 'Проектор Lumi 2400', profit: 108054, cost: 56286, category: 'Проекторы'},
-    {date: '15.07.2025', product: 'Цифровое пианино Leni', profit: -66124, cost: 66124, category: 'Музыкальные инструменты'},
-    {date: '23.07.2025', product: 'Экран 120', profit: -21255, cost: 21255, category: 'Проекторы'},
-    {date: '23.07.2025', product: 'Экран 150', profit: -25615, cost: 25615, category: 'Проекторы'}
-  ];
-
-  // Вычисляем общую статистику на основе выбранного месяца
-  const статистика = useMemo(() => {
-    const отфильтрованныеЗаказы = выбранныйМесяц === 'all'
-      ? orders
-      : orders.filter(заказ => {
-          const месяц = заказ.date.split('.')[1];
-          return месяц === выбранныйМесяц;
-        });
-
-    const общаяПрибыль = отфильтрованныеЗаказы.reduce((sum, заказ) => sum + заказ.profit, 0);
-    const общиеЗатраты = отфильтрованныеЗаказы.reduce((sum, заказ) => sum + заказ.cost, 0);
-    const общийДоход = общаяПрибыль + общиеЗатраты;
-    const рентабельностьИнвестиций = общиеЗатраты > 0 ? (общаяПрибыль / общиеЗатраты) * 100 : 0;
-    const прибыльныеПродукты = отфильтрованныеЗаказы.filter(заказ => заказ.profit > 0).length;
-    const убыточныеПродукты = отфильтрованныеЗаказы.filter(заказ => заказ.profit < 0).length;
-
-    return {
-      общаяПрибыль,
-      общиеЗатраты,
-      общийДоход,
-      рентабельностьИнвестиций,
-      прибыльныеПродукты,
-      убыточныеПродукты,
-      всегоПродуктов: отфильтрованныеЗаказы.length
-    };
-  }, [выбранныйМесяц, orders]);
-
-  // Данные для ежемесячной статистики
-  const ежемесячныеДанные = useMemo(() => {
-    const months: { [key: string]: МесячнаяСтатистика } = {};
-    orders.forEach(заказ => {
-      const month = заказ.date.split('.')[1];
-      const monthName = {
-        '04': 'Апрель',
-        '05': 'Май',
-        '06': 'Июнь',
-        '07': 'Июль'
-      }[month] || month;
-
-      if (!months[monthName]) {
-        months[monthName] = { profit: 0, cost: 0, orders: 0 };
-      }
-      months[monthName].profit += заказ.profit;
-      months[monthName].cost += заказ.cost;
-      months[monthName].orders += 1;
-    });
-    return months;
-  }, [orders]);
-
-  // Данные для топовых продуктов, отфильтрованных и отсортированных
-  const топПродукты = useMemo(() => {
-    const статистикаПродуктов: { [key: string]: СтатистикаПродукта } = {};
-    const отфильтрованныеЗаказы = выбранныйМесяц === 'all'
-      ? orders
-      : orders.filter(заказ => {
-          const месяц = заказ.date.split('.')[1];
-          return месяц === выбранныйМесяц;
-        });
-
-    отфильтрованныеЗаказы.forEach(заказ => {
-      if (!статистикаПродуктов[заказ.product]) {
-        статистикаПродуктов[заказ.product] = {
-          name: заказ.product,
-          profit: 0,
-          cost: 0,
-          orders: 0,
-          category: заказ.category
-        };
-      }
-      статистикаПродуктов[заказ.product].profit += заказ.profit;
-      статистикаПродуктов[заказ.product].cost += заказ.cost;
-      статистикаПродуктов[заказ.product].orders += 1;
-    });
-
-    return Object.values(статистикаПродуктов)
-      .filter((product: СтатистикаПродукта) => поисковыйЗапрос === '' || product.name.toLowerCase().includes(поисковыйЗапрос.toLowerCase()))
-      .sort((a: СтатистикаПродукта, b: СтатистикаПродукта) => b.profit - a.profit);
-  }, [выбранныйМесяц, поисковыйЗапрос, orders]);
-
-  // Вспомогательная функция для форматирования чисел
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('ru-RU').format(Math.round(num));
+  const router = {
+    push: (path) => console.log('Navigate to:', path)
   };
 
-  // Данные Recharts для круговой диаграммы "Тип контракта"
-  const pieChartData = [
-    { name: 'Этап', value: 140, color: '#34D399' },
-    { name: 'Бонусы', value: 48, color: '#60A5FA' },
-    { name: 'Почасовая', value: 16, color: '#F87171' },
-  ];
-  const всегоКонтрактов = pieChartData.reduce((sum, entry) => sum + entry.value, 0);
-
-  // Данные Recharts для столбчатой диаграммы "Активность"
-  const activityData = [
-    { name: 'Пн', hours: 20 },
-    { name: 'Вт', hours: 30 },
-    { name: 'Ср', hours: 25 },
-    { name: 'Чт', hours: 40 },
-    { name: 'Пт', hours: 35 },
-    { name: 'Сб', hours: 80 },
-    { name: 'Вс', hours: 60 },
-  ];
-
-  // Данные Recharts для линейного графика "Общие затраты"
-  const spentData = [
-    { name: 'Пн', spent: 60 },
-    { name: 'Вт', spent: 45 },
-    { name: 'Ср', spent: 35 },
-    { name: 'Чт', spent: 50 },
-    { name: 'Пт', spent: 25 },
-    { name: 'Сб', spent: 40 },
-    { name: 'Вс', spent: 30 },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gray-100 font-sans antialiased text-gray-900 font-inter">
-      {/* Шапка */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-4 md:px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Левая часть: Логотип и навигация */}
-          <div className="flex items-center gap-4 lg:gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">Λ</span>
-              </div>
+  const tabBlocks = {
+    'Главная': [
+      // Главный баннер
+      <motion.div 
+        key="Главная-1" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative bg-gradient-to-br from-[#D77E6C]/10 via-white to-[#FFE8E4]/20 backdrop-blur-sm rounded-3xl p-8 md:p-12 overflow-hidden"
+      >
+        {/* Декоративные элементы */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#D77E6C]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#FFE8E4]/30 rounded-full blur-3xl" />
+        
+        <div className="relative z-10">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full mb-6 shadow-lg">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">2,234 партнёров онлайн</span>
             </div>
+            
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Добро пожаловать в <span className="text-[#D77E6C]">Tannur</span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl">
+              Ваш путь к успеху в индустрии красоты начинается здесь. Присоединяйтесь к лидерам рынка косметики.
+            </p>
+            
+            <div className="flex flex-wrap gap-4">
+              <button className="bg-[#D77E6C] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#C56D5C] transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2">
+                Начать сейчас
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <button className="bg-white/80 backdrop-blur-sm px-8 py-4 rounded-full font-semibold hover:bg-white transition-all duration-300 shadow-lg">
+                Узнать больше
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>,
 
-            <nav className="hidden lg:flex items-center gap-4">
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium transition-all hover:bg-gray-800">
-                <BarChart3 className="w-4 h-4" />
-                Панель
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">
-                <CreditCard className="w-4 h-4" />
-                Платежи
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">
-                <BarChart3 className="w-4 h-4" />
-                Отчеты
-              </button>
-            </nav>
+      // События
+      <motion.div 
+        key="Главная-2" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            События <span className="text-[#D77E6C]">августа</span>
+          </h2>
+          <Calendar className="w-8 h-8 text-[#D77E6C]" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            {[
+              { title: 'Новый филиал в Алматы', icon: <MapPin />, type: 'Открытие', date: '12 августа' },
+              { title: 'Путевка в Египет за 50 человек', icon: <Award />, type: 'Конкурс', date: '15 августа' },
+              { title: 'TNBA – Новый спикер', icon: <Users />, type: 'Обучение', date: '20 августа' },
+              { title: 'Tannur Event 08', icon: <Trophy />, type: 'Мероприятие', date: '25 августа' },
+            ].map((event, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 + idx * 0.1 }}
+                className="group flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-gray-50 to-white hover:from-[#FFE8E4] hover:to-white transition-all duration-300 cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D77E6C] to-[#E89185] flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                  {React.cloneElement(event.icon, { className: "w-6 h-6" })}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                  <p className="text-sm text-gray-500">{event.type} • {event.date}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#D77E6C] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </motion.div>
+            ))}
           </div>
 
-          {/* Правая часть: Действия пользователя */}
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-              <div className="w-8 h-8 bg-gray-400 rounded-full"></div>
-              <button className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center transition-all hover:bg-gray-800">
-                <Plus className="w-4 h-4" />
-              </button>
+          <div className="relative bg-gradient-to-br from-[#FFE8E4] to-[#FFF5F3] rounded-3xl p-8 flex items-center justify-center min-h-[300px]">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🎊</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Не пропустите!</h3>
+              <p className="text-gray-600">Следите за событиями и будьте в центре успеха</p>
             </div>
-            <button className="p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
-              <Bell className="w-5 h-5" />
+          </div>
+        </div>
+      </motion.div>,
+
+      // Галерея событий
+      <motion.div 
+        key="Главная-3" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+          Прошедшие <span className="text-[#D77E6C]">мероприятия</span>
+        </h2>
+        <HorizontalMediaScroll />
+      </motion.div>,
+    ],
+
+    'О компании': [
+      <motion.div 
+        key="О компании-1" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              История <span className="text-[#D77E6C]">успеха</span>
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Tannur Cosmetics — это больше, чем просто косметический бренд. Это сообщество успешных женщин, 
+              которые строят свой бизнес и меняют жизнь к лучшему.
+            </p>
+            <p className="text-gray-600 mb-6">
+              Основанная в 2015 году, наша компания выросла из небольшого стартапа в международный бренд 
+              с представительствами в 15 странах мира.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-[#FFE8E4] to-white p-4 rounded-2xl">
+                <h4 className="text-3xl font-bold text-[#D77E6C]">10+</h4>
+                <p className="text-sm text-gray-600">Лет на рынке</p>
+              </div>
+              <div className="bg-gradient-to-br from-[#FFE8E4] to-white p-4 rounded-2xl">
+                <h4 className="text-3xl font-bold text-[#D77E6C]">50K+</h4>
+                <p className="text-sm text-gray-600">Партнёров</p>
+              </div>
+            </div>
+          </div>
+          <div className="relative h-96 rounded-2xl overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600&h=400&fit=crop" 
+              alt="О компании"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="О компании-2" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+          Наши <span className="text-[#D77E6C]">ценности</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { 
+              icon: <Heart className="w-8 h-8" />, 
+              title: 'Забота', 
+              desc: 'Мы заботимся о каждом партнёре и клиенте' 
+            },
+            { 
+              icon: <Star className="w-8 h-8" />, 
+              title: 'Качество', 
+              desc: 'Только лучшие ингредиенты и технологии' 
+            },
+            { 
+              icon: <TrendingUp className="w-8 h-8" />, 
+              title: 'Развитие', 
+              desc: 'Постоянное обучение и рост для всех' 
+            }
+          ].map((value, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + idx * 0.1 }}
+              className="text-center p-6 rounded-2xl bg-gradient-to-br from-gray-50 to-white hover:from-[#FFE8E4] hover:to-white transition-all duration-300"
+            >
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#D77E6C] to-[#E89185] flex items-center justify-center text-white">
+                {value.icon}
+              </div>
+              <h3 className="font-bold text-xl mb-2">{value.title}</h3>
+              <p className="text-gray-600">{value.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="О компании-3" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h2 className="text-3xl font-bold text-gray-900 mb-8">
+          Наша <span className="text-[#D77E6C]">миссия</span>
+        </h2>
+        <div className="bg-gradient-to-r from-[#FFE8E4] to-[#FFF5F3] rounded-2xl p-8">
+          <blockquote className="text-xl italic text-gray-700 mb-4">
+            "Мы создаём возможности для женщин по всему миру реализовать свой потенциал, 
+            обрести финансовую независимость и построить успешный бизнес в индустрии красоты."
+          </blockquote>
+          <p className="text-right text-gray-600 font-semibold">— Основатель Tannur Cosmetics</p>
+        </div>
+      </motion.div>,
+    ],
+
+    'ТОП-10': [
+      <motion.div 
+        key="ТОП-10-1" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">
+            ТОП-10 <span className="text-[#D77E6C]">дилеров</span>
+          </h2>
+          <Trophy className="w-8 h-8 text-[#D77E6C]" />
+        </div>
+        
+        <div className="space-y-4">
+          {[
+            { name: 'Айгуль Касымова', city: 'Алматы', sales: '2.5M ₸', rank: 1, avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop' },
+            { name: 'Мадина Ахметова', city: 'Астана', sales: '2.3M ₸', rank: 2, avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop' },
+            { name: 'Гульнара Сейтова', city: 'Шымкент', sales: '2.1M ₸', rank: 3, avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop' },
+            { name: 'Дана Жумабекова', city: 'Караганда', sales: '1.9M ₸', rank: 4, avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop' },
+            { name: 'Асель Нурланова', city: 'Актобе', sales: '1.8M ₸', rank: 5, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop' },
+          ].map((dealer, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className={`flex items-center gap-4 p-4 rounded-2xl ${
+                dealer.rank <= 3 ? 'bg-gradient-to-r from-[#FFE8E4] to-white' : 'bg-gray-50'
+              } hover:shadow-lg transition-all duration-300`}
+            >
+              <div className="relative">
+                <img 
+                  src={dealer.avatar} 
+                  alt={dealer.name}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                  dealer.rank === 1 ? 'bg-yellow-500' : dealer.rank === 2 ? 'bg-gray-400' : dealer.rank === 3 ? 'bg-orange-600' : 'bg-[#D77E6C]'
+                }`}>
+                  {dealer.rank}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">{dealer.name}</h3>
+                <p className="text-sm text-gray-600">{dealer.city}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[#D77E6C]">{dealer.sales}</p>
+                <p className="text-xs text-gray-500">за месяц</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="ТОП-10-2" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          Лидеры <span className="text-[#D77E6C]">роста</span>
+        </h3>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1488161628813-04466f872be2?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1499952127939-9bbf5af6c51c?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1521119989659-a83eee488004?w=150&h=150&fit=crop',
+            'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=150&fit=crop',
+          ].map((avatar, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + idx * 0.05 }}
+              className="relative group cursor-pointer"
+            >
+              <img 
+                src={avatar} 
+                alt={`Дилер ${idx + 1}`}
+                className="w-full aspect-square rounded-2xl object-cover group-hover:scale-105 transition-transform"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                <p className="text-white text-sm font-semibold">+{120 - idx * 10}%</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        
+        <div className="bg-gradient-to-r from-[#FFE8E4] to-[#FFF5F3] rounded-2xl p-6 text-center">
+          <p className="text-gray-700 mb-2">Средний рост продаж за месяц</p>
+          <p className="text-4xl font-bold text-[#D77E6C]">+68%</p>
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="ТОП-10-3" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          Статистика <span className="text-[#D77E6C]">успеха</span>
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-[#D77E6C]/10 to-white p-6 rounded-2xl">
+            <TrendingUp className="w-8 h-8 text-[#D77E6C] mb-4" />
+            <h4 className="text-3xl font-bold text-gray-900 mb-2">156%</h4>
+            <p className="text-gray-600">Средний рост дохода дилеров за год</p>
+          </div>
+          <div className="bg-gradient-to-br from-[#FFE8E4] to-white p-6 rounded-2xl">
+            <Award className="w-8 h-8 text-[#D77E6C] mb-4" />
+            <h4 className="text-3xl font-bold text-gray-900 mb-2">92%</h4>
+            <p className="text-gray-600">Дилеров достигают целей</p>
+          </div>
+          <div className="bg-gradient-to-br from-[#FFF5F3] to-white p-6 rounded-2xl">
+            <Users className="w-8 h-8 text-[#D77E6C] mb-4" />
+            <h4 className="text-3xl font-bold text-gray-900 mb-2">5K+</h4>
+            <p className="text-gray-600">Активных дилеров по всему миру</p>
+          </div>
+        </div>
+      </motion.div>,
+    ],
+
+    'Экскурсия': [
+      <motion.div 
+        key="Экскурсия-1" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Наш <span className="text-[#D77E6C]">завод</span>
+          </h2>
+          <Building2 className="w-8 h-8 text-[#D77E6C]" />
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="relative h-96 rounded-2xl overflow-hidden group">
+            <img 
+              src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop" 
+              alt="Завод Tannur"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Play className="w-16 h-16 text-white" />
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Современное производство</h3>
+            <p className="text-gray-600 mb-4">
+              Наш завод оснащен новейшим оборудованием от ведущих мировых производителей. 
+              Площадь производственных помещений составляет более 10,000 м².
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-[#D77E6C] rounded-full" />
+                <span className="text-gray-600">Сертифицированное производство ISO 9001</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-[#D77E6C] rounded-full" />
+                <span className="text-gray-600">Собственная лаборатория контроля качества</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-[#D77E6C] rounded-full" />
+                <span className="text-gray-600">Экологически чистое производство</span>
+              </li>
+            </ul>
+            
+            <button className="mt-6 bg-[#D77E6C] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#C56D5C] transition-all duration-300 flex items-center gap-2">
+              <Video className="w-5 h-5" />
+              Смотреть видео-тур
             </button>
-            <button className="p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
-              <Mail className="w-5 h-5" />
+          </div>
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="Экскурсия-2" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          Фото <span className="text-[#D77E6C]">галерея</span>
+        </h3>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1612528443702-f6741f70a049?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1583521214690-73421a1829a9?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1629196613836-e417e4b55de9?w=400&h=300&fit=crop',
+          ].map((img, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 + idx * 0.05 }}
+              className="relative group cursor-pointer overflow-hidden rounded-xl"
+            >
+              <img 
+                src={img} 
+                alt={`Производство ${idx + 1}`}
+                className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <ImageIcon className="w-8 h-8 text-white" />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="Экскурсия-3" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          3D <span className="text-[#D77E6C]">тур</span>
+        </h3>
+        
+        <div className="bg-gradient-to-br from-[#FFE8E4] to-[#FFF5F3] rounded-2xl p-12 text-center">
+          <Camera className="w-16 h-16 text-[#D77E6C] mx-auto mb-6" />
+          <h4 className="text-2xl font-bold text-gray-900 mb-4">Виртуальная экскурсия</h4>
+          <p className="text-gray-600 mb-6 max-w-lg mx-auto">
+            Пройдите по нашему заводу не выходя из дома. Узнайте, как создаётся качественная косметика Tannur.
+          </p>
+          <button className="bg-[#D77E6C] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#C56D5C] transition-all duration-300 shadow-lg hover:shadow-xl">
+            Начать виртуальный тур
+          </button>
+        </div>
+      </motion.div>,
+    ],
+
+    'Документы': [
+      <motion.div 
+        key="Документы-1" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Сертификаты и <span className="text-[#D77E6C]">лицензии</span>
+          </h2>
+          <ShieldCheck className="w-8 h-8 text-[#D77E6C]" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            { 
+              title: 'Сертификат ЕАС', 
+              desc: 'Евразийское соответствие',
+              icon: <FileCheck className="w-6 h-6" />,
+              date: '2024-2027'
+            },
+            { 
+              title: 'ISO 9001:2015', 
+              desc: 'Система менеджмента качества',
+              icon: <Award className="w-6 h-6" />,
+              date: '2023-2026'
+            },
+            { 
+              title: 'Halal Certificate', 
+              desc: 'Сертификат халяль',
+              icon: <ShieldCheck className="w-6 h-6" />,
+              date: '2024-2025'
+            },
+            { 
+              title: 'GMP Certificate', 
+              desc: 'Надлежащая производственная практика',
+              icon: <FileText className="w-6 h-6" />,
+              date: '2023-2028'
+            },
+            { 
+              title: 'Декларация ТР ТС', 
+              desc: 'Техническое регулирование',
+              icon: <FileCheck className="w-6 h-6" />,
+              date: '2024-2029'
+            },
+            { 
+              title: 'Экологический сертификат', 
+              desc: 'Eco-friendly production',
+              icon: <Award className="w-6 h-6" />,
+              date: '2023-2025'
+            },
+          ].map((doc, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className="group bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl hover:from-[#FFE8E4] hover:to-white transition-all duration-300 cursor-pointer hover:shadow-lg"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D77E6C] to-[#E89185] flex items-center justify-center text-white">
+                  {doc.icon}
+                </div>
+                <Download className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C] transition-colors" />
+              </div>
+              <h3 className="font-bold text-gray-900 mb-1">{doc.title}</h3>
+              <p className="text-sm text-gray-600 mb-2">{doc.desc}</p>
+              <p className="text-xs text-[#D77E6C] font-semibold">{doc.date}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="Документы-2" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          Правовые <span className="text-[#D77E6C]">документы</span>
+        </h3>
+        
+        <div className="space-y-4">
+          {[
+            { title: 'Договор поставки', size: '2.4 MB', type: 'PDF' },
+            { title: 'Политика конфиденциальности', size: '1.2 MB', type: 'PDF' },
+            { title: 'Условия сотрудничества', size: '3.1 MB', type: 'PDF' },
+            { title: 'Маркетинг план 2025', size: '5.6 MB', type: 'PDF' },
+          ].map((file, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 + idx * 0.1 }}
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-[#FFE8E4] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-[#D77E6C]/10 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[#D77E6C]" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">{file.title}</h4>
+                  <p className="text-sm text-gray-500">{file.type} • {file.size}</p>
+                </div>
+              </div>
+              <Download className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C] transition-colors" />
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>,
+
+      <motion.div 
+        key="Документы-3" 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl"
+      >
+        <h3 className="text-2xl font-bold text-gray-900 mb-6">
+          Обучающие <span className="text-[#D77E6C]">материалы</span>
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gradient-to-br from-[#FFE8E4] to-white p-6 rounded-2xl">
+            <Video className="w-12 h-12 text-[#D77E6C] mb-4" />
+            <h4 className="font-bold text-gray-900 mb-2">Видео-курсы</h4>
+            <p className="text-gray-600 text-sm mb-4">Более 50 часов обучающего контента</p>
+            <button className="text-[#D77E6C] font-semibold text-sm hover:underline">
+              Перейти к курсам →
             </button>
-            <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-[#FFF5F3] to-white p-6 rounded-2xl">
+            <FileText className="w-12 h-12 text-[#D77E6C] mb-4" />
+            <h4 className="font-bold text-gray-900 mb-2">База знаний</h4>
+            <p className="text-gray-600 text-sm mb-4">Статьи, инструкции и руководства</p>
+            <button className="text-[#D77E6C] font-semibold text-sm hover:underline">
+              Открыть базу знаний →
+            </button>
+          </div>
+        </div>
+      </motion.div>,
+    ]
+  };
+
+  return (
+    <div className="w-full bg-gray-100 min-h-screen">
+      {/* Верх: логотип + профиль + кнопки */} 
+      <div className="flex justify-between items-center max-w-[1200px] mx-auto px-6 pt-6 pb-4">
+        {/* Логотип слева */}
+      <div className="w-[60px] h-[36px] sm:w-[120px] sm:h-[36px] relative -mt-2">
+        <div className="relative w-[150px] h-[40px]">
+  <Image
+    src="/icons/company/tannur_black.svg"
+    alt="Tannur"
+    fill
+    className="object-contain"
+    priority // 👈 ДОБАВЬ
+  />
+</div>
+
+      </div>
+
+        {/* Профиль + кнопки справа */}
+        <div className="flex items-center gap-2">
+          {/* Кнопки входа в CRM / Админку */}
+          {profile?.role && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push('/dealer/dashboard')}
+                className="flex items-center gap-2 bg-white px-4 py-1 rounded-full text-xs font-medium hover:bg-[#D9D9D9] hover:text-white transition"
+              >
+                <LogIn className="w-4 h-4 text-[#D77E6C]" />
+                <span className="whitespace-nowrap">CRM</span>
+              </button>
+
+              {profile.role === 'admin' && (
+                <button
+                  onClick={() => router.push('/admin/dashboard')}
+                  className="flex items-center gap-2 bg-white px-4 py-2 rounded-full text-sm font-medium hover:bg-black hover:text-white transition"
+                >
+                  <Settings className="w-4 h-4 text-[#D77E6C]" />
+                  Админ
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* Блок: профиль или "войти" */}
+          <div
+            className="flex items-center gap-2 cursor-pointer bg-white rounded-3xl px-3 py-2 transition hover:shadow"
+            onClick={() => {
+              if (!profile) {
+                router.push('/signin');
+              } else {
+                switch (profile.role) {
+                  case 'admin':
+                    router.push('/admin/profile');
+                    break;
+                  case 'dealer':
+                    router.push('/dealer/profile');
+                    break;
+                  case 'celebrity':
+                    router.push('/celebrity/profile');
+                    break;
+                  default:
+                    router.push('/signin');
+                }
+              }
+            }}
+          >
+            {!profile ? (
+              <>
+                <div className="w-7 h-7 flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium text-black">Войти в CRM</span>
+              </>
+            ) : (
+              <>
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Профиль"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-gray-500" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium text-black whitespace-nowrap">
+                    {profile.first_name}
+                  </span>
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="flex">
-        {/* Боковая панель */}
-        <div className="hidden md:flex flex-col w-16 bg-white border-r border-gray-200 py-6 items-center gap-6 shadow-sm">
-          <button className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center transition-all hover:bg-gray-800 shadow-md">
-            <Home className="w-5 h-5" />
-          </button>
-          <button className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors">
-            <Package className="w-5 h-5" />
-          </button>
-          <button className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors">
-            <BarChart3 className="w-5 h-5" />
-          </button>
-          <button className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors">
-            <Users className="w-5 h-5" />
-          </button>
-          <button className="w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl flex items-center justify-center transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
+      {/* Разделительная линия */}
+      <div className="w-full flex justify-center mb-4">
+        <div className="w-full max-w-[1150px] border-b border-black/10" />
+      </div>
+
+      {/* Табы */}
+      <div className="max-w-[1200px] mx-auto px-6 mb-10">
+        <div className="flex flex-wrap gap-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 border outline-none ${
+                activeTab === tab
+                  ? ' bg-black text-white border-black'
+                  : ' bg-white text-black border-transparent'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Основное содержимое */}
-        <div className="flex-1 p-4 md:p-6 lg:p-8">
-          {/* "Хлебные крошки" */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-            <Home className="w-4 h-4" />
-            <span>Главная</span>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">Панель</span>
-          </div>
-
-          {/* Заголовок страницы */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-            <h1 className="text-3xl font-light text-gray-900">Панель продаж</h1>
-            <div className="flex flex-wrap items-center gap-2 md:gap-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
-                <Search className="w-5 h-5" />
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
-                <BarChart3 className="w-5 h-5" />
-              </button>
-              <select className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors">
-                <option>20-27 Янв 2025</option>
-              </select>
-              <button className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg hover:bg-gray-800 transition-all">
-                <Plus className="w-4 h-4" />
-                Добавить виджет
-              </button>
-              <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-                Создать отчет
-              </button>
-            </div>
-          </div>
-
-          {/* Сетка панели */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Карточка "Pro Version" */}
-            <div className="bg-white rounded-2xl p-6 relative overflow-hidden shadow-xl col-span-1 lg:col-span-2">
-              <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Pro версия</h3>
-
-              {/* Заполнитель 3D-кристалла */}
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-400 rounded-xl transform rotate-45 opacity-80 shadow-2xl"></div>
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gradient-to-br from-blue-300 via-purple-400 to-pink-300 rounded-xl shadow-lg"></div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl p-4 mb-4 shadow-inner">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">Преимущества</span>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">15 Дней</span>
-                </div>
-                <p className="text-xs text-gray-600 mb-4">Ваш доход с Pro версией</p>
-
-                {/* Заполнитель мини-графика */}
-                <div className="h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg mb-4"></div>
-
-                <button className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-medium shadow-md hover:bg-gray-800 transition-all">
-                  Узнать больше
-                </button>
-              </div>
-
-              <p className="text-xs text-gray-500">Присоединяйтесь к элите криптомира с <strong>Pro версией</strong></p>
-            </div>
-
-            {/* График активности */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Активность</h3>
-                <div className="flex items-center gap-2 text-gray-400">
-                  <BarChart3 className="w-4 h-4" />
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-1">Отработано на этой неделе</p>
-                <p className="text-2xl font-light text-gray-900">186<span className="text-sm text-gray-500">ч</span></p>
-              </div>
-
-              {/* Столбчатая диаграмма с использованием Recharts */}
-              <ResponsiveContainer width="100%" height={128}>
-                <BarChart data={activityData}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} className="text-xs text-gray-500" />
-                  <Bar dataKey="hours" fill="#e5e7eb" radius={[10, 10, 0, 0]} />
-                  <Bar dataKey="hours" fill="#fbbf24" radius={[10, 10, 0, 0]} />
-                  <Tooltip cursor={{ fill: 'transparent' }} />
-                </BarChart>
-              </ResponsiveContainer>
-
-            </div>
-
-            {/* Виртуальные карты */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Виртуальные карты</h3>
-                <MoreHorizontal className="w-5 h-5 text-gray-400" />
-              </div>
-
-              <div className="mb-6">
-                <p className="text-xs text-gray-600 mb-1">Общий баланс</p>
-                <p className="text-2xl font-light text-gray-900">$6,010<span className="text-lg text-gray-400">.29</span></p>
-                <p className="text-xs text-green-600">↗ $205.00</p>
-              </div>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Доллар</span>
-                  <span className="text-sm font-medium">72%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Тетер</span>
-                  <span className="text-sm font-medium">28%</span>
-                </div>
-              </div>
-
-              {/* Карта VISA - переработанный дизайн */}
-              <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-xl p-6 relative shadow-md">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="text-white font-bold text-lg">VISA</div>
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <div className="text-white font-medium text-lg">$390.00</div>
-                <div className="flex justify-between items-end mt-4 text-white">
-                  <div className="text-xs opacity-80">•••• 6802</div>
-                  <div className="text-xs opacity-80">09/28</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Общие затраты */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Общие затраты</h3>
-                <div className="flex items-center gap-2 text-gray-400">
-                  <BarChart3 className="w-4 h-4" />
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-xs text-gray-600 mb-1">Потрачено на этой неделе</p>
-                <p className="text-2xl font-light text-gray-900">$820<span className="text-lg text-gray-400">.65</span></p>
-                <p className="text-xs text-green-600">↗ $605.00</p>
-              </div>
-
-              {/* Линейный график с точками */}
-              <ResponsiveContainer width="100%" height={96}>
-                <LineChart data={spentData}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} className="text-xs text-gray-500" />
-                  <YAxis hide={true} domain={['dataMin', 'dataMax + 10']} />
-                  <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: 'white', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} />
-                  <Line
-                    type="monotone"
-                    dataKey="spent"
-                    stroke="#6B7280"
-                    strokeWidth={2}
-                    dot={{ stroke: '#6B7280', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: '#FCD34D', fill: '#FCD34D' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-
-              <div className="flex justify-between text-xs text-gray-500 mt-4">
-                <div>
-                  <div className="text-gray-900 font-medium">10</div>
-                  <div>Кошельков</div>
-                </div>
-                <div>
-                  <div className="text-gray-900 font-medium">26</div>
-                  <div>Активов</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Тип контракта */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Тип контракта</h3>
-                <TrendingUp className="w-4 h-4 text-gray-400" />
-              </div>
-
-              <div className="mb-6">
-                <button className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors">Узнать больше →</button>
-              </div>
-
-              {/* Кольцевая диаграмма с использованием Recharts */}
-              <div className="flex items-center justify-center mb-6 relative">
-                <ResponsiveContainer width="100%" height={128}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={pieChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={60}
-                      fill="#8884d8"
-                      paddingAngle={5}
-                      cornerRadius={5}
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <div className="text-lg font-medium text-gray-900">{((pieChartData[0].value / всегоКонтрактов) * 100).toFixed(0)}%</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between text-center">
-                {pieChartData.map(item => (
-                  <div key={item.name}>
-                    <div className="text-lg font-medium text-gray-900">{item.value}</div>
-                    <div className="text-xs text-gray-500">{item.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Данные о продажах (Ежемесячная статистика) */}
-            <div className="bg-white rounded-2xl p-6 shadow-xl col-span-1 lg:col-span-2">
-              <h3 className="text-lg font-medium text-gray-900 mb-6">Месячная статистика</h3>
-              <div className="space-y-4">
-                {Object.entries(ежемесячныеДанные).map(([month, data]) => (
-                  <div key={month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{month}</p>
-                      <p className="text-xs text-gray-500">{data.orders} заказов</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-medium text-sm ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {data.profit >= 0 ? '+' : ''}{formatNumber(data.profit)} ₸
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        ROI: {data.cost > 0 ? ((data.profit / data.cost) * 100).toFixed(1) : 0}%
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      {data.profit >= 0 ?
-                        <TrendingUp className="w-4 h-4 text-green-600" /> :
-                        <TrendingDown className="w-4 h-4 text-red-600" />
-                      }
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Таблица продуктов */}
-          <div className="mt-8 bg-white rounded-2xl p-6 shadow-xl">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
-              <h3 className="text-lg font-medium text-gray-900">Топ товары</h3>
-              <div className="flex flex-wrap items-center gap-4">
-                <select
-                  value={выбранныйМесяц}
-                  onChange={(e) => setВыбранныйМесяц(e.target.value)}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors"
-                >
-                  <option value="all">Все месяцы</option>
-                  <option value="04">Апрель</option>
-                  <option value="05">Май</option>
-                  <option value="06">Июнь</option>
-                  <option value="07">Июль</option>
-                </select>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Поиск товаров..."
-                    value={поисковыйЗапрос}
-                    onChange={(e) => setПоисковыйЗапрос(e.target.value)}
-                    className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-gray-900 transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {топПродукты.slice(0, 10).map((product, index) => (
-                <div key={product.name} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-gray-600">#{index + 1}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.category} • {product.orders} заказов</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                    <div className="text-right">
-                      <p className={`font-medium text-sm ${product.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {product.profit >= 0 ? '+' : ''}{formatNumber(product.profit)} ₸
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        ROI: {product.cost > 0 ? ((product.profit / product.cost) * 100).toFixed(1) : 0}%
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      {product.profit >= 0 ?
-                        <TrendingUp className="w-4 h-4 text-green-600" /> :
-                        <TrendingDown className="w-4 h-4 text-red-600" />
-                      }
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Контент таба */}
+      <div className="max-w-[1200px] mx-auto px-6 pb-12">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col gap-6"
+          >
+            {tabBlocks[activeTab]}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
-};
-
-export default SalesDashboard;
+}

@@ -36,41 +36,51 @@ export const WarehouseCard: React.FC<WarehouseCardProps> = ({
       : price;
 
   return (
-    <div className="bg-white rounded-2xl p-6 flex flex-col justify-between">
+    <div className="bg-white rounded-2xl p-3 sm:p-4 md:p-6 flex flex-col justify-between">
       {/* Заголовок и стрелка */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Image src={iconSrc} width={20} height={20} alt={title} />
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Image
+            src={iconSrc}
+            width={20}
+            height={20}
+            className="w-4 h-4 sm:w-5 sm:h-5 md:w-[20px] md:h-[20px]"
+            alt={title}
+          />
+          <h3 className="text-sm sm:text-base md:text-lg font-medium text-gray-900">
+            {title}
+          </h3>
         </div>
-        <Link
-          href={href}
-          className=""
-        >
+        <Link href={href}>
           <Image
             src="/icons/IconArrowBlack.svg"
-            width={34}
-            height={34}
+            width={24}
+            height={24}
+            className="w-6 h-6 sm:w-8 sm:h-8 md:w-[34px] md:h-[34px]"
             alt="Перейти"
           />
         </Link>
       </div>
 
       {/* Основное количество */}
-      <div className="mt-4">
-        <p className="text-3xl font-bold text-gray-900">
+      <div className="mt-2 sm:mt-3 md:mt-4">
+        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
           {formattedQuantity}
-          <span className="ml-1 text-xl font-normal text-gray-600">штук</span>
+          <span className="ml-1 text-base sm:text-lg md:text-xl font-normal text-gray-600">
+            штук
+          </span>
         </p>
       </div>
 
       {/* Нижний блок с ценой */}
-      <div className="mt-6 bg-gray-100 rounded-lg p-4">
-        <p className="text-lg font-medium text-gray-900">
+      <div className="mt-3 sm:mt-4 md:mt-6 bg-gray-100 rounded-lg p-2 sm:p-3 md:p-4">
+        <p className="text-base sm:text-lg font-medium text-gray-900">
           {formattedPrice}
-          <span className="ml-1 text-lg font-normal">₸</span>
+          <span className="ml-1 text-base sm:text-lg font-normal">₸</span>
         </p>
-        <p className="mt-1 text-sm text-gray-500">Товары на общую сумму</p>
+        <p className="mt-1 text-xs sm:text-sm text-gray-500">
+          Товары на общую сумму
+        </p>
       </div>
     </div>
   );
