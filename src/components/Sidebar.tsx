@@ -94,7 +94,7 @@ export default function Sidebar() {
         hidden
         lg:flex                /* показываем с md+ */
         fixed left-0 top-0
-        h-screen w-36          /* 9rem — ширина сайдбара */
+        h-screen w-30          /* 9rem — ширина сайдбара */
         bg-[#e08672] z-10
         flex-col items-center pt-12 pb-6
       "
@@ -105,7 +105,7 @@ export default function Sidebar() {
         className={`
           mb-6 mt-4
           w-[60px] h-[60px]
-          xl:w-[50px] xl:h-[50px]
+          
           rounded-xl flex items-center justify-center transition-all
           ${pathname === '/' ? 'bg-[#d9d9d9]' : 'hover:bg-white/20'}
         `}
@@ -130,7 +130,7 @@ export default function Sidebar() {
           className="
             absolute
             w-[60px] h-[60px]
-            xl:w-[50px] xl:h-[50px]
+            
             bg-white rounded-xl left-1/2 -translate-x-1/2 z-0
           "
           style={{ top: activeTop }}
@@ -154,7 +154,6 @@ export default function Sidebar() {
                 }}
                 className="
                   w-[60px] h-[60px]
-                  xl:w-[50px] xl:h-[50px]
                   rounded-xl flex items-center justify-center
                   transition-all hover:bg-[#ffffff33]
                 "

@@ -64,7 +64,7 @@ export default function DashboardSidebarAdmin() {
         hidden
         lg:flex
         fixed left-0 top-0
-        h-screen w-36
+        h-screen w-30
         bg-[#f6f6f6] z-10
         flex-col items-center pt-12 pb-6
         border-r border-gray-300
@@ -76,7 +76,6 @@ export default function DashboardSidebarAdmin() {
         className={`
           mb-6 mt-4
           w-[60px] h-[60px]
-          xl:w-[50px] xl:h-[50px]
           rounded-xl flex items-center justify-center transition-all
           ${pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
         `}
@@ -101,7 +100,6 @@ export default function DashboardSidebarAdmin() {
           className="
             absolute
             w-[60px] h-[60px]
-            xl:w-[50px] xl:h-[50px]
             bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0
           "
           style={{ top: activeTop }}
@@ -126,7 +124,6 @@ export default function DashboardSidebarAdmin() {
                 }}
                 className="
                   w-[60px] h-[60px]
-                  xl:w-[50px] xl:h-[50px]
                   rounded-xl flex items-center justify-center
                   transition-all hover:bg-[#00000011]
                 "
