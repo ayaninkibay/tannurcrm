@@ -63,7 +63,7 @@ export default function DashboardPage() {
             {/* Новости */}
             <div className="rounded-2xl bg-white p-6 h-[370px] overflow-hidden">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl text-gray-700">Новости Tannur</h2>
+                <h2 className="text-2xl text-gray-700">События за Август</h2>
                 <button className="w-10 h-10 flex items-center justify-center border border-black rounded-full hover:bg-gray-100 transition">
                   <img src="/icons/Icon long arrow white.png" className="w-3.5 h-3.5" alt="Перейти" />
                 </button>

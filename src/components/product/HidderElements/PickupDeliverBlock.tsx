@@ -5,8 +5,7 @@ import Image from 'next/image';
 
 const deliveryOptions = [
   'Доставка не доступна',
-  'Алматы, Тимирязева 60',
-  'Алматы, Гагарина 115',
+  'Добавить адрес',
 ];
 
 export default function PickupDeliverBlock() {
@@ -52,7 +51,7 @@ export default function PickupDeliverBlock() {
             />
             <div>
               <p className="text-xs md:text-sm text-[#8C8C8C]">Адрес доставки</p>
-              <p className="text-sm md:text-md font-semibold text-[#1C1C1C]">
+              <p className="text-sm md:text-md font-semibold text-gray-400">
                 {selected}
               </p>
             </div>
