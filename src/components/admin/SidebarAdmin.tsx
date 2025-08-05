@@ -7,11 +7,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 const adminNavItems = [
-  { href: '/admin/dashboard',           icon: '/icons/sidebar/homewhite.svg',      iconGray: '/icons/sidebar/homegray.svg',      label: 'Админ Главная' },
-  { href: '/admin/store',               icon: '/icons/sidebar/storewhite.svg',     iconGray: '/icons/sidebar/storegray.svg',     label: 'Магазин' },
+  { href: '/admin/dashboard',           icon: '/icons/sidebar/homewhite.svg',      iconGray: '/icons/sidebar/homegray.svg',      label: 'Дэшборд' },
+  { href: '/admin/reports',               icon: '/icons/sidebar/reportgray.svg',     iconGray: '/icons/sidebar/reportwhite.svg',     label: 'Отчеты' },
   { href: '/admin/teamcontent',         icon: '/icons/sidebar/teamwhite.svg',      iconGray: '/icons/sidebar/teamgray.svg',      label: 'Команда' },
-  { href: '/admin/settings',            icon: '/icons/sidebar/settingswhite.svg',  iconGray: '/icons/sidebar/settingsgray.svg',  label: 'Настройки' },
-  { href: '/admin/educationcontent',    icon: '/icons/sidebar/statswhite.svg',     iconGray: '/icons/sidebar/statsgray.svg',     label: 'Ваши финансы' },
+  { href: '/admin/tnba',            icon: '/icons/sidebar/tnbawhite.svg',  iconGray: '/icons/sidebar/tnbawhite.svg',  label: 'Настройки' },
+  { href: '/admin/finance',    icon: '/icons/sidebar/statswhite.svg',     iconGray: '/icons/sidebar/statsgray.svg',     label: 'Ваши финансы' },
   { href: '/admin/warehouse',           icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
   { href: '/admin/documents',           icon: '/icons/sidebar/folderwhite.svg',    iconGray: '/icons/sidebar/foldergray.svg',    label: 'Документы' },
 ];

@@ -1,4 +1,4 @@
-// src/app/dealer/stats/page.tsx
+// src/app/dealer/reports/page.tsx
 'use client';
 
 import React, { useMemo } from 'react';
@@ -22,7 +22,7 @@ export default function DealerStatsPage() {
     <div className="space-y-8 p-1 lg:p-6 bg-gray-100">
       {/* Заголовок */}
       <header>
-        <MoreHeader title="Статистика дилера" />
+        <MoreHeader title="Отчеты" />
       </header>
 
       {/* Два графика */}

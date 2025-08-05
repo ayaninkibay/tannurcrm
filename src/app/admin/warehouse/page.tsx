@@ -17,8 +17,8 @@ export default function WareHouse() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#F3F3F3] ">
-      <MoreHeader title="Скалд Админа" />
+    <main className="p-2 md:p-6 bg-[#F3F3F3] ">
+      <MoreHeader title="Склад Tannur" />
 
       {/* 
         grid-cols-1 на мобилке,
