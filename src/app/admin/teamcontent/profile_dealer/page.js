@@ -24,7 +24,7 @@ export default function ProfileDealer() {
   const leftColumnContent = (
     <>
       {/* Команда + ссылка */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+      <div className="bg-white rounded-2xl p-6  mb-6">
         {/* Топовая часть: заголовок + аватарки */}
         <div className="flex justify-between items-start mb-6">
           {/* Заголовок и число */}
@@ -94,7 +94,7 @@ export default function ProfileDealer() {
       </div>
 
       {/* Инструкция */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 -">
         {/* Заголовок */}
         <h2 className="text-2xl font-semibold text-[#111]">
           Награды от Tannur Cosmetics
