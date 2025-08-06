@@ -8,9 +8,9 @@ export default function RightSidebar() {
   const router = useRouter();
 
   return (
-    <div className="w-full max-w-[420px] xl:max-w-[460px] 2xl:max-w-[480px] ml-auto pr-2 flex flex-col gap-4">
+    <div className="w-full h-full flex flex-col gap-4 p-4">
       {/* Заведующий складом */}
-      <div className="bg-white rounded-xl p-4">
+      <div className="bg-white rounded-xl p-4 w-full">
         <div className="flex justify-between items-start mb-2">
           <p className="text-sm font-semibold text-[#111] cursor-pointer hover:text-blue-500">
             Заведующий складом
@@ -23,7 +23,7 @@ export default function RightSidebar() {
             className="w-14 h-14 object-cover rounded-lg"
             alt="manager"
           />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[#111] flex items-center gap-1">
               Алишан Берденов
               <Image src="/icons/Icon check mark.png" alt="check" width={16} height={16} />
@@ -34,45 +34,47 @@ export default function RightSidebar() {
         </div>
       </div>
 
-      {/* Товары */}
-   <button
-  onClick={() => router.push('/admin/warehouse/product_view')}
-  className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
->
-  <span className="flex items-center gap-2 text-[#111] font-medium">
-    <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-    Выпуск товара из склада
-  </span>
-  <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-</button>
-
+      {/* Выпуск товара */}
+      <button
+        onClick={() => router.push('/admin/warehouse/product_view')}
+        className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
+      >
+        <span className="flex items-center gap-2 text-[#111] font-medium">
+          <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
+          Выпуск товара из склада
+        </span>
+        <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
+      </button>
 
       {/* История */}
-      <div className="rounded-xl">
-        <p className="text-sm font-semibold mb-2 text-[#111]">История</p>
-       <Link href="/admin/teamcontent/create_dealer" className="block w-full">
-  <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
-    <span className="flex items-center gap-2 text-[#111] font-medium">
-      <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-      Составить отчет по остаткам
-    </span>
-    <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-  </button>
-</Link>
-         <Link href="/admin/teamcontent/create_star" className="block w-full">
-  <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl mt-2 bg-white hover:bg-gray-100 w-full transition">
-    <span className="flex items-center gap-2 text-[#111] font-medium">
-      <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-      История движения товара на складе
-    </span>
-    <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-  </button>
-</Link>
+      <div className="w-full">
+        <p className="text-sm font-semibold mb-2 text-[#111] px-2">История</p>
+        <div className="space-y-2">
+          <Link href="/admin/teamcontent/create_dealer" className="block w-full">
+            <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
+              <span className="flex items-center gap-2 text-[#111] font-medium">
+                <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
+                Составить отчет по остаткам
+              </span>
+              <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
+            </button>
+          </Link>
+          
+          <Link href="/admin/teamcontent/create_star" className="block w-full">
+            <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
+              <span className="flex items-center gap-2 text-[#111] font-medium">
+                <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
+                История движения товара на складе
+              </span>
+              <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* Товары (создание) */}
-      <div className="rounded-xl">
-        <p className="text-sm font-semibold mb-2 text-[#111]">Товары</p>
+      <div className="w-full">
+        <p className="text-sm font-semibold mb-2 text-[#111] px-2">Товары</p>
         <button
           onClick={() => router.push('/admin/warehouse/create_product')}
           className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
@@ -86,28 +88,28 @@ export default function RightSidebar() {
       </div>
 
       {/* Пользователи */}
-      <div className="rounded-xl">
-        <p className="text-sm font-semibold mb-2 text-[#111]">Пользователи</p>
-           <button
-      onClick={() => router.push('/admin/teamcontent/profile_dealer')}
-      className="flex justify-between items-center text-sm py-3 px-4 mt-2 rounded-xl bg-white hover:bg-gray-100 w-full transition"
-    >
-      <span className="flex items-center gap-2 text-[#111] font-medium">
-        <Image
-          src="/icons/IconProfileOrange.png"
-          alt="icon"
-          width={16}
-          height={16}
-        />
-        Создать менеджера
-      </span>
-      <Image
-        src="/icons/Icon arow botom.png"
-        alt="arrow"
-        width={18}
-        height={18}
-      />
-    </button>
+      <div className="w-full">
+        <p className="text-sm font-semibold mb-2 text-[#111] px-2">Пользователи</p>
+        <button
+          onClick={() => router.push('/admin/teamcontent/profile_dealer')}
+          className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
+        >
+          <span className="flex items-center gap-2 text-[#111] font-medium">
+            <Image
+              src="/icons/IconProfileOrange.png"
+              alt="icon"
+              width={16}
+              height={16}
+            />
+            Создать менеджера
+          </span>
+          <Image
+            src="/icons/Icon arow botom.png"
+            alt="arrow"
+            width={18}
+            height={18}
+          />
+        </button>
       </div>
     </div>
   );
