@@ -226,20 +226,8 @@ export default function ProfileStarPage() {
           <div className="px-1 sm:px-2 mt-1 space-y-4">
             {/* Первый ряд - адаптивная сетка */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {smallProducts.map(p => (
-                <ProductCard
-                  key={p.id}
-                  imgSrc={p.img}
-                  title={p.title}
-                  price={p.price}
-                  showHeart
-                  arrowIconSrc="/icons/Icon arow botom white.png"
-                  widthClass="w-full"
-                  heightClass="h-[280px] sm:h-[320px] md:h-[360px]"
-                />
-              ))}
-              
-              {/* Флагманский продукт */}
+
+                                      {/* Флагманский продукт */}
               <div className="sm:col-span-2 lg:col-span-1 xl:col-span-1">
                 <ProductCard widthClass="w-full" heightClass="h-[280px] sm:h-[320px] md:h-[360px]">
                   <div className="relative flex flex-col h-full overflow-hidden">
@@ -270,6 +258,21 @@ export default function ProfileStarPage() {
                   </div>
                 </ProductCard>
               </div>
+
+              {smallProducts.map(p => (
+                <ProductCard
+                  key={p.id}
+                  imgSrc={p.img}
+                  title={p.title}
+                  price={p.price}
+                  showHeart
+                  arrowIconSrc="/icons/Icon arow botom white.png"
+                  widthClass="w-full"
+                  heightClass="h-[280px] sm:h-[320px] md:h-[360px]"
+                />
+              ))}
+              
+      
             </div>
             
             {/* Второй ряд */}
