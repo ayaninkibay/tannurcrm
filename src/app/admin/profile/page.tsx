@@ -35,8 +35,8 @@ export default function ProfilePage() {
 
       {/* Заголовки над блоками */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-gray-500 text-[#111]">Мои данные</h3>
-        <h3 className="text-lg font-medium text-gray-500 text-[#111]">Изменить данные</h3>
+        <h3 className="text-lg font-medium text-gray-500 ]">Мои данные</h3>
+        <h3 className="text-lg font-medium text-gray-500 ">Изменить данные</h3>
       </div>
 
       {/* Верхние блоки: аватар (1/3) и форма (2/3) */}

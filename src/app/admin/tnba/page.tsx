@@ -61,12 +61,12 @@ export default function AcademyTannur() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="mb-6 mt-6">
+    <div className="p-2 md:p-6">
+      <header className="flex">
         <MoreHeader title="Академия Tannur" />
       </header>
 
-      <div className="px-6">
+      <div className="px-0">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Left Column - Courses Table */}
           <div className="xl:col-span-3">

@@ -172,6 +172,16 @@ export default function DocumentsPage() {
             </div>
             
             <div className="flex items-center gap-2 ml-2">
+                            {/* Кнопка удаления */}
+              <button 
+                onClick={() => handleDeleteFile(category.id, file.id)}
+                className="p-1 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+              
               {/* Кнопка скачивания */}
               <button className="p-1 hover:bg-gray-300 rounded transition-colors">
                 <Image
@@ -182,15 +192,7 @@ export default function DocumentsPage() {
                 />
               </button>
               
-              {/* Кнопка удаления */}
-              <button 
-                onClick={() => handleDeleteFile(category.id, file.id)}
-                className="p-1 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100"
-              >
-                <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+
             </div>
           </div>
         ))}
@@ -202,7 +204,7 @@ export default function DocumentsPage() {
   );
 
   return (
-    <div className="space-y-4 sm:space-y-8 p-2 md:p-6 bg-gray-100 min-h-screen relative">
+    <div className="space-y-4 sm:space-y-8 p-2 md:p-6 relative">
       {/* Контент */}
       <div className="flex-1 flex flex-col gap-4 sm:gap-6">
         <MoreHeader title="Документы Tannur" />
@@ -217,9 +219,6 @@ export default function DocumentsPage() {
         </div>
       </div>
       
-      <div className="absolute bottom-4 right-4">
-        <Footer />
-      </div>
     </div>
   );
 }

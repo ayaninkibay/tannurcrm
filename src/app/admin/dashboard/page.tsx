@@ -10,7 +10,7 @@ import Image from 'next/image';
 
 export default function AdminDashboardPage() {
   return (
-    <div className=" bg-gray-100">
+    <div className=" flex">
       <div className="w-full mx-auto p-2 md:p-6 space-y-6 sm:space-y-8">
         {/* Шапка */}
         <header className="mb-6">

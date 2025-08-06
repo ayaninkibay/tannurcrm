@@ -166,8 +166,8 @@ export default function Team() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="mb-4 sm:mb-6">
+    <div className=" w-full h-full">
+      <header className="p-2 md:p-6">
         <MoreHeader title="Команда Tannur" />
       </header>
 
