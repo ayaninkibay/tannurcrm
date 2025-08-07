@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+// Убираем импорт Image из Next.js
 
 // Массив данных для карточек
 const staticCards = [
@@ -115,6 +115,7 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
       console.log(`🔄 Пробуем fallback: ${card.fallbackSrc}`);
       setCurrentSrc(card.fallbackSrc);
       setImageError(false);
+      setImageLoaded(false); // Сбрасываем состояние загрузки
     } else {
       setImageError(true);
     }
@@ -127,7 +128,6 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
 
   return (
     <div
-      key={`${index}-${card.person}`}
       className="relative w-[280px] h-[320px] flex-shrink-0 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 group"
       style={{ userSelect: 'none' }}
     >
@@ -141,20 +141,16 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
             </div>
           )}
           
-          <Image
+          {/* Обычный img тег вместо Next.js Image */}
+          <img
             src={currentSrc}
             alt={card.person}
-            fill
-            sizes="(max-width: 768px) 100vw, 280px"
-            className={`object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none ${
+            className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             draggable={false}
-            priority={index < 4}
             onError={handleImageError}
             onLoad={handleImageLoad}
-            // Добавляем unoptimized для проблемных случаев
-            unoptimized={process.env.NODE_ENV === 'development'}
           />
         </>
       ) : (
@@ -207,7 +203,7 @@ export default function HorizontalMediaScroll() {
   // Debug: проверяем доступность изображений
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('🔍 Используем обычные img теги без Next.js Image');
+      console.log('🔍 Используем обычные img теги вместо Next.js Image');
     }
   }, []);
 
