@@ -1139,4 +1139,4 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   );
 };
 
-export default TeamTree1;
+export default TeamTree;
