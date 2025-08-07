@@ -192,13 +192,30 @@ const teamMembers = [
 ];
 
 
+  const fullBlock = (
+    <div className="w-full h-48 bg-purple-200 flex items-center justify-center">
+      <span className="text-xl font-semibold">Блок 1 — Full Width</span>
+    </div>
+  )
+
+  const wideBlock = (
+    <div className="w-full h-32 bg-yellow-300 flex items-center justify-center">
+      <span className="text-lg font-medium">Блок 2 — 80%</span>
+    </div>
+  )
+
+  const narrowBlock = (
+    <div className="w-full h-32 bg-red-300 flex items-center justify-center">
+      <span className="text-lg font-medium">Блок 3 — 20%</span>
+    </div>
+  )
+
   return (
-<div className="flex p-2 md:p-6 bg-[#F5F5F5]">
-          <TeamTree 
-            members={teamMembers}
-            onSelectMember={handleSelectMember}
-            onEditMember={handleEditMember}
-          />
-</div>
+    <FifthTemplate
+      header={<MoreHeader title="Тестовая 5 — FifthTemplate" />}
+      column1={fullBlock}
+      column3={wideBlock}
+      column2={narrowBlock}
+    />
   )
 }
