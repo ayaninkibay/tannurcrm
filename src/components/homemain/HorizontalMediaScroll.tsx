@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-// Убираем импорт Image из Next.js
+import Image from 'next/image';
 
 // Массив данных для карточек
 const staticCards = [
   { 
-    src: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=280&h=320&fit=crop&crop=faces', 
-    fallbackSrc: 'https://picsum.photos/280/320?random=1',
+    src: '/img/product1.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=1', // Временный fallback
     title: '35 000 000 тг', 
     subtitle: 'Оборот команды', 
     person: 'Айдар Каримов', 
     role: 'Топ менеджер'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product2.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=2',
     title: 'Лучший 2025', 
     subtitle: 'Партнёр года', 
@@ -22,7 +22,7 @@ const staticCards = [
     role: 'Региональный директор'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product3.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=3',
     title: 'Tannur Events 2025', 
     subtitle: 'Участники ивента 22.08', 
@@ -30,7 +30,7 @@ const staticCards = [
     role: 'Ведущий специалист'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product4.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=4',
     title: '2 345 дилеров', 
     subtitle: 'За 1 год самостоятельно', 
@@ -38,7 +38,7 @@ const staticCards = [
     role: 'Бизнес партнер'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product5.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=5',
     title: '13 000 932 тг', 
     subtitle: 'За одну неделю', 
@@ -46,7 +46,7 @@ const staticCards = [
     role: 'Старший консультант'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product6.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=6',
     title: '86 регионов', 
     subtitle: 'География продаж', 
@@ -54,7 +54,7 @@ const staticCards = [
     role: 'Координатор проекта'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product7.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=7',
     title: '48 часов', 
     subtitle: 'До полной распродажи', 
@@ -62,7 +62,7 @@ const staticCards = [
     role: 'Менеджер по развитию'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product5.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=8',
     title: '1 200 заказов', 
     subtitle: 'Только за выходные', 
@@ -70,7 +70,7 @@ const staticCards = [
     role: 'Специалист отдела'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product9.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=9',
     title: 'Tannur Academy', 
     subtitle: '300 новых выпускников', 
@@ -78,7 +78,7 @@ const staticCards = [
     role: 'Тренинг менеджер'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product6.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=10',
     title: 'Премия бренда', 
     subtitle: 'Признание индустрии', 
@@ -86,7 +86,7 @@ const staticCards = [
     role: 'Бренд амбассадор'
   },
   { 
-    src: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=280&h=320&fit=crop&crop=faces',
+    src: '/img/product2.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=11',
     title: '10 000 подписок', 
     subtitle: 'Только за август', 
@@ -106,28 +106,19 @@ interface CardProps {
 const Card: React.FC<CardProps> = ({ card, index }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(card.src);
 
   const handleImageError = () => {
-    console.error(`❌ Ошибка загрузки: ${currentSrc}`);
-    if (currentSrc === card.src && card.fallbackSrc) {
-      // Пробуем fallback изображение
-      console.log(`🔄 Пробуем fallback: ${card.fallbackSrc}`);
-      setCurrentSrc(card.fallbackSrc);
-      setImageError(false);
-      setImageLoaded(false); // Сбрасываем состояние загрузки
-    } else {
-      setImageError(true);
-    }
+    console.error(`Ошибка загрузки изображения: ${card.src}`);
+    setImageError(true);
   };
 
   const handleImageLoad = () => {
-    console.log(`✅ Загружено: ${currentSrc}`);
     setImageLoaded(true);
   };
 
   return (
     <div
+      key={`${index}-${card.person}`}
       className="relative w-[280px] h-[320px] flex-shrink-0 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 group"
       style={{ userSelect: 'none' }}
     >
@@ -141,16 +132,20 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
             </div>
           )}
           
-          {/* Обычный img тег вместо Next.js Image */}
-          <img
-            src={currentSrc}
+          <Image
+            src={card.src}
             alt={card.person}
-            className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none ${
+            fill
+            sizes="(max-width: 768px) 100vw, 280px"
+            className={`object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             draggable={false}
+            priority={index < 4}
             onError={handleImageError}
             onLoad={handleImageLoad}
+            // Добавляем unoptimized для проблемных случаев
+            unoptimized={process.env.NODE_ENV === 'development'}
           />
         </>
       ) : (
@@ -159,7 +154,7 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
           <div className="text-center text-white">
             <div className="text-4xl mb-2">🖼️</div>
             <div className="text-xs opacity-75">Изображение недоступно</div>
-            <div className="text-xs opacity-50 mt-1">{currentSrc}</div>
+            <div className="text-xs opacity-50 mt-1">{card.src}</div>
           </div>
         </div>
       )}
@@ -203,7 +198,13 @@ export default function HorizontalMediaScroll() {
   // Debug: проверяем доступность изображений
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('🔍 Используем обычные img теги вместо Next.js Image');
+      console.log('🔍 Проверка доступности изображений:');
+      staticCards.forEach((card, index) => {
+        const img = new window.Image();
+        img.onload = () => console.log(`✅ ${card.src} - загружено`);
+        img.onerror = () => console.error(`❌ ${card.src} - ошибка загрузки`);
+        img.src = card.src;
+      });
     }
   }, []);
 
