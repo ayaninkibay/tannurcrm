@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import Image from 'next/image'; // Импорт компонента Image из Next.js
 
+// Массив данных для карточек, каждая с путем к изображению
 const staticCards = [
   { 
     src: '/img/events/tannur_1.jpg', 
@@ -83,7 +84,7 @@ const staticCards = [
   },
 ];
 
-// Дублируем карточки для бесконечного скролла
+// Дублируем карточки, чтобы создать эффект бесконечного скролла
 const duplicatedCards = [...staticCards, ...staticCards, ...staticCards];
 
 export default function HorizontalMediaScroll() {
@@ -94,13 +95,13 @@ export default function HorizontalMediaScroll() {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   
-  // Параметры скролла
+  // Параметры автоскролла
   const SCROLL_SPEED = 50; // Пикселей в секунду
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const currentPositionRef = useRef<number>(0);
 
-  // Функция автоскролла с использованием времени для плавности
+  // Эффект для реализации автоскролла
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     const contentContainer = contentRef.current;
@@ -115,14 +116,14 @@ export default function HorizontalMediaScroll() {
       lastTimeRef.current = timestamp;
 
       if (!isPaused && !isDragging) {
-        // Вычисляем сколько пикселей нужно прокрутить
+        // Вычисляем, сколько пикселей нужно прокрутить, исходя из времени
         const pixelsToScroll = (SCROLL_SPEED * deltaTime) / 1000;
         currentPositionRef.current += pixelsToScroll;
 
-        // Получаем ширину одного набора карточек
+        // Ширина одного набора карточек (поскольку мы дублируем 3 раза, это 1/3 общей ширины)
         const singleSetWidth = contentContainer.scrollWidth / 3;
 
-        // Если прокрутили больше одного набора, сбрасываем позицию
+        // Если прокрутили больше одного набора, сбрасываем позицию для "бесконечности"
         if (currentPositionRef.current >= singleSetWidth) {
           currentPositionRef.current = currentPositionRef.current - singleSetWidth;
         }
@@ -135,38 +136,39 @@ export default function HorizontalMediaScroll() {
 
     animationRef.current = requestAnimationFrame(animate);
 
+    // Очистка анимации при размонтировании компонента
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isPaused, isDragging]);
+  }, [isPaused, isDragging]); // Зависимости для перерендера эффекта
 
-  // Обработчики перетаскивания мышью
+  // Обработчики для перетаскивания мышью
   const handleMouseDown = (e: React.MouseEvent) => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
     setIsDragging(true);
-    setStartX(e.pageX - scrollContainer.offsetLeft);
-    setScrollLeft(scrollContainer.scrollLeft);
+    setStartX(e.pageX - scrollContainer.offsetLeft); // Начальная позиция курсора относительно контейнера
+    setScrollLeft(scrollContainer.scrollLeft);      // Текущая позиция скролла
     scrollContainer.style.cursor = 'grabbing';
-    scrollContainer.style.userSelect = 'none';
+    scrollContainer.style.userSelect = 'none'; // Отключаем выделение текста при перетаскивании
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    e.preventDefault();
+    e.preventDefault(); // Предотвращаем стандартное поведение (например, выделение текста)
     
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
     const x = e.pageX - scrollContainer.offsetLeft;
-    const walk = (x - startX) * 1.5; // Скорость перетаскивания
-    const newScrollLeft = scrollLeft - walk;
+    const walk = (x - startX) * 1.5; // Вычисляем смещение и увеличиваем скорость перетаскивания
+    const newScrollLeft = scrollLeft - walk; // Новая позиция скролла
     
     scrollContainer.scrollLeft = newScrollLeft;
-    currentPositionRef.current = newScrollLeft;
+    currentPositionRef.current = newScrollLeft; // Обновляем текущую позицию для автоскролла
   };
 
   const handleMouseUp = () => {
@@ -175,17 +177,17 @@ export default function HorizontalMediaScroll() {
 
     setIsDragging(false);
     scrollContainer.style.cursor = 'grab';
-    scrollContainer.style.userSelect = 'auto';
+    scrollContainer.style.userSelect = 'auto'; // Включаем выделение текста обратно
   };
 
   const handleMouseLeave = () => {
     if (isDragging) {
-      handleMouseUp();
+      handleMouseUp(); // Завершаем перетаскивание, если курсор ушел с элемента
     }
-    setIsPaused(false);
+    setIsPaused(false); // Возобновляем автоскролл
   };
 
-  // Обработчики для touch устройств
+  // Обработчики для сенсорных устройств (touch)
   const handleTouchStart = (e: React.TouchEvent) => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
@@ -215,27 +217,28 @@ export default function HorizontalMediaScroll() {
 
   return (
     <div className="relative h-[400px] overflow-hidden w-full bg-gradient-to-r from-slate-50 to-white">
-{/* Левый градиент-блюр */}
-<div className="absolute left-[-40px] top-0 h-full w-48 z-10 pointer-events-none">
-  <div className="h-full w-full bg-gradient-to-r from-white via-white/60 to-transparent blur-2xl" />
-</div>
+      {/* Левый градиент-блюр для визуального эффекта */}
+      <div className="absolute left-[-40px] top-0 h-full w-48 z-10 pointer-events-none">
+        <div className="h-full w-full bg-gradient-to-r from-white via-white/60 to-transparent blur-2xl" />
+      </div>
 
-{/* Правый градиент-блюр */}
-<div className="absolute right-[-40px] top-0 h-full w-48 z-10 pointer-events-none">
-  <div className="h-full w-full bg-gradient-to-l from-white via-white/60 to-transparent blur-2xl" />
-</div>
+      {/* Правый градиент-блюр для визуального эффекта */}
+      <div className="absolute right-[-40px] top-0 h-full w-48 z-10 pointer-events-none">
+        <div className="h-full w-full bg-gradient-to-l from-white via-white/60 to-transparent blur-2xl" />
+      </div>
 
-
-      {/* Контейнер со скроллом */}
+      {/* Контейнер со скроллом, который прокручивается */}
       <div
         ref={scrollRef}
         className="h-full overflow-x-hidden py-8 px-8 cursor-grab"
+        // Инлайн-стили для скрытия полосы прокрутки в разных браузерах
         style={{ 
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch'
+          scrollbarWidth: 'none', // Для Firefox
+          msOverflowStyle: 'none', // Для IE/Edge
+          WebkitOverflowScrolling: 'touch' // Для плавного скролла на iOS
         } as React.CSSProperties}
-        onMouseEnter={() => setIsPaused(true)}
+        // Обработчики событий мыши и касания
+        onMouseEnter={() => setIsPaused(true)} // Пауза при наведении мыши
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -244,57 +247,59 @@ export default function HorizontalMediaScroll() {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Контейнер содержимого, который фактически прокручивается */}
         <div 
           ref={contentRef}
           className="flex gap-6 h-full items-center"
-          style={{ width: 'max-content' }}
+          style={{ width: 'max-content' }} // Важно для горизонтального скролла
         >
-{duplicatedCards.map((card, index) => (
-  <div
-    key={`${index}-${card.person}`}
-    className="relative w-[280px] h-[320px] flex-shrink-0 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 group"
-    style={{ userSelect: 'none' }}
-  >
-    {/* Фоновое изображение */}
-<Image
-  src={card.src}
-  alt={card.person}
-  fill
-  sizes="(max-width: 768px) 100vw, 280px"
-  className="object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
-  draggable={false}
-  priority={index < 4}
-/>
+          {/* Маппинг по дублированным карточкам для отображения */}
+          {duplicatedCards.map((card, index) => (
+            <div
+              key={`${index}-${card.person}`} // Уникальный ключ для React
+              className="relative w-[280px] h-[320px] flex-shrink-0 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 group"
+              style={{ userSelect: 'none' }} // Отключаем выделение текста на карточках
+            >
+              {/* Компонент Image из Next.js для отображения изображений */}
+              <Image
+                src={card.src} // Путь к изображению (например, /img/events/tannur_1.jpg)
+                alt={card.person} // Alt-текст для доступности
+                fill // Заполняет родительский элемент
+                sizes="(max-width: 768px) 100vw, 280px" // Оптимизация для разных размеров экрана
+                className="object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none"
+                draggable={false} // Отключает перетаскивание изображения
+                priority={index < 4} // Загружает первые 4 изображения с высоким приоритетом
+                onError={(e) => console.error(`Error loading image: ${card.src}`, e)} // Добавляем обработчик ошибок
+              />
 
+              {/* Темный оверлей для улучшения читаемости текста */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
-    {/* Темный оверлей */}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+              {/* Информация о карточке внизу */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white pointer-events-none">
+                {/* Название компании */}
+                <div className="inline-block bg-[#D77E6C] text-white px-2 py-1 rounded-md text-xs font-medium mb-2">
+                  Tannur Cosmetics
+                </div>
 
-    {/* Информация внизу */}
-    <div className="absolute bottom-0 left-0 right-0 p-4 text-white pointer-events-none">
-      {/* Название компании */}
-      <div className="inline-block bg-[#D77E6C] text-white px-2 py-1 rounded-md text-xs font-medium mb-2">
-        Tannur Cosmetics
-      </div>
+                {/* Информация о человеке */}
+                <div className="space-y-1">
+                  <h3 className="font-bold text-lg leading-tight">{card.person}</h3>
+                  <p className="text-sm opacity-90">{card.role}</p>
+                </div>
 
-      {/* Информация о человеке */}
-      <div className="space-y-1">
-        <h3 className="font-bold text-lg leading-tight">{card.person}</h3>
-        <p className="text-sm opacity-90">{card.role}</p>
-      </div>
-
-      {/* Достижение */}
-      <div className="mt-2 pt-2 border-t border-white/20">
-        <p className="font-semibold text-sm">{card.title}</p>
-        <p className="text-xs opacity-80">{card.subtitle}</p>
-      </div>
-    </div>
-  </div>
-))}
-
+                {/* Достижение */}
+                <div className="mt-2 pt-2 border-t border-white/20">
+                  <p className="font-semibold text-sm">{card.title}</p>
+                  <p className="text-xs opacity-80">{card.subtitle}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* Глобальные стили для скрытия полосы прокрутки */}
       <style jsx global>{`
         div::-webkit-scrollbar {
           display: none;

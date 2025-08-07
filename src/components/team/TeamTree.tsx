@@ -141,9 +141,9 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
 
   return (
     <div
-      className={`absolute bg-white rounded-2xl shadow-md border-2 transition-all duration-300 hover:shadow-lg cursor-pointer
-        ${isSelected ? 'border-blue-500 shadow-xl ring-2 ring-blue-200' :
-          isHighlighted ? 'border-yellow-400 shadow-xl ring-2 ring-yellow-200' :
+      className={`absolute bg-gray-50 rounded-2xl shadow border-1 transition-all duration-300  cursor-pointer
+        ${isSelected ? 'border-[#D77E6C] shadow' :
+          isHighlighted ? 'border-yellow-400 shadow ' :
           'border-gray-200 hover:border-gray-300'}
       `}
       style={{
@@ -211,12 +211,12 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
           
           <div className="flex gap-2 text-xs">
             {member.children.length > 0 && (
-              <div className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+              <div className="bg-gray-200 text-black px-2 py-1 rounded-full">
                 Прямых: {member.children.length}
               </div>
             )}
             {(member.totalDescendants ?? 0) > 0 && (
-              <div className="bg-green-50 text-green-700 px-2 py-1 rounded-full">
+              <div className="bg-gray-200 text-[#D77E6C] px-2 py-1 rounded-full">
                 Всего: {member.totalDescendants}
               </div>
             )}
@@ -250,14 +250,14 @@ const ConnectionLines: React.FC<ConnectionLinesProps> = ({ nodes }) => {
       const childY = child.y;
       const midY = parentY + (childY - parentY) / 2;
 
-      lines.push(
+lines.push(
         <g key={`line-${parent.id}-${child.id}`}>
           <line x1={parentX} y1={parentY} x2={parentX} y2={midY}
-                stroke="#0e3d8f" strokeWidth={2} />
+                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
           <line x1={parentX} y1={midY} x2={childX} y2={midY}
-                stroke="#5e0da0" strokeWidth={2} />
+                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
           <line x1={childX} y1={midY} x2={childX} y2={childY}
-                stroke="#da0994" strokeWidth={2} />
+                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
         </g>
       );
       drawLines(child);
@@ -517,23 +517,21 @@ const Controls: React.FC<ControlsProps> = ({
           onClick={() => onViewChange('tree')}
           className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${
             viewMode === 'tree'
-              ? 'bg-blue-500 text-white'
+              ? 'bg-black text-white'
               : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <Grid3x3 className="w-3 h-3 sm:w-4 h-4" />
-          <span className="hidden sm:inline">Дерево</span>
         </button>
         <button
           onClick={() => onViewChange('table')}
           className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${
             viewMode === 'table'
-              ? 'bg-blue-500 text-white'
+              ? 'bg-black text-white'
               : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <List className="w-3 h-3 sm:w-4 h-4" />
-          <span className="hidden sm:inline">Список</span>
         </button>
       </div>
       
@@ -543,7 +541,7 @@ const Controls: React.FC<ControlsProps> = ({
             <button
               onClick={onFindMe}
               className="p-2 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
-              title="Найти меня"
+
             >
               <Target className="w-4 h-4 text-gray-600" />
             </button>
@@ -553,7 +551,6 @@ const Controls: React.FC<ControlsProps> = ({
             <button
               onClick={onZoomOut}
               className="p-1.5 sm:p-2 hover:bg-gray-50 rounded transition-colors"
-              title="Уменьшить"
             >
               <ZoomOut className="w-3 h-3 sm:w-4 h-4 text-gray-600" />
             </button>
@@ -563,20 +560,11 @@ const Controls: React.FC<ControlsProps> = ({
             <button
               onClick={onZoomIn}
               className="p-1.5 sm:p-2 hover:bg-gray-50 rounded transition-colors"
-              title="Увеличить"
             >
               <ZoomIn className="w-3 h-3 sm:w-4 h-4 text-gray-600" />
             </button>
           </div>
-          
-          <button
-            onClick={onReset}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white hover:bg-gray-50 rounded-lg shadow-md border border-gray-200 transition-colors text-xs sm:text-sm text-gray-700"
-            title="Сбросить вид"
-          >
-            <span className="hidden sm:inline">Сброс</span>
-            <span className="sm:hidden">↺</span>
-          </button>
+
         </>
       )}
     </div>
