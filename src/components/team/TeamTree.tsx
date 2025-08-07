@@ -271,7 +271,7 @@ const ConnectionLines: React.FC<ConnectionLinesProps> = ({ nodes }) => {
       className="absolute top-0 left-0 pointer-events-none w-full h-full"
       style={{ 
         zIndex: 0,
-        overflow: 'visible' // Ключевое изменение - позволяем SVG отображать контент за пределами
+        overflow: 'visible'
       }}
     >
       {lines}
@@ -587,7 +587,7 @@ const Controls: React.FC<ControlsProps> = ({
 // 🪝 ХУК ДЛЯ УПРАВЛЕНИЯ ПАНОРАМИРОВАНИЕМ И МАСШТАБИРОВАНИЕМ
 // ==========================================================
 interface PanZoomHookOptions {
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>; // Изменено здесь
   initialZoom?: number;
   initialOffset?: { x: number; y: number };
   minZoom?: number;
@@ -900,7 +900,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   onEditMember,
   className = ''
 }) => {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // Изменено здесь: конкретный тип вместо HTMLElement
 
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
