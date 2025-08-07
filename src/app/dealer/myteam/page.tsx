@@ -12,15 +12,27 @@ import BonusCard from '@/components/blocks/BonusCard'
 import AddDealerCard from '@/components/blocks/AddDealerCard'
 import TeamTree from '@/components/team/TeamTree'
 
+// Определяем интерфейс TeamMember для типобезопасности
+interface TeamMember {
+  id: string;
+  parentId: string | null;
+  name: string;
+  avatar?: string;
+  tariff: 'Basic' | 'Business' | 'Premium' | 'Enterprise';
+  role: string;
+  verified: boolean;
+  teamCount?: number;
+}
+
 export default function TeamPage() {
-  // Данные команды — можете получать из API или props
-  const teamMembers = [
+  // Данные команды с правильной типизацией
+  const teamMembers: TeamMember[] = [
     {
       id: 'KZ123456',
       parentId: null,
       name: 'Алина Сагатовна',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Enterprise' as const,
+      tariff: 'Enterprise',
       role: 'CEO',
       verified: true
     },
@@ -29,7 +41,7 @@ export default function TeamPage() {
       parentId: 'KZ123456',
       name: 'Инжу Ануарбек',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Доктор наук',
       verified: true
     },
@@ -38,7 +50,7 @@ export default function TeamPage() {
       parentId: 'KZ123456',
       name: 'Аян Мұхамбет',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Premium' as const,
+      tariff: 'Premium',
       role: 'CTO',
       verified: true
     },
@@ -47,7 +59,7 @@ export default function TeamPage() {
       parentId: 'KZ848970',
       name: 'Дана Қасымова',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Senior Researcher',
       verified: false
     },
@@ -56,7 +68,7 @@ export default function TeamPage() {
       parentId: 'KZ848970',
       name: 'Ернар Жандосов',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Junior Researcher',
       verified: false
     },
@@ -65,7 +77,7 @@ export default function TeamPage() {
       parentId: 'KZ789012',
       name: 'Камила Әли',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Premium' as const,
+      tariff: 'Premium',
       role: 'Lead Engineer',
       verified: true
     },
@@ -74,7 +86,7 @@ export default function TeamPage() {
       parentId: 'KZ789012',
       name: 'Тимур Сапар',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'DevOps Engineer',
       verified: true
     },
@@ -83,7 +95,7 @@ export default function TeamPage() {
       parentId: 'KZ345678',
       name: 'Лейла Жумабек',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Research Analyst',
       verified: false
     },
@@ -92,7 +104,7 @@ export default function TeamPage() {
       parentId: 'KZ345678',
       name: 'Нурсултан Ержан',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Research Assistant',
       verified: false
     },
@@ -101,7 +113,7 @@ export default function TeamPage() {
       parentId: 'KZ901234',
       name: 'Асем Ислам',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Intern',
       verified: false
     },
@@ -110,7 +122,7 @@ export default function TeamPage() {
       parentId: 'KZ901234',
       name: 'Мейрам Ербол',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Junior Developer',
       verified: false
     },
@@ -119,7 +131,7 @@ export default function TeamPage() {
       parentId: 'KZ112233',
       name: 'Гульнар Сейдахмет',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Premium' as const,
+      tariff: 'Premium',
       role: 'Frontend Lead',
       verified: true
     },
@@ -128,7 +140,7 @@ export default function TeamPage() {
       parentId: 'KZ223344',
       name: 'Бекзат Төлеген',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Site Reliability',
       verified: true
     },
@@ -137,7 +149,7 @@ export default function TeamPage() {
       parentId: 'KZ123456',
       name: 'Салтанат Жанибек',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Enterprise' as const,
+      tariff: 'Enterprise',
       role: 'CFO',
       verified: true
     },
@@ -146,7 +158,7 @@ export default function TeamPage() {
       parentId: 'KZ990011',
       name: 'Нұржан Бекзат',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Accountant',
       verified: false
     },
@@ -155,7 +167,7 @@ export default function TeamPage() {
       parentId: 'KZ990011',
       name: 'Айзада Көкен',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Business' as const,
+      tariff: 'Business',
       role: 'Financial Analyst',
       verified: false
     },
@@ -164,7 +176,7 @@ export default function TeamPage() {
       parentId: 'KZ101112',
       name: 'Жанболат Ермек',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Clerk',
       verified: false
     },
@@ -173,7 +185,7 @@ export default function TeamPage() {
       parentId: 'KZ101112',
       name: 'Аружан Нұрсұлтан',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Assistant',
       verified: false
     },
@@ -182,7 +194,7 @@ export default function TeamPage() {
       parentId: 'KZ778899',
       name: 'Самат Қармен',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'UI/UX Designer',
       verified: true
     },
@@ -191,18 +203,18 @@ export default function TeamPage() {
       parentId: 'KZ778899',
       name: 'Диана Өтеген',
       avatar: '/Icons/UsersAvatarPrew.jpg',
-      tariff: 'Basic' as const,
+      tariff: 'Basic',
       role: 'Graphic Designer',
       verified: false
     },
   ];
 
-  const handleSelectMember = (member: any) => {
+  const handleSelectMember = (member: TeamMember) => {
     console.log('Выбран участник:', member);
     // Здесь можно обновить состояние или выполнить другие действия
   };
 
-  const handleEditMember = (member: any) => {
+  const handleEditMember = (member: TeamMember) => {
     console.log('Редактирование участника:', member);
     // Открыть модалку редактирования или перейти на страницу редактирования
   };
@@ -261,7 +273,7 @@ export default function TeamPage() {
           <section className="bg-white rounded-xl w-full h-full overflow-hidden">
             <TeamTree
               members={teamMembers}
-              currentUserId="KZ123456" // ID текущего пользователя (например, CEO)
+              currentUserId="KZ123456"
               onSelectMember={handleSelectMember}
               onEditMember={handleEditMember}
             />
