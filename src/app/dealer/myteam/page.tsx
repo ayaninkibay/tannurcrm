@@ -10,7 +10,7 @@ import SponsorCard from '@/components/blocks/SponsorCard'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
 import BonusCard from '@/components/blocks/BonusCard'
 import AddDealerCard from '@/components/blocks/AddDealerCard'
-import TeamTree from '@/components/team/TeamTree'
+import TeamTree from '@/components/team/Tree'
 
 export default function TeamPage() {
   // Данные команды — можете получать из API или props
@@ -259,7 +259,7 @@ export default function TeamPage() {
         {/* Вторая секция - Дерево команды */}
         <div className="h-screen">
           <section className="bg-white rounded-xl w-full h-full overflow-hidden">
-            <TeamTree
+            <Tree
               members={teamMembers}
               currentUserId="KZ123456" // ID текущего пользователя (например, CEO)
               onSelectMember={handleSelectMember}
