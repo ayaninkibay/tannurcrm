@@ -6,7 +6,7 @@ import Image from 'next/image';
 // Массив данных для карточек
 const staticCards = [
   { 
-    src: '/img/events/tannur_1.jpg', 
+    src: '/icons/events/tannur_1.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=1', // Временный fallback
     title: '35 000 000 тг', 
     subtitle: 'Оборот команды', 
@@ -14,7 +14,7 @@ const staticCards = [
     role: 'Топ менеджер'
   },
   { 
-    src: '/img/events/tannur_2.jpg', 
+    src: '/icons/events/tannur_2.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=2',
     title: 'Лучший 2025', 
     subtitle: 'Партнёр года', 
@@ -22,7 +22,7 @@ const staticCards = [
     role: 'Региональный директор'
   },
   { 
-    src: '/img/events/tannur_3.jpg', 
+    src: '/icons/events/tannur_3.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=3',
     title: 'Tannur Events 2025', 
     subtitle: 'Участники ивента 22.08', 
@@ -30,7 +30,7 @@ const staticCards = [
     role: 'Ведущий специалист'
   },
   { 
-    src: '/img/events/tannur_4.jpg', 
+    src: '/icons/events/tannur_4.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=4',
     title: '2 345 дилеров', 
     subtitle: 'За 1 год самостоятельно', 
@@ -38,7 +38,7 @@ const staticCards = [
     role: 'Бизнес партнер'
   },
   { 
-    src: '/img/events/tannur_5.jpg', 
+    src: '/icons/events/tannur_5.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=5',
     title: '13 000 932 тг', 
     subtitle: 'За одну неделю', 
@@ -46,7 +46,7 @@ const staticCards = [
     role: 'Старший консультант'
   },
   { 
-    src: '/img/events/tannur_6.jpg', 
+    src: '/icons/events/tannur_6.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=6',
     title: '86 регионов', 
     subtitle: 'География продаж', 
@@ -54,7 +54,7 @@ const staticCards = [
     role: 'Координатор проекта'
   },
   { 
-    src: '/img/events/tannur_7.jpg', 
+    src: '/icons/events/tannur_7.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=7',
     title: '48 часов', 
     subtitle: 'До полной распродажи', 
@@ -62,7 +62,7 @@ const staticCards = [
     role: 'Менеджер по развитию'
   },
   { 
-    src: '/img/events/tannur_8.jpg', 
+    src: '/icons/events/tannur_8.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=8',
     title: '1 200 заказов', 
     subtitle: 'Только за выходные', 
@@ -70,7 +70,7 @@ const staticCards = [
     role: 'Специалист отдела'
   },
   { 
-    src: '/img/events/tannur_9.jpg', 
+    src: '/icons/events/tannur_9.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=9',
     title: 'Tannur Academy', 
     subtitle: '300 новых выпускников', 
@@ -78,7 +78,7 @@ const staticCards = [
     role: 'Тренинг менеджер'
   },
   { 
-    src: '/img/events/tannur_10.jpg', 
+    src: '/icons/events/tannur_10.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=10',
     title: 'Премия бренда', 
     subtitle: 'Признание индустрии', 
@@ -86,7 +86,7 @@ const staticCards = [
     role: 'Бренд амбассадор'
   },
   { 
-    src: '/img/events/tannur_11.jpg', 
+    src: '/icons/events/tannur_11.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=11',
     title: '10 000 подписок', 
     subtitle: 'Только за август', 
