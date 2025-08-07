@@ -207,13 +207,7 @@ export default function HorizontalMediaScroll() {
   // Debug: проверяем доступность изображений
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('🔍 Проверка доступности изображений:');
-      staticCards.forEach((card, index) => {
-        const img = new window.Image();
-        img.onload = () => console.log(`✅ ${card.src} - загружено`);
-        img.onerror = () => console.error(`❌ ${card.src} - ошибка загрузки`);
-        img.src = card.src;
-      });
+      console.log('🔍 Используем обычные img теги без Next.js Image');
     }
   }, []);
 
