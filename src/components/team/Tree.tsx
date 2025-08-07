@@ -29,7 +29,7 @@ interface TreeNode extends TeamMember {
   totalDescendants: number;
 }
 
-interface TeamTreeProps {
+interface TreeProps {
   members: TeamMember[];
   currentUserId?: string;
   onSelectMember?: (member: TeamMember) => void;
@@ -893,7 +893,7 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
 // ==========================================================
 // 🚀 ГЛАВНЫЙ КОМПОНЕНТ TEAMTREE
 // ==========================================================
-const TeamTree: React.FC<TeamTreeProps> = ({
+const Tree: React.FC<TreeProps> = ({
   members,
   currentUserId,
   onSelectMember,

@@ -10,7 +10,7 @@ import SponsorCard from '@/components/blocks/SponsorCard'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
 import BonusCard from '@/components/blocks/BonusCard'
 import AddDealerCard from '@/components/blocks/AddDealerCard'
-import TeamTree from '@/components/team/Tree'
+import Tree from '@/components/team/Tree'
 
 export default function TeamPage() {
   // Данные команды — можете получать из API или props
