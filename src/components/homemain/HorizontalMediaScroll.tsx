@@ -7,6 +7,7 @@ import Image from 'next/image';
 const staticCards = [
   { 
     src: '/img/events/tannur_1.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=1', // Временный fallback
     title: '35 000 000 тг', 
     subtitle: 'Оборот команды', 
     person: 'Айдар Каримов', 
@@ -14,6 +15,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_2.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=2',
     title: 'Лучший 2025', 
     subtitle: 'Партнёр года', 
     person: 'Асель Нурланова', 
@@ -21,6 +23,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_3.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=3',
     title: 'Tannur Events 2025', 
     subtitle: 'Участники ивента 22.08', 
     person: 'Данияр Омаров', 
@@ -28,6 +31,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_4.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=4',
     title: '2 345 дилеров', 
     subtitle: 'За 1 год самостоятельно', 
     person: 'Жанара Сейтказы', 
@@ -35,6 +39,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_5.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=5',
     title: '13 000 932 тг', 
     subtitle: 'За одну неделю', 
     person: 'Нурлан Абишев', 
@@ -42,6 +47,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_6.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=6',
     title: '86 регионов', 
     subtitle: 'География продаж', 
     person: 'Камила Досжанова', 
@@ -49,6 +55,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_7.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=7',
     title: '48 часов', 
     subtitle: 'До полной распродажи', 
     person: 'Ерлан Токтаров', 
@@ -56,6 +63,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_8.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=8',
     title: '1 200 заказов', 
     subtitle: 'Только за выходные', 
     person: 'Арина Казыбекова', 
@@ -63,6 +71,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_9.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=9',
     title: 'Tannur Academy', 
     subtitle: '300 новых выпускников', 
     person: 'Бекзат Алиев', 
@@ -70,6 +79,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_10.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=10',
     title: 'Премия бренда', 
     subtitle: 'Признание индустрии', 
     person: 'Диана Ержанова', 
@@ -77,6 +87,7 @@ const staticCards = [
   },
   { 
     src: '/img/events/tannur_11.jpg', 
+    fallbackSrc: 'https://picsum.photos/280/320?random=11',
     title: '10 000 подписок', 
     subtitle: 'Только за август', 
     person: 'Санжар Утебаев', 
