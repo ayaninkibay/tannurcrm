@@ -53,7 +53,7 @@ export default function ProfileStarPage() {
             {/* Аватар - адаптивные размеры */}
             <div className="absolute top-8 sm:top-10 md:top-12 left-4 sm:left-6 w-32 h-32 sm:w-48 sm:h-48 md:w-60 md:h-60 rounded-2xl overflow-hidden border-2 sm:border-4 border-white">
               <img
-                src="/Icons/UsersAvatarPrew2.jpg"
+                src="/icons/UsersAvatarPrew2.jpg"
                 alt="Інжу Ануарбек"
                 className="w-full h-full object-cover"
               />

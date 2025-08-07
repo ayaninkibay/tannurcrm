@@ -31,7 +31,7 @@ export default function TeamPage() {
       id: 'KZ123456',
       parentId: null,
       name: 'Алина Сагатовна',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Enterprise',
       role: 'CEO',
       verified: true
@@ -40,7 +40,7 @@ export default function TeamPage() {
       id: 'KZ848970',
       parentId: 'KZ123456',
       name: 'Инжу Ануарбек',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Доктор наук',
       verified: true
@@ -49,7 +49,7 @@ export default function TeamPage() {
       id: 'KZ789012',
       parentId: 'KZ123456',
       name: 'Аян Мұхамбет',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: 'iIcons/UsersAvatarPrew.jpg',
       tariff: 'Premium',
       role: 'CTO',
       verified: true
@@ -58,7 +58,7 @@ export default function TeamPage() {
       id: 'KZ345678',
       parentId: 'KZ848970',
       name: 'Дана Қасымова',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Senior Researcher',
       verified: false
@@ -67,7 +67,7 @@ export default function TeamPage() {
       id: 'KZ901234',
       parentId: 'KZ848970',
       name: 'Ернар Жандосов',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Junior Researcher',
       verified: false
@@ -76,7 +76,7 @@ export default function TeamPage() {
       id: 'KZ112233',
       parentId: 'KZ789012',
       name: 'Камила Әли',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Premium',
       role: 'Lead Engineer',
       verified: true
@@ -85,7 +85,7 @@ export default function TeamPage() {
       id: 'KZ223344',
       parentId: 'KZ789012',
       name: 'Тимур Сапар',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'DevOps Engineer',
       verified: true
@@ -94,7 +94,7 @@ export default function TeamPage() {
       id: 'KZ334455',
       parentId: 'KZ345678',
       name: 'Лейла Жумабек',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Research Analyst',
       verified: false
@@ -103,7 +103,7 @@ export default function TeamPage() {
       id: 'KZ445566',
       parentId: 'KZ345678',
       name: 'Нурсултан Ержан',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Research Assistant',
       verified: false
@@ -112,7 +112,7 @@ export default function TeamPage() {
       id: 'KZ556677',
       parentId: 'KZ901234',
       name: 'Асем Ислам',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Intern',
       verified: false
@@ -121,7 +121,7 @@ export default function TeamPage() {
       id: 'KZ667788',
       parentId: 'KZ901234',
       name: 'Мейрам Ербол',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Junior Developer',
       verified: false
@@ -130,7 +130,7 @@ export default function TeamPage() {
       id: 'KZ778899',
       parentId: 'KZ112233',
       name: 'Гульнар Сейдахмет',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Premium',
       role: 'Frontend Lead',
       verified: true
@@ -139,7 +139,7 @@ export default function TeamPage() {
       id: 'KZ889900',
       parentId: 'KZ223344',
       name: 'Бекзат Төлеген',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Site Reliability',
       verified: true
@@ -148,7 +148,7 @@ export default function TeamPage() {
       id: 'KZ990011',
       parentId: 'KZ123456',
       name: 'Салтанат Жанибек',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Enterprise',
       role: 'CFO',
       verified: true
@@ -157,7 +157,7 @@ export default function TeamPage() {
       id: 'KZ101112',
       parentId: 'KZ990011',
       name: 'Нұржан Бекзат',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Accountant',
       verified: false
@@ -166,7 +166,7 @@ export default function TeamPage() {
       id: 'KZ111213',
       parentId: 'KZ990011',
       name: 'Айзада Көкен',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Business',
       role: 'Financial Analyst',
       verified: false
@@ -175,7 +175,7 @@ export default function TeamPage() {
       id: 'KZ121314',
       parentId: 'KZ101112',
       name: 'Жанболат Ермек',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Clerk',
       verified: false
@@ -184,7 +184,7 @@ export default function TeamPage() {
       id: 'KZ131415',
       parentId: 'KZ101112',
       name: 'Аружан Нұрсұлтан',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Assistant',
       verified: false
@@ -193,7 +193,7 @@ export default function TeamPage() {
       id: 'KZ141516',
       parentId: 'KZ778899',
       name: 'Самат Қармен',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: 'iIcons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'UI/UX Designer',
       verified: true
@@ -202,7 +202,7 @@ export default function TeamPage() {
       id: 'KZ151617',
       parentId: 'KZ778899',
       name: 'Диана Өтеген',
-      avatar: '/Icons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'Graphic Designer',
       verified: false

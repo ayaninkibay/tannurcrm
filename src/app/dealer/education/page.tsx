@@ -121,7 +121,7 @@ export default function EducationContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Карточка 1 */}
         <div className="bg-white rounded-2xl overflow-hidden transition w-full p-2">
-          <img src="/icons/preview 1.png" alt="..." className="w-full h-[180px] rounded-2xl object-cover rounded-t-xl" />
+          <img src="/icons/edu_1.png" alt="..." className="w-full h-[180px] rounded-2xl object-cover rounded-t-xl" />
           <div className="px-4 pt-3 pb-4 relative">
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-3 py-1 rounded-full">
               Знакомство
@@ -131,7 +131,7 @@ export default function EducationContent() {
             </h3>
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-1 text-xs text-gray-500">
-                <img src="/icons/edu_1.png" alt="Lessons" className="w-4 h-4" />
+                <img src="/icons/Icon docs gray.png" alt="Lessons" className="w-4 h-4" />
                 8 уроков
               </div>
               <button className="w-8 h-8 rounded-lg bg-[#DC7C67] flex items-center justify-center">

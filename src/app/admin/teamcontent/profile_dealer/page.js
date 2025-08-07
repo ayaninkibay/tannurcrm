@@ -176,7 +176,7 @@ export default function ProfileDealer() {
             {/* Аватар и основная инфо */}
             <div className="flex gap-3">
               <img
-                src="/Icons/UsersAvatarPrew.jpg"
+                src="/icons/UsersAvatarPrew.jpg"
                 alt="dealer"
                 className="w-28 h-28 sm:w-32 sm:h-32 -mt-10 sm:-mt-10 object-cover rounded-xl flex-shrink-0 "
               />

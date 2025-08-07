@@ -15,7 +15,7 @@ export default function AddDealerCard({
   description = 'It is a long established fact that a reader will be distracted by the readable content.',
   onAdd = () => alert('Добавить нажат'),
   onAvatarClick = () => alert('Аватар нажат'),
-  avatarSrc = '/Icons/Users avatar 1.png',
+  avatarSrc = '/icons/avatar-default.png',
 }: AddDealerCardProps) {
   return (
     <div className="rounded-xl flex-1 flex items-center justify-center bg-neutral-700">

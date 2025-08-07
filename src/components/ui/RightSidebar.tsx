@@ -19,14 +19,14 @@ export default function RightSidebar() {
         </div>
         <div className="flex items-center gap-3 mb-2">
           <img
-            src="/Icons/Users avatar 7.png"
+            src="/icons/Users avatar 7.png"
             className="w-14 h-14 object-cover rounded-lg"
             alt="manager"
           />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-[#111] flex items-center gap-1">
-              Алишан Берденов
-              <Image src="/icons/Icon check mark.png" alt="check" width={16} height={16} />
+              Алихан Берденов
+              <Image src="/icons/confirmed.svg" alt="check" width={16} height={16} />
             </p>
             <p className="text-xs text-gray-900">KZ849970</p>
             <p className="text-xs text-gray-400">+7 707 700 00 02</p>
