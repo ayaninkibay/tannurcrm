@@ -14,7 +14,7 @@ interface TeamMember {
   parentId: string | null;
   name: string;
   avatar?: string;
-  tariff: 'Базовый' | 'Business' | 'Premium' | 'Enterprise';
+  tariff: 'Basic' | 'Business' | 'Premium' | 'Enterprise';
   role: string;
   verified: boolean;
   teamCount?: number;
@@ -29,7 +29,7 @@ interface TreeNode extends TeamMember {
   totalDescendants: number;
 }
 
-interface TreeProps {
+interface TeamTreeProps {
   members: TeamMember[];
   currentUserId?: string;
   onSelectMember?: (member: TeamMember) => void;
@@ -893,7 +893,7 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
 // ==========================================================
 // 🚀 ГЛАВНЫЙ КОМПОНЕНТ TEAMTREE
 // ==========================================================
-const Tree: React.FC<TreeProps> = ({
+const TeamTree: React.FC<TeamTreeProps> = ({
   members,
   currentUserId,
   onSelectMember,
@@ -1139,4 +1139,4 @@ const Tree: React.FC<TreeProps> = ({
   );
 };
 
-export default Tree;
+export default TeamTree;
