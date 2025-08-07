@@ -198,7 +198,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
           <p className="text-xs text-gray-500 mb-2">ID: {member.id}</p>
           
           <div className="text-xs mb-2">
-            <span className="text-gray-500">Тариф: </span>
+            <span className="text-gray-500">Статус: </span>
             <span className={`font-medium ${tariffColors[member.tariff]}`}>
               {member.tariff}
             </span>
