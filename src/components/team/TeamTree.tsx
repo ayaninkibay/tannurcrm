@@ -900,7 +900,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   onEditMember,
   className = ''
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
