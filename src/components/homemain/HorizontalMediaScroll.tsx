@@ -70,7 +70,7 @@ const staticCards = [
     role: 'Специалист отдела'
   },
   { 
-    src: '/img/product9.jpg', 
+    src: '/img/product3.jpg', 
     fallbackSrc: 'https://picsum.photos/280/320?random=9',
     title: 'Tannur Academy', 
     subtitle: '300 новых выпускников', 
