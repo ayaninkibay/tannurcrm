@@ -14,7 +14,7 @@ interface TeamMember {
   parentId: string | null;
   name: string;
   avatar?: string;
-  tariff: 'Basic' | 'Business' | 'Premium' | 'Enterprise';
+  tariff: 'Базовый' | 'Business' | 'Premium' | 'Enterprise';
   role: string;
   verified: boolean;
   teamCount?: number;
