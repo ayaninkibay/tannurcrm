@@ -6,77 +6,77 @@ import Image from 'next/image'; // Импорт компонента Image из 
 // Массив данных для карточек, каждая с путем к изображению
 const staticCards = [
   { 
-    src: '/img/events/tannur_1.jpg', 
+    src: '/img/events/tannur_1.png', 
     title: '35 000 000 тг', 
     subtitle: 'Оборот команды', 
     person: 'Айдар Каримов', 
     role: 'Топ менеджер'
   },
   { 
-    src: '/img/events/tannur_2.jpg', 
+    src: '/img/events/tannur_2.png', 
     title: 'Лучший 2025', 
     subtitle: 'Партнёр года', 
     person: 'Асель Нурланова', 
     role: 'Региональный директор'
   },
   { 
-    src: '/img/events/tannur_3.jpg', 
+    src: '/img/events/tannur_3.png', 
     title: 'Tannur Events 2025', 
     subtitle: 'Участники ивента 22.08', 
     person: 'Данияр Омаров', 
     role: 'Ведущий специалист'
   },
   { 
-    src: '/img/events/tannur_4.jpg', 
+    src: '/img/events/tannur_4.png', 
     title: '2 345 дилеров', 
     subtitle: 'За 1 год самостоятельно', 
     person: 'Жанара Сейтказы', 
     role: 'Бизнес партнер'
   },
   { 
-    src: '/img/events/tannur_5.jpg', 
+    src: '/img/events/tannur_5.png', 
     title: '13 000 932 тг', 
     subtitle: 'За одну неделю', 
     person: 'Нурлан Абишев', 
     role: 'Старший консультант'
   },
   { 
-    src: '/img/events/tannur_6.jpg', 
+    src: '/img/events/tannur_6.png', 
     title: '86 регионов', 
     subtitle: 'География продаж', 
     person: 'Камила Досжанова', 
     role: 'Координатор проекта'
   },
   { 
-    src: '/img/events/tannur_7.jpg', 
+    src: '/img/events/tannur_7.png', 
     title: '48 часов', 
     subtitle: 'До полной распродажи', 
     person: 'Ерлан Токтаров', 
     role: 'Менеджер по развитию'
   },
   { 
-    src: '/img/events/tannur_8.jpg', 
+    src: '/img/events/tannur_8.png', 
     title: '1 200 заказов', 
     subtitle: 'Только за выходные', 
     person: 'Арина Казыбекова', 
     role: 'Специалист отдела'
   },
   { 
-    src: '/img/events/tannur_9.jpg', 
+    src: '/img/events/tannur_9.png', 
     title: 'Tannur Academy', 
     subtitle: '300 новых выпускников', 
     person: 'Бекзат Алиев', 
     role: 'Тренинг менеджер'
   },
   { 
-    src: '/img/events/tannur_10.jpg', 
+    src: '/img/events/tannur_10.png', 
     title: 'Премия бренда', 
     subtitle: 'Признание индустрии', 
     person: 'Диана Ержанова', 
     role: 'Бренд амбассадор'
   },
   { 
-    src: '/img/events/tannur_11.jpg', 
+    src: '/img/events/tannur_11.png', 
     title: '10 000 подписок', 
     subtitle: 'Только за август', 
     person: 'Санжар Утебаев', 

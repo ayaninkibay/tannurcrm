@@ -193,7 +193,7 @@ export default function TeamPage() {
       id: 'KZ141516',
       parentId: 'KZ778899',
       name: 'Самат Қармен',
-      avatar: 'iIcons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Basic',
       role: 'UI/UX Designer',
       verified: true
