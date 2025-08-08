@@ -2,7 +2,7 @@
 'use client'
 
 import React from 'react'
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderAD from '@/components/header/MoreHeaderAD'
 import Sidebar from '@/components/Sidebar'
 import { FifthTemplate } from '@/components/layouts/TannurPageTemplates'
 
@@ -212,7 +212,7 @@ const teamMembers = [
 
   return (
     <FifthTemplate
-      header={<MoreHeader title="Тестовая 5 — FifthTemplate" />}
+      header={<MoreHeaderAD title="Тестовая 5 — FifthTemplate" />}
       column1={fullBlock}
       column3={wideBlock}
       column2={narrowBlock}

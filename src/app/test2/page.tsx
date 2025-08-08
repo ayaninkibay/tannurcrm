@@ -2,7 +2,7 @@
 'use client'
 
 import React from 'react'
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderAD from '@/components/header/MoreHeaderAD'
 import Sidebar from '@/components/Sidebar'
 import { SecondTemplate } from '@/components/layouts/TannurPageTemplates'
 
@@ -31,7 +31,7 @@ export default function TestPageSecond() {
 
   return (
     <SecondTemplate
-      header={<MoreHeader title="Тестовая 2 — Two Blocks" />}
+      header={<MoreHeaderAD title="Тестовая 2 — Two Blocks" />}
       column1={
         <div className="bg-red-100 p-6 rounded-lg">
           {hero}
