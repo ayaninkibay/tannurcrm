@@ -312,7 +312,7 @@ export default function ProfileDealer() {
       <div className="hidden md:block">
         <ThirdTemplate
           header={
-            <MoreHeader
+            <MoreHeaderAD
               title={
                 <span>
                   <span className="text-gray-400">Tannur</span>
