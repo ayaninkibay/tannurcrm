@@ -235,12 +235,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8F9FA] to-[#E9ECEF] p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className=" p-4 md:p-6">
+      <div className="w-full mx-auto space-y-6">
         <MoreHeader title="Мой профиль" />
 
         {/* Основная информация профиля */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-3xl shadow overflow-hidden">
           {/* Заголовок с кнопками */}
           <div className="bg-gradient-to-r from-[#DC7C67] to-[#C26D5C] px-6 py-4">
             <div className="flex justify-between items-center">
@@ -281,7 +281,7 @@ export default function ProfilePage() {
               <div className="lg:col-span-1">
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 text-center space-y-4 border border-gray-200">
                   <div className="relative w-32 h-32 mx-auto">
-                    <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow-lg">
+                    <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow">
                       <Image
                         src={photoPreview}
                         alt="avatar"
@@ -290,7 +290,7 @@ export default function ProfilePage() {
                       />
                     </div>
                     {isEditing && (
-                      <label className="absolute -bottom-2 -right-2 bg-[#DC7C67] text-white p-2 rounded-full cursor-pointer hover:bg-[#C26D5C] transition-colors shadow-lg">
+                      <label className="absolute -bottom-2 -right-2 bg-[#DC7C67] text-white p-2 rounded-full cursor-pointer hover:bg-[#C26D5C] transition-colors shadow">
                         📷
                         <input
                           type="file"
@@ -342,7 +342,7 @@ export default function ProfilePage() {
                         <div className="relative">
                           <input
                             name={field.name}
-                            value={form[field.name as keyof UserUpdateData] || ''}
+                            value={String(form[field.name as keyof UserUpdateData] ?? '')}
                             onChange={handleChange}
                             placeholder={field.placeholder}
                             type={field.type || 'text'}
@@ -380,7 +380,7 @@ export default function ProfilePage() {
         {/* Нижние блоки */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Реферальная ссылка */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 shadow border border-gray-100">
             <div className="text-gray-600 mb-6 font-medium">
               🤝 Добавить дилера в свою сеть
             </div>
@@ -388,12 +388,12 @@ export default function ProfilePage() {
           </div>
 
           {/* Спонсорская карта */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 shadow border border-gray-100">
             <SponsorCard variant="gray" />
           </div>
 
           {/* Смена пароля */}
-          <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow border border-gray-100">
             <div className="mb-6">
               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
                 🔐 Смена пароля
