@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { ThirdTemplate } from '@/components/layouts/TannurPageTemplates';
 import DealerPost from '@/components/ui/DealerPost';
 
@@ -291,7 +291,7 @@ export default function ProfileDealer() {
     <>
       {/* Мобильная версия - показываем блоки в нужном порядке */}
       <div className="md:hidden">
-        <MoreHeader
+        <MoreHeaderAD
           title={
             <span className="text-sm sm:text-base">
               <span className="text-gray-400">Tannur</span>

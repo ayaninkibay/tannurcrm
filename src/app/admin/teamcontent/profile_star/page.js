@@ -3,7 +3,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { FifthTemplate } from '@/components/layouts/TannurPageTemplates';
 import ProductCard from './ProductCard';
 
@@ -33,7 +33,7 @@ export default function ProfileStarPage() {
   return (
     <FifthTemplate
       header={
-        <MoreHeader
+        <MoreHeaderAD
           title={
             <span className="text-sm sm:text-base">
               <span className="text-gray-400">Tannur</span>

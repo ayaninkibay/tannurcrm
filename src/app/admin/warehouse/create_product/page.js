@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 
 export default function CreateDealer() {
   const [fileName, setFileName] = useState('');
@@ -16,7 +16,7 @@ export default function CreateDealer() {
 
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
-      <MoreHeader title="Создать товар" />
+      <MoreHeaderAD title="Создать товар" />
 
       {/* Обёртка: одна колонка на мобилке, четыре — на lg */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-10">

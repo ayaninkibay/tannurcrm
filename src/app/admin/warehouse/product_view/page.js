@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import Image from 'next/image';
 import ActionButton from '@/components/ui/ActionButton';
 import ProductCardWare from '@/components/ui/ProductCardWare';
@@ -10,7 +10,7 @@ import ProductInfoBlock from '@/components/product/ProductInfoBlock';
 export default function ProductView() {
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
-      <MoreHeader
+      <MoreHeaderAD
         title={
           <span>
             <span className="text-gray-400">Tannur</span>

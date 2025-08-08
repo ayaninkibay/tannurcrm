@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import SponsorCard from '@/components/blocks/SponsorCard';
 
 export default function CreateDealer() {
@@ -18,7 +18,7 @@ const handleFileChange = (e) => {
 
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
-      <MoreHeader
+      <MoreHeaderAD
         title={
           <span>
             <span className="text-gray-400">Tannur</span>
