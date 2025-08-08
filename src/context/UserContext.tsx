@@ -35,11 +35,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Если пользователь найден, получаем его профиль из таблицы 'users'
-      const { data, error } = await supabase
-        .from('users')
-        .select('first_name, last_name, phone, region, avatar_url, referral_code, is_confirmed, role')
-        .eq('id', user.id)
-        .single()
+const { data, error } = await supabase
+  .from('users')
+  .select('*')
+  .eq('id', user.id)
+  .single()
 
       if (!error && data) {
         setProfile(data)
