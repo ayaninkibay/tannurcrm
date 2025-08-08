@@ -1,4 +1,5 @@
-import { supabase } from './client';
+import { supabase } from 'lib/supabase/client'
+
 
 /**
  * Функция для создания нового дилера через Edge Function.
