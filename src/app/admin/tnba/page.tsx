@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import Image from 'next/image';
 
 interface Course {
@@ -63,7 +63,7 @@ export default function AcademyTannur() {
   return (
     <div className="p-2 md:p-6">
       <header className="flex">
-        <MoreHeader title="Академия Tannur" />
+        <MoreHeaderAD title="Академия Tannur" />
       </header>
 
       <div className="px-0">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import Image from 'next/image';
 import ProductCardWare from '@/components/ui/ProductCardWare';
 import RightSidebar from '@/components/ui/RightSidebar';
@@ -81,7 +81,7 @@ export default function WareHouse() {
 
   return (
     <main className="p-2 md:p-6 bg-[#F3F3F3] min-h-screen">
-      <MoreHeader title="Склад Tannur" />
+      <MoreHeaderAD title="Склад Tannur" />
 
       {/* Основной контейнер */}
       <div className="mt-8 flex flex-col lg:flex-row gap-6">

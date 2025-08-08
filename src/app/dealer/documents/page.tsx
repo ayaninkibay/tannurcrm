@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import Footer from '@/components/Footer';
 
 
@@ -50,7 +50,7 @@ return (
       <div className="space-y-8 p-2 md:p-6 bg-gray-100">
     {/* Контент */}
     <div className="flex-1 flex flex-col gap-6">
-      <MoreHeader title="Документы Tannur" />
+      <MoreHeaderDE title="Документы Tannur" />
 
       {/* Блоки с файлами как grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

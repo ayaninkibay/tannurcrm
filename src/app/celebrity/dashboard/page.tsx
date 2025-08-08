@@ -1,12 +1,12 @@
 'use client'
 
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderCE from '@/components/header/MoreHeaderCE'
 
 export default function CelebrityDashboardPage() {
   return (
     <main className="min-h-screen bg-[#F6F6F6]">
       {/* Заголовок страницы */}
-      <MoreHeader title="Dashboard Селебрити" />
+      <MoreHeaderCE title="Dashboard Селебрити" />
 
       {/* Заглушка контента */}
       <div className="grid grid-cols-4 gap-4 mt-15">

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import BalanceCard from '@/components//blocks/BalanceCard';
 import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
 import { generateMonthlyData } from '@/components/generateData';
@@ -26,7 +26,7 @@ export default function StatsContent() {
 
   return (
     <div className="space-y-8 p-2 md:p-6 bg-gray-100">
-              <MoreHeader title="Ваши финансы" />
+              <MoreHeaderDE title="Ваши финансы" />
       {/* Section 1: Товарооборот */}
       <section>
         <div className="

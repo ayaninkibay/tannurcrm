@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import Image from 'next/image';
 import TeamMemberRow, { TeamMember } from '@/components/product/TeamMemberRow';
 
@@ -168,7 +168,7 @@ export default function Team() {
   return (
     <div className=" w-full h-full">
       <header className="p-2 md:p-6">
-        <MoreHeader title="Команда Tannur" />
+        <MoreHeaderAD title="Команда Tannur" />
       </header>
 
       <div className="px-3 sm:px-6">

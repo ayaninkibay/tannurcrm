@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import PickupAddressBlock from '@/components/product/HidderElements/PickupAddressBlock'
 import PickupDeliverBlock from '@/components/product/HidderElements/PickupDeliverBlock'
 import SortProductBlock from '@/components/product/HidderElements/SortProductsBlock'
@@ -82,7 +82,7 @@ export default function ShopPage() {
 
   return (
     <div className="flex flex-col gap-6 p-2 md:p-6 bg-[#F5F5F5] min-h-screen">
-      <MoreHeader title="Магазин Tannur" />
+      <MoreHeaderDE title="Магазин Tannur" />
 
       {/* Верхний блок: Дилерский магазин */}
       <section className="bg-white rounded-2xl w-full p-6">

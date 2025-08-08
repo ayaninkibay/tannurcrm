@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import TeamCard from '@/components/blocks/TeamCard'
 import UserProfileCard from '@/components/profile/UserProfileCard'
 import TannurButton from '@/components/Button'
@@ -223,7 +223,7 @@ export default function TeamPage() {
     <div className="flex flex-col h-full p-2 md:p-6 bg-[#F5F5F5]">
       
       {/* Верхний хедер */}
-      <MoreHeader title="Моя команда" />
+      <MoreHeaderDE title="Моя команда" />
 
       {/* Контент страницы */}
       <div className="flex flex-col gap-6">

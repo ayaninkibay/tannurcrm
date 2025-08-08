@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import MoreHeader from '@/components/header/MoreHeader'
+import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import BalanceCard from '@/components/blocks/BalanceCard'
 import TeamCard from '@/components/blocks/TeamCard'
 import BonusCard from '@/components/blocks/BonusCard'
@@ -20,7 +20,7 @@ export default function DashboardPage() {
   return (
     <div className="p-2 md:p-6 space-y-6">
       {/* Хидер */}
-      <MoreHeader title="Дэшборд" />
+      <MoreHeaderDE title="Дэшборд" />
 
       {/* Приветствие */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">

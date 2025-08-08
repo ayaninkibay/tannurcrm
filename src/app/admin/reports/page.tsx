@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeader from '@/components/header/MoreHeaderAD';
 import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
 import ReportsSection from '@/components/reports/ReportsSection';
 

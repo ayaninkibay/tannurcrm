@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { StatisticCard } from '@/components/components_admins_dashboard/StatisticCard';
 import { RevenueCard } from '@/components/components_admins_dashboard/RevenueCard';
 import { WarehouseCard } from '@/components/components_admins_dashboard/WarehouseCard';
@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
       <div className="w-full mx-auto p-2 md:p-6 space-y-6 sm:space-y-8">
         {/* Шапка */}
         <header className="mb-6">
-          <MoreHeader title="Админ панель" />
+          <MoreHeaderAD title="Админ панель" />
         </header>
 
         {/* Верхняя секция: статистика и профиль */}

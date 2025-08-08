@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import ReferalLink from '@/components/blocks/ReferralLink';
 import SponsorCard from '@/components/blocks/SponsorCard';
 
@@ -237,7 +237,7 @@ export default function ProfilePage() {
   return (
     <div className=" p-4 md:p-6">
       <div className="w-full mx-auto space-y-6">
-        <MoreHeader title="Мой профиль" />
+        <MoreHeaderAD title="Мой профиль" />
 
         {/* Основная информация профиля */}
         <div className="bg-white rounded-3xl shadow overflow-hidden">

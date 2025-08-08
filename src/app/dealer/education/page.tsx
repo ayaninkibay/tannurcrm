@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import MoreHeader from '@/components/header/MoreHeader';
+import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 
 export default function EducationContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
 
   return (
     <div className="min-h-screen bg-[#F3F3F3] flex p-2 md:p-6 flex-col ">
-      <MoreHeader title="Академия TNBA" />
+      <MoreHeaderDE title="Академия TNBA" />
 
       {/* Категории курсов */}
         <div className="mt-8">

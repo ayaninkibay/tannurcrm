@@ -12,11 +12,11 @@ import { useUser } from '@/context/UserContext'
 
 
 
-interface MoreHeaderProps {
+interface MoreHeaderADProps {
   title: string;
 }
 
-export default function MoreHeader({ title }: MoreHeaderProps) {
+export default function MoreHeaderAD({ title }: MoreHeaderADProps) {
   const { profile, loading } = useUser(); // ✅
 
   const router = useRouter();
@@ -42,12 +42,13 @@ useEffect(() => {
 
   const menuItems = [
     { label: 'Tannur Главная', href: '/', icon: '/icons/company/tannurapp_1.svg' },
-    { label: 'Мой дэшборд', href: '/dealer/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
-    { label: 'Моя команда', href: '/dealer/myteam', icon: '/icons/sidebar/teamgray.svg', activeIcon: '/icons/sidebar/teamwhite.svg' },
-    { label: 'Мои финансы', href: '/dealer/stats', icon: '/icons/sidebar/statsgray.svg', activeIcon: '/icons/sidebar/statswhite.svg' },
-    { label: 'Tannur Store', href: '/dealer/shop', icon: '/icons/sidebar/storegray.svg', activeIcon: '/icons/sidebar/storewhite.svg' },
-    { label: 'Tannur BA', href: '/dealer/education', icon: '/icons/sidebar/tnbagray.svg', activeIcon: '/icons/sidebar/tnbawhite.svg' },
-    { label: 'Файлы', href: '/dealer/documents', icon: '/icons/sidebar/foldergray.svg', activeIcon: '/icons/sidebar/folderwhite.svg' },
+    { label: 'Админ панель', href: '/admin/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
+    { label: 'Отчеты Tannur', href: '/admin/reports', icon: '/icons/sidebar/reportgray.svg', activeIcon: '/icons/sidebar/reportwhite.svg' },
+    { label: 'Команда Tannur', href: '/admin/teamcontent', icon: '/icons/sidebar/teamgray.svg', activeIcon: '/icons/sidebar/teamwhite.svg' },
+    { label: 'Академия Tannur', href: '/admin/tnba', icon: '/icons/sidebar/tnbagray.svg', activeIcon: '/icons/sidebar/tnbawhite.svg' },
+    { label: 'Финансовый отдел', href: '/admin/finance', icon: '/icons/sidebar/statsgray.svg', activeIcon: '/icons/sidebar/statswhite.svg' },
+    { label: 'Склад Tannur', href: '/admin/warehouse', icon: '/icons/sidebar/warehousegray.svg', activeIcon: '/icons/sidebar/warehousewhite.svg' },
+    { label: 'Файлы Tannur', href: '/admin/documents', icon: '/icons/sidebar/foldergray.svg', activeIcon: '/icons/sidebar/folderwhite.svg' },
   ];
 
   return (
