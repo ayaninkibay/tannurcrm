@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
-import hamburgerAnimation from '@/lotties/Menu.json';
+import hamburgerAnimation from '@/components/lotties/Menu.json';
 import { useUser } from '@/context/UserContext'
 
 

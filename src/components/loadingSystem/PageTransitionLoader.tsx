@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { ReactNode, useEffect, useState } from 'react'
 import Lottie from 'lottie-react'
-import animationData from '@/lotties/loading.json'
+import animationData from '@/components/lotties/loading.json'
 import { AnimatePresence, motion } from 'framer-motion'
 
 export default function PageTransitionProvider({ children }: { children: ReactNode }) {

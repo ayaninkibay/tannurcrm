@@ -8,7 +8,7 @@ import SortProductBlock from '@/components/product/HidderElements/SortProductsBl
 import DealerProductCard from '@/components/product/DealerProductCard'
 import DealerBigProductCard from '@/components/product/DealerBigProductCard'
 import Lottie from 'lottie-react';
-import retailAnimation from '@/lotties/Retail.json'
+import retailAnimation from '@/components/lotties/Retail.json'
 
 export default function ShopPage() {
   const [showClientPrices, setShowClientPrices] = useState(false)

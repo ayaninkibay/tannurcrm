@@ -12,7 +12,7 @@ import SponsorCard from '@/components/blocks/SponsorCard'
 import { TurnoverChart, MonthValue } from '@/components/TurnoverChart'
 import { generateMonthlyData } from '@/components/generateData'
 import Lottie from 'lottie-react'
-import moneyAnimation from '@/lotties/reports_gray.json'
+import moneyAnimation from '@/components/lotties/reports_gray.json'
 
 const rawData: MonthValue[] = generateMonthlyData(new Date(2024, 8, 1), 12)
 
