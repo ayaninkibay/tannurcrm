@@ -33,8 +33,8 @@ useEffect(() => {
   }
 }, [profile, loading]);
 
-  const handleProfile = () => router.push('/myprofile');
-  const handleNotifications = () => router.push('/notifications');
+  const handleProfile = () => router.push('/admin/profile');
+  const handleNotifications = () => router.push('/admin/notifications');
   const handleSignOut = async () => {
     await fetch('/api/logout', { method: 'POST' });
     router.push('/signin');
