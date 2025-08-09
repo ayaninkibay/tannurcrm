@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import SponsorCard from '@/components/blocks/SponsorCard';
 
 export default function CreateDealer() {
