@@ -40,7 +40,7 @@ export default function BalanceCard({ balance, variant = 'light' }: BalanceCardP
       {/* Кнопки */}
       <div className="flex flex-col md:flex-row gap-3 mt-4">
         <a
-          href="#"
+          href="/dealer/payments" // Added href for "Вывод" button
           className="flex-1 bg-[#D8765E] hover:opacity-90 transition text-white flex items-center justify-center gap-2 py-2 rounded-xl"
         >
           <Image src="/icons/Icon withdraw.png" alt="withdraw" width={16} height={16} />
@@ -48,7 +48,7 @@ export default function BalanceCard({ balance, variant = 'light' }: BalanceCardP
         </a>
 
         <a
-          href="#"
+          href="/dealer/payments" // Added href for "История" button
           className={`flex-1 flex items-center justify-center gap-2 text-sm hover:underline transition border border-white/40 rounded-xl py-2 ${textClass}`}
         >
           <Image src={historyIcon} alt="history" width={16} height={16} />

@@ -7,13 +7,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 const adminNavItems = [
-  { href: '/admin/dashboard',           icon: '/icons/sidebar/homewhite.svg',      iconGray: '/icons/sidebar/homegray.svg',      label: 'Дэшборд' },
-  { href: '/admin/reports',               icon: '/icons/sidebar/reportgray.svg',     iconGray: '/icons/sidebar/reportwhite.svg',     label: 'Отчеты' },
-  { href: '/admin/teamcontent',         icon: '/icons/sidebar/teamwhite.svg',      iconGray: '/icons/sidebar/teamgray.svg',      label: 'Команда' },
-  { href: '/admin/tnba',            icon: '/icons/sidebar/tnbawhite.svg',  iconGray: '/icons/sidebar/tnbawhite.svg',  label: 'Настройки' },
-  { href: '/admin/finance',    icon: '/icons/sidebar/statswhite.svg',     iconGray: '/icons/sidebar/statsgray.svg',     label: 'Ваши финансы' },
-  { href: '/admin/warehouse',           icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
-  { href: '/admin/documents',           icon: '/icons/sidebar/folderwhite.svg',    iconGray: '/icons/sidebar/foldergray.svg',    label: 'Документы' },
+  { href: '/admin/dashboard', icon: '/icons/sidebar/homewhite.svg', iconGray: '/icons/sidebar/homegray.svg', label: 'Дэшборд' },
+  { href: '/admin/reports', icon: '/icons/sidebar/reportgray.svg', iconGray: '/icons/sidebar/reportwhite.svg', label: 'Отчеты' },
+  { href: '/admin/teamcontent', icon: '/icons/sidebar/teamwhite.svg', iconGray: '/icons/sidebar/teamgray.svg', label: 'Команда' },
+  { href: '/admin/tnba', icon: '/icons/sidebar/tnbawhite.svg', iconGray: '/icons/sidebar/tnbawhite.svg', label: 'Настройки' },
+  { href: '/admin/finance', icon: '/icons/sidebar/statswhite.svg', iconGray: '/icons/sidebar/statsgray.svg', label: 'Ваши финансы' },
+  { href: '/admin/warehouse', icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
+  { href: '/admin/documents', icon: '/icons/sidebar/folderwhite.svg', iconGray: '/icons/sidebar/foldergray.svg', label: 'Документы' },
 ];
 
 export default function DashboardSidebarAdmin() {
@@ -21,17 +21,23 @@ export default function DashboardSidebarAdmin() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [activeTop, setActiveTop] = useState(0);
+  const [activeTop, setActiveTop] = useState<number | null>(null); // Изменено на null
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
-      const idx = adminNavItems.findIndex(item => item.href === pathname);
-      const activeEl = itemRefs.current[idx];
+      // Ищем индекс активного элемента.
+      // Используем `startsWith` для частичного совпадения, если у вас есть вложенные маршруты
+      const activeItemIndex = adminNavItems.findIndex(item => pathname.startsWith(item.href));
+      
+      const activeEl = itemRefs.current[activeItemIndex];
       const containerEl = containerRef.current;
+
       if (activeEl && containerEl) {
         const offset = activeEl.getBoundingClientRect().top - containerEl.getBoundingClientRect().top;
         setActiveTop(offset);
+      } else {
+        setActiveTop(null); // Если нет активного элемента, устанавливаем null
       }
     };
 
@@ -94,21 +100,24 @@ export default function DashboardSidebarAdmin() {
         ref={containerRef}
         className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"
       >
-        <motion.div
-          layout
-          layoutId="admin-active-indicator"
-          className="
-            absolute
-            w-[60px] h-[60px]
-            bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0
-          "
-          style={{ top: activeTop }}
-          initial={false}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        />
+        {activeTop !== null && ( // Условный рендеринг: отображаем только если activeTop не null
+          <motion.div
+            layout
+            layoutId="admin-active-indicator"
+            className="
+              absolute
+              w-[60px] h-[60px]
+              bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0
+            "
+            style={{ top: activeTop }}
+            initial={false}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          />
+        )}
 
         {adminNavItems.map((item, idx) => {
-          const isActive = pathname === item.href;
+          // Используем startsWith для определения активности, чтобы обрабатывать вложенные маршруты
+          const isActive = pathname.startsWith(item.href);
 
           return (
             <Link
@@ -137,10 +146,11 @@ export default function DashboardSidebarAdmin() {
                     alt={item.label}
                     width={24}
                     height={24}
+                    // Здесь также меняем фильтр в зависимости от isActive
                     style={{
                       filter: isActive
-                        ? 'brightness(0) invert(1)'
-                        : 'grayscale(100%) brightness(0.5)',
+                        ? 'brightness(0) invert(1)' // Белый цвет для активной иконки
+                        : 'grayscale(100%) brightness(0.5)', // Серый цвет для неактивной
                     }}
                   />
                 )}
