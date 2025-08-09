@@ -235,7 +235,7 @@ const MobileOrderCard = ({
         )}
       </div>
 
-      <div className="mt-3 pt-3 border-t flex justify-between items-center">
+      <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
         <div className="text-xs text-gray-600">
           {order.products.length} товаров
         </div>
@@ -462,7 +462,7 @@ const OrdersManagementPage = () => {
               }`}
             >
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base font-medium">Магазин</span>
+              <span className="text-xs sm:text-base font-medium">Магазин</span>
             </button>
             <button
               onClick={() => setActiveTab('dealers')}
@@ -473,7 +473,7 @@ const OrdersManagementPage = () => {
               }`}
             >
               <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base font-medium">Дилеры</span>
+              <span className="text-xs sm:text-base font-medium">Дилеры</span>
             </button>
             <button
               onClick={() => setActiveTab('star')}
@@ -484,7 +484,7 @@ const OrdersManagementPage = () => {
               }`}
             >
               <Star className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-sm sm:text-base font-medium">Звездный магазин</span>
+              <span className="text-xs sm:text-base font-medium">Звезды</span>
             </button>
           </div>
         </div>

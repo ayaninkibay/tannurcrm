@@ -56,13 +56,13 @@ const reportsConfig: Record<Role, ReportItem[]> = {
   ],
   admin: [
     { key: 'subscriptions', label: 'Подписки', icon: (isActive: boolean) => <SubscriptionIcon isActive={isActive} /> },
-    { key: 'purchases', label: 'Покупки', icon: (isActive: boolean) => <PurchaseIcon isActive={isActive} /> },
-    { key: 'sales', label: 'Продажи', icon: (isActive: boolean) => <SalesIcon isActive={isActive} /> },
+    { key: 'purchases', label: 'Продажи TNBA', icon: (isActive: boolean) => <PurchaseIcon isActive={isActive} /> },
+    { key: 'sales', label: 'Tannur Store', icon: (isActive: boolean) => <SalesIcon isActive={isActive} /> },
     { key: 'users', label: 'Подарки', icon: (isActive: boolean) => <GiftIcon isActive={isActive} /> },
   ],
   celebrity: [
     { key: 'sales', label: 'Продажи', icon: (isActive: boolean) => <SalesIcon isActive={isActive} /> },
-    { key: 'purchases', label: 'Покупки', icon: (isActive: boolean) => <PurchaseIcon isActive={isActive} /> },
+    { key: 'purchases', label: 'Моя покупка', icon: (isActive: boolean) => <PurchaseIcon isActive={isActive} /> },
   ],
 };
 
@@ -78,18 +78,18 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ role }) => {
   const activeIndex = tabs.findIndex((t) => t.key === active);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-2">
       {/* Заголовок с тонкой линией */}
       <div className="flex items-center gap-4 ">
-        <h2 className="text-md lg:text-2xl font-light text-gray-900 tracking-tight">
+        <h2 className="text-md lg:text-2xl font-bold text-gray-900 tracking-tight">
           Отчеты
         </h2>
         <div className="h-px bg-gradient-to-r from-gray-200 to-transparent flex-1"></div>
       </div>
 
       {/* Минималистичные табы справа */}
-      <div className="flex justify-end mb-4">
-        <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 shadow-sm">
+      <div className="flex justify-end mb-5">
+        <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl  shadow-sm">
           <div className="flex gap-1 relative">
             {/* Активный индикатор с градиентом в цвете D77E6C */}
             <div
@@ -143,7 +143,7 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ role }) => {
         {/* Декоративный элемент */}
         <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-[#D77E6C]/5 to-[#E09080]/5 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="relative z-10 animate-fadeIn p-2 w-full overflow-auto">
+        <div className="relative z-10 animate-fadeIn w-full overflow-auto">
           {active === 'subscriptions' && (
             <SubscriptionsReport period={period} onPeriodChange={setPeriod} />
           )}

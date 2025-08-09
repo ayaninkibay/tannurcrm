@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import clsx from 'clsx'
+import Link from 'next/link';
 
 interface TeamCardProps {
   title?: string
@@ -35,12 +36,15 @@ export default function TeamCard({
         <p className="text-sm text-gray-600 font-medium">{title}</p>
         <p className="text-3xl font-bold text-[#111] mt-1 mb-3">{count} человек</p>
 
-        {showButton && (
-          <button className="flex items-center gap-2 bg-white text-black rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition">
-            <Image src="/icons/buttom/useradd_black.svg" alt="add" width={16} height={16} />
-            Добавить
-          </button>
-        )}
+{showButton && (
+  <Link href="/dealer/create_dealer" passHref>
+    <button className="flex items-center gap-2 bg-white text-black rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-100 transition">
+      <Image src="/icons/buttom/useradd_black.svg" alt="add" width={16} height={16} />
+      Добавить
+    </button>
+  </Link>
+)}
+
       </div>
 
       {/* Нижняя часть — всегда снизу */}

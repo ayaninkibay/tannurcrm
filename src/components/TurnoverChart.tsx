@@ -1,159 +1,472 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  Tooltip,
-  Cell,
+ ResponsiveContainer,
+ BarChart,
+ Bar,
+ LineChart,
+ Line,
+ XAxis,
+ YAxis,
+ Tooltip,
+ Cell,
+ CartesianGrid,
 } from 'recharts';
 
 export type MonthValue = {
-  date: Date;
-  value: number;
+ date: Date;
+ value: number;
 };
 
 export type TurnoverChartProps = {
-  data: MonthValue[];
-  colorBar?: string;
-  colorLine?: string;
-  lineOffset?: number;
+ title?: string;
+ subtitle?: string;
+ data: MonthValue[];
+ colorBar?: string;
+ colorLine?: string;
+ lineOffset?: number;
+ showPeriodSelector?: boolean;
+ showStats?: boolean; // Новый проп для управления отображением статистики
 };
+
+// Иконки
+const TrendingUpIcon = () => (
+ <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+   <path d="M23 6L13.5 15.5L8.5 10.5L1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+   <path d="M17 6H23V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+ </svg>
+);
+
+const CalendarIcon = () => (
+ <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+   <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+   <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+   <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+   <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
+ </svg>
+);
+
+const ChevronDownIcon = () => (
+ <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+   <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+ </svg>
+);
+
+const CalendarRangeIcon = () => (
+ <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+   <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
+   <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+   <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+   <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
+   <rect x="7" y="13" width="4" height="4" fill="currentColor" rx="0.5"/>
+   <rect x="13" y="13" width="4" height="4" fill="currentColor" rx="0.5"/>
+ </svg>
+);
+
+type PeriodType = 'all' | 'last6' | 'thisYear' | 'prevYear' | 'custom';
+
+const periodOptions = [
+ { value: "all" as PeriodType, label: "За всё время" },
+ { value: "last6" as PeriodType, label: "6 месяцев" },
+ { value: "thisYear" as PeriodType, label: "Текущий год" },
+ { value: "prevYear" as PeriodType, label: "Прошлый год" },
+ { value: "custom" as PeriodType, label: "Выбрать период" },
+];
 
 export const TurnoverChart: React.FC<TurnoverChartProps> = ({
-  data,
-  colorBar = '#E9D7D6',
-  colorLine = '#DB6A56',
-  lineOffset = 300000,
+ title = 'Товарооборот',
+ subtitle = 'Динамика продаж за период',
+ data,
+ colorBar = '#FFE5E1',
+ colorLine = '#D77E6C',
+ lineOffset = 300000,
+ showPeriodSelector = true,
+ showStats = true, // По умолчанию показываем статистику
 }) => {
-  const [period, setPeriod] = useState<'all' | 'last6' | 'thisYear' | 'prevYear'>('all');
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [isClient, setIsClient] = useState(false);
+ const [period, setPeriod] = useState<PeriodType>('all');
+ const [activeIndex, setActiveIndex] = useState<number | null>(null);
+ const [isClient, setIsClient] = useState(false);
+ const [showDropdown, setShowDropdown] = useState(false);
+ const [showDatePicker, setShowDatePicker] = useState(false);
+ const [customDateRange, setCustomDateRange] = useState<{start: string; end: string}>({
+   start: '',
+   end: ''
+ });
+ const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+ useEffect(() => {
+   setIsClient(true);
+ }, []);
 
-  // Фильтруем по периоду
-  const filtered = useMemo(() => {
-    const now = new Date();
-    switch (period) {
-      case 'last6':
-        return [...data].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-6);
-      case 'thisYear':
-        return data.filter(d => d.date.getFullYear() === now.getFullYear());
-      case 'prevYear':
-        return data.filter(d => d.date.getFullYear() === now.getFullYear() - 1);
-      case 'all':
-      default:
-        return data;
-    }
-  }, [data, period]);
+ // Закрытие dropdown при клике вне
+ useEffect(() => {
+   const handleClickOutside = (event: MouseEvent) => {
+     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+       setShowDropdown(false);
+     }
+   };
 
-  const graphData = filtered.map(d => ({
-    month: d.date.toLocaleString('ru', { month: 'short' }),
-    value: d.value,
-    lineValue: d.value + lineOffset,
-  }));
+   if (showDropdown) {
+     document.addEventListener('mousedown', handleClickOutside);
+   }
 
-  const total = useMemo(() => {
-    return graphData.reduce((sum, d) => sum + d.value, 0);
-  }, [graphData]);
+   return () => {
+     document.removeEventListener('mousedown', handleClickOutside);
+   };
+ }, [showDropdown]);
 
-  return (
-    <div className="relative">
-      {/* Селектор периода */}
-      <div className="absolute top-6 right-6">
-        <select
-          value={period}
-          onChange={e => setPeriod(e.target.value as any)}
-          className="bg-gray-100 text-gray-700 text-sm rounded-full py-1 px-3"
-        >
-          <option value="all">За всё время</option>
-          <option value="last6">Последние 6 мес.</option>
-          <option value="thisYear">Текущий год</option>
-          <option value="prevYear">Прошлый год</option>
-        </select>
-      </div>
+ // Фильтруем по периоду
+ const filtered = useMemo(() => {
+   if (!data || data.length === 0) return [];
+   
+   const now = new Date();
+   let result = [...data];
+   
+   switch (period) {
+     case 'last6':
+       result = [...data].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(-6);
+       break;
+     case 'thisYear':
+       result = data.filter(d => d.date.getFullYear() === now.getFullYear());
+       break;
+     case 'prevYear':
+       result = data.filter(d => d.date.getFullYear() === now.getFullYear() - 1);
+       break;
+     case 'custom':
+       if (customDateRange.start && customDateRange.end) {
+         const startDate = new Date(customDateRange.start);
+         const endDate = new Date(customDateRange.end);
+         endDate.setHours(23, 59, 59, 999);
+         result = data.filter(d => {
+           const date = new Date(d.date);
+           return date >= startDate && date <= endDate;
+         });
+       }
+       break;
+     case 'all':
+     default:
+       result = data;
+       break;
+   }
+   
+   return result;
+ }, [data, period, customDateRange]);
 
-      {/* Сумма */}
-      <div className="mb-4">
-        <p className="text-sm text-gray-500">Заработок от товарооборота</p>
-        {isClient && (
-          <h2 className="text-2xl font-bold text-gray-800">
-            {total.toLocaleString()} ₸
-          </h2>
-        )}
-      </div>
+ const graphData = useMemo(() => {
+   return filtered.map(d => ({
+     month: d.date.toLocaleString('ru', { month: 'short' }),
+     value: d.value,
+     lineValue: d.value + lineOffset,
+   }));
+ }, [filtered, lineOffset]);
 
-      {/* График */}
-      <div className="h-[200px] w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={graphData}
-            margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-            onMouseMove={s => {
-              if (!s.isTooltipActive || s.activeTooltipIndex === undefined) {
-                setActiveIndex(null);
-                return;
-              }
-              const idx = Number(s.activeTooltipIndex);
-              setActiveIndex(isNaN(idx) ? null : idx);
-            }}
-            onMouseLeave={() => setActiveIndex(null)}
-          >
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 12, fill: '#555' }}
-            />
-            <Tooltip
-              cursor={{ fill: 'transparent' }}
-              content={({ active, payload, coordinate }) => {
-                if (!active || !payload || !coordinate) return null;
-                return (
-                  <div
-                    className="absolute z-20 px-3 py-1 rounded bg-gray-900 text-white text-xs whitespace-nowrap"
-                    style={{
-                      transform: `translate(${coordinate.x - 30}px, ${coordinate.y - 40}px)`,
-                    }}
-                  >
-                    {payload[0].value.toLocaleString()} ₸
-                  </div>
-                );
-              }}
-            />
-            <Bar dataKey="value" radius={4}>
-              {graphData.map((_, i) => (
-                <Cell key={i} fill={i === activeIndex ? colorLine : colorBar} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+ const total = useMemo(() => {
+   return graphData.reduce((sum, d) => sum + d.value, 0);
+ }, [graphData]);
 
-        {/* Линия */}
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-          className="absolute top-0 left-0 pointer-events-none"
-        >
-          <LineChart data={graphData}>
-            <Line
-              type="monotone"
-              dataKey="lineValue"
-              stroke={colorLine}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
+ // Расчет среднего прироста
+ const growthRate = useMemo(() => {
+   if (graphData.length < 2) return 0;
+   const lastMonth = graphData[graphData.length - 1]?.value || 0;
+   const prevMonth = graphData[graphData.length - 2]?.value || 0;
+   if (prevMonth === 0) return 0;
+   return ((lastMonth - prevMonth) / prevMonth * 100).toFixed(1);
+ }, [graphData]);
+
+ // Форматирование чисел для оси Y
+ const formatYAxis = (value: number) => {
+   if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+   if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+   return value.toString();
+ };
+
+ const handlePeriodSelect = (value: PeriodType) => {
+   if (value === 'custom') {
+     setShowDatePicker(true);
+     setShowDropdown(false);
+   } else {
+     setPeriod(value);
+     setShowDropdown(false);
+   }
+ };
+
+ const handleCustomPeriodApply = () => {
+   if (customDateRange.start && customDateRange.end) {
+     setPeriod('custom');
+     setShowDatePicker(false);
+   }
+ };
+
+ const getPeriodLabel = () => {
+   if (period === 'custom' && customDateRange.start && customDateRange.end) {
+     return `${new Date(customDateRange.start).toLocaleDateString('ru')} - ${new Date(customDateRange.end).toLocaleDateString('ru')}`;
+   }
+   return periodOptions.find(o => o.value === period)?.label || 'За всё время';
+ };
+
+ return (
+   <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+     {/* Шапка */}
+     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+       <div>
+         <div className="flex items-center gap-3 mb-2">
+           <div className="p-2 bg-[#D77E6C]/10 rounded-lg">
+             <TrendingUpIcon className="text-[#D77E6C]" />
+           </div>
+           <h3 className="text-xl md:text-2xl font-medium text-gray-900">
+             {title}
+           </h3>
+         </div>
+         <p className="text-gray-600 text-sm">
+           {subtitle}
+         </p>
+       </div>
+
+       {/* Селектор периода */}
+       {showPeriodSelector && (
+         <div className="relative" ref={dropdownRef}>
+           <button
+             onClick={() => setShowDropdown(!showDropdown)}
+             className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium transition-colors"
+           >
+             <CalendarIcon />
+             <span>{getPeriodLabel()}</span>
+             <ChevronDownIcon className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+           </button>
+           
+           {showDropdown && (
+             <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 min-w-[180px]">
+               {periodOptions.map((option) => (
+                 <button
+                   key={option.value}
+                   onClick={() => handlePeriodSelect(option.value)}
+                   className={`w-full px-4 py-2 text-left hover:bg-gray-50 text-sm transition-colors flex items-center gap-2 ${
+                     period === option.value && option.value !== 'custom' ? 'bg-gray-50 text-[#D77E6C] font-medium' : 'text-gray-700'
+                   }`}
+                 >
+                   {option.value === 'custom' ? (
+                     <CalendarRangeIcon className={period === 'custom' ? 'text-[#D77E6C]' : 'text-gray-400'} />
+                   ) : period === option.value ? (
+                     <div className="w-2 h-2 bg-[#D77E6C] rounded-full"></div>
+                   ) : (
+                     <div className="w-2 h-2"></div>
+                   )}
+                   <span>{option.label}</span>
+                 </button>
+               ))}
+             </div>
+           )}
+         </div>
+       )}
+     </div>
+
+     {/* Модальное окно выбора периода */}
+     {showDatePicker && (
+       <>
+         <div 
+           className="fixed inset-0 bg-black/30 z-50" 
+           onClick={() => setShowDatePicker(false)}
+         />
+         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl z-50 p-6 w-full max-w-md">
+           <h3 className="text-lg font-medium mb-4">Выберите период</h3>
+           
+           <div className="space-y-4">
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 Начало периода
+               </label>
+               <input
+                 type="date"
+                 value={customDateRange.start}
+                 onChange={(e) => setCustomDateRange(prev => ({...prev, start: e.target.value}))}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+               />
+             </div>
+             
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 Конец периода
+               </label>
+               <input
+                 type="date"
+                 value={customDateRange.end}
+                 onChange={(e) => setCustomDateRange(prev => ({...prev, end: e.target.value}))}
+                 min={customDateRange.start}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+               />
+             </div>
+           </div>
+
+           <div className="flex gap-3 mt-6">
+             <button
+               onClick={() => setShowDatePicker(false)}
+               className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+             >
+               Отмена
+             </button>
+             <button
+               onClick={handleCustomPeriodApply}
+               disabled={!customDateRange.start || !customDateRange.end}
+               className="flex-1 py-2.5 px-4 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+             >
+               Применить
+             </button>
+           </div>
+         </div>
+       </>
+     )}
+
+     {/* Статистика - условное отображение */}
+     {showStats && (
+       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+         <div className="bg-gray-50 rounded-xl px-4 py-3">
+           <p className="text-xs text-gray-500 mb-1">Общий доход</p>
+           {isClient && (
+             <p className="text-xl md:text-2xl font-bold text-gray-900">
+               {total.toLocaleString('ru-RU')} ₸
+             </p>
+           )}
+         </div>
+         <div className="bg-gray-50 rounded-xl px-4 py-3">
+           <p className="text-xs text-gray-500 mb-1">Средний чек</p>
+           {isClient && (
+             <p className="text-xl md:text-2xl font-bold text-gray-900">
+               {graphData.length > 0 
+                 ? Math.round(total / graphData.length).toLocaleString('ru-RU') 
+                 : 0} ₸
+             </p>
+           )}
+         </div>
+         <div className="bg-gray-50 rounded-xl px-4 py-3">
+           <p className="text-xs text-gray-500 mb-1">Прирост</p>
+           {isClient && (
+             <p className={`text-xl md:text-2xl font-bold ${
+               Number(growthRate) > 0 ? 'text-green-600' : Number(growthRate) < 0 ? 'text-red-600' : 'text-gray-900'
+             }`}>
+               {Number(growthRate) > 0 ? '+' : ''}{growthRate}%
+             </p>
+           )}
+         </div>
+       </div>
+     )}
+
+     {/* График */}
+     <div className={`${showStats ? 'h-[250px] md:h-[300px]' : 'h-[300px] md:h-[350px]'} w-full relative bg-gray-50/50 rounded-xl p-4`}>
+       {graphData.length > 0 ? (
+         <ResponsiveContainer width="100%" height="100%">
+           <BarChart
+             data={graphData}
+             margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+             onMouseMove={s => {
+               if (!s.isTooltipActive || s.activeTooltipIndex === undefined) {
+                 setActiveIndex(null);
+                 return;
+               }
+               const idx = Number(s.activeTooltipIndex);
+               setActiveIndex(isNaN(idx) ? null : idx);
+             }}
+             onMouseLeave={() => setActiveIndex(null)}
+           >
+             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+             <XAxis
+               dataKey="month"
+               tickLine={false}
+               axisLine={false}
+               tick={{ fontSize: 12, fill: '#6b7280' }}
+               dy={10}
+             />
+             <YAxis
+               tickLine={false}
+               axisLine={false}
+               tick={{ fontSize: 12, fill: '#6b7280' }}
+               tickFormatter={formatYAxis}
+               dx={-10}
+             />
+             <Tooltip
+               cursor={{ fill: 'rgba(215, 126, 108, 0.05)' }}
+               content={({ active, payload }) => {
+                 if (!active || !payload || !payload[0]) return null;
+                 return (
+                   <div className="bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-100">
+                     <p className="text-xs text-gray-500 mb-1">{payload[0].payload.month}</p>
+                     <p className="text-sm font-bold text-gray-900">
+                       {Number(payload[0].value).toLocaleString('ru-RU')} ₸
+                     </p>
+                   </div>
+                 );
+               }}
+             />
+             <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+               {graphData.map((_, i) => (
+                 <Cell 
+                   key={i} 
+                   fill={i === activeIndex ? colorLine : colorBar}
+                   style={{
+                     filter: i === activeIndex ? 'drop-shadow(0 4px 6px rgba(215, 126, 108, 0.2))' : 'none',
+                     transition: 'all 0.3s ease'
+                   }}
+                 />
+               ))}
+             </Bar>
+           </BarChart>
+         </ResponsiveContainer>
+       ) : (
+         <div className="h-full flex items-center justify-center text-gray-500">
+           Нет данных для отображения
+         </div>
+       )}
+
+       {/* Линия тренда */}
+       {graphData.length > 0 && (
+         <ResponsiveContainer
+           width="100%"
+           height="100%"
+           className="absolute top-0 left-0 pointer-events-none"
+         >
+           <LineChart data={graphData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+             <Line
+               type="monotone"
+               dataKey="lineValue"
+               stroke={colorLine}
+               strokeWidth={2}
+               strokeDasharray="5 5"
+               dot={{ fill: colorLine, r: 3 }}
+               activeDot={{ r: 5 }}
+               isAnimationActive={true}
+               animationDuration={1000}
+             />
+           </LineChart>
+         </ResponsiveContainer>
+       )}
+     </div>
+
+     {/* Легенда */}
+     <div className="flex flex-wrap items-center gap-6 mt-4 text-xs text-gray-500">
+       <div className="flex items-center gap-2">
+         <div className="w-3 h-3 rounded" style={{ backgroundColor: colorBar }}></div>
+         <span>Доход за месяц</span>
+       </div>
+       <div className="flex items-center gap-2">
+         <div className="w-8 h-0.5" style={{ 
+           backgroundImage: `repeating-linear-gradient(to right, ${colorLine} 0, ${colorLine} 4px, transparent 4px, transparent 8px)`
+         }}></div>
+         <span>Линия тренда</span>
+       </div>
+       <div className="ml-auto flex items-center gap-1 text-gray-400">
+         <CalendarIcon />
+         <span>Период: {getPeriodLabel()}</span>
+       </div>
+     </div>
+   </div>
+ );
 };
+
+// Экспорт дополнительных вариантов для удобства использования
+export const TurnoverChartWithStats: React.FC<Omit<TurnoverChartProps, 'showStats'>> = (props) => (
+ <TurnoverChart {...props} showStats={true} />
+);
+
+export const TurnoverChartCompact: React.FC<Omit<TurnoverChartProps, 'showStats'>> = (props) => (
+ <TurnoverChart {...props} showStats={false} />
+);
