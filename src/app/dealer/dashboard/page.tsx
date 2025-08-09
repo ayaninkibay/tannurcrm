@@ -13,6 +13,7 @@ import { TurnoverChart, MonthValue } from '@/components/TurnoverChart'
 import { generateMonthlyData } from '@/components/generateData'
 import Lottie from 'lottie-react'
 import moneyAnimation from '@/components/lotties/reports_gray.json'
+import Link from 'next/link';
 
 const rawData: MonthValue[] = generateMonthlyData(new Date(2024, 8, 1), 12)
 
@@ -25,10 +26,14 @@ export default function DashboardPage() {
       {/* Приветствие */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">
         <span className="text-gray-700 font-medium text-base">С возвращением, Інжу</span>
-        <button className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium text-white bg-[#DC7C67] hover:opacity-90 transition">
-          <img src="/icons/IconShoppingWhite.png" className="w-3.5 h-3.5" alt="shop" />
-          Мои покупки
-        </button>
+     <Link
+  href="/dealer/dashboard/shop/"
+  className="flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium text-white bg-[#DC7C67] hover:opacity-90 transition"
+  role="button"
+>
+  <img src="/icons/IconShoppingWhite.png" className="w-3.5 h-3.5" alt="shop" />
+  Мои покупки
+</Link>
       </div>
 
       {/* Основной контент */}
