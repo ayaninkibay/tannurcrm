@@ -13,6 +13,7 @@ import {
  Cell,
  CartesianGrid,
 } from 'recharts';
+import { TrendingUp, Calendar, ChevronDown, CalendarRange } from 'lucide-react';
 
 export type MonthValue = {
  date: Date;
@@ -27,42 +28,8 @@ export type TurnoverChartProps = {
  colorLine?: string;
  lineOffset?: number;
  showPeriodSelector?: boolean;
- showStats?: boolean; // Новый проп для управления отображением статистики
+ showStats?: boolean;
 };
-
-// Иконки
-const TrendingUpIcon = () => (
- <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-   <path d="M23 6L13.5 15.5L8.5 10.5L1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-   <path d="M17 6H23V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
- </svg>
-);
-
-const CalendarIcon = () => (
- <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-   <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-   <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-   <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-   <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
- </svg>
-);
-
-const ChevronDownIcon = () => (
- <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-   <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
- </svg>
-);
-
-const CalendarRangeIcon = () => (
- <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-   <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-   <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-   <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-   <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
-   <rect x="7" y="13" width="4" height="4" fill="currentColor" rx="0.5"/>
-   <rect x="13" y="13" width="4" height="4" fill="currentColor" rx="0.5"/>
- </svg>
-);
 
 type PeriodType = 'all' | 'last6' | 'thisYear' | 'prevYear' | 'custom';
 
@@ -82,7 +49,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
  colorLine = '#D77E6C',
  lineOffset = 300000,
  showPeriodSelector = true,
- showStats = true, // По умолчанию показываем статистику
+ showStats = true,
 }) => {
  const [period, setPeriod] = useState<PeriodType>('all');
  const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -206,13 +173,13 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
  };
 
  return (
-   <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6">
+   <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 h-full">
      {/* Шапка */}
      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
        <div>
          <div className="flex items-center gap-3 mb-2">
            <div className="p-2 bg-[#D77E6C]/10 rounded-lg">
-             <TrendingUpIcon className="text-[#D77E6C]" />
+             <TrendingUp className="w-5 h-5 text-[#D77E6C]" />
            </div>
            <h3 className="text-xl md:text-2xl font-medium text-gray-900">
              {title}
@@ -230,9 +197,9 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
              onClick={() => setShowDropdown(!showDropdown)}
              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium transition-colors"
            >
-             <CalendarIcon />
+             <Calendar className="w-4 h-4" />
              <span>{getPeriodLabel()}</span>
-             <ChevronDownIcon className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+             <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
            </button>
            
            {showDropdown && (
@@ -246,7 +213,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
                    }`}
                  >
                    {option.value === 'custom' ? (
-                     <CalendarRangeIcon className={period === 'custom' ? 'text-[#D77E6C]' : 'text-gray-400'} />
+                     <CalendarRange className={`w-4 h-4 ${period === 'custom' ? 'text-[#D77E6C]' : 'text-gray-400'}`} />
                    ) : period === option.value ? (
                      <div className="w-2 h-2 bg-[#D77E6C] rounded-full"></div>
                    ) : (
@@ -454,7 +421,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
          <span>Линия тренда</span>
        </div>
        <div className="ml-auto flex items-center gap-1 text-gray-400">
-         <CalendarIcon />
+         <Calendar className="w-3 h-3" />
          <span>Период: {getPeriodLabel()}</span>
        </div>
      </div>
