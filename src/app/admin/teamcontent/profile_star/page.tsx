@@ -1,6 +1,7 @@
 // src/app/admin/teamcontent/profile_star/page.tsx
 'use client';
 
+import React from 'react';
 import { useState, MouseEvent } from 'react';
 import Image from 'next/image';
 
