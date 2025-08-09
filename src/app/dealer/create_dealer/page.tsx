@@ -25,15 +25,7 @@ export default function CreateDealer() {
 
  return (
    <div className="flex flex-col p-2 md:p-6 bg-[#F6F6F6] min-h-screen">
-     <MoreHeaderAD
-       title={
-         <span>
-           <span className="text-gray-400">Tannur</span>
-           <span className="mx-1 text-[#111]">/</span>
-           <span className="text-[#111]">Создать профиль дилера</span>
-         </span>
-       }
-     />
+     <MoreHeaderDE title="Создание дилера" />
 
      {/* Кнопка назад */}
      <div className="mt-4 mb-6">
