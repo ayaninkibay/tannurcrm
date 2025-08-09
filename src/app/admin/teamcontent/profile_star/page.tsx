@@ -10,10 +10,7 @@ import { FifthTemplate } from '@/components/layouts/TannurPageTemplates';
 import DealerProductCard from '@/components/product/DealerProductCard';
 import DealerBigProductCard from '@/components/product/DealerBigProductCard';
 
-// Если нужны эти блоки позже — импортируй, когда начнешь использовать
-// import PickupAddressBlock from '@/components/product/HidderElements/PickupAddressBlock'
-// import PickupDeliverBlock from '@/components/product/HidderElements/PickupDeliverBlock'
-// import SortProductBlock from '@/components/product/HidderElements/SortProductsBlock'
+
 
 export default function ProfileStarPage() {
   const [showClientPrices, setShowClientPrices] = useState(false);
@@ -52,15 +49,7 @@ export default function ProfileStarPage() {
   return (
     <FifthTemplate
       header={
-        <MoreHeaderAD
-          title={
-            <span className="text-sm sm:text-base">
-              <span className="text-gray-400">Tannur</span>
-              <span className="mx-1 text-[#111]">/</span>
-              <span className="text-[#111]">Профиль знаменитости</span>
-            </span>
-          }
-        />
+       <MoreHeaderAD title="Страница знаменитости" />
       }
       /* Первая колонка — профиль */
       column1={
