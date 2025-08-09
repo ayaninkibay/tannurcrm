@@ -7,11 +7,15 @@ import { RevenueCard } from '@/components/components_admins_dashboard/RevenueCar
 import { WarehouseCard } from '@/components/components_admins_dashboard/WarehouseCard';
 import { TaskCard } from '@/components/components_admins_dashboard/TaskCard';
 import Image from 'next/image';
+import UserProfileCard from '@/components/profile/UserProfileCard'
+import ReferalLink from '@/components/blocks/ReferralLink'
+import SponsorCard from '@/components/blocks/SponsorCard'
+import TannurButton from '@/components/Button'
 
 export default function AdminDashboardPage() {
   return (
     <div className=" flex">
-      <div className="w-full mx-auto p-2 md:p-6 space-y-6 sm:space-y-8">
+      <div className="w-full mx-auto p-1 md:p-6 space-y-6 sm:space-y-8">
         {/* Шапка */}
         <header className="mb-6">
           <MoreHeaderAD title="Админ панель" />
@@ -87,9 +91,23 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Правая часть: профиль */}
-          <div className="xl:col-span-1">
-            <div className="bg-white rounded-2xl h-full min-h-[200px] xl:min-h-[400px] w-full" />
+          {/* Правая часть: профиль - ИСПРАВЛЕННАЯ ВЕРСИЯ */}
+          <div className="xl:col-span-1 p-4 max-w-full overflow-auto space-y-6 bg-white rounded-2xl">
+            {/* Карточка профиля */}
+            <UserProfileCard />
+            {/* Кнопки для мобильной версии */}
+              <TannurButton 
+                href="/profile" 
+                text="Моя страница" 
+                iconSrc="/icons/IconGroupBlack.png" 
+                arrow="black" 
+                variant="gray" 
+              />          
+            {/* Реферальная ссылка */}
+            <ReferalLink variant="orange" />
+            
+            {/* Карточка спонсора */}
+            <SponsorCard variant="gray" />
           </div>
         </section>
 
@@ -170,4 +188,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

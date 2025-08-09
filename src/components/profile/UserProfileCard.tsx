@@ -32,7 +32,7 @@ export default function UserProfileCard() {
   }
 
   return (
-    <div className="w-full bg-white rounded-2xl transition-all duration-300 ease-in-out h-full">
+    <div className="bg-white rounded-2xl transition-all duration-300 ease-in-out">
       <div className="flex justify-between items-start mb-4">
         <h2 className="text-md font-semibold text-[#111]">Мой профиль</h2>
         <Image 
