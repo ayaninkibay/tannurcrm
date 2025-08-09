@@ -1,3 +1,4 @@
+// src/components/Sidebar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -50,8 +51,7 @@ export default function Sidebar() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
-  // Изменяем начальное состояние на null, чтобы индикатор не отображался по умолчанию
-  const [activeTop, setActiveTop] = useState<number | null>(null); 
+  const [activeTop, setActiveTop] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
   const goToHome = () => {
@@ -62,6 +62,12 @@ export default function Sidebar() {
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
+      // **ДОБАВЛЕНО: Проверяем, что pathname не null**
+      if (pathname === null) {
+        setActiveTop(null); // Если pathname null, индикатор не должен отображаться
+        return;
+      }
+
       // Используем startsWith для частичного совпадения маршрутов
       const activeIndex = navItems.findIndex(item => pathname.startsWith(item.href));
       
@@ -81,7 +87,7 @@ export default function Sidebar() {
     updateActiveTop();
     window.addEventListener('resize', updateActiveTop);
     return () => window.removeEventListener('resize', updateActiveTop);
-  }, [pathname]);
+  }, [pathname]); // Зависимость от pathname остается
 
   useEffect(() => {
     setLoadingIndex(null);
@@ -89,7 +95,8 @@ export default function Sidebar() {
 
   const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
     e.preventDefault();
-    if (pathname !== href) {
+    // **ДОБАВЛЕНО: Убедитесь, что pathname не null перед использованием**
+    if (pathname !== null && pathname !== href) {
       setLoadingIndex(idx);
       router.push(href);
     }
@@ -147,8 +154,8 @@ export default function Sidebar() {
         )}
 
         {navItems.map((item, idx) => {
-          // Используем startsWith для определения активности
-          const isActive = pathname.startsWith(item.href); 
+          // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
+          const isActive = pathname !== null && pathname.startsWith(item.href); 
           return (
             <Link
               href={item.href}

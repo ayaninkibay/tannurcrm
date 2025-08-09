@@ -1,3 +1,4 @@
+// src/components/DashboardSidebarAdmin.tsx
 'use client';
 
 import Link from 'next/link';
@@ -21,11 +22,17 @@ export default function DashboardSidebarAdmin() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const [activeTop, setActiveTop] = useState<number | null>(null); // Изменено на null
+  const [activeTop, setActiveTop] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
+      // **ДОБАВЛЕНО: Проверяем, что pathname не null**
+      if (pathname === null) {
+        setActiveTop(null); // Если pathname null, индикатор не должен отображаться
+        return;
+      }
+
       // Ищем индекс активного элемента.
       // Используем `startsWith` для частичного совпадения, если у вас есть вложенные маршруты
       const activeItemIndex = adminNavItems.findIndex(item => pathname.startsWith(item.href));
@@ -52,14 +59,16 @@ export default function DashboardSidebarAdmin() {
 
   const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
     e.preventDefault();
-    if (pathname !== href) {
+    // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
+    if (pathname !== null && pathname !== href) {
       setLoadingIndex(idx);
       router.push(href);
     }
   };
 
   const goToHome = () => {
-    if (pathname !== '/') {
+    // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
+    if (pathname !== null && pathname !== '/') {
       router.push('/');
     }
   };
@@ -116,8 +125,8 @@ export default function DashboardSidebarAdmin() {
         )}
 
         {adminNavItems.map((item, idx) => {
-          // Используем startsWith для определения активности, чтобы обрабатывать вложенные маршруты
-          const isActive = pathname.startsWith(item.href);
+          // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
+          const isActive = pathname !== null && pathname.startsWith(item.href);
 
           return (
             <Link
@@ -146,11 +155,10 @@ export default function DashboardSidebarAdmin() {
                     alt={item.label}
                     width={24}
                     height={24}
-                    // Здесь также меняем фильтр в зависимости от isActive
                     style={{
                       filter: isActive
-                        ? 'brightness(0) invert(1)' // Белый цвет для активной иконки
-                        : 'grayscale(100%) brightness(0.5)', // Серый цвет для неактивной
+                        ? 'brightness(0) invert(1)'
+                        : 'grayscale(100%) brightness(0.5)',
                     }}
                   />
                 )}
