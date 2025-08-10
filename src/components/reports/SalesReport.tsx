@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+// Import Lucide icons
+import { TrendingUp, Download, CalendarDays, XCircle, CheckCircle2 } from 'lucide-react';
 
 export type Period = "all" | "last6" | "thisYear" | "prevYear";
 
@@ -58,31 +60,6 @@ interface SalesReportProps {
   onPeriodChange?: (period: Period) => void;
 }
 
-// Иконки
-const TrendingIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23 6L13.5 15.5L8.5 10.5L1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M17 6H23V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const DownloadIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-    <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
 const periodOptions = [
   { value: "all", label: "За всё время" },
   { value: "last6", label: "6 месяцев" },
@@ -107,14 +84,12 @@ const MobileSaleCard = ({ sale }: { sale: Sale }) => (
       </div>
       {sale.status === 'Успешно' ? (
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+          <CheckCircle2 className="w-3 h-3 text-green-500" /> {/* Lucide CheckCircle2 */}
           <span className="text-xs font-medium text-green-700">Успешно</span>
         </div>
       ) : (
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
-          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
-          </svg>
+          <XCircle className="w-3 h-3 text-red-500" /> {/* Lucide XCircle */}
           <span className="text-xs font-medium text-red-700">Отмена</span>
         </div>
       )}
@@ -160,7 +135,7 @@ export default function SalesReport({
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-[#D77E6C]/10 rounded-lg">
-              <TrendingIcon className="text-[#D77E6C]" />
+              <TrendingUp className="w-5 h-5 text-[#D77E6C]" /> {/* Lucide TrendingUp */}
             </div>
             <h3 className="text-xl md:text-2xl font-medium text-gray-900">
               Отчет по продажам
@@ -179,7 +154,7 @@ export default function SalesReport({
             </p>
           </div>
           <button className="flex items-center justify-center gap-2 bg-[#D77E6C] hover:bg-[#C66B5A] text-white px-4 py-3 rounded-xl transition-colors">
-            <DownloadIcon />
+            <Download className="w-4 h-4" /> {/* Lucide Download */}
             <span className="text-sm font-medium">Скачать</span>
           </button>
         </div>
@@ -225,7 +200,7 @@ export default function SalesReport({
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
                   <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
+                    <CalendarDays className="w-4 h-4" /> {/* Lucide CalendarDays */}
                     Дата
                   </div>
                 </th>
@@ -278,16 +253,14 @@ export default function SalesReport({
                     <div className="flex justify-center">
                       {sale.status === 'Успешно' ? (
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <CheckCircle2 className="w-3 h-3 text-green-500" /> {/* Lucide CheckCircle2 */}
                           <span className="text-sm font-medium text-green-700">
                             Успешно
                           </span>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
-                          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
-                          </svg>
+                          <XCircle className="w-3 h-3 text-red-500" /> {/* Lucide XCircle */}
                           <span className="text-sm font-medium text-red-700">
                             Отмена
                           </span>

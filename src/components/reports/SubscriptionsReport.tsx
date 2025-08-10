@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Crown, Download, Calendar } from "lucide-react";
 
 /**
  * Период для отчета
@@ -74,31 +75,6 @@ interface Props {
   onPeriodChange?: (period: Period) => void;
 }
 
-// Иконки
-const CrownIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5 16L3 7L8.5 10L12 4L15.5 10L21 7L19 16H5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M19 16V21H5V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const DownloadIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-    <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
 const periodOptions = [
   { value: "all", label: "За всё время" },
   { value: "last6", label: "6 месяцев" },
@@ -107,7 +83,7 @@ const periodOptions = [
 ];
 
 // Мобильная карточка подписки
-const MobileSubscriptionCard = ({ sub, index }: { sub: Subscription; index: number }) => (
+const MobileSubscriptionCard: React.FC<{ sub: Subscription; index: number }> = ({ sub, index }) => (
   <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
     <div className="flex items-start justify-between mb-3">
       <div className="flex items-center gap-3">
@@ -178,8 +154,8 @@ const SubscriptionsReport: React.FC<Props> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-[#D77E6C]/10 rounded-lg">
-              <CrownIcon className="text-[#D77E6C]" />
+            <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(215, 126, 108, 0.1)' }}>
+              <Crown className="w-5 h-5" style={{ color: '#D77E6C' }} />
             </div>
             <h3 className="text-xl md:text-2xl font-medium text-gray-900">
               Отчет по подпискам
@@ -193,12 +169,17 @@ const SubscriptionsReport: React.FC<Props> = ({
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="bg-gray-50 rounded-xl px-4 py-3">
             <p className="text-xs text-gray-500 mb-1">Общая сумма</p>
-            <p className="text-lg md:text-xl font-bold text-[#D77E6C]">
+            <p className="text-lg md:text-xl font-bold" style={{ color: '#D77E6C' }}>
               {totalAmount.toLocaleString('ru-KZ')}₸
             </p>
           </div>
-          <button className="flex items-center justify-center gap-2 bg-[#D77E6C] hover:bg-[#C66B5A] text-white px-4 py-3 rounded-xl transition-colors">
-            <DownloadIcon />
+          <button 
+            className="flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl transition-colors"
+            style={{ backgroundColor: '#D77E6C' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#C66B5A'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D77E6C'}
+          >
+            <Download className="w-4 h-4" />
             <span className="text-sm font-medium">Скачать</span>
           </button>
         </div>
@@ -244,7 +225,7 @@ const SubscriptionsReport: React.FC<Props> = ({
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
                   <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
+                    <Calendar className="w-4 h-4" />
                     Дата
                   </div>
                 </th>
@@ -263,7 +244,7 @@ const SubscriptionsReport: React.FC<Props> = ({
               {sampleSubscriptions.map((sub, idx) => (
                 <tr
                   key={idx}
-                  className="border border-gray-100 hover:bg-gray-50 transition-colors"
+                  className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
@@ -334,7 +315,12 @@ const SubscriptionsReport: React.FC<Props> = ({
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             ←
           </button>
-          <button className="px-3 py-1.5 rounded-lg bg-[#D77E6C] text-white">1</button>
+          <button 
+            className="px-3 py-1.5 rounded-lg text-white"
+            style={{ backgroundColor: '#D77E6C' }}
+          >
+            1
+          </button>
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">2</button>
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">3</button>
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">

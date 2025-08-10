@@ -51,13 +51,13 @@ export default function AdminDashboardPage() {
                   bgColor="bg-[#DADDFF]"
                 />
                 <RevenueCard
-                  title="Товарооборот магазина"
+                  title="Товарооборот TNBA"
                   amount={84213000}
                   href="/admin/revenue"
                   bgColor="bg-[#FFE0DA]"
                 />
                 <RevenueCard
-                  title="Товарооборот магазина"
+                  title="Товарооборот подписки"
                   amount={84213000}
                   href="/admin/revenue"
                   bgColor="bg-[#F0E4FF]"
@@ -76,16 +76,16 @@ export default function AdminDashboardPage() {
               />
               <WarehouseCard
                 iconSrc="/icons/IconAppsOrange.svg"
-                title="Товары на складе"
-                quantity={42933}
-                price={543213000}
+                title="Внешние дистрибьюторы"
+                quantity={312}
+                price={731820}
                 href="/admin/warehouse"
               />
               <WarehouseCard
                 iconSrc="/icons/IconAppsOrange.svg"
-                title="Товары на складе"
-                quantity={42933}
-                price={543213000}
+                title="Товары на подарки"
+                quantity={456}
+                price={643722}
                 href="/admin/warehouse"
               />
             </div>
