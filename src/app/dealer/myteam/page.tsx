@@ -49,7 +49,7 @@ export default function TeamPage() {
       id: 'KZ789012',
       parentId: 'KZ123456',
       name: 'Аян Мұхамбет',
-      avatar: 'iIcons/UsersAvatarPrew.jpg',
+      avatar: '/icons/UsersAvatarPrew.jpg',
       tariff: 'Premium',
       role: 'CTO',
       verified: true

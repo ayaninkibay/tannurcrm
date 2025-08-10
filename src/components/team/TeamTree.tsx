@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Grid3x3, List, Briefcase, User, Search, ChevronDown, ChevronRight, Home, Target } from 'lucide-react';
+import { ZoomIn, ZoomOut, Grid3x3, List, Briefcase, User, Search, ChevronDown, ChevronRight, Target } from 'lucide-react';
 
 // ==========================================================
 // 🚀 КОНСТАНТЫ И ТИПЫ
@@ -18,6 +18,8 @@ interface TeamMember {
   role: string;
   verified: boolean;
   teamCount?: number;
+  isMainPerson?: boolean;
+  isParentOfMain?: boolean;
 }
 
 interface TreeNode extends TeamMember {
@@ -59,6 +61,7 @@ const buildAndLayoutTree = (members: TeamMember[], collapsedNodes: Set<string>):
     const node = memberMap.get(member.id)!;
     if (member.parentId && memberMap.has(member.parentId)) {
       const parent = memberMap.get(member.parentId)!;
+      if (!parent.children) parent.children = [];
       parent.children.push(node);
       node.level = parent.level + 1;
     } else {
@@ -67,6 +70,10 @@ const buildAndLayoutTree = (members: TeamMember[], collapsedNodes: Set<string>):
   });
 
   const calculateDescendants = (node: TreeNode): number => {
+    if (!node.children || node.children.length === 0) {
+      node.totalDescendants = 0;
+      return 0;
+    }
     let count = node.children.length;
     node.children.forEach(child => {
       count += calculateDescendants(child);
@@ -77,7 +84,7 @@ const buildAndLayoutTree = (members: TeamMember[], collapsedNodes: Set<string>):
   roots.forEach(root => calculateDescendants(root));
 
   const calculateSubtreeWidth = (node: TreeNode): number => {
-    if (node.collapsed || node.children.length === 0) {
+    if (node.collapsed || !node.children || node.children.length === 0) {
       return CARD_WIDTH;
     }
     const childrenWidth = node.children.reduce((sum, child) =>
@@ -90,7 +97,7 @@ const buildAndLayoutTree = (members: TeamMember[], collapsedNodes: Set<string>):
     node.x = x;
     node.y = y;
 
-    if (!node.collapsed && node.children.length > 0) {
+    if (!node.collapsed && node.children && node.children.length > 0) {
       const nodeSubtreeWidth = calculateSubtreeWidth(node);
       const parentCenter = x + CARD_WIDTH / 2;
       let currentChildX = parentCenter - nodeSubtreeWidth / 2;
@@ -139,17 +146,21 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
     Enterprise: 'text-orange-600'
   };
 
+  const isMainPerson = member.isMainPerson;
+  const isParentOfMain = member.isParentOfMain;
+
   return (
     <div
-      className={`absolute bg-gray-50 rounded-2xl shadow border-1 transition-all duration-300  cursor-pointer
+      className={`absolute rounded-2xl shadow border-1 transition-all duration-300 cursor-pointer
         ${isSelected ? 'border-[#D77E6C] shadow' :
-          isHighlighted ? 'border-yellow-400 shadow ' :
+          isHighlighted ? 'border-yellow-400 shadow' :
           'border-gray-200 hover:border-gray-300'}
       `}
       style={{
         left: `${member.x}px`,
         top: `${member.y}px`,
         width: `${CARD_WIDTH}px`,
+        backgroundColor: isMainPerson ? '#3A3D43' : isParentOfMain ? '#D77E6C' : '#F9FAFB',
         zIndex: isSelected || isHighlighted ? 100 : member.level + 10
       }}
       onClick={() => onSelect(member.id)}
@@ -161,12 +172,14 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
               e.stopPropagation();
               onToggleCollapse(member.id);
             }}
-            className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className={`absolute top-2 right-2 p-1 rounded-full transition-colors ${
+              isMainPerson || isParentOfMain ? 'hover:bg-white/20' : 'hover:bg-gray-100'
+            }`}
           >
             {member.collapsed ? (
-              <ChevronRight className="w-4 h-4 text-gray-500" />
+              <ChevronRight className={`w-4 h-4 ${isMainPerson || isParentOfMain ? 'text-white' : 'text-gray-500'}`} />
             ) : (
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <ChevronDown className={`w-4 h-4 ${isMainPerson || isParentOfMain ? 'text-white' : 'text-gray-500'}`} />
             )}
           </button>
         )}
@@ -174,7 +187,9 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
         <div className="flex flex-col items-center">
           <div className="relative mb-3">
             {member.avatar ? (
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-orange-400">
+              <div className={`w-14 h-14 rounded-full overflow-hidden border-2 ${
+                isMainPerson ? 'border-white' : isParentOfMain ? 'border-white' : 'border-orange-400'
+              }`}>
                 <img
                   src={member.avatar}
                   alt={member.name}
@@ -182,41 +197,55 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
                 />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
-                <User className="w-7 h-7 text-gray-400" />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isMainPerson || isParentOfMain ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                <User className={`w-7 h-7 ${isMainPerson || isParentOfMain ? 'text-white' : 'text-gray-400'}`} />
               </div>
             )}
           </div>
           
-          <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-1 mb-1 text-center">
+          <h3 className={`font-semibold text-sm flex items-center gap-1 mb-1 text-center ${
+            isMainPerson || isParentOfMain ? 'text-white' : 'text-gray-900'
+          }`}>
             {member.name}
             {member.verified && (
-              <span className="text-blue-500">✓</span>
-            )}
+                          <img src="/icons/confirmed.svg" alt="Verified" className="w-4 h-4 inline-block ml-1" />
+                        )}
           </h3>
           
-          <p className="text-xs text-gray-500 mb-2">ID: {member.id}</p>
+          <p className={`text-xs mb-2 ${isMainPerson || isParentOfMain ? 'text-white/80' : 'text-gray-500'}`}>
+            ID: {member.id}
+          </p>
           
           <div className="text-xs mb-2">
-            <span className="text-gray-500">Статус: </span>
-            <span className={`font-medium ${tariffColors[member.tariff]}`}>
+            <span className={isMainPerson || isParentOfMain ? 'text-white/70' : 'text-gray-500'}>Статус: </span>
+            <span className={`font-medium ${
+              isMainPerson || isParentOfMain ? 'text-white' : tariffColors[member.tariff]
+            }`}>
               {member.tariff}
             </span>
           </div>
           
-          <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
-            <Briefcase className="w-3 h-3 text-gray-400" />
+          <div className={`flex items-center gap-1.5 text-xs mb-2 ${
+            isMainPerson || isParentOfMain ? 'text-white/80' : 'text-gray-600'
+          }`}>
+            <Briefcase className={`w-3 h-3 ${isMainPerson || isParentOfMain ? 'text-white/60' : 'text-gray-400'}`} />
             <span>{member.role}</span>
           </div>
           
           <div className="flex gap-2 text-xs">
             {member.children.length > 0 && (
-              <div className="bg-gray-200 text-black px-2 py-1 rounded-full">
+              <div className={`px-2 py-1 rounded-full ${
+                isMainPerson || isParentOfMain ? 'bg-white/20 text-white' : 'bg-gray-200 text-black'
+              }`}>
                 Прямых: {member.children.length}
               </div>
             )}
             {(member.totalDescendants ?? 0) > 0 && (
-              <div className="bg-gray-200 text-[#D77E6C] px-2 py-1 rounded-full">
+              <div className={`px-2 py-1 rounded-full ${
+                isMainPerson || isParentOfMain ? 'bg-white/20 text-white' : 'bg-gray-200 text-[#D77E6C]'
+              }`}>
                 Всего: {member.totalDescendants}
               </div>
             )}
@@ -228,7 +257,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, isSelected, isHighlight
 };
 
 // ==========================================================
-// 🔗 ЛИНИИ СОЕДИНЕНИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// 🔗 ЛИНИИ СОЕДИНЕНИЯ
 // ==========================================================
 interface ConnectionLinesProps {
   nodes: TreeNode[];
@@ -238,7 +267,7 @@ const ConnectionLines: React.FC<ConnectionLinesProps> = ({ nodes }) => {
   const lines: React.ReactElement[] = [];
 
   const drawLines = (parent: TreeNode) => {
-    if (parent.collapsed || parent.children.length === 0) return;
+    if (parent.collapsed || !parent.children || parent.children.length === 0) return;
 
     const parentX = parent.x + CARD_WIDTH / 2;
     const parentY = parent.y + CARD_HEIGHT;
@@ -250,14 +279,14 @@ const ConnectionLines: React.FC<ConnectionLinesProps> = ({ nodes }) => {
       const childY = child.y;
       const midY = parentY + (childY - parentY) / 2;
 
-lines.push(
+      lines.push(
         <g key={`line-${parent.id}-${child.id}`}>
           <line x1={parentX} y1={parentY} x2={parentX} y2={midY}
-                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
+                stroke="#CCCCCC" strokeWidth={2} />
           <line x1={parentX} y1={midY} x2={childX} y2={midY}
-                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
+                stroke="#CCCCCC" strokeWidth={2} />
           <line x1={childX} y1={midY} x2={childX} y2={childY}
-                stroke="#CCCCCC" strokeWidth={2} /> {/* Изменено на серый */}
+                stroke="#CCCCCC" strokeWidth={2} />
         </g>
       );
       drawLines(child);
@@ -347,10 +376,10 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
                         {member.avatar ? (
-                          <img className="h-8 w-8 sm:h-10 w-10 rounded-full" src={member.avatar} alt="" />
+                          <img className="h-8 w-8 sm:h-10 sm:w-10 rounded-full" src={member.avatar} alt="" />
                         ) : (
-                          <div className="h-8 w-8 sm:h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                            <User className="h-4 w-4 sm:h-5 w-5 text-gray-500" />
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
                           </div>
                         )}
                       </div>
@@ -358,7 +387,7 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                         <div className="text-xs sm:text-sm font-medium text-gray-900 flex items-center gap-1">
                           <span className="truncate max-w-[100px] sm:max-w-none">{member.name}</span>
                           {member.verified && (
-                            <span className="text-blue-500">✓</span>
+                            <img src="/icons/confirmed.svg" alt="Verified" className="w-4 h-4 inline-block ml-1" />
                           )}
                         </div>
                         <div className="text-xs text-gray-500 sm:hidden">ID: {member.id}</div>
@@ -417,6 +446,7 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onClear }) => {
   const [query, setQuery] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -428,66 +458,37 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, onClear }) => {
     }
   };
 
-  return (
-    <div className="absolute top-4 left-4 z-50 bg-white rounded-lg shadow-md">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-        <input
-          type="text"
-          placeholder="Поиск по имени или ID..."
-          value={query}
-          onChange={handleChange}
-          className="pl-10 pr-4 py-2 w-48 sm:w-64 text-sm border-0 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-  );
-};
-
-// ==========================================================
-// 🍞 ХЛЕБНЫЕ КРОШКИ
-// ==========================================================
-interface BreadcrumbsProps {
-  member: TeamMember | null;
-  allMembers: TeamMember[];
-  onNavigate: (id: string) => void;
-}
-
-const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ member, allMembers, onNavigate }) => {
-  if (!member) return null;
-
-  const path: TeamMember[] = [];
-  let current: TeamMember | undefined = member;
-
-  while (current) {
-    path.unshift(current);
-    current = allMembers.find(m => m.id === current?.parentId);
-  }
+  const handleToggle = () => {
+    if (isExpanded && query) {
+      setQuery('');
+      onClear();
+    }
+    setIsExpanded(!isExpanded);
+  };
 
   return (
-    <div className="absolute top-14 left-4 bg-white rounded-lg shadow-md px-3 py-2 z-40 max-w-[calc(100%-2rem)] overflow-x-auto">
-      <div className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap">
-        <button
-          onClick={() => onNavigate('')}
-          className="text-gray-400 hover:text-gray-600"
-          title="Вернуться к корню дерева"
-        >
-          <Home className="w-3 h-3 sm:w-4 h-4" />
-        </button>
-        {path.map((item, index) => (
-          <React.Fragment key={item.id}>
-            <span className="text-gray-400">/</span>
-            <button
-              onClick={() => onNavigate(item.id)}
-              className={`hover:text-blue-600 transition-colors truncate max-w-[100px] sm:max-w-[150px] ${
-                index === path.length - 1 ? 'text-gray-900 font-medium' : 'text-gray-600'
-              }`}
-              title={item.name}
-            >
-              {item.name}
-            </button>
-          </React.Fragment>
-        ))}
+    <div className="absolute top-4 left-4 z-50">
+      <div className={`bg-white rounded-lg shadow-md transition-all duration-300 ${
+        isExpanded ? 'w-48 sm:w-56' : 'w-10'
+      }`}>
+        <div className="relative flex items-center">
+          <button
+            onClick={handleToggle}
+            className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Search className="w-4 h-4 text-gray-600" />
+          </button>
+          {isExpanded && (
+            <input
+              type="text"
+              placeholder="Поиск..."
+              value={query}
+              onChange={handleChange}
+              autoFocus
+              className="flex-1 pr-3 py-2 text-sm border-0 focus:outline-none"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -511,63 +512,69 @@ const Controls: React.FC<ControlsProps> = ({
   viewMode, onViewChange, zoom, onZoomIn, onZoomOut, onReset, onFindMe, hasCurrentUser
 }) => {
   return (
-    <div className="absolute top-4 right-4 z-50 flex flex-col sm:flex-row gap-2">
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-1 flex">
-        <button
-          onClick={() => onViewChange('tree')}
-          className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${
-            viewMode === 'tree'
-              ? 'bg-black text-white'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <Grid3x3 className="w-3 h-3 sm:w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onViewChange('table')}
-          className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${
-            viewMode === 'table'
-              ? 'bg-black text-white'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <List className="w-3 h-3 sm:w-4 h-4" />
-        </button>
+    <>
+      {/* Режим просмотра - справа сверху */}
+      <div className="absolute top-4 right-4 z-50">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-1 flex">
+          <button
+            onClick={() => onViewChange('tree')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'tree'
+                ? 'bg-black text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Grid3x3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onViewChange('table')}
+            className={`p-2 rounded transition-colors ${
+              viewMode === 'table'
+                ? 'bg-black text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-      
-      {viewMode === 'tree' && (
-        <>
-          {hasCurrentUser && (
-            <button
-              onClick={onFindMe}
-              className="p-2 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
 
-            >
-              <Target className="w-4 h-4 text-gray-600" />
-            </button>
-          )}
-          
+      {/* Зум - слева под поиском */}
+      {viewMode === 'tree' && (
+        <div className="absolute top-16 left-4 z-50">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-1 flex gap-1">
             <button
               onClick={onZoomOut}
-              className="p-1.5 sm:p-2 hover:bg-gray-50 rounded transition-colors"
+              className="p-2 hover:bg-gray-50 rounded transition-colors"
             >
-              <ZoomOut className="w-3 h-3 sm:w-4 h-4 text-gray-600" />
+              <ZoomOut className="w-4 h-4 text-gray-600" />
             </button>
-            <div className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 min-w-[50px] sm:min-w-[60px] text-center border-x border-gray-200">
+            <div className="px-3 py-2 text-sm font-medium text-gray-700 min-w-[60px] text-center border-x border-gray-200">
               {Math.round(zoom * 100)}%
             </div>
             <button
               onClick={onZoomIn}
-              className="p-1.5 sm:p-2 hover:bg-gray-50 rounded transition-colors"
+              className="p-2 hover:bg-gray-50 rounded transition-colors"
             >
-              <ZoomIn className="w-3 h-3 sm:w-4 h-4 text-gray-600" />
+              <ZoomIn className="w-4 h-4 text-gray-600" />
             </button>
           </div>
-
-        </>
+        </div>
       )}
-    </div>
+
+      {/* Найти меня - справа снизу */}
+      {viewMode === 'tree' && hasCurrentUser && (
+        <div className="absolute bottom-4 right-4 z-50">
+          <button
+            onClick={onFindMe}
+            className="p-3 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            title="Найти меня"
+          >
+            <Target className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -575,7 +582,7 @@ const Controls: React.FC<ControlsProps> = ({
 // 🪝 ХУК ДЛЯ УПРАВЛЕНИЯ ПАНОРАМИРОВАНИЕМ И МАСШТАБИРОВАНИЕМ
 // ==========================================================
 interface PanZoomHookOptions {
-  containerRef: React.RefObject<HTMLElement | null>; // Изменено здесь
+  containerRef: React.RefObject<HTMLElement | null>;
   initialZoom?: number;
   initialOffset?: { x: number; y: number };
   minZoom?: number;
@@ -747,7 +754,7 @@ const usePanAndZoom = (options: PanZoomHookOptions) => {
 };
 
 // ==========================================================
-// 🌲 КОМПОНЕНТ ДЕРЕВА - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// 🌲 КОМПОНЕНТ ДЕРЕВА
 // ==========================================================
 interface TreeGraphProps {
   treeNodes: TreeNode[];
@@ -784,14 +791,12 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
   onTouchMove,
   onTouchEnd,
 }) => {
-  // Улучшенный расчет размеров контента
   const contentDimensions = useMemo(() => {
     let minX = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
     let minY = Infinity;
     
-    // Функция для обхода ВСЕХ узлов, включая свернутые
     const traverseAll = (node: TreeNode) => {
       if (node.x !== undefined && node.y !== undefined) {
         minX = Math.min(minX, node.x);
@@ -799,7 +804,6 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
         minY = Math.min(minY, node.y);
         maxY = Math.max(maxY, node.y + CARD_HEIGHT);
       }
-      // Обходим всех детей независимо от состояния collapsed
       node.children.forEach(traverseAll);
     };
     
@@ -812,8 +816,7 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
       maxY = CARD_HEIGHT;
     }
 
-    // Добавляем больше отступов для гарантии видимости всех элементов
-    const padding = 200; // Увеличенный отступ
+    const padding = 200;
     const width = maxX - minX + padding * 2;
     const height = maxY - minY + padding * 2;
     
@@ -862,16 +865,13 @@ const TreeGraph: React.FC<TreeGraphProps> = ({
       <div
         className="absolute"
         style={{
-          // Используем очень большие размеры для гарантии отображения всего контента
           width: `${Math.max(contentDimensions.width, 10000)}px`,
           height: `${Math.max(contentDimensions.height, 10000)}px`,
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
           transformOrigin: 'top left',
         }}
       >
-        {/* SVG с overflow: visible для отображения линий за пределами */}
         <ConnectionLines nodes={treeNodes} />
-        {/* Карточки сотрудников */}
         {renderTreeNodes(treeNodes)}
       </div>
     </div>
@@ -888,7 +888,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   onEditMember,
   className = ''
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null); // Изменено здесь: конкретный тип вместо HTMLElement
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
@@ -1057,30 +1057,10 @@ const TeamTree: React.FC<TeamTreeProps> = ({
     }
   }, [currentUserId, centerOnMember]);
 
-  const handleNavigate = useCallback((memberId: string) => {
-    if (memberId) {
-      setSelectedMemberId(memberId);
-      centerOnMember(memberId);
-    } else {
-      setSelectedMemberId(null);
-      resetPanZoom();
-      setHighlightedMemberId(null);
-    }
-  }, [centerOnMember, resetPanZoom]);
-
-  const selectedMember = members.find(m => m.id === selectedMemberId) || null;
-
   return (
     <div className={`relative w-full h-full bg-[#FAFAFA] ${className}`}>
       {viewMode === 'tree' && (
-        <>
-          <SearchBar onSearch={handleSearch} onClear={handleClearSearch} />
-          <Breadcrumbs
-            member={selectedMember}
-            allMembers={members}
-            onNavigate={handleNavigate}
-          />
-        </>
+        <SearchBar onSearch={handleSearch} onClear={handleClearSearch} />
       )}
       
       <Controls
