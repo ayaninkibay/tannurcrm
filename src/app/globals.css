@@ -6,6 +6,7 @@
   outline: none;
 }
 
+/* Шрифты Gilroy */
 @font-face {
   font-family: 'Gilroy';
   src: url('/fonts/Gilroy-Light.woff') format('woff');
@@ -41,10 +42,10 @@
   font-style: normal;
 }
 
-
+/* Определяем корневые переменные для светлой темы */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F0F2F5; /* Ваш желаемый цвет фона */
+  --foreground: #171717; /* Цвет текста для светлой темы */
 }
 
 @theme inline {
@@ -54,16 +55,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* !!! ИСПРАВЛЕНИЯ ЗДЕСЬ !!! */
+html, body {
+  height: 100%; /* Гарантируем, что html и body занимают всю высоту окна просмотра */
+  min-height: 100vh; /* Убедимся, что они всегда занимают как минимум высоту окна просмотра */
+  margin: 0;   /* Убираем стандартные отступы браузера */
+  padding: 0;  /* Убираем стандартные отступы браузера */
 }
 
 body {
-  background: var(--background);
+  background: var(--background); /* Применяем ваш фон */
   color: var(--foreground);
   font-family: 'Gilroy', sans-serif;
 }
-

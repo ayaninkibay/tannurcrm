@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
       </head>
-      <body className="bg-white text-black">
+      <body className="bg-gray-100 text-black">
         <UserProvider>
           {children}
         </UserProvider>

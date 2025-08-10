@@ -19,7 +19,7 @@ const rawData: MonthValue[] = generateMonthlyData(new Date(2024, 8, 1), 12)
 
 export default function DashboardPage() {
  return (
-   <div className="p-2 md:p-6 space-y-6">
+   <div className=" p-2 md:p-6 space-y-6">
      {/* Хидер */}
      <MoreHeaderDE title="Дэшборд" />
 
