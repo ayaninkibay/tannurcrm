@@ -151,7 +151,7 @@ export default function CreateDealer() {
                 <p className="font-semibold flex items-center gap-1">
                   Алишан Берденов
                   <Image
-                    src="/icons/Icon check mark.png"
+                    src="/icons/iconchekmark.svg"
                     alt="check"
                     width={16}
                     height={16}

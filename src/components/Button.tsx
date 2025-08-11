@@ -8,8 +8,8 @@ interface Props {
   text: string
   href: string
   iconSrc: string
-  arrow?: 'black' | 'orange'
-  variant?: 'white' | 'gray'
+  arrow?: 'black' | 'orange'     // начальный цвет стрелки
+  variant?: 'white' | 'gray'     // фон по умолчанию
 }
 
 export default function TannurButton({
@@ -21,17 +21,31 @@ export default function TannurButton({
 }: Props) {
   const isWhite = variant === 'white'
 
+  // Базовые цвета + подсветка при ховере
+// src/components/Button.tsx
+// ...
+const baseColors = isWhite
+  ? 'bg-white hover:bg-gray-100'   // <-- было hover:bg-[#F4ECEB]
+  : 'bg-gray-100 hover:bg-gray-200'
+
+
   return (
     <Link
       href={href}
       className={clsx(
-        'w-full flex items-center justify-between rounded-xl px-4 py-3 transition hover:opacity-90',
-        isWhite ? 'bg-white' : 'bg-gray-100'
+        'group w-full flex items-center justify-between rounded-xl px-4 py-3',
+        'transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#DC7C67]/40',
+        baseColors
       )}
     >
       <div className="flex items-center gap-3">
         {/* Иконка в кружке */}
-        <div className={clsx('rounded-full p-2', isWhite ? 'bg-gray-100' : 'bg-white')}>
+        <div
+          className={clsx(
+            'rounded-full p-2 transition-colors',
+            isWhite ? 'bg-gray-100 group-hover:bg-white' : 'bg-white group-hover:bg-gray-100'
+          )}
+        >
           <Image src={iconSrc} alt="icon" width={20} height={20} />
         </div>
 
@@ -39,17 +53,28 @@ export default function TannurButton({
         <p className="text-sm text-[#111] font-medium">{text}</p>
       </div>
 
-      {/* Стрелка */}
-      <Image
-        src={
-          arrow === 'orange'
-            ? '/icons/DoubleIconArrowOrange.svg'
-            : '/icons/DoubleIconArrowBlack.svg'
-        }
-        alt="arrow"
-        width={20}
-        height={20}
-      />
+      {/* Стрелка: чёрная по умолчанию, на ховере становится оранжевой */}
+      <div className="relative w-[20px] h-[20px]">
+        {/* Чёрная */}
+        <Image
+          src="/icons/DoubleIconArrowBlack.svg"
+          alt="arrow"
+          width={20}
+          height={20}
+          className={clsx(
+            'absolute inset-0 object-contain transition-opacity duration-200',
+            arrow === 'orange' ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'
+          )}
+        />
+        {/* Оранжевая */}
+        <Image
+          src="/icons/DoubleIconArrowOrange.svg"
+          alt="arrow hover"
+          width={20}
+          height={20}
+          className="absolute inset-0 object-contain opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        />
+      </div>
     </Link>
   )
 }

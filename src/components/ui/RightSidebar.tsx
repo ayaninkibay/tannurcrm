@@ -8,7 +8,7 @@ export default function RightSidebar() {
   const router = useRouter();
 
   return (
-    <div className="w-full h-full flex flex-col gap-4 p-4">
+    <div className="w-full h-full flex flex-col gap-4 p-0 mt-4">
       {/* Заведующий складом */}
       <div className="bg-white rounded-xl p-4 w-full">
         <div className="flex justify-between items-start mb-2">

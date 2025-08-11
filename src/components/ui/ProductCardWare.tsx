@@ -38,7 +38,8 @@ export default function ProductCardWare({
         "h-auto sm:h-[72px]",
 
         // Адаптивный шрифт
-        "text-gray-600 text-[10px] sm:text-sm md:text-base lg:text-lg",
+        "text-gray-600 text-[10px] sm:text-xs md:text-sm lg:text-sm",
+
         
         className
       )}
