@@ -352,15 +352,7 @@ export default function ProfileDealer() {
       <div className="hidden md:block p-6">
         <ThirdTemplate
           header={
-            <MoreHeaderAD
-              title={
-                <span>
-                  <span className="text-gray-400">Tannur</span>
-                  <span className="mx-1 text-[#111]">/</span>
-                  <span className="text-[#111]">Профиль дилера</span>
-                </span>
-              }
-            />
+        <MoreHeaderDE title="Моя страница" />
           }
           column1={leftColumnContent}
           column2={rightColumnContent}
