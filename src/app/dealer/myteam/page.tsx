@@ -260,7 +260,7 @@ export default function TeamPage() {
           <div className="col-span-10 md:col-span-5 xl:col-span-2 rounded-2xl bg-white grid grid-rows-[auto_auto_auto_auto] p-4 gap-4">
             <UserProfileCard />
             <div className="space-y-4 hidden md:block">
-              <TannurButton href="/profile" text="Моя страница" iconSrc="/icons/IconGroupBlack.png" arrow="black" variant="gray" />
+              <TannurButton href="/dealer/profile_dealer" text="Моя страница" iconSrc="/icons/IconGroupBlack.png" arrow="black" variant="gray" />
               <TannurButton href="/notifications" text="Уведомления" iconSrc="/icons/Icon notifications.png" arrow="black" variant="gray" />
             </div>
             <ReferalLink variant="orange" />

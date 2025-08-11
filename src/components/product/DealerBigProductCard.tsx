@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 interface DealerProductCardProps {
   id: number;
@@ -13,7 +14,6 @@ interface DealerProductCardProps {
   className?: string;
 }
 
-// Если файл называется DealerBigProductCard.tsx — ок оставить это имя экспорта.
 export default function DealerBigProductCard({
   id,
   name,
@@ -23,6 +23,11 @@ export default function DealerBigProductCard({
   imageUrl,
 }: DealerProductCardProps) {
   const [liked, setLiked] = useState(false);
+  const router = useRouter(); // Initialize useRouter
+
+  const handleArrowClick = () => {
+    router.push('/dealer/shop/product_view'); // Navigate to the product view page
+  };
 
   return (
     <div className={`bg-white rounded-2xl p-2 relative w-full max-w-full`}>
@@ -82,12 +87,14 @@ export default function DealerBigProductCard({
 
           {/* Кнопка → */}
           <div className="shrink-0 self-end">
-            <Image
-              src="/icons/buttom/DoubleIconArrowOrange.svg"
-              alt="arrow"
-              width={24}
-              height={24}
-            />
+            <button onClick={handleArrowClick} aria-label="View Product"> {/* Add onClick handler */}
+              <Image
+                src="/icons/buttom/DoubleIconArrowOrange.svg"
+                alt="arrow"
+                width={24}
+                height={24}
+              />
+            </button>
           </div>
         </div>
       </div>

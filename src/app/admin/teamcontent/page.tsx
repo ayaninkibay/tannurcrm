@@ -176,7 +176,7 @@ export default function Team() {
 
   return (
     <div className="w-full h-full">
-      <header className="p-2 md:p-6">
+      <header className="p-1 md:p-6">
         <MoreHeaderAD title="Команда Tannur" />
       </header>
 
@@ -213,7 +213,7 @@ export default function Team() {
           {/* Действия */}
 {/* Right: User Actions */}
 <div className="lg:col-span-1 xl:col-span-1">
-  <div className="bg-white rounded-2xl h-full w-full p-2 sm:p-3 h-fit">
+  <div className=" h-full w-full sm:p-3">
 
 
     <div className="space-y-2 sm:space-y-3 mt-3">

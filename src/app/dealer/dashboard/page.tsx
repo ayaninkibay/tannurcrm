@@ -106,7 +106,7 @@ export default function DashboardPage() {
            {/* Кнопки навигации */}
            <div className="space-y-3 hidden md:block">
              <TannurButton 
-               href="/profile" 
+               href="/dealer/profile_dealer" 
                text="Моя страница" 
                iconSrc="/icons/IconGroupBlack.png" 
                arrow="black" 
