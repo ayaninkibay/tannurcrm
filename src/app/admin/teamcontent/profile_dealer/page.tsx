@@ -337,7 +337,7 @@ export default function ProfileDealer() {
 
   return (
     <>
-      {/* Mobile version - show blocks in the desired order */}
+      {/* Mobile version - show blocks in the desiredr */}
       <div className="md:hidden">
         <MoreHeaderAD title="Профиль дилера" />
         <div className="p-3 sm:p-4">
