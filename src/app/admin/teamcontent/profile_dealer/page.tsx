@@ -339,7 +339,7 @@ export default function ProfileDealer() {
     <>
       {/* Mobile version - show blocks in the desiredr */}
       <div className="md:hidden">
-        <MoreHeaderAD title="Профиль дилера" />
+        <MoreHeaderAD title="Tannur / Профиль дилера" />
         <div className="p-3 sm:p-4">
           {rightColumnContent}
           <div className="mt-4 sm:mt-6">
