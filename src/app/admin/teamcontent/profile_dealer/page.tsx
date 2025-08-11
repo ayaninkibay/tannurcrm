@@ -339,7 +339,7 @@ export default function ProfileDealer() {
     <>
       {/* Mobile version - show blocks in the desiredr */}
       <div className="md:hidden">
-
+        <MoreHeaderAD title="Tannur / Профиль дилера" />
         <div className="p-3 sm:p-4">
           {rightColumnContent}
           <div className="mt-4 sm:mt-6">
@@ -352,15 +352,7 @@ export default function ProfileDealer() {
       <div className="hidden md:block p-6">
         <ThirdTemplate
           header={
-            <MoreHeaderAD
-              title={
-                <span>
-                  <span className="text-gray-400">Tannur</span>
-                  <span className="mx-1 text-[#111]">/</span>
-                  <span className="text-[#111]">Профиль дилера</span>
-                </span>
-              }
-            />
+        <MoreHeaderAD title="Tannur / Профиль дилера" />
           }
           column1={leftColumnContent}
           column2={rightColumnContent}
