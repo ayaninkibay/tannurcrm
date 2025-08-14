@@ -23,9 +23,12 @@ import {
   X
 } from 'lucide-react';
 
+import { StockMovementWithRelations } from '@/types/supabase';
+
+
 export default function StockMovementsPage() {
   const router = useRouter();
-  const [movements, setMovements] = useState([]);
+  const [movements, setMovements] = useState<StockMovementWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
