@@ -6,16 +6,45 @@ import {
   ShoppingCart, Heart, Share2, Star, Package
 } from 'lucide-react';
 
-export default function ProductInfoBlock({ product }) {
+
+import { ProductRow } from '@/types/supabase'; 
+
+// Если ProductRow недоступен, определите интерфейс ProductData
+// на основе используемых полей из объекта 'product'.
+// Это очень важно для правильной типизации пропса 'product'.
+interface ProductData {
+  image_url: string | null;
+  gallery: string[] | null;
+  name: string | null;
+  flagman: boolean | null;
+  is_active: boolean | null;
+  description: string | null;
+  compound: string | null;
+  video_instr: string | null;
+  price: number | null;
+  price_dealer: number | null;
+  category: string | null;
+  // Добавьте любые другие свойства, которые используются в компоненте
+}
+
+// Определите интерфейс для пропсов компонента ProductInfoBlock
+interface ProductInfoBlockProps {
+  product: ProductData; // Теперь 'product' типизирован
+}
+
+// Передайте типизированные пропсы в компонент
+export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [activeTab, setActiveTab] = useState('composition');
   const [activeImage, setActiveImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [productImages, setProductImages] = useState([]);
+  // 💡 Исправлено: Явно указан тип для состояния `productImages` как `string[]`
+  const [productImages, setProductImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (product) {
       // Формируем массив изображений
-      const images = [];
+      // 💡 Исправлено: Явно указан тип для локальной переменной `images` как `string[]`
+      const images: string[] = [];
       
       // Основное изображение
       if (product.image_url) {
@@ -24,6 +53,7 @@ export default function ProductInfoBlock({ product }) {
       
       // Дополнительные изображения из галереи
       if (product.gallery && Array.isArray(product.gallery)) {
+        // Убедитесь, что каждый элемент галереи также является строкой
         product.gallery.forEach(img => {
           images.push(img);
         });
@@ -52,7 +82,8 @@ export default function ProductInfoBlock({ product }) {
   };
 
   // Функция для извлечения ID видео из YouTube URL
-  const getYouTubeEmbedUrl = (url) => {
+  // 💡 Добавлена явная типизация для `url`
+  const getYouTubeEmbedUrl = (url: string | null) => {
     if (!url) return null;
     
     // Различные форматы YouTube URL
@@ -90,8 +121,9 @@ export default function ProductInfoBlock({ product }) {
     : 0;
 
   // Форматирование цены
-  const formatPrice = (price) => {
-    if (!price) return '0';
+  // 💡 Добавлена явная типизация для `price`
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return '0'; // Уточненная проверка на null/undefined
     return price.toLocaleString('ru-RU');
   };
 
@@ -134,7 +166,7 @@ export default function ProductInfoBlock({ product }) {
                           alt={`${product.name}-${index}`}
                           className="w-full h-full object-cover flex-shrink-0"
                           onError={(e) => {
-                            e.target.src = '/icons/Photo_icon_1.jpg';
+                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg'; // Добавлено приведение типа
                           }}
                         />
                       ))}
@@ -202,7 +234,7 @@ export default function ProductInfoBlock({ product }) {
                           alt={`preview-${index}`}
                           className="w-full h-full object-cover hover:scale-110 transition-transform"
                           onError={(e) => {
-                            e.target.src = '/icons/Photo_icon_1.jpg';
+                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg'; // Добавлено приведение типа
                           }}
                         />
                         {index === 3 && productImages.length > 4 && (
