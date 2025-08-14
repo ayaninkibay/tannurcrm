@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { Database } from '@/types/supabase'
 import ActionButton from '@/components/ui/ActionButton';
 import ProductCardWare from '@/components/ui/ProductCardWare';
 import ProductInfoBlock from '@/components/product/ProductInfoBlock';
@@ -21,16 +22,18 @@ import {
   TrendingDown
 } from 'lucide-react';
 
+type ProductRow = Database['public']['Tables']['products']['Row']
+
 function ProductViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const productId = searchParams?.get('id') || null;
   
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState<ProductRow | null>(null)
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [showStockModal, setShowStockModal] = useState(false);
-  const [stockModalType, setStockModalType] = useState('add');
+  const [stockModalType, setStockModalType] = useState<'add' | 'subtract'>('add')
   const [stockAmount, setStockAmount] = useState('');
 
   useEffect(() => {
@@ -51,7 +54,7 @@ function ProductViewContent() {
         .from('products')
         .select('*')
         .eq('id', productId)
-        .single();
+          .single<ProductRow>()
 
       if (error) throw error;
       
