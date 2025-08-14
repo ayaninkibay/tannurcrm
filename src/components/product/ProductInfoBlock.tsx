@@ -6,33 +6,16 @@ import {
   ShoppingCart, Heart, Share2, Star, Package
 } from 'lucide-react';
 
+// Импортируем ProductRow для точной типизации пропса 'product'
+import { ProductRow } from '@/types/supabase'; // Убедитесь, что путь к файлу types/supabase.ts правильный
 
-import { ProductRow } from '@/types/supabase'; 
-
-// Если ProductRow недоступен, определите интерфейс ProductData
-// на основе используемых полей из объекта 'product'.
-// Это очень важно для правильной типизации пропса 'product'.
-interface ProductData {
-  image_url: string | null;
-  gallery: string[] | null;
-  name: string | null;
-  flagman: boolean | null;
-  is_active: boolean | null;
-  description: string | null;
-  compound: string | null;
-  video_instr: string | null;
-  price: number | null;
-  price_dealer: number | null;
-  category: string | null;
-  // Добавьте любые другие свойства, которые используются в компоненте
-}
-
-// Определите интерфейс для пропсов компонента ProductInfoBlock
+// Определяем интерфейс для пропсов компонента ProductInfoBlock
 interface ProductInfoBlockProps {
-  product: ProductData; // Теперь 'product' типизирован
+  // 💡 Исправлено: Типизируем 'product' как ProductRow
+  product: ProductRow; 
 }
 
-// Передайте типизированные пропсы в компонент
+// Передаем типизированные пропсы в компонент
 export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [activeTab, setActiveTab] = useState('composition');
   const [activeImage, setActiveImage] = useState(0);
@@ -81,30 +64,31 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     setActiveImage((prev) => (prev === productImages.length - 1 ? 0 : prev + 1));
   };
 
-// Функция для извлечения ID видео из YouTube URL
-const getYouTubeEmbedUrl = (url: string | null): string | undefined => { // ✨ ИСПРАВЛЕНИЕ: Указываем возвращаемый тип string | undefined
-  if (!url) return undefined; // ✨ ИСПРАВЛЕНИЕ: Возвращаем undefined вместо null, если URL пуст
+  // Функция для извлечения ID видео из YouTube URL
+  // 💡 Исправлено: Указан возвращаемый тип string | undefined
+  const getYouTubeEmbedUrl = (url: string | null): string | undefined => { 
+    if (!url) return undefined; // 💡 Исправлено: Возвращаем undefined вместо null
 
-  // Различные форматы YouTube URL
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
-  ];
-
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) {
-      return `https://www.youtube.com/embed/${match[1]}`;
+    // Различные форматы YouTube URL
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
     }
-  }
-
-  // Если URL уже в формате embed, возвращаем как есть
-  if (url.includes('youtube.com/embed/')) {
-    return url;
-  }
-
-  return undefined; // ✨ ИСПРАВЛЕНИЕ: Возвращаем undefined, если не удалось извлечь URL для встраивания
-};
+    
+    // Если URL уже в формате embed, возвращаем как есть
+    if (url.includes('youtube.com/embed/')) {
+      return url;
+    }
+    
+    return undefined; // 💡 Исправлено: Возвращаем undefined, если не удалось извлечь URL
+  };
 
   if (!product) {
     return (
@@ -120,9 +104,9 @@ const getYouTubeEmbedUrl = (url: string | null): string | undefined => { // ✨ 
     : 0;
 
   // Форматирование цены
-  // 💡 Добавлена явная типизация для `price`
-  const formatPrice = (price: number | null | undefined) => {
-    if (price === null || price === undefined) return '0'; // Уточненная проверка на null/undefined
+  // 💡 Исправлено: Добавлена явная типизация для `price`
+  const formatPrice = (price: number | null) => { // ProductRow определяет price как number | null
+    if (price === null) return '0'; 
     return price.toLocaleString('ru-RU');
   };
 
@@ -165,7 +149,7 @@ const getYouTubeEmbedUrl = (url: string | null): string | undefined => { // ✨ 
                           alt={`${product.name}-${index}`}
                           className="w-full h-full object-cover flex-shrink-0"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg'; // Добавлено приведение типа
+                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg'; 
                           }}
                         />
                       ))}
@@ -233,7 +217,7 @@ const getYouTubeEmbedUrl = (url: string | null): string | undefined => { // ✨ 
                           alt={`preview-${index}`}
                           className="w-full h-full object-cover hover:scale-110 transition-transform"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg'; // Добавлено приведение типа
+                            (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg';
                           }}
                         />
                         {index === 3 && productImages.length > 4 && (

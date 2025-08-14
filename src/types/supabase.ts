@@ -53,23 +53,23 @@ export type Database = {
         };
       };
 
-            products: {
+      products: {
         Row: {
-          id: string;                  // uuid
-          created_at: string;          // timestamp (now() по умолчанию)
-          description: string | null;  // text
-          price: number | null;        // numeric
-          image_url: string | null;    // text
-          is_active: boolean | null;   // bool
+          id: string; // uuid
+          created_at: string; // timestamp (now() по умолчанию)
+          description: string | null; // text
+          price: number | null; // numeric
+          image_url: string | null; // text
+          is_active: boolean | null; // bool
           price_dealer: number | null; // numeric
-          compound: string | null;     // text
-          video_instr: string | null;  // text
-          name: string | null;         // text
+          compound: string | null; // text
+          video_instr: string | null; // text
+          name: string | null; // text
           stock: number | null;
-          category: string | null;     // text
-          flagman: boolean | null;     // bool (default true)
-          gallery: string[] | null;    // text[] (array)
-          updated_at: string | null;   // timestamp
+          category: string | null; // text
+          flagman: boolean | null; // bool (default true)
+          gallery: string[] | null; // text[] (array)
+          updated_at: string | null; // timestamp
         };
         Insert: {
           id?: string;
@@ -107,27 +107,27 @@ export type Database = {
       };
       stock_movements: {
         Row: {
-          id: string;                    // uuid
-          created_at: string;            // timestamp
-          product_id: string;            // uuid (связь с products)
-          change: number;                // int4 (изменение количества)
-          reason: string;                // text (причина изменения)
-          created_by: string;            // uuid (связь с users)
-          source: string;                // text (источник изменения)
-          order_id: string | null;       // uuid (если есть связь с заказом)
-          notes: string | null;          // text (дополнительные заметки)
+          id: string; // uuid
+          created_at: string; // timestamp
+          product_id: string; // uuid (связь с products)
+          change: number; // int4 (изменение количества)
+          reason: string; // text (причина изменения)
+          created_by: string; // uuid (связь с users)
+          source: string; // text (источник изменения)
+          order_id: string | null; // uuid (если есть связь с заказом)
+          notes: string | null; // text (дополнительные заметки)
           previous_stock: number | null; // int4 (предыдущий остаток)
-          new_stock: number | null;      // int4 (новый остаток)
-          updated_at: string | null;     // timestamp
+          new_stock: number | null; // int4 (новый остаток)
+          updated_at: string | null; // timestamp
         };
         Insert: {
           id?: string;
           created_at?: string;
-          product_id: string;            // обязательное поле
-          change: number;                // обязательное поле
-          reason: string;                // обязательное поле
-          created_by: string;            // обязательное поле
-          source: string;                // обязательное поле
+          product_id: string; // обязательное поле
+          change: number; // обязательное поле
+          reason: string; // обязательное поле
+          created_by: string; // обязательное поле
+          source: string; // обязательное поле
           order_id?: string | null;
           notes?: string | null;
           previous_stock?: number | null;
@@ -153,23 +153,26 @@ export type Database = {
 };
 
 // Алиасы под products
-export type ProductRow    = Database['public']['Tables']['products']['Row'];
+export type ProductRow = Database['public']['Tables']['products']['Row'];
 export type ProductInsert = Database['public']['Tables']['products']['Insert'];
 export type ProductUpdate = Database['public']['Tables']['products']['Update'];
 
+// ✨ НОВОЕ ИСПРАВЛЕНИЕ: Алиас для StockMovementRow
+export type StockMovementRow = Database['public']['Tables']['stock_movements']['Row'];
+
 // Типы для источников изменений
-export type StockMovementSource = 
-  | 'direct_update'  // Прямое изменение остатка
-  | 'sale'          // Продажа
-  | 'purchase'      // Поступление
-  | 'return'        // Возврат
-  | 'adjustment'    // Корректировка
-  | 'transfer'      // Перемещение
-  | 'production'    // Производство
-  | 'write_off';    // Списание
+export type StockMovementSource =
+  | 'direct_update' // Прямое изменение остатка
+  | 'sale' // Продажа
+  | 'purchase' // Поступление
+  | 'return' // Возврат
+  | 'adjustment' // Корректировка
+  | 'transfer' // Перемещение
+  | 'production' // Производство
+  | 'write_off'; // Списание
 
 // Типы для причин изменений
-export type StockMovementReason = 
+export type StockMovementReason =
   | 'Прямое изменение остатка'
   | 'Продажа товара'
   | 'Поступление товара'
@@ -182,8 +185,9 @@ export type StockMovementReason =
   | 'Производство';
 
 // Расширенный тип для отображения с данными связанных таблиц
+// Теперь StockMovementRow определен
 export type StockMovementWithRelations = StockMovementRow & {
-  product?: ProductRow;           // Данные товара
+  product?: ProductRow; // Данные товара
   user?: Database['public']['Tables']['users']['Row']; // Данные пользователя
 };
 
