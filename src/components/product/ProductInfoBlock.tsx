@@ -6,35 +6,30 @@ import {
   ShoppingCart, Heart, Share2, Star, Package
 } from 'lucide-react';
 
-// Импортируем ProductRow
-import { ProductRow } from '@/types/supabase'; // Предполагаемое местоположение файла с типами
-
-// Определяем пропсы для компонента ProductInfoBlock
-interface ProductInfoBlockProps {
-  product: ProductRow | null; // Теперь TypeScript знает, что product - это либо ProductRow, либо null
-}
-
-// Передаем ProductInfoBlockProps в компонент
-export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
+export default function ProductInfoBlock({ product }) {
   const [activeTab, setActiveTab] = useState('composition');
   const [activeImage, setActiveImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [productImages, setProductImages] = useState<string[]>([]); // Указываем тип для productImages
+  const [productImages, setProductImages] = useState([]);
 
   useEffect(() => {
     if (product) {
-      const images: string[] = []; // Указываем тип для images
-
+      // Формируем массив изображений
+      const images = [];
+      
+      // Основное изображение
       if (product.image_url) {
         images.push(product.image_url);
       }
-
+      
+      // Дополнительные изображения из галереи
       if (product.gallery && Array.isArray(product.gallery)) {
         product.gallery.forEach(img => {
           images.push(img);
         });
       }
-
+      
+      // Если нет изображений, используем заглушки
       if (images.length === 0) {
         images.push(
           'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&h=600&fit=crop',
@@ -43,7 +38,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
           'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&h=600&fit=crop'
         );
       }
-
+      
       setProductImages(images);
     }
   }, [product]);
@@ -56,26 +51,29 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     setActiveImage((prev) => (prev === productImages.length - 1 ? 0 : prev + 1));
   };
 
-  const getYouTubeEmbedUrl = (url: string | null) => { // Указываем тип для url
+  // Функция для извлечения ID видео из YouTube URL
+  const getYouTubeEmbedUrl = (url) => {
     if (!url) return null;
-
+    
+    // Различные форматы YouTube URL
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
       /youtube\.com\/watch\?.*v=([^&\n?#]+)/
     ];
-
+    
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match && match[1]) {
         return `https://www.youtube.com/embed/${match[1]}`;
       }
     }
-
+    
+    // Если URL уже в формате embed, возвращаем как есть
     if (url.includes('youtube.com/embed/')) {
       return url;
     }
-
-    return url;
+    
+    return url; // Возвращаем оригинальный URL если не YouTube
   };
 
   if (!product) {
@@ -86,17 +84,20 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     );
   }
 
+  // Расчет скидки
   const discount = product.price && product.price_dealer 
     ? Math.round(((product.price - product.price_dealer) / product.price) * 100)
     : 0;
 
-  const formatPrice = (price: number | null) => { // Указываем тип для price
+  // Форматирование цены
+  const formatPrice = (price) => {
     if (!price) return '0';
     return price.toLocaleString('ru-RU');
   };
 
+  // Генерируем случайное количество отзывов для демо
   const reviewsCount = Math.floor(Math.random() * 50) + 10;
-  const rating = 4 + Math.random() * 0.5;
+  const rating = 4 + Math.random() * 0.5; // Рейтинг от 4 до 4.5
 
   return (
     <div className="w-full h-full">
