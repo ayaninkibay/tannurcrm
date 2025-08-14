@@ -19,7 +19,7 @@ interface MoreHeaderADProps {
 export default function MoreHeaderAD({ title, showBackButton = false }: MoreHeaderADProps) {
   const { profile, loading } = useUser();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname(); // <-- pathname может быть null
   const [name, setName] = useState<string>('Загрузка...');
   const [avatarUrl, setAvatarUrl] = useState<string>('/img/avatar-default.png');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
@@ -41,7 +41,17 @@ export default function MoreHeaderAD({ title, showBackButton = false }: MoreHead
 
   const handleBack = () => {
     // Определяем куда вернуться на основе текущего пути
-    const pathSegments = pathname.split('/').filter(Boolean);
+    if (pathname === null) {
+      // Если pathname null, возможно, мы еще не загрузились
+      // или находимся в состоянии, где путь недоступен.
+      // Можно либо ничего не делать, либо использовать router.back() как запасной вариант.
+      // В данном случае, так как логика зависит от pathname, лучше просто выйти.
+      console.warn("Pathname is null, cannot determine back path.");
+      router.back(); // Или просто return;
+      return;
+    }
+
+    const pathSegments = pathname.split('/').filter(Boolean); // Эта строка теперь безопасна
     
     // Специальная логика для разных разделов
     if (pathname.includes('/warehouse/')) {

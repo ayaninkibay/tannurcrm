@@ -41,6 +41,20 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
   const handleBack = () => {
     // Определяем куда вернуться на основе текущего пути
+
+    // ✨ ИСПРАВЛЕНИЕ: Добавьте проверку на null для pathname
+    if (pathname === null) {
+      // Если pathname null, возможно, мы еще не загрузились
+      // или находимся в состоянии, где путь недоступен.
+      // Можно либо ничего не делать, либо использовать router.back() как запасной вариант.
+      // В данном случае, так как логика зависит от pathname, лучше просто выйти.
+      console.warn("Pathname is null, cannot determine back path.");
+      router.back(); // Или просто return;
+      return;
+    }
+
+    const pathSegments = pathname.split('/').filter(Boolean); // Эта строка теперь безопасна
+
     if (pathname.includes('/shop/')) {
       router.push('/dealer/shop');
     } else if (pathname.includes('/myteam/')) {
