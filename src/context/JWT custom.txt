@@ -1,0 +1,40 @@
+-- Функция для добавления роли пользователя в JWT-токен
+-- (мы не меняем ее, просто повторяем для полноты)
+CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+AS $$
+  DECLARE
+    claims jsonb;
+    user_role text;
+    default_role text := 'user';
+  BEGIN
+    claims := event->'claims';
+
+    -- Получаем role_uid пользователя из auth.users
+    SELECT role INTO user_role
+    FROM public.users
+    WHERE id = (event->'claims'->>'sub')::uuid;
+
+    -- Если роль найдена, добавляем ее в claims JWT
+    IF user_role IS NOT NULL THEN
+      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_role));
+    ELSE
+      -- Если роль не найдена, используем роль по умолчанию
+      claims := jsonb_set(claims, '{user_role}', to_jsonb(default_role));
+    END IF;
+
+    RETURN jsonb_build_object('claims', claims);
+  END;
+$$;
+
+-- Предоставляем права на выполнение этой функции, чтобы Supabase мог ее вызывать
+GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(jsonb) TO "supabase_auth_admin";
+
+-- Дополнительная команда для предоставления прав на использование схемы public
+-- Это иногда требуется, чтобы избежать подобных ошибок с хуками.
+GRANT USAGE ON SCHEMA public TO "supabase_auth_admin";
+
+мои типы в 
+TYPE public.app_role AS ENUM ('admin', 'celebrity', 'dealer', 'user');
