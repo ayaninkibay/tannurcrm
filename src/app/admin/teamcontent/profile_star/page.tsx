@@ -16,15 +16,6 @@ import { Database } from '@/types/supabase';
 type ProductRow = Database['public']['Tables']['products']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
 
-// Интерфейс для старых mock данных (если нужно для совместимости)
-interface MockProduct {
-  id: number;
-  name: string;
-  dealerPrice: number;
-  clientPrice: number;
-  imageUrl: string;
-}
-
 export default function ProfileStarPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -37,59 +28,50 @@ export default function ProfileStarPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (starId) {
-      fetchStarData();
-    } else {
-      // Загружаем demo данные если нет ID
-      loadDemoData();
-    }
+    fetchData();
   }, [starId]);
 
-  // Загрузка данных знаменитости
-  const fetchStarData = async () => {
+  // Загрузка данных
+  const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Загружаем профиль знаменитости
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', starId!)
-        .eq('role', 'celebrity')
-        .single<UserRow>();
+      // Если есть ID, загружаем профиль знаменитости
+      if (starId) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', starId)
+          .eq('role', 'celebrity')
+          .single<UserRow>();
 
-      if (userError) throw userError;
-      setStarProfile(userData);
+        if (!userError && userData) {
+          setStarProfile(userData);
+        }
+      }
 
-      // Загружаем товары (можно добавить фильтрацию по star_id если есть такое поле)
+      // Загружаем товары из БД
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('is_active', true)
+        .order('flagman', { ascending: false }) // Сначала флагманские товары
         .limit(9);
 
       if (productsError) throw productsError;
       
-      // Первый товар как большой
       if (productsData && productsData.length > 0) {
+        // Первый товар (желательно флагман) как большой
         setBigProduct(productsData[0]);
+        // Остальные товары
         setProducts(productsData.slice(1));
       }
     } catch (error) {
-      console.error('Error fetching star data:', error);
+      console.error('Error fetching data:', error);
       toast.error('Ошибка загрузки данных');
-      loadDemoData(); // Загружаем demo данные при ошибке
     } finally {
       setLoading(false);
     }
-  };
-
-  // Загрузка demo данных
-  const loadDemoData = () => {
-    setLoading(false);
-    // Используем пустые массивы, компонент покажет заглушки
-    setProducts([]);
-    setBigProduct(null);
   };
 
   // Копирование ссылки
@@ -103,6 +85,11 @@ export default function ProfileStarPage() {
       .writeText(text)
       .then(() => toast.success('Ссылка скопирована!'))
       .catch(() => toast.error('Не удалось скопировать ссылку'));
+  };
+
+  // Переход на страницу товара
+  const handleProductClick = (productId: string) => {
+    router.push(`/celebrity/store/product_view?id=${productId}`);
   };
 
   // Форматирование имени
@@ -256,22 +243,26 @@ export default function ProfileStarPage() {
               {/* Большой товар */}
               {bigProduct && (
                 <div className="col-span-2">
-                  <DealerBigProductCard
-                    product={bigProduct}
-                    showClientPrice={showClientPrices}
-                    className="h-full w-full"
-                  />
+                  <div onClick={() => handleProductClick(bigProduct.id)} className="cursor-pointer">
+                    <DealerBigProductCard
+                      product={bigProduct}
+                      showClientPrice={showClientPrices}
+                      className="h-full w-full"
+                    />
+                  </div>
                 </div>
               )}
 
               {/* Остальные карточки */}
-              {products.slice(0, 8).map((product) => (
+              {products.map((product) => (
                 <div key={product.id} className="col-span-1">
-                  <DealerProductCard
-                    product={product}
-                    showClientPrice={showClientPrices}
-                    className="h-full w-full"
-                  />
+                  <div onClick={() => handleProductClick(product.id)} className="cursor-pointer">
+                    <DealerProductCard
+                      product={product}
+                      showClientPrice={showClientPrices}
+                      className="h-full w-full"
+                    />
+                  </div>
                 </div>
               ))}
 
