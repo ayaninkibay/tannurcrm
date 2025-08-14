@@ -193,6 +193,7 @@ function ProductViewContent() {
               <span className="text-[#111]">{product.name || 'Карточка товара'}</span>
             </span>
           }
+          showBackButton={true}
         />
         
         <div className="w-full h-px bg-gray-200" />
@@ -215,15 +216,16 @@ function ProductViewContent() {
                 <span className="text-center">Инфо</span>
               </div>
 
-              <ProductCardWare
-                image={getImageUrl(product.image_url)}
-                title={product.name}
-                priceOld={formatPrice(product.price)}
-                priceNew={formatPrice(product.price_dealer)}
-                count={product.stock || 0}
-                className="bg-white pointer-events-none"
-                showArrow={false}
-              />
+             <ProductCardWare
+              image={getImageUrl(product.image_url)}                 // string
+              title={product.name ?? 'Без названия'}                 // <-- было {product.name}
+              priceOld={formatPrice(product.price)}                  // string
+              priceNew={formatPrice(product.price_dealer)}           // string
+              count={product.stock ?? 0}                             // number
+              className="bg-white pointer-events-none"
+              showArrow={false}
+            />
+
 
               {/* Кнопки управления остатками */}
               {userRole && ['admin', 'dealer'].includes(userRole) && (
