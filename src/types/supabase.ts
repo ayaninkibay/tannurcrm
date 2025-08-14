@@ -82,7 +82,7 @@ export type Database = {
           compound?: string | null;
           video_instr?: string | null;
           name?: string | null;
-          stock: number | null;
+          stock?: number | null;
           category?: string | null;
           flagman?: boolean | null;
           gallery?: string[] | null;
@@ -98,7 +98,7 @@ export type Database = {
           compound?: string | null;
           video_instr?: string | null;
           name?: string | null;
-          stock: number | null;
+          stock?: number | null;
           category?: string | null;
           flagman?: boolean | null;
           gallery?: string[] | null;
