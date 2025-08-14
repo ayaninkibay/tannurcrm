@@ -47,8 +47,9 @@ function ProductViewContent() {
 
   // Получаем данные товара
   const fetchProduct = async () => {
-    // Проверяем productId перед использованием
-    if (!productId) {
+    // Проверяем productId перед использованием и сохраняем в константу
+    const id = productId;
+    if (!id) {
       router.push('/admin/warehouse');
       return;
     }
@@ -59,7 +60,7 @@ function ProductViewContent() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId) // Теперь productId точно не null
+        .eq('id', id) // Используем локальную константу id
         .single<ProductRow>()
 
       if (error) throw error;
