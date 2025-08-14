@@ -6,12 +6,14 @@ import {
   ShoppingCart, Heart, Share2, Star, Package
 } from 'lucide-react';
 
-// Импортируем ProductRow для точной типизации пропса 'product'
-import { ProductRow } from '@/types/supabase'; // Убедитесь, что путь к файлу types/supabase.ts правильный
+// Импортируем Database и извлекаем тип ProductRow
+import { Database } from '@/types/supabase';
+
+// Определяем тип ProductRow из Database
+type ProductRow = Database['public']['Tables']['products']['Row'];
 
 // Определяем интерфейс для пропсов компонента ProductInfoBlock
 interface ProductInfoBlockProps {
-  // 💡 Исправлено: Типизируем 'product' как ProductRow
   product: ProductRow; 
 }
 
@@ -20,13 +22,11 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [activeTab, setActiveTab] = useState('composition');
   const [activeImage, setActiveImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  // 💡 Исправлено: Явно указан тип для состояния `productImages` как `string[]`
   const [productImages, setProductImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (product) {
       // Формируем массив изображений
-      // 💡 Исправлено: Явно указан тип для локальной переменной `images` как `string[]`
       const images: string[] = [];
       
       // Основное изображение
@@ -38,7 +38,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
       if (product.gallery && Array.isArray(product.gallery)) {
         // Убедитесь, что каждый элемент галереи также является строкой
         product.gallery.forEach(img => {
-          images.push(img);
+          if (img) images.push(img);
         });
       }
       
@@ -65,9 +65,8 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   };
 
   // Функция для извлечения ID видео из YouTube URL
-  // 💡 Исправлено: Указан возвращаемый тип string | undefined
   const getYouTubeEmbedUrl = (url: string | null): string | undefined => { 
-    if (!url) return undefined; // 💡 Исправлено: Возвращаем undefined вместо null
+    if (!url) return undefined;
 
     // Различные форматы YouTube URL
     const patterns = [
@@ -87,7 +86,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
       return url;
     }
     
-    return undefined; // 💡 Исправлено: Возвращаем undefined, если не удалось извлечь URL
+    return undefined;
   };
 
   if (!product) {
@@ -104,8 +103,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     : 0;
 
   // Форматирование цены
-  // 💡 Исправлено: Добавлена явная типизация для `price`
-  const formatPrice = (price: number | null) => { // ProductRow определяет price как number | null
+  const formatPrice = (price: number | null): string => {
     if (price === null) return '0'; 
     return price.toLocaleString('ru-RU');
   };
