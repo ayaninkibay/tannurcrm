@@ -31,7 +31,7 @@ function ProductViewContent() {
   
   const [product, setProduct] = useState<ProductRow | null>(null)
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [showStockModal, setShowStockModal] = useState(false);
   const [stockModalType, setStockModalType] = useState<'add' | 'subtract'>('add')
   const [stockAmount, setStockAmount] = useState('');
@@ -47,14 +47,20 @@ function ProductViewContent() {
 
   // Получаем данные товара
   const fetchProduct = async () => {
+    // Проверяем productId перед использованием
+    if (!productId) {
+      router.push('/admin/warehouse');
+      return;
+    }
+
     try {
       setLoading(true);
       
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
-          .single<ProductRow>()
+        .eq('id', productId) // Теперь productId точно не null
+        .single<ProductRow>()
 
       if (error) throw error;
       
@@ -89,6 +95,7 @@ function ProductViewContent() {
 
   // Функция для удаления товара
   const handleDeleteProduct = async () => {
+    if (!productId) return;
     if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
     
     try {
@@ -108,7 +115,7 @@ function ProductViewContent() {
   };
 
   // Открытие модального окна для изменения остатков
-  const openStockModal = (type) => {
+  const openStockModal = (type: 'add' | 'subtract') => {
     setStockModalType(type);
     setStockAmount('');
     setShowStockModal(true);
@@ -116,6 +123,8 @@ function ProductViewContent() {
 
   // Подтверждение изменения остатков
   const confirmStockUpdate = async () => {
+    if (!productId) return;
+    
     const amount = parseInt(stockAmount);
     
     if (!amount || isNaN(amount) || amount <= 0) {
@@ -145,13 +154,13 @@ function ProductViewContent() {
   };
 
   // Форматирование цены
-  const formatPrice = (price) => {
+  const formatPrice = (price: number | null) => {
     if (!price) return '0 ₸';
     return `${price.toLocaleString('ru-RU')} ₸`;
   };
 
   // Получение URL изображения
-  const getImageUrl = (imageUrl) => {
+  const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) return '/icons/Photo_icon_1.jpg';
     if (imageUrl.startsWith('http')) return imageUrl;
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
@@ -216,16 +225,15 @@ function ProductViewContent() {
                 <span className="text-center">Инфо</span>
               </div>
 
-             <ProductCardWare
-              image={getImageUrl(product.image_url)}                 // string
-              title={product.name ?? 'Без названия'}                 // <-- было {product.name}
-              priceOld={formatPrice(product.price)}                  // string
-              priceNew={formatPrice(product.price_dealer)}           // string
-              count={product.stock ?? 0}                             // number
-              className="bg-white pointer-events-none"
-              showArrow={false}
-            />
-
+              <ProductCardWare
+                image={getImageUrl(product.image_url)}
+                title={product.name ?? 'Без названия'}
+                priceOld={formatPrice(product.price)}
+                priceNew={formatPrice(product.price_dealer)}
+                count={product.stock ?? 0}
+                className="bg-white pointer-events-none"
+                showArrow={false}
+              />
 
               {/* Кнопки управления остатками */}
               {userRole && ['admin', 'dealer'].includes(userRole) && (
