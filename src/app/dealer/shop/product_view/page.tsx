@@ -19,7 +19,7 @@ export default function ProductView() {
         
         {/* Левая и центральная часть */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          <ProductInfoBlock />
+         
 
 
         </div>
