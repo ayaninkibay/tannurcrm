@@ -1,7 +1,7 @@
 // src/app/admin/teamcontent/profile_star/page.tsx
 'use client';
 
-import React, { useState, MouseEvent, useEffect } from 'react';
+import React, { useState, MouseEvent, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -16,7 +16,7 @@ import { Database } from '@/types/supabase';
 type ProductRow = Database['public']['Tables']['products']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
 
-export default function ProfileStarPage() {
+function ProfileStarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const starId = searchParams?.get('id');
@@ -293,5 +293,18 @@ export default function ProfileStarPage() {
         </>
       }
     />
+  );
+}
+
+// Оборачиваем компонент в Suspense
+export default function ProfileStarPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+      </div>
+    }>
+      <ProfileStarContent />
+    </Suspense>
   );
 }
