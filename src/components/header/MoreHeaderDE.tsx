@@ -8,17 +8,16 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
-import { useUser } from '@/context/UserContext'
-
-
+import { useUser } from '@/context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 interface MoreHeaderDEProps {
-  title: string;
+  title: string | React.ReactNode;
+  showBackButton?: boolean; // По умолчанию false
 }
 
-export default function MoreHeader({ title }: MoreHeaderDEProps) {
-  const { profile, loading } = useUser(); // ✅
-
+export default function MoreHeader({ title, showBackButton = false }: MoreHeaderDEProps) {
+  const { profile, loading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
@@ -26,18 +25,36 @@ export default function MoreHeader({ title }: MoreHeaderDEProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
-useEffect(() => {
-  if (!loading && profile) {
-    setName(`${profile.first_name} ${profile.last_name}`);
-    setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
-  }
-}, [profile, loading]);
+  useEffect(() => {
+    if (!loading && profile) {
+      setName(`${profile.first_name} ${profile.last_name}`);
+      setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
+    }
+  }, [profile, loading]);
 
   const handleProfile = () => router.push('/dealer/profile');
   const handleNotifications = () => router.push('/dealer/notifications');
   const handleSignOut = async () => {
     await fetch('/api/logout', { method: 'POST' });
     router.push('/signin');
+  };
+
+  const handleBack = () => {
+    // Определяем куда вернуться на основе текущего пути
+    if (pathname.includes('/shop/')) {
+      router.push('/dealer/shop');
+    } else if (pathname.includes('/myteam/')) {
+      router.push('/dealer/myteam');
+    } else if (pathname.includes('/stats/')) {
+      router.push('/dealer/stats');
+    } else if (pathname.includes('/education/')) {
+      router.push('/dealer/education');
+    } else if (pathname.includes('/documents/')) {
+      router.push('/dealer/documents');
+    } else {
+      // По умолчанию просто идем назад
+      router.back();
+    }
   };
 
   const menuItems = [
@@ -53,13 +70,26 @@ useEffect(() => {
   return (
     <div className="w-full -mt-5 border-b border-gray-200 relative">
       <div className="h-[72px] flex items-center justify-between">
-        <div className="flex flex-col justify-center">
-          <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
-            {title}
-          </h1>
-          <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
-            Tannur Cosmetics © 2025. All Rights Reserved.
-          </p>
+        <div className="flex items-center gap-3">
+          {/* Кнопка назад - показывается только если showBackButton={true} */}
+          {showBackButton && (
+            <button
+              onClick={handleBack}
+              className="flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors group"
+              title="Назад"
+            >
+              <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-[#D77E6C] transition-colors" />
+            </button>
+          )}
+          
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
+              {title}
+            </h1>
+            <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
+              Tannur Cosmetics © 2025. All Rights Reserved.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
@@ -103,12 +133,11 @@ useEffect(() => {
             className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
           >
             <Lottie
-            animationData={hamburgerAnimation}
-            loop={true}
-            autoplay={true}
-            className="w-10 h-10"
-          />
-
+              animationData={hamburgerAnimation}
+              loop={true}
+              autoplay={true}
+              className="w-10 h-10"
+            />
           </button>
 
           <button
@@ -221,7 +250,6 @@ useEffect(() => {
                   </h2>
                   <p className="text-sm text-gray-500">www.inqo.tech</p>
                 </div>
-
             </motion.div>
           </motion.div>
         )}

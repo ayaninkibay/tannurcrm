@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import ActionButton from '@/components/ui/ActionButton';
@@ -21,17 +21,32 @@ import {
   TrendingDown
 } from 'lucide-react';
 
-export default function ProductView() {
+// Типы для stock_movements
+interface StockMovement {
+  id?: string;
+  created_at?: string;
+  product_id: string;
+  change: number;
+  reason: string;
+  created_by: string;
+  source: 'direct_update' | 'sale' | 'purchase' | 'return' | 'adjustment';
+  previous_stock?: number;
+  new_stock?: number;
+  notes?: string;
+}
+
+function ProductViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const productId = searchParams.get('id');
+  const productId = searchParams?.get('id') || null;
   
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [showStockModal, setShowStockModal] = useState(false);
-  const [stockModalType, setStockModalType] = useState('add');
+  const [stockModalType, setStockModalType] = useState<'add' | 'subtract'>('add');
   const [stockAmount, setStockAmount] = useState('');
+  const [stockReason, setStockReason] = useState('');
 
   useEffect(() => {
     if (productId) {
@@ -44,6 +59,8 @@ export default function ProductView() {
 
   // Получаем данные товара
   const fetchProduct = async () => {
+    if (!productId) return;
+    
     try {
       setLoading(true);
       
@@ -105,10 +122,41 @@ export default function ProductView() {
   };
 
   // Открытие модального окна для изменения остатков
-  const openStockModal = (type) => {
+  const openStockModal = (type: 'add' | 'subtract') => {
     setStockModalType(type);
     setStockAmount('');
+    setStockReason('');
     setShowStockModal(true);
+  };
+
+  // Создание записи в stock_movements
+  const createStockMovement = async (change: number, reason: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('Пользователь не авторизован');
+      
+      const movement: StockMovement = {
+        product_id: productId!,
+        change: change,
+        reason: reason,
+        created_by: user.id,
+        source: stockModalType === 'add' ? 'purchase' : 'adjustment',
+        previous_stock: product.stock || 0,
+        new_stock: (product.stock || 0) + change,
+        notes: stockReason
+      };
+      
+      const { error } = await supabase
+        .from('stock_movements')
+        .insert(movement);
+      
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('Error creating stock movement:', error);
+      throw error;
+    }
   };
 
   // Подтверждение изменения остатков
@@ -120,17 +168,25 @@ export default function ProductView() {
       return;
     }
     
+    if (!stockReason.trim()) {
+      toast.error('Укажите причину изменения');
+      return;
+    }
+    
     try {
-      const newStock = stockModalType === 'add' 
-        ? (product.stock || 0) + amount
-        : Math.max(0, (product.stock || 0) - amount);
+      const change = stockModalType === 'add' ? amount : -amount;
+      const newStock = Math.max(0, (product.stock || 0) + change);
       
-      const { error } = await supabase
+      // Обновляем остаток товара
+      const { error: updateError } = await supabase
         .from('products')
         .update({ stock: newStock })
         .eq('id', productId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+      
+      // Создаем запись в истории движений
+      await createStockMovement(change, stockReason);
       
       toast.success(`Остаток успешно ${stockModalType === 'add' ? 'пополнен' : 'уменьшен'}`);
       setShowStockModal(false);
@@ -142,13 +198,13 @@ export default function ProductView() {
   };
 
   // Форматирование цены
-  const formatPrice = (price) => {
+  const formatPrice = (price: number | null) => {
     if (!price) return '0 ₸';
     return `${price.toLocaleString('ru-RU')} ₸`;
   };
 
   // Получение URL изображения
-  const getImageUrl = (imageUrl) => {
+  const getImageUrl = (imageUrl: string | null) => {
     if (!imageUrl) return '/icons/Photo_icon_1.jpg';
     if (imageUrl.startsWith('http')) return imageUrl;
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
@@ -274,7 +330,7 @@ export default function ProductView() {
                     <span className="text-sm">Составить отчет по товару</span>
                   </button>
                   <button
-                    onClick={() => router.push('/admin/warehouse/stock')}
+                    onClick={() => router.push('/admin/warehouse/stock_movements')}
                     className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <History className="w-4 h-4 text-[#D77E6C]" />
@@ -339,6 +395,19 @@ export default function ProductView() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Причина изменения *
+                </label>
+                <textarea
+                  value={stockReason}
+                  onChange={(e) => setStockReason(e.target.value)}
+                  placeholder={stockModalType === 'add' ? 'Например: Поступление товара от поставщика' : 'Например: Продажа товара'}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-[#D77E6C] focus:outline-none transition-colors resize-none"
+                  rows={2}
+                />
+              </div>
+
               {stockAmount && !isNaN(parseInt(stockAmount)) && parseInt(stockAmount) > 0 && (
                 <div className="p-3 bg-[#D77E6C]/10 rounded-lg">
                   <p className="text-sm text-[#111]">
@@ -363,9 +432,9 @@ export default function ProductView() {
               </button>
               <button
                 onClick={confirmStockUpdate}
-                disabled={!stockAmount || isNaN(parseInt(stockAmount)) || parseInt(stockAmount) <= 0}
+                disabled={!stockAmount || isNaN(parseInt(stockAmount)) || parseInt(stockAmount) <= 0 || !stockReason.trim()}
                 className={`flex-1 px-4 py-3 rounded-lg transition-colors ${
-                  stockAmount && !isNaN(parseInt(stockAmount)) && parseInt(stockAmount) > 0
+                  stockAmount && !isNaN(parseInt(stockAmount)) && parseInt(stockAmount) > 0 && stockReason.trim()
                     ? 'bg-[#D77E6C] text-white hover:bg-[#C56D5C]'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
@@ -377,5 +446,18 @@ export default function ProductView() {
         </div>
       )}
     </>
+  );
+}
+
+// Основной компонент с Suspense
+export default function ProductView() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+      </div>
+    }>
+      <ProductViewContent />
+    </Suspense>
   );
 }
