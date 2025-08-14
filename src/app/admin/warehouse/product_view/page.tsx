@@ -122,8 +122,8 @@ function ProductViewContent() {
     
     try {
       const newStock = stockModalType === 'add' 
-        ? (product.stock || 0) + amount
-        : Math.max(0, (product.stock || 0) - amount);
+        ? (product?.stock || 0) + amount
+        : Math.max(0, (product?.stock || 0) - amount);
       
       const { error } = await supabase
         .from('products')
@@ -190,7 +190,6 @@ function ProductViewContent() {
               <span className="text-[#111]">{product.name || 'Карточка товара'}</span>
             </span>
           }
-            showBackButton={true}
         />
         
         <div className="w-full h-px bg-gray-200" />
@@ -320,9 +319,9 @@ function ProductViewContent() {
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-sm text-gray-600 mb-1">Товар</p>
-                <p className="font-semibold text-[#111]">{product.name}</p>
+                <p className="font-semibold text-[#111]">{product?.name}</p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Текущий остаток: <span className="font-semibold text-[#D77E6C]">{product.stock || 0} шт.</span>
+                  Текущий остаток: <span className="font-semibold text-[#D77E6C]">{product?.stock || 0} шт.</span>
                 </p>
               </div>
 
@@ -346,8 +345,8 @@ function ProductViewContent() {
                     Новый остаток: {' '}
                     <span className="font-semibold">
                       {stockModalType === 'add' 
-                        ? (product.stock || 0) + parseInt(stockAmount)
-                        : Math.max(0, (product.stock || 0) - parseInt(stockAmount))
+                        ? (product?.stock || 0) + parseInt(stockAmount)
+                        : Math.max(0, (product?.stock || 0) - parseInt(stockAmount))
                       } шт.
                     </span>
                   </p>
