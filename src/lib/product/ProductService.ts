@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase/client'
 import type { Database } from '@/types/supabase'
 
 // Имя таблицы и бакета
-const PRODUCT_TABLE = 'products' as const          // поменяй, если у тебя 'product_table'
-const BUCKET        = 'products' as const          // storage bucket
+const PRODUCT_TABLE = 'products' as const
+const BUCKET        = 'products' as const
 
 export type ProductRow    = Database['public']['Tables'][typeof PRODUCT_TABLE]['Row']
 export type ProductInsert = Database['public']['Tables'][typeof PRODUCT_TABLE]['Insert']
@@ -12,10 +12,9 @@ export type ProductUpdate = Database['public']['Tables'][typeof PRODUCT_TABLE]['
 
 export interface ListProductsParams {
   search?: string
-  categoryId?: string | null
-  brandId?: string | null
+  category?: string | null
   isActive?: boolean
-  isFlagship?: boolean
+  isFlagman?: boolean
   limit?: number
   offset?: number
   orderBy?: keyof ProductRow
@@ -27,6 +26,7 @@ function buildFilePath(productId: string, fileName: string) {
   const ext = (fileName.split('.').pop() || 'bin').replace(/[^a-zA-Z0-9]/g, '')
   return `${productId}/${crypto.randomUUID()}.${ext}`
 }
+
 function getStorageKeyFromPublicUrl(publicUrl: string): string | null {
   const marker = `/storage/v1/object/public/${BUCKET}/`
   const idx = publicUrl.indexOf(marker)
@@ -49,10 +49,9 @@ class ProductService {
   async listProducts(params: ListProductsParams = {}) {
     const {
       search,
-      categoryId,
-      brandId,
+      category,
       isActive,
-      isFlagship,
+      isFlagman,
       limit = 20,
       offset = 0,
       orderBy = 'created_at',
@@ -67,12 +66,10 @@ class ProductService {
 
     if (search && search.trim()) {
       query = query.ilike('name', `%${search}%`)
-      // при желании: query = query.or(`sku.ilike.%${search}%,name.ilike.%${search}%`)
     }
     if (typeof isActive === 'boolean') query = query.eq('is_active', isActive)
-    if (typeof isFlagship === 'boolean') query = query.eq('is_flagship', isFlagship)
-    if (categoryId) query = query.eq('category_id', categoryId)
-    if (brandId) query = query.eq('brand_id', brandId)
+    if (typeof isFlagman === 'boolean') query = query.eq('flagman', isFlagman)
+    if (category) query = query.eq('category', category)
 
     const { data, error, count } = await query
     if (error) throw new Error(error.message)
@@ -126,15 +123,26 @@ class ProductService {
     return data as ProductRow
   }
 
-  async changeStock(productId: string, delta: number): Promise<ProductRow> {
-    // простая версия; для атомарности лучше RPC
-    const current = await this.fetchProductById(productId)
-    const newStock = (current.stock ?? 0) + delta
-    if (newStock < 0) throw new Error('Недостаточно товара на складе')
+  async toggleFlagman(productId: string, value: boolean): Promise<ProductRow> {
+    const { data, error } = await supabase
+      .from(PRODUCT_TABLE)
+      .update({ flagman: value, updated_at: new Date().toISOString() })
+      .eq('id', productId)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data as ProductRow
+  }
+
+  // ---------- PRICES ----------
+  async updatePrices(productId: string, price?: number | null, priceDealer?: number | null): Promise<ProductRow> {
+    const updateData: ProductUpdate = { updated_at: new Date().toISOString() }
+    if (price !== undefined) updateData.price = price
+    if (priceDealer !== undefined) updateData.price_dealer = priceDealer
 
     const { data, error } = await supabase
       .from(PRODUCT_TABLE)
-      .update({ stock: newStock, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', productId)
       .select('*')
       .single()

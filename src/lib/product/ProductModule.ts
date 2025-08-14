@@ -25,10 +25,12 @@ export interface UseProductModuleReturn {
 
   // Бизнес‑действия
   toggleActive: (productId: string, value: boolean) => Promise<void>
-  changeStock: (productId: string, delta: number) => Promise<void>
+  toggleFlagman: (productId: string, value: boolean) => Promise<void>
+  updatePrices: (productId: string, price?: number | null, priceDealer?: number | null) => Promise<void>
 
   // Медиа
   uploadProductImage: (productId: string, file: File) => Promise<void>
+  uploadProductImages: (productId: string, files: File[]) => Promise<void>
   addGalleryImage: (productId: string, imageUrl: string) => Promise<void>
   removeGalleryImage: (productId: string, imageUrl: string) => Promise<void>
 }
@@ -69,7 +71,6 @@ export const useProductModule = (): UseProductModuleReturn => {
   const createProduct = useCallback(async (payload: ProductInsert) => {
     const created = await wrap(() => productService.createProduct(payload))
     setProduct(created)
-    // по ситуации: можно перелистать список или пушнуть
     return created
   }, [])
 
@@ -91,14 +92,28 @@ export const useProductModule = (): UseProductModuleReturn => {
     setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)))
   }, [])
 
-  const changeStock = useCallback(async (productId: string, delta: number) => {
-    const updated = await wrap(() => productService.changeStock(productId, delta))
+  const toggleFlagman = useCallback(async (productId: string, value: boolean) => {
+    const updated = await wrap(() => productService.toggleFlagman(productId, value))
+    setProduct((p) => (p?.id === productId ? updated : p))
+    setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)))
+  }, [])
+
+  const updatePrices = useCallback(async (productId: string, price?: number | null, priceDealer?: number | null) => {
+    const updated = await wrap(() => productService.updatePrices(productId, price, priceDealer))
     setProduct((p) => (p?.id === productId ? updated : p))
     setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)))
   }, [])
 
   const uploadProductImage = useCallback(async (productId: string, file: File) => {
     await wrap(() => productService.uploadProductImage(productId, file))
+    // обновим состояние после загрузки
+    const updated = await productService.fetchProductById(productId)
+    setProduct(updated)
+    setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)))
+  }, [])
+
+  const uploadProductImages = useCallback(async (productId: string, files: File[]) => {
+    await wrap(() => productService.uploadProductImages(productId, files))
     // обновим состояние после загрузки
     const updated = await productService.fetchProductById(productId)
     setProduct(updated)
@@ -131,9 +146,11 @@ export const useProductModule = (): UseProductModuleReturn => {
     deleteProduct,
 
     toggleActive,
-    changeStock,
+    toggleFlagman,
+    updatePrices,
 
     uploadProductImage,
+    uploadProductImages,
     addGalleryImage,
     removeGalleryImage,
   }
