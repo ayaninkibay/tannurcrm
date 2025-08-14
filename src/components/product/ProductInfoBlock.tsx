@@ -81,31 +81,30 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     setActiveImage((prev) => (prev === productImages.length - 1 ? 0 : prev + 1));
   };
 
-  // Функция для извлечения ID видео из YouTube URL
-  // 💡 Добавлена явная типизация для `url`
-  const getYouTubeEmbedUrl = (url: string | null) => {
-    if (!url) return null;
-    
-    // Различные форматы YouTube URL
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return `https://www.youtube.com/embed/${match[1]}`;
-      }
+// Функция для извлечения ID видео из YouTube URL
+const getYouTubeEmbedUrl = (url: string | null): string | undefined => { // ✨ ИСПРАВЛЕНИЕ: Указываем возвращаемый тип string | undefined
+  if (!url) return undefined; // ✨ ИСПРАВЛЕНИЕ: Возвращаем undefined вместо null, если URL пуст
+
+  // Различные форматы YouTube URL
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
     }
-    
-    // Если URL уже в формате embed, возвращаем как есть
-    if (url.includes('youtube.com/embed/')) {
-      return url;
-    }
-    
-    return url; // Возвращаем оригинальный URL если не YouTube
-  };
+  }
+
+  // Если URL уже в формате embed, возвращаем как есть
+  if (url.includes('youtube.com/embed/')) {
+    return url;
+  }
+
+  return undefined; // ✨ ИСПРАВЛЕНИЕ: Возвращаем undefined, если не удалось извлечь URL для встраивания
+};
 
   if (!product) {
     return (
