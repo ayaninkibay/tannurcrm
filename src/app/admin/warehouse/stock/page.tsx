@@ -23,11 +23,13 @@ import {
   X
 } from 'lucide-react';
 
-import { StockMovementWithRelations } from '@/types/supabase';
+// 💡 Исправлено: Убедитесь, что импорт типов верный
+import { StockMovementWithRelations, StockMovementSource } from '@/types/supabase';
 
 
 export default function StockMovementsPage() {
   const router = useRouter();
+  // 💡 Исправлено: Явно типизируем состояние
   const [movements, setMovements] = useState<StockMovementWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -61,38 +63,39 @@ export default function StockMovementsPage() {
     try {
       setLoading(true);
       
-      let query = supabase
+      const query = supabase
         .from('stock_movements')
         .select(`
           *,
-          products (
+          product:products (
             id,
             name,
             image_url
           ),
-          users (
+          user:users (
             id,
             first_name,
             last_name,
             email
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
       // Применяем фильтр по датам
+      let finalQuery = query.order('created_at', { ascending: false });
+      
       if (dateFrom) {
-        query = query.gte('created_at', `${dateFrom}T00:00:00`);
+        finalQuery = finalQuery.gte('created_at', `${dateFrom}T00:00:00`);
       }
       if (dateTo) {
-        query = query.lte('created_at', `${dateTo}T23:59:59`);
+        finalQuery = finalQuery.lte('created_at', `${dateTo}T23:59:59`);
       }
 
-      const { data, error } = await query.limit(200);
+      const { data, error } = await finalQuery.limit(200);
 
       if (error) throw error;
 
       if (data) {
-        setMovements(data);
+        setMovements(data as StockMovementWithRelations[]);
         
         // Подсчитываем статистику
         const totalMovements = data.length;
@@ -120,7 +123,8 @@ export default function StockMovementsPage() {
   };
 
   // Быстрые фильтры по датам
-  const setQuickDateFilter = (type) => {
+  // 💡 Исправлено: Добавлена типизация для `type`
+  const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'year') => {
     const today = new Date();
     let from = new Date();
     
@@ -145,7 +149,8 @@ export default function StockMovementsPage() {
 
   // Фильтрация движений
   const filteredMovements = movements.filter(movement => {
-    const productName = movement.products?.name || '';
+    // 💡 Исправлено: Использование `movement.product` вместо `movement.products`
+    const productName = movement.product?.name || '';
     const matchesSearch = 
       productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       movement.reason.toLowerCase().includes(searchTerm.toLowerCase());
@@ -159,7 +164,8 @@ export default function StockMovementsPage() {
   });
 
   // Форматирование даты
-  const formatDate = (dateString) => {
+  // 💡 Исправлено: Добавлена типизация для `dateString`
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ru-RU', {
       day: '2-digit',
@@ -171,7 +177,8 @@ export default function StockMovementsPage() {
   };
 
   // Форматирование короткой даты для мобильных
-  const formatShortDate = (dateString) => {
+  // 💡 Исправлено: Добавлена типизация для `dateString`
+  const formatShortDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', {
       day: '2-digit',
@@ -180,9 +187,11 @@ export default function StockMovementsPage() {
   };
 
   // Получение имени пользователя
-  const getUserName = (movement) => {
-    if (movement.users) {
-      const { first_name, last_name, email } = movement.users;
+  // 💡 Исправлено: Добавлена типизация для `movement`
+  const getUserName = (movement: StockMovementWithRelations) => {
+    // 💡 Исправлено: Использование `movement.user` вместо `movement.users`
+    if (movement.user) {
+      const { first_name, last_name, email } = movement.user;
       if (first_name || last_name) {
         return `${first_name || ''} ${last_name || ''}`.trim();
       }
@@ -192,13 +201,15 @@ export default function StockMovementsPage() {
   };
 
   // Получение инициалов пользователя
-  const getUserInitials = (movement) => {
+  // 💡 Исправлено: Добавлена типизация для `movement`
+  const getUserInitials = (movement: StockMovementWithRelations) => {
     const name = getUserName(movement);
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   // Получение цвета для источника
-  const getSourceStyle = (source) => {
+  // 💡 Исправлено: Добавлена типизация для `source`
+  const getSourceStyle = (source: StockMovementSource) => {
     const styles = {
       'direct_update': 'bg-gray-100 text-gray-700',
       'sale': 'bg-[#D77E6C]/10 text-[#D77E6C]',
@@ -211,7 +222,8 @@ export default function StockMovementsPage() {
   };
 
   // Получение текста для источника
-  const getSourceText = (source) => {
+  // 💡 Исправлено: Добавлена типизация для `source`
+  const getSourceText = (source: StockMovementSource) => {
     const texts = {
       'direct_update': 'Ручное',
       'sale': 'Продажа',
@@ -244,7 +256,7 @@ export default function StockMovementsPage() {
             <span className="text-[#111]">История движений</span>
           </span>
         }
-          showBackButton={true}
+        showBackButton={true}
       />
       
       <div className="p-0 mt-10">
@@ -446,10 +458,10 @@ export default function StockMovementsPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-[#111] truncate">
-                            {movement.products?.name || 'Товар удален'}
+                            {movement.product?.name || 'Товар удален'}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ID: {movement.product_id.slice(0, 8)}...
+                            ID: {movement.product_id?.slice(0, 8)}...
                           </div>
                         </div>
                       </div>
@@ -535,7 +547,7 @@ export default function StockMovementsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-[#111] text-sm truncate">
-                        {movement.products?.name || 'Товар удален'}
+                        {movement.product?.name || 'Товар удален'}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                         <CalendarDays className="w-3 h-3" />
