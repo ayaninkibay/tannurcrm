@@ -10,7 +10,7 @@ import ProductInfoBlock from '@/components/product/ProductInfoBlock';
 export default function ProductView() {
   return (
     <div className="flex flex-col bg-[#F6F6F6] min-h-screen">
-      <MoreHeaderad title="Страница товара" />
+      <MoreHeaderAD title="Страница товараа" />
       
       <div className="w-full h-px bg-gray-300" />
 
