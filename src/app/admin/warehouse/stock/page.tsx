@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD'; // Убедитесь, что этот компонент исправлен отдельно (проблема с 'pathname')
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
-import { 
-  Package, 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar, 
-  User, 
+import {
+  Package,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  User,
   Search,
   ChevronRight,
   ArrowUpRight,
@@ -23,7 +23,6 @@ import {
   X
 } from 'lucide-react';
 
-// 💡 Исправлено: Убедитесь, что импорт типов верный
 import { StockMovementWithRelations, StockMovementSource } from '@/types/supabase';
 
 
@@ -47,7 +46,7 @@ export default function StockMovementsPage() {
     // Устанавливаем даты по умолчанию (последние 30 дней)
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-    
+
     setDateTo(today.toISOString().split('T')[0]);
     setDateFrom(thirtyDaysAgo.toISOString().split('T')[0]);
   }, []);
@@ -62,17 +61,17 @@ export default function StockMovementsPage() {
   const fetchMovements = async () => {
     try {
       setLoading(true);
-      
+
       const query = supabase
         .from('stock_movements')
         .select(`
           *,
-          product:products (
+          product:products ( // ✨ Исправлено: алиас 'product' для соответствия типу
             id,
             name,
             image_url
           ),
-          user:users (
+          user:users ( // ✨ Исправлено: алиас 'user' для соответствия типу
             id,
             first_name,
             last_name,
@@ -82,7 +81,7 @@ export default function StockMovementsPage() {
 
       // Применяем фильтр по датам
       let finalQuery = query.order('created_at', { ascending: false });
-      
+
       if (dateFrom) {
         finalQuery = finalQuery.gte('created_at', `${dateFrom}T00:00:00`);
       }
@@ -95,8 +94,9 @@ export default function StockMovementsPage() {
       if (error) throw error;
 
       if (data) {
+        // ✨ Исправлено: Утверждаем тип данных, чтобы TypeScript знал их структуру
         setMovements(data as StockMovementWithRelations[]);
-        
+
         // Подсчитываем статистику
         const totalMovements = data.length;
         const incomingSum = data
@@ -107,7 +107,7 @@ export default function StockMovementsPage() {
             .filter(m => m.change < 0)
             .reduce((acc, m) => acc + m.change, 0)
         );
-        
+
         setStats({
           total: totalMovements,
           incoming: incomingSum,
@@ -127,8 +127,8 @@ export default function StockMovementsPage() {
   const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'year') => {
     const today = new Date();
     let from = new Date();
-    
-    switch(type) {
+
+    switch (type) {
       case 'today':
         from = new Date(today);
         break;
@@ -142,7 +142,7 @@ export default function StockMovementsPage() {
         from = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
         break;
     }
-    
+
     setDateFrom(from.toISOString().split('T')[0]);
     setDateTo(today.toISOString().split('T')[0]);
   };
@@ -151,15 +151,15 @@ export default function StockMovementsPage() {
   const filteredMovements = movements.filter(movement => {
     // 💡 Исправлено: Использование `movement.product` вместо `movement.products`
     const productName = movement.product?.name || '';
-    const matchesSearch = 
+    const matchesSearch =
       productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       movement.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = 
-      filter === 'all' || 
+
+    const matchesFilter =
+      filter === 'all' ||
       (filter === 'incoming' && movement.change > 0) ||
       (filter === 'outgoing' && movement.change < 0);
-    
+
     return matchesSearch && matchesFilter;
   });
 
@@ -208,7 +208,7 @@ export default function StockMovementsPage() {
   };
 
   // Получение цвета для источника
-  // 💡 Исправлено: Добавлена типизация для `source`
+  // 💡 Исправлено: Добавлена типизация для `source` и утверждение ключа
   const getSourceStyle = (source: StockMovementSource) => {
     const styles = {
       'direct_update': 'bg-gray-100 text-gray-700',
@@ -218,11 +218,11 @@ export default function StockMovementsPage() {
       'adjustment': 'bg-blue-100 text-blue-700',
       'write_off': 'bg-red-100 text-red-700'
     };
-    return styles[source] || 'bg-gray-100 text-gray-700';
+    return styles[source as keyof typeof styles] || 'bg-gray-100 text-gray-700';
   };
 
   // Получение текста для источника
-  // 💡 Исправлено: Добавлена типизация для `source`
+  // 💡 Исправлено: Добавлена типизация для `source` и утверждение ключа
   const getSourceText = (source: StockMovementSource) => {
     const texts = {
       'direct_update': 'Ручное',
@@ -232,7 +232,7 @@ export default function StockMovementsPage() {
       'adjustment': 'Корректировка',
       'write_off': 'Списание'
     };
-    return texts[source] || source;
+    return texts[source as keyof typeof texts] || source;
   };
 
   if (loading) {
@@ -248,7 +248,7 @@ export default function StockMovementsPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6]">
-      <MoreHeaderAD 
+      <MoreHeaderAD
         title={
           <span className="flex items-center">
             <span className="text-gray-400">Склад</span>
@@ -258,7 +258,7 @@ export default function StockMovementsPage() {
         }
         showBackButton={true}
       />
-      
+
       <div className="p-0 mt-10">
         {/* Статистика - адаптивная */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
@@ -386,14 +386,14 @@ export default function StockMovementsPage() {
                 Год
               </button>
             </div>
-            
+
             {/* Фильтры по типу */}
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
                 className={`flex-1 px-3 py-2 text-sm rounded-lg font-medium transition-colors ${
-                  filter === 'all' 
-                    ? 'bg-[#D77E6C] text-white' 
+                  filter === 'all'
+                    ? 'bg-[#D77E6C] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -402,8 +402,8 @@ export default function StockMovementsPage() {
               <button
                 onClick={() => setFilter('incoming')}
                 className={`flex-1 px-3 py-2 text-sm rounded-lg font-medium transition-colors ${
-                  filter === 'incoming' 
-                    ? 'bg-[#D77E6C] text-white' 
+                  filter === 'incoming'
+                    ? 'bg-[#D77E6C] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -412,14 +412,14 @@ export default function StockMovementsPage() {
               <button
                 onClick={() => setFilter('outgoing')}
                 className={`flex-1 px-3 py-2 text-sm rounded-lg font-medium transition-colors ${
-                  filter === 'outgoing' 
-                    ? 'bg-[#D77E6C] text-white' 
+                  filter === 'outgoing'
+                    ? 'bg-[#D77E6C] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 Списания
               </button>
-              
+
               <button
                 onClick={fetchMovements}
                 className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -466,18 +466,18 @@ export default function StockMovementsPage() {
                         </div>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock className="w-4 h-4 flex-shrink-0" />
                         <span className="whitespace-nowrap">{formatDate(movement.created_at)}</span>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4 text-center">
                       <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-medium ${
-                        movement.change > 0 
-                          ? 'text-[#D77E6C] bg-[#D77E6C]/10' 
+                        movement.change > 0
+                          ? 'text-[#D77E6C] bg-[#D77E6C]/10'
                           : 'text-gray-700 bg-gray-100'
                       }`}>
                         {movement.change > 0 ? (
@@ -488,7 +488,7 @@ export default function StockMovementsPage() {
                         <span>{movement.change > 0 ? '+' : ''}{movement.change}</span>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       <div className="text-sm">
                         <div className="text-gray-500">
@@ -496,19 +496,21 @@ export default function StockMovementsPage() {
                         </div>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-700">{movement.reason}</span>
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        getSourceStyle(movement.source)
+                        // ✨ Исправлено: Утверждаем тип movement.source
+                        getSourceStyle(movement.source as StockMovementSource)
                       }`}>
-                        {getSourceText(movement.source)}
+                        {/* ✨ Исправлено: Утверждаем тип movement.source */}
+                        {getSourceText(movement.source as StockMovementSource)}
                       </span>
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -519,9 +521,9 @@ export default function StockMovementsPage() {
                         </span>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4 text-center">
-                      <button 
+                      <button
                         onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Открыть товар"
@@ -555,10 +557,10 @@ export default function StockMovementsPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${
-                    movement.change > 0 
-                      ? 'text-[#D77E6C] bg-[#D77E6C]/10' 
+                    movement.change > 0
+                      ? 'text-[#D77E6C] bg-[#D77E6C]/10'
                       : 'text-gray-700 bg-gray-100'
                   }`}>
                     {movement.change > 0 ? (
@@ -578,21 +580,23 @@ export default function StockMovementsPage() {
                       {movement.previous_stock || 0} → {movement.new_stock || 0}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Причина:</span>
                     <span className="text-gray-700">{movement.reason}</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Тип:</span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      getSourceStyle(movement.source)
+                      // ✨ Исправлено: Утверждаем тип movement.source
+                      getSourceStyle(movement.source as StockMovementSource)
                     }`}>
-                      {getSourceText(movement.source)}
+                      {/* ✨ Исправлено: Утверждаем тип movement.source */}
+                      {getSourceText(movement.source as StockMovementSource)}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Ответственный:</span>
                     <div className="flex items-center gap-1">
@@ -609,7 +613,7 @@ export default function StockMovementsPage() {
                 </div>
 
                 {/* Кнопка действия */}
-                <button 
+                <button
                   onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
                   className="mt-3 w-full py-2 text-xs text-[#D77E6C] bg-[#D77E6C]/10 rounded-lg hover:bg-[#D77E6C]/20 transition-colors"
                 >
@@ -618,7 +622,7 @@ export default function StockMovementsPage() {
               </div>
             ))}
           </div>
-          
+
           {filteredMovements.length === 0 && (
             <div className="p-8 md:p-12 text-center">
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />

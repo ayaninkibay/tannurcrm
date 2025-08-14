@@ -157,7 +157,7 @@ export type ProductRow = Database['public']['Tables']['products']['Row'];
 export type ProductInsert = Database['public']['Tables']['products']['Insert'];
 export type ProductUpdate = Database['public']['Tables']['products']['Update'];
 
-// ✨ НОВОЕ ИСПРАВЛЕНИЕ: Алиас для StockMovementRow
+// ✨ Исправлено: Алиас для StockMovementRow
 export type StockMovementRow = Database['public']['Tables']['stock_movements']['Row'];
 
 // Типы для источников изменений
@@ -185,10 +185,9 @@ export type StockMovementReason =
   | 'Производство';
 
 // Расширенный тип для отображения с данными связанных таблиц
-// Теперь StockMovementRow определен
 export type StockMovementWithRelations = StockMovementRow & {
-  product?: ProductRow; // Данные товара
-  user?: Database['public']['Tables']['users']['Row']; // Данные пользователя
+  product?: ProductRow | null; // Данные товара (с возможностью null)
+  user?: Database['public']['Tables']['users']['Row'] | null; // Данные пользователя (с возможностью null)
 };
 
 // Тип для фильтров
