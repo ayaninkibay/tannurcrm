@@ -8,17 +8,16 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
-import { useUser } from '@/context/UserContext'
-
-
+import { useUser } from '@/context/UserContext';
+import { ArrowLeft } from 'lucide-react';
 
 interface MoreHeaderADProps {
-  title: string;
+  title: string | React.ReactNode;
+  showBackButton?: boolean; // По умолчанию false
 }
 
-export default function MoreHeaderAD({ title }: MoreHeaderADProps) {
-  const { profile, loading } = useUser(); // ✅
-
+export default function MoreHeaderAD({ title, showBackButton = false }: MoreHeaderADProps) {
+  const { profile, loading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
@@ -26,18 +25,41 @@ export default function MoreHeaderAD({ title }: MoreHeaderADProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
-useEffect(() => {
-  if (!loading && profile) {
-    setName(`${profile.first_name} ${profile.last_name}`);
-    setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
-  }
-}, [profile, loading]);
+  useEffect(() => {
+    if (!loading && profile) {
+      setName(`${profile.first_name} ${profile.last_name}`);
+      setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
+    }
+  }, [profile, loading]);
 
   const handleProfile = () => router.push('/admin/profile');
   const handleNotifications = () => router.push('/admin/notifications');
   const handleSignOut = async () => {
     await fetch('/api/logout', { method: 'POST' });
     router.push('/signin');
+  };
+
+  const handleBack = () => {
+    // Определяем куда вернуться на основе текущего пути
+    const pathSegments = pathname.split('/').filter(Boolean);
+    
+    // Специальная логика для разных разделов
+    if (pathname.includes('/warehouse/')) {
+      router.push('/admin/warehouse');
+    } else if (pathname.includes('/finance/')) {
+      router.push('/admin/finance');
+    } else if (pathname.includes('/reports/')) {
+      router.push('/admin/reports');
+    } else if (pathname.includes('/teamcontent/')) {
+      router.push('/admin/teamcontent');
+    } else if (pathname.includes('/documents/')) {
+      router.push('/admin/documents');
+    } else if (pathname.includes('/tnba/')) {
+      router.push('/admin/tnba');
+    } else {
+      // По умолчанию просто идем назад
+      router.back();
+    }
   };
 
   const menuItems = [
@@ -52,15 +74,28 @@ useEffect(() => {
   ];
 
   return (
-    <div className="w-full -mt-5 border-b border-gray-200 relative">
+    <div className="w-full border-b border-gray-200 relative">
       <div className="h-[72px] flex items-center justify-between">
-        <div className="flex flex-col justify-center">
-          <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
-            {title}
-          </h1>
-          <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
-            Tannur Cosmetics © 2025. All Rights Reserved.
-          </p>
+        <div className="flex items-center gap-3">
+          {/* Кнопка назад - показывается только если showBackButton={true} */}
+          {showBackButton && (
+            <button
+              onClick={handleBack}
+              className="flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors group"
+              title="Назад"
+            >
+              <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-[#D77E6C] transition-colors" />
+            </button>
+          )}
+          
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
+              {title}
+            </h1>
+            <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
+              Tannur Cosmetics © 2025. All Rights Reserved.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
@@ -104,12 +139,11 @@ useEffect(() => {
             className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
           >
             <Lottie
-            animationData={hamburgerAnimation}
-            loop={true}
-            autoplay={true}
-            className="w-10 h-10"
-          />
-
+              animationData={hamburgerAnimation}
+              loop={true}
+              autoplay={true}
+              className="w-10 h-10"
+            />
           </button>
 
           <button
@@ -222,7 +256,6 @@ useEffect(() => {
                   </h2>
                   <p className="text-sm text-gray-500">www.inqo.tech</p>
                 </div>
-
             </motion.div>
           </motion.div>
         )}

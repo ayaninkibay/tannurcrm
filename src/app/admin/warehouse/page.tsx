@@ -1,228 +1,351 @@
 // src/app/admin/warehouse/page.tsx
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import ProductCardWare from '@/components/ui/ProductCardWare';
 import RightSidebar from '@/components/ui/RightSidebar';
+import { 
+  Package, 
+  Users, 
+  Gift, 
+  Plus, 
+  TrendingUp,
+  Box,
+  DollarSign,
+  BarChart3,
+  ShoppingBag,
+  Sparkles
+} from 'lucide-react';
 
-// новые компоненты таблиц
+// Используем ваш готовый хук для работы с продуктами
+import { useProductModule } from '@/lib/product/ProductModule';
+
+// компоненты таблиц
 import Distrib, { DistribItem } from '@/components/reports/warehouse/distrib';
 import Presents, { GiftItem } from '@/components/reports/warehouse/presents';
 
 type ActiveTab = 'warehouse' | 'distributors' | 'gifts';
 
 export default function WareHouse() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>('warehouse');
+  
+  // Используем ваш хук для управления продуктами
+  const { 
+    products, 
+    total, 
+    isLoading, 
+    error, 
+    listProducts 
+  } = useProductModule();
 
-  // ——— Товары на складе ———
-  const warehouseProducts = [
-    { name: '9-А Шампунь+ Tannur',           shopPrice: '12 990 ₸', dealerPrice: '9 900 ₸',  quantity: 897, image: '/img/product1.jpg' },
-    { name: 'Отбеливающая маска Tannур',     shopPrice: '5 990 ₸',  dealerPrice: '3 900 ₸',  quantity: 231, image: '/img/product5.jpg' },
-    { name: 'Гелевая маска Tannur',          shopPrice: '4 990 ₸',  dealerPrice: '1 900 ₸',  quantity: 157, image: '/img/product3.jpg' },
-    { name: 'Кушон 3 в 1 от Tannur',         shopPrice: '7 990 ₸',  dealerPrice: '6 900 ₸',  quantity: 321, image: '/img/product7.jpg' },
-    { name: 'Набор из 6 кремов Tannur',      shopPrice: '8 990 ₸',  dealerPrice: '6 900 ₸',  quantity: 585, image: '/img/product4.jpg' },
-    { name: '9-А Бальзам для волос Tannur',  shopPrice: '11 990 ₸', dealerPrice: '8 900 ₸',  quantity: 870, image: '/img/product2.jpg' },
-  ];
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalStock: 0,
+    totalValue: 0
+  });
 
-  // ——— Дистрибьюторы ———
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+useEffect(() => {
+  if (products.length > 0) {
+    // Подсчитываем статистику
+    const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+    const totalValue = products.reduce((sum, p) => {
+      const price = p.price_dealer || p.price || 0;
+      const stock = p.stock || 0;
+      return sum + (price * stock);
+    }, 0);
+    
+    setStats({
+      totalProducts: products.length,
+      totalStock: totalStock, // Это общее количество всех единиц товаров на складе
+      totalValue: totalValue
+    });
+  }
+}, [products]);
+
+  const loadProducts = async () => {
+    try {
+      await listProducts({
+        limit: 50,
+        orderBy: 'created_at',
+        order: 'desc'
+      });
+    } catch (err) {
+      console.error('Error loading products:', err);
+    }
+  };
+
+  const handleProductClick = (productId: string) => {
+    router.push(`/admin/warehouse/product_view?id=${productId}`);
+  };
+
+  const formatPrice = (price: number | null | undefined) => {
+    if (!price) return '0 ₸';
+    return `${price.toLocaleString('ru-RU')} ₸`;
+  };
+
+  const getImageUrl = (imageUrl?: string | null) => {
+    if (!imageUrl) return '/icons/Photo_icon_1.jpg';
+    return imageUrl;
+  };
+
+  // Дистрибьюторы (пока статичные)
   const distribItems: DistribItem[] = [
     { name: 'ИП Манна Мир', qty: 153, total: '1 238 984 ₸', region: 'Алматы, Аксай 123' },
     { name: 'ТОО Жанна',    qty: 43,  total: '538 984 ₸',   region: 'Алматы, Жандосова 2' },
   ];
 
-  // ——— Подарки ———
+  // Подарки (пока статичные)
   const giftItems: GiftItem[] = [
     { name: 'Акмаржан Лейс', qty: 2, total: '43 984 ₸', note: 'Stories' },
     { name: 'Инжу Ануарбек', qty: 1, total: '12 984 ₸', note: 'Рекламные ролики' },
   ];
 
-  // карточки-статистики
-  interface TabData {
-    icon: string;
-    title: string;
-    count: string;
-    unit: string;
-    totalSum: string;
-    totalText: string;
-  }
-
-  const getTabData = (tab: ActiveTab): TabData => {
-    switch (tab) {
-      case 'warehouse':
-        return { icon: '/icons/IconAppsOrange.svg', title: 'Товары на складе', count: '8321', unit: 'штук', totalSum: '543 213 000 ₸', totalText: 'Товары на общую сумму' };
-      case 'distributors':
-        return { icon: '/icons/IconAppsOrange.svg', title: 'Внешние дистрибьюторы', count: '312', unit: 'штук', totalSum: '2 598 899 ₸', totalText: 'Товары на общую сумму' };
-      case 'gifts':
-        return { icon: '/icons/IconAppsOrange.svg', title: 'Товары на подарки', count: '456', unit: 'штук', totalSum: '3 274 865 ₸', totalText: 'Товары на общую сумму' };
-      default:
-        return { icon: '', title: '', count: '', unit: '', totalSum: '', totalText: '' };
+const tabsData = [
+  {
+    id: 'warehouse' as const,
+    icon: Package,
+    title: 'Товары на складе',
+    count: stats.totalStock, // Общее количество единиц всех товаров
+    unit: 'единиц',
+    sum: formatPrice(stats.totalValue),
+    sumLabel: 'Общая стоимость',
+    color: '#D77E6C',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-[#D77E6C]',
+    iconBg: 'bg-[#D77E6C]/10'
+  },
+    {
+      id: 'distributors' as const,
+      icon: Users,
+      title: 'Дистрибьюторы',
+      count: 312,
+      unit: 'товаров',
+      sum: '2 598 899 ₸',
+      sumLabel: 'На реализации',
+      color: '#7C9D6C',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-600',
+      iconBg: 'bg-green-100'
+    },
+    {
+      id: 'gifts' as const,
+      icon: Gift,
+      title: 'Подарочный фонд',
+      count: 456,
+      unit: 'единиц',
+      sum: '3 274 865 ₸',
+      sumLabel: 'Резерв подарков',
+      color: '#9C7C6C',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-600',
+      iconBg: 'bg-purple-100'
     }
-  };
+  ];
 
-  const currentTabData = getTabData(activeTab);
-
-  const Indicator: React.FC<{ active: boolean }> = ({ active }) => (
-    <div className="absolute top-5 right-5">
-      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${active ? 'border border-red-400' : 'border border-gray-300'}`}>
-        <div className={`w-2 h-2 rounded-full ${active ? 'bg-red-400' : 'bg-gray-300'}`} />
-      </div>
-    </div>
-  );
-
-  return (
-    <main className="p-2 md:p-6 bg-[#F3F3F3] min-h-screen">
-      <MoreHeaderAD title="Склад Tannur" />
-
-      <div className="mt-8 flex flex-col lg:flex-row gap-6">
-        {/* Левая колонка */}
-        <div className="flex-1">
-          {/* Табы-карточки */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
-            {/* Склад */}
-            <button
-              onClick={() => setActiveTab('warehouse')}
-              className={`relative rounded-2xl p-5 text-left border transition-colors duration-200
-                ${activeTab === 'warehouse' ? 'bg-white border-[#DC7C67] ring-2 ring-[#DC7C67]/30' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+  if (error) {
+    return (
+      <main className="p-2 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <MoreHeaderAD title="Склад Tannur" />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center bg-white p-8 rounded-2xl">
+            <p className="text-red-500 mb-4 text-lg">Ошибка: {error}</p>
+            <button 
+              onClick={loadProducts}
+              className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
             >
-              <Indicator active={activeTab === 'warehouse'} />
-              <div className="flex items-center gap-2 mb-3">
-                <Image src="/icons/IconAppsOrange.svg" alt="warehouse" width={20} height={20} />
-                <p className="text-sm text-gray-500">Товары на складе</p>
-              </div>
-              <h3 className="text-4xl font-bold text-[#111] mb-4">
-                8321 <span className="text-base font-normal text-gray-500">штук</span>
-              </h3>
-              <div className="bg-gray-100 rounded-xl p-3 flex items-center gap-3 relative">
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-[#111]">543 213 000 ₸</p>
-                  <p className="text-xs text-gray-500">Товары на общую сумму</p>
-                </div>
-                <div className="grid grid-cols-3 gap-1 opacity-30">
-                  {Array.from({ length: 9 }).map((_, i) => (<div key={i} className="w-1.5 h-1.5 rounded-sm bg-gray-400" />))}
-                </div>
-              </div>
-            </button>
-
-            {/* Дистрибьюторы */}
-            <button
-              onClick={() => setActiveTab('distributors')}
-              className={`relative rounded-2xl p-5 text-left border transition-colors duration-200
-                ${activeTab === 'distributors' ? 'bg-white border-[#DC7C67] ring-2 ring-[#DC7C67]/30' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-            >
-              <Indicator active={activeTab === 'distributors'} />
-              <div className="flex items-center gap-2 mb-3">
-                <Image src="/icons/IconAppsOrange.svg" alt="distributors" width={20} height={20} />
-                <p className="text-sm text-gray-500">Внешние дистрибьюторы</p>
-              </div>
-              <h3 className="text-4xl font-bold text-[#111] mb-4">
-                312 <span className="text-base font-normal text-gray-500">штук</span>
-              </h3>
-              <div className="bg-gray-100 rounded-xl p-3 flex items-center gap-3 relative">
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-[#111]">2 598 899 ₸</p>
-                  <p className="text-xs text-gray-500">Товары на общую сумму</p>
-                </div>
-                <div className="grid grid-cols-3 gap-1 opacity-30">
-                  {Array.from({ length: 9 }).map((_, i) => (<div key={i} className="w-1.5 h-1.5 rounded-sm bg-gray-400" />))}
-                </div>
-              </div>
-            </button>
-
-            {/* Подарки */}
-            <button
-              onClick={() => setActiveTab('gifts')}
-              className={`relative rounded-2xl p-5 text-left border transition-colors duration-200
-                ${activeTab === 'gifts' ? 'bg-white border-[#DC7C67] ring-2 ring-[#DC7C67]/30' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-            >
-              <Indicator active={activeTab === 'gifts'} />
-              <div className="flex items-center gap-2 mb-3">
-                <Image src="/icons/IconAppsOrange.svg" alt="gifts" width={20} height={20} />
-                <p className="text-sm text-gray-500">Товары на подарки</p>
-              </div>
-              <h3 className="text-4xl font-bold text-[#111] mb-4">
-                456 <span className="text-base font-normal text-gray-500">штук</span>
-              </h3>
-              <div className="bg-gray-100 rounded-xl p-3 flex items-center gap-3 relative">
-                <div className="flex-1">
-                  <p className="text-base font-semibold text-[#111]">3 274 865 ₸</p>
-                  <p className="text-xs text-gray-500">Товары на общую сумму</p>
-                </div>
-                <div className="grid grid-cols-3 gap-1 opacity-30">
-                  {Array.from({ length: 9 }).map((_, i) => (<div key={i} className="w-1.5 h-1.5 rounded-sm bg-gray-400" />))}
-                </div>
-              </div>
+              Попробовать снова
             </button>
           </div>
+        </div>
+      </main>
+    );
+  }
 
-          {/* Табличная часть (фиксируем высоту чтобы ничего не «прыгало») */}
-          <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
+  return (
+    <main className="p-2 md:p-4 min-h-screen">
+      <MoreHeaderAD title="Склад Tannur" />
 
-            {/* Шапка блока — правая часть фиксированной ширины и высоты */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-[#111]">
-                {activeTab === 'warehouse' ? 'Товары на складе' : activeTab === 'distributors' ? 'Дистрибьюторы' : 'Товары на подарки'}
-              </h2>
-
-              {/* фиксированный контейнер  — ширина и высота одинаковые на всех табах */}
-              <div className="relative h-9 w-[220px] flex items-center justify-end">
-                {/* счётчик — видим только на складе, но место сохраняется */}
-                <span
-                  className={`absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-500 transition-opacity
-                    ${activeTab === 'warehouse' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
-                >
-                  {currentTabData.count} товаров
-                </span>
-
-                {/* кнопка — видна на дист/подарках, но место сохраняется */}
+      <div className=" flex flex-col lg:flex-row gap-6">
+        {/* Левая колонка */}
+        <div className="flex-1">
+          {/* Табы-карточки с новым дизайном */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
+            {tabsData.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
+              return (
                 <button
-                  className={`absolute right-0 top-1/2 -translate-y-1/2 text-sm text-gray-600 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition-opacity
-                    ${activeTab !== 'warehouse' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative group rounded-2xl p-6 text-left border-2 transition-all duration-300 overflow-hidden
+                    ${isActive 
+                      ? `bg-white ${tab.borderColor}  scale-[1.02]` 
+                      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
+                    }`}
                 >
-                  {activeTab === 'distributors' ? 'Добавить дистрибьютера' : 'Добавить подарок'}
+                  {/* Фоновый градиент для активной карточки */}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#D77E6C]/5" />
+                  )}
+                  
+                  {/* Индикатор активности */}
+                  <div className={`absolute top-4 right-4 w-2 h-2 rounded-full transition-all duration-300 ${
+                    isActive ? 'bg-[#D77E6C] animate-pulse' : 'bg-gray-300'
+                  }`} />
+                  
+                  <div className="relative">
+                    {/* Иконка и заголовок */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`p-2.5 rounded-xl transition-colors ${
+                        isActive ? tab.iconBg : 'bg-gray-100 group-hover:bg-gray-200'
+                      }`}>
+                        <Icon className={`w-5 h-5 transition-colors ${
+                          isActive ? `text-[${tab.color}]` : 'text-gray-600'
+                        }`} style={{ color: isActive ? tab.color : undefined }} />
+                      </div>
+                      <p className={`text-sm font-medium transition-colors ${
+                        isActive ? 'text-gray-900' : 'text-gray-600'
+                      }`}>
+                        {tab.title}
+                      </p>
+                    </div>
+                    
+                    {/* Основное число */}
+                    <div className="mb-4">
+                      <h3 className="text-3xl font-bold text-gray-900">
+                        {tab.count.toLocaleString('ru-RU')}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">{tab.unit}</p>
+                    </div>
+                    
+                    {/* Сумма в красивом блоке */}
+                    <div className={`rounded-xl p-3 transition-colors ${
+                      isActive ? 'bg-gradient-to-r from-[#D77E6C]/10 to-[#D77E6C]/5' : 'bg-gray-50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900">{tab.sum}</p>
+                          <p className="text-xs text-gray-600 mt-0.5">{tab.sumLabel}</p>
+                        </div>
+                        <TrendingUp className={`w-5 h-5 transition-colors ${
+                          isActive ? 'text-[#D77E6C]' : 'text-gray-400'
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
                 </button>
+              );
+            })}
+          </div>
+
+          {/* Основной контент с новым дизайном */}
+          <div className="bg-white rounded-2xl  overflow-hidden">
+            {/* Шапка с градиентом */}
+            <div className=" p-6 border-gray-200 border-b-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {activeTab === 'warehouse' && <Package className="w-6 h-6 text-[#D77E6C]" />}
+                  {activeTab === 'distributors' && <Users className="w-6 h-6 text-green-600" />}
+                  {activeTab === 'gifts' && <Gift className="w-6 h-6 text-purple-600" />}
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {activeTab === 'warehouse' ? 'Товары на складе' : 
+                     activeTab === 'distributors' ? 'Дистрибьюторы' : 'Подарочный фонд'}
+                  </h2>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {activeTab === 'warehouse' && (
+                    <>
+                      <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                        Всего: {total || products.length} товаров
+                      </span>
+
+                    </>
+                  )}
+                  {activeTab !== 'warehouse' && (
+                    <button className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#D77E6C] hover:text-[#D77E6C] transition-all">
+                      <Plus className="w-4 h-4" />
+                      <span>{activeTab === 'distributors' ? 'Добавить дистрибьютора' : 'Добавить подарок'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Контент вкладок */}
-            {activeTab === 'warehouse' && (
-              <>
-                {/* Заголовок таблицы склада — уменьшенный шрифт */}
-                <div className="flex items-center font-semibold text-gray-400 border-b">
-                  <div className="grid grid-cols-5 gap-2 sm:gap-4 lg:gap-6 xl:gap-9 w-full text-center p-2 sm:p-2.5 text-[10px] sm:text-xs md:text-sm lg:text-sm">
-                    <div className="text-left">Наименование</div>
-                    <span className="text-center">Цена Магазин</span>
-                    <span className="text-center">Цена Дилер</span>
-                    <span className="text-center">Кол-во</span>
-                    <span className="text-center">Инфо</span>
+            <div className="p-6">
+              {activeTab === 'warehouse' && (
+                <>
+                  {/* Заголовок таблицы с иконками */}
+                  <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4  text-gray-500" />
+                      <span>Имя</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <DollarSign className="w-4 h-4 text-gray-500" />
+                      <span>Розница</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#D77E6C]" />
+                      <span>Дилер</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Box className="w-4 h-4 text-gray-500" />
+                      <span>Кол-во</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-gray-500" />
+                      <span>Действия</span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Ряды товаров склада */}
-                <div className="space-y-2">
-                  {warehouseProducts.map((product, idx) => (
-                    <ProductCardWare
-                      key={idx}
-                      image={product.image}
-                      title={product.name}
-                      priceOld={product.shopPrice}
-                      priceNew={product.dealerPrice}
-                      count={product.quantity}
-                      onClick={() => alert(`Открыть товар: ${product.name}`)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+                  {/* Список товаров */}
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#D77E6C] border-t-transparent"></div>
+                    </div>
+                  ) : products.length > 0 ? (
+                    <div className="space-y-3">
+                      {products.map((product) => (
+                        <ProductCardWare
+                          key={product.id}
+                          image={getImageUrl(product.image_url)}
+                          title={product.name || 'Без названия'}
+                          priceOld={formatPrice(product.price)}
+                          priceNew={formatPrice(product.price_dealer)}
+                          count={product.stock || 100} // Замените на реальное значение
+                          onClick={() => handleProductClick(product.id)}
+                          className="hover:shadow-md transition-shadow"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-4">Товары не найдены</p>
 
-            {activeTab === 'distributors' && (
-              <Distrib items={distribItems} />
-            )}
+                    </div>
+                  )}
+                </>
+              )}
 
-            {activeTab === 'gifts' && (
-              <Presents items={giftItems} />
-            )}
+              {activeTab === 'distributors' && (
+                <Distrib items={distribItems} />
+              )}
+
+              {activeTab === 'gifts' && (
+                <Presents items={giftItems} />
+              )}
+            </div>
           </div>
         </div>
 
