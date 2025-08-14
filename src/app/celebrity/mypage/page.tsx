@@ -1,55 +1,133 @@
 // src/app/admin/teamcontent/profile_star/page.tsx
 'use client';
 
-import React from 'react';
-import { useState, MouseEvent } from 'react';
+import React, { useState, MouseEvent, useEffect } from 'react';
 import Image from 'next/image';
-
-import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { useSearchParams, useRouter } from 'next/navigation';
+import MoreHeaderCE from '@/components/header/MoreHeaderCE';
 import { FifthTemplate } from '@/components/layouts/TannurPageTemplates';
 import DealerProductCard from '@/components/product/DealerProductCard';
 import DealerBigProductCard from '@/components/product/DealerBigProductCard';
+import { supabase } from '@/lib/supabase/client';
+import { toast } from 'react-hot-toast';
+import { Database } from '@/types/supabase';
 
-
+// Типы
+type ProductRow = Database['public']['Tables']['products']['Row'];
+type UserRow = Database['public']['Tables']['users']['Row'];
 
 export default function ProfileStarPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const starId = searchParams?.get('id');
+  
   const [showClientPrices, setShowClientPrices] = useState(false);
+  const [starProfile, setStarProfile] = useState<UserRow | null>(null);
+  const [products, setProducts] = useState<ProductRow[]>([]);
+  const [bigProduct, setBigProduct] = useState<ProductRow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, [starId]);
+
+  // Загрузка данных
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Если есть ID, загружаем профиль знаменитости
+      if (starId) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', starId)
+          .eq('role', 'celebrity')
+          .single<UserRow>();
+
+        if (!userError && userData) {
+          setStarProfile(userData);
+        }
+      }
+
+      // Загружаем товары из БД
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('flagman', { ascending: false }) // Сначала флагманские товары
+        .limit(9);
+
+      if (productsError) throw productsError;
+      
+      if (productsData && productsData.length > 0) {
+        // Первый товар (желательно флагман) как большой
+        setBigProduct(productsData[0]);
+        // Остальные товары
+        setProducts(productsData.slice(1));
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Ошибка загрузки данных');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Копирование ссылки
   const handleCopy = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const text = 'tannur.app/KZ848970';
+    const text = starProfile?.referral_code 
+      ? `tannur.app/${starProfile.referral_code}`
+      : 'tannur.app/KZ848970';
+    
     navigator.clipboard
       .writeText(text)
-      .then(() => alert('Ссылка скопирована!'))
-      .catch(() => alert('Не удалось скопировать ссылку'));
+      .then(() => toast.success('Ссылка скопирована!'))
+      .catch(() => toast.error('Не удалось скопировать ссылку'));
   };
 
-  // Большой (флагманский) товар
-  const bigProduct = {
-    id: 999,
-    name: '6‑этапный уходовый набор Tannur',
-    dealerPrice: 89850,
-    clientPrice: 123499,
-    imageUrl: '/img/productBig.jpg',
+  // Переход на страницу товара
+  const handleProductClick = (productId: string) => {
+    router.push(`/celebrity/store/product_view?id=${productId}`);
   };
 
-  // Остальные товары (твои данные, просто использую их как есть)
-  const products = [
-    { id: 1, name: '9-A шампунь Tannur', dealerPrice: 89850, clientPrice: 123499, imageUrl: '/img/product1.jpg' },
-    { id: 2, name: 'Сыворотка B5 Active', dealerPrice: 75900, clientPrice: 101900, imageUrl: '/img/product2.jpg' },
-    { id: 3, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product3.jpg' },
-    { id: 4, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product4.jpg' },
-    { id: 5, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product5.jpg' },
-    { id: 6, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product6.jpg' },
-    { id: 7, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product7.jpg' },
-    { id: 8, name: 'Крем Snail Therapy', dealerPrice: 68900, clientPrice: 94700, imageUrl: '/img/product8.jpg' },
-  ];
+  // Форматирование имени
+  const getStarName = () => {
+    if (starProfile) {
+      return `${starProfile.first_name || ''} ${starProfile.last_name || ''}`.trim() || 'Знаменитость';
+    }
+    return 'Інжу Ануарбек';
+  };
+
+  // Получение Instagram
+  const getInstagram = () => {
+    if (starProfile?.instagram) {
+      return starProfile.instagram.replace('@', '').replace('https://instagram.com/', '');
+    }
+    return 'inzhu_anuarbek';
+  };
+
+  // Получение аватара
+  const getAvatarUrl = () => {
+    if (starProfile?.avatar_url) {
+      return starProfile.avatar_url;
+    }
+    return '/icons/UsersAvatarPrew2.jpg';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <FifthTemplate
       header={
-       <MoreHeaderAD title="Страница знаменитости" />
+        <MoreHeaderCE title="Страница знаменитости" />
       }
       /* Первая колонка — профиль */
       column1={
@@ -61,8 +139,8 @@ export default function ProfileStarPage() {
             {/* Аватар */}
             <div className="absolute top-8 sm:top-10 md:top-12 left-4 sm:left-6 w-32 h-32 sm:w-48 sm:h-48 md:w-60 md:h-60 rounded-2xl overflow-hidden border-2 sm:border-4 border-white">
               <img
-                src="/icons/UsersAvatarPrew2.jpg"
-                alt="Інжу Ануарбек"
+                src={getAvatarUrl()}
+                alt={getStarName()}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -71,26 +149,30 @@ export default function ProfileStarPage() {
             <div className="pt-4 sm:pt-6 px-4 sm:px-6 md:px-8 flex flex-col lg:flex-row items-start lg:items-center gap-4">
               <div className="flex-1 mt-20 sm:mt-24 md:mt-0 md:ml-[15rem] flex flex-col">
                 <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-[#111] flex items-center gap-2">
-                  <span className="break-words">Інжу Ануарбек</span>
+                  <span className="break-words">{getStarName()}</span>
                   <Image src="/icons/IconCheckMarkBlue.svg" alt="verified" width={16} height={16} className="sm:w-5 sm:h-5" />
                 </h1>
 
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">Эстрада әншісі</p>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  {starProfile?.region || 'Эстрада әншісі'}
+                </p>
 
                 {/* Ссылки */}
                 <div className="mt-3 sm:mt-4 flex flex-col gap-y-2 text-xs text-gray-500">
                   <a href="#" onClick={handleCopy} className="flex items-center gap-1 hover:text-gray-700 transition-colors">
                     <Image src="/icons/IconCopyGray.svg" alt="copy" width={14} height={14} className="sm:w-4 sm:h-4" />
-                    <span className="break-all">tannur.app/KZ848970</span>
+                    <span className="break-all">
+                      tannur.app/{starProfile?.referral_code || 'KZ848970'}
+                    </span>
                   </a>
                   <a
-                    href="https://instagram.com/inzhu_anuarbek"
+                    href={`https://instagram.com/${getInstagram()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 hover:text-gray-700 transition-colors"
                   >
                     <Image src="/icons/IconInstagram.svg" alt="instagram" width={14} height={14} className="sm:w-4 sm:h-4" />
-                    <span className="break-all">instagram.com/inzhu_anuarbek</span>
+                    <span className="break-all">instagram.com/{getInstagram()}</span>
                   </a>
                 </div>
               </div>
@@ -159,24 +241,37 @@ export default function ProfileStarPage() {
           <div className="px-1 sm:px-2">
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Большой товар */}
-              <div className="col-span-2">
-                <DealerBigProductCard
-                  {...bigProduct}
-                  showClientPrice={showClientPrices}
-                  className="h-full w-full"
-                />
-              </div>
+              {bigProduct && (
+                <div className="col-span-2">
+                  <div onClick={() => handleProductClick(bigProduct.id)} className="cursor-pointer">
+                    <DealerBigProductCard
+                      product={bigProduct}
+                      showClientPrice={showClientPrices}
+                      className="h-full w-full"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Остальные карточки */}
-              {products.slice(0, 8).map((p) => (
-                <div key={p.id} className="col-span-1">
-                  <DealerProductCard
-                    {...p}
-                    showClientPrice={showClientPrices}
-                    className="h-full w-full"
-                  />
+              {products.map((product) => (
+                <div key={product.id} className="col-span-1">
+                  <div onClick={() => handleProductClick(product.id)} className="cursor-pointer">
+                    <DealerProductCard
+                      product={product}
+                      showClientPrice={showClientPrices}
+                      className="h-full w-full"
+                    />
+                  </div>
                 </div>
               ))}
+
+              {/* Заглушка если нет товаров */}
+              {!bigProduct && products.length === 0 && (
+                <div className="col-span-5 text-center py-12 text-gray-500">
+                  <p>Товары будут доступны в ближайшее время</p>
+                </div>
+              )}
             </div>
           </div>
 
