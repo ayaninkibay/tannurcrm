@@ -193,7 +193,7 @@ export default function TeamPurchasePage() {
   const daysUntilDeadline = (deadline: string) => {
     const today = new Date();
     const deadlineDate = new Date(deadline);
-    const diffTime = deadlineDate - today;
+    const diffTime = deadlineDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
