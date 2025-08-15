@@ -47,7 +47,7 @@ export interface Order {
   id: string;
   created_at: string;
   total_amount: number;
-  user_id: string[];  // Массив ID пользователей-участников
+  user_id: string;  // Массив ID пользователей-участников
   paid_at?: string;
   status: OrderStatus;
   order_number: string;
@@ -68,7 +68,7 @@ export interface OrderItem {
   price: number;
   total: number;
   volume?: number;
-  user_id?: string[];  // Массив участников для командных заказов
+  user_id?: string;  // Массив участников для командных заказов
 }
 
 // ========================================

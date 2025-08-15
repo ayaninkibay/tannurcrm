@@ -1,9 +1,11 @@
+// src/lib/cart/CartModule.tsx
+
 'use client';
 
 import { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { cartService } from './CartService';
-import type { Cart, CartItemView, User } from '@/types';
+import { cartService } from './CartService'; // УБЕДИТЕСЬ, ЧТО ПУТЬ ПРАВИЛЬНЫЙ
+import type { Cart, CartItemView } from '@/types';
 
 export interface UseCartModuleReturn {
   // State
@@ -14,10 +16,12 @@ export interface UseCartModuleReturn {
   
   // Actions
   loadUserCart: (userId: string) => Promise<void>;
+  addItem: (productId: string, quantity: number, price: number, priceDealer: number) => Promise<void>;
   updateQuantity: (itemId: string, change: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   toggleItemSelection: (itemId: string) => void;
   toggleSelectAll: () => void;
+  clearSelection: () => void;
   updateDeliveryMethod: (method: 'pickup' | 'delivery') => Promise<void>;
   clearCart: () => Promise<void>;
   
@@ -40,14 +44,24 @@ export const useCartModule = (): UseCartModuleReturn => {
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
 
   const loadUserCart = useCallback(async (userId: string) => {
+    if (!userId) {
+      console.error('User ID is required');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Проверяем, что cartService существует
+      if (!cartService) {
+        throw new Error('Cart service is not initialized');
+      }
+
       const cartId = await cartService.getOrCreateCart(userId);
-      const { cart, items } = await cartService.loadCart(cartId);
+      const { cart: loadedCart, items } = await cartService.loadCart(cartId);
       
-      setCart(cart);
+      setCart(loadedCart);
       setCartItems(items);
-      setDeliveryMethod(cart.delivery_method || 'pickup');
+      setDeliveryMethod(loadedCart.delivery_method || 'pickup');
       
       // По умолчанию выбираем доступные товары
       const availableItems = new Set<string>(
@@ -55,8 +69,8 @@ export const useCartModule = (): UseCartModuleReturn => {
       );
       setSelectedItems(availableItems);
       
-      if (cart.promo_discount) {
-        setPromoDiscount(cart.promo_discount);
+      if (loadedCart.promo_discount) {
+        setPromoDiscount(loadedCart.promo_discount);
       }
     } catch (error) {
       console.error('Error loading cart:', error);
@@ -66,7 +80,65 @@ export const useCartModule = (): UseCartModuleReturn => {
     }
   }, []);
 
+  const addItem = useCallback(async (
+    productId: string, 
+    quantity: number, 
+    price: number, 
+    priceDealer: number
+  ) => {
+    if (!cart) {
+      toast.error('Корзина не загружена');
+      return;
+    }
+
+    if (!cartService) {
+      toast.error('Cart service is not initialized');
+      return;
+    }
+
+    try {
+      // Проверяем, есть ли уже этот товар в корзине
+      const existingItem = cartItems.find(item => item.product_id === productId);
+      
+      if (existingItem) {
+        // Если товар уже есть, увеличиваем количество
+        await cartService.updateItemQuantity(
+          existingItem.id, 
+          existingItem.quantity + quantity
+        );
+        
+        // Обновляем локальное состояние
+        setCartItems(prev => prev.map(item => 
+          item.id === existingItem.id 
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        ));
+        
+        toast.success('Количество товара обновлено');
+      } else {
+        // Добавляем новый товар
+        await cartService.addNewItem(cart.id, productId, quantity);
+        
+        // Перезагружаем корзину для получения нового товара
+        const { cart: updatedCart, items } = await cartService.loadCart(cart.id);
+        setCart(updatedCart);
+        setCartItems(items);
+        
+        toast.success('Товар добавлен в корзину');
+      }
+    } catch (error: any) {
+      console.error('Error adding item to cart:', error);
+      throw new Error(error.message || 'Ошибка добавления товара');
+    }
+  }, [cart, cartItems]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedItems(new Set());
+  }, []);
+
   const updateQuantity = useCallback(async (itemId: string, change: number) => {
+    if (!cartService) return;
+
     const item = cartItems.find(i => i.id === itemId);
     if (!item) return;
 
@@ -85,6 +157,8 @@ export const useCartModule = (): UseCartModuleReturn => {
   }, [cartItems]);
 
   const removeItem = useCallback(async (itemId: string) => {
+    if (!cartService) return;
+
     try {
       await cartService.removeItem(itemId);
       setCartItems(prev => prev.filter(item => item.id !== itemId));
@@ -125,7 +199,7 @@ export const useCartModule = (): UseCartModuleReturn => {
   }, [cartItems, selectedItems]);
 
   const updateDeliveryMethod = useCallback(async (method: 'pickup' | 'delivery') => {
-    if (!cart) return;
+    if (!cart || !cartService) return;
     
     setDeliveryMethod(method);
     try {
@@ -136,7 +210,7 @@ export const useCartModule = (): UseCartModuleReturn => {
   }, [cart]);
 
   const clearCart = useCallback(async () => {
-    if (!cart || selectedItems.size === 0) return;
+    if (!cart || !cartService || selectedItems.size === 0) return;
     
     try {
       await cartService.clearSelectedItems(Array.from(selectedItems));
@@ -173,10 +247,12 @@ export const useCartModule = (): UseCartModuleReturn => {
     loading,
     
     loadUserCart,
+    addItem,
     updateQuantity,
     removeItem,
     toggleItemSelection,
     toggleSelectAll,
+    clearSelection,
     updateDeliveryMethod,
     clearCart,
     

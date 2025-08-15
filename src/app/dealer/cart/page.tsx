@@ -20,22 +20,23 @@ import { toast } from 'react-hot-toast';
 // Компоненты
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 
+// Контекст пользователя
+import { useUser } from '@/context/UserContext';
+
 // Модули и сервисы
 import { useCartModule } from '@/lib/cart/CartModule';
 import { usePromocodeModule } from '@/lib/promocode/PromocodeModule';
-import { useStockModule } from '@/lib/stock/StockModule';
 import { orderService } from '@/lib/order/OrderService';
 import { userService } from '@/lib/user/UserService';
 import { promocodeService } from '@/lib/promocode/PromocodeService';
 
-// Типы
-import type { User } from '@/types';
-
 export default function CartPage() {
   const router = useRouter();
   
+  // Используем контекст пользователя
+  const { profile: currentUser, loading: userLoading } = useUser();
+  
   // State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -43,12 +44,20 @@ export default function CartPage() {
   // Используем модули
   const cart = useCartModule();
   const promo = usePromocodeModule();
-  const stock = useStockModule(currentUser?.id);
   
-  // Загрузка данных при монтировании
+  // Проверка авторизации
   useEffect(() => {
-    loadUserAndCart();
-  }, []);
+    if (!userLoading && !currentUser) {
+      router.push('/signin');
+    }
+  }, [userLoading, currentUser, router]);
+
+  // Загрузка корзины при получении пользователя
+  useEffect(() => {
+    if (currentUser) {
+      loadCart();
+    }
+  }, [currentUser]);
 
   // Автосохранение метода доставки
   useEffect(() => {
@@ -57,26 +66,15 @@ export default function CartPage() {
     }
   }, [deliveryMethod, cart.cart]);
 
-  // Загрузка пользователя и корзины
-  const loadUserAndCart = async () => {
+  // Загрузка корзины
+  const loadCart = async () => {
+    if (!currentUser) return;
+    
     try {
-      const userData = await userService.getCurrentUser();
-      if (!userData) {
-        router.push('/signin');
-        return;
-      }
-      
-      setCurrentUser(userData);
-      await cart.loadUserCart(userData.id);
-      
-      // Загружаем остатки для товаров в корзине
-      if (cart.cartItems.length > 0) {
-        const productIds = cart.cartItems.map(item => item.product_id);
-        await stock.loadMultipleStocks(productIds);
-      }
+      await cart.loadUserCart(currentUser.id);
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Ошибка загрузки данных');
+      console.error('Error loading cart:', error);
+      toast.error('Ошибка загрузки корзины');
     }
   };
 
@@ -106,17 +104,10 @@ export default function CartPage() {
       );
       const totals = cart.calculateTotals();
       
-      // Проверяем наличие всех товаров
-      const canFulfill = stock.canFulfillOrder(
-        selectedCartItems.map(item => ({
-          productId: item.product_id,
-          quantity: item.quantity
-        }))
-      );
-      
-      if (!canFulfill) {
-        toast.error('Недостаточно товаров на складе');
-        await loadUserAndCart(); // Перезагружаем данные
+      // Проверяем наличие всех товаров (используем stock из самих items)
+      const hasOutOfStock = selectedCartItems.some(item => item.stock === 0);
+      if (hasOutOfStock) {
+        toast.error('Некоторые товары отсутствуют на складе');
         return;
       }
       
@@ -140,17 +131,10 @@ export default function CartPage() {
         }))
       );
 
-      // Обновляем остатки для каждого товара
-      for (const item of selectedCartItems) {
-        await stock.decreaseStock(
-          item.product_id, 
-          item.quantity, 
-          order.id
-        );
-      }
-
       // Обновляем товарооборот пользователя
-      await userService.updateTurnover(currentUser.id, totals.total);
+      await userService.updateProfile(currentUser.id, {
+        personal_turnover: (currentUser.personal_turnover || 0) + totals.total
+      });
 
       // Записываем использование промокода
       if (promo.appliedPromoCode) {
@@ -170,7 +154,8 @@ export default function CartPage() {
       await orderService.calculateBonuses(order.id);
 
       toast.success('Заказ успешно создан!');
-      router.push(`/dealer/orders/${order.id}`);
+      // ИСПРАВЛЕНО: перенаправляем на страницу списка заказов
+      router.push('/dealer/orders');
       
     } catch (error: any) {
       console.error('Error creating order:', error);
@@ -183,11 +168,6 @@ export default function CartPage() {
   // Обработчики для UI
   const handleUpdateQuantity = async (itemId: string, change: number) => {
     await cart.updateQuantity(itemId, change);
-    // Обновляем информацию об остатках
-    const item = cart.cartItems.find(i => i.id === itemId);
-    if (item) {
-      await stock.loadStock(item.product_id);
-    }
   };
 
   const handleRemoveItem = async (itemId: string) => {
@@ -219,12 +199,17 @@ export default function CartPage() {
   const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
 
   // Loading state
-  if (cart.loading) {
+  if (userLoading || cart.loading) {
     return (
       <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
       </div>
     );
+  }
+
+  // Если пользователь не авторизован
+  if (!currentUser) {
+    return null;
   }
 
   // Empty cart
@@ -315,7 +300,7 @@ export default function CartPage() {
                   type="checkbox"
                   checked={
                     cart.selectedItems.size === cart.cartItems.filter(item => 
-                      stock.getStockLevel(item.product_id) > 0
+                      item.stock > 0
                     ).length && cart.selectedItems.size > 0
                   }
                   onChange={() => cart.toggleSelectAll()}
@@ -334,8 +319,10 @@ export default function CartPage() {
               
               <div className="space-y-4">
                 {cart.cartItems.map(item => {
-                  const stockLevel = stock.getStockLevel(item.product_id);
-                  const stockStatus = stock.getStockStatus(item.product_id);
+                  // ИСПОЛЬЗУЕМ STOCK ПРЯМО ИЗ ITEM
+                  const stockLevel = item.stock;
+                  const stockStatus = stockLevel === 0 ? 'out_of_stock' : 
+                                     stockLevel < 10 ? 'low_stock' : 'in_stock';
                   
                   return (
                     <div 
@@ -364,6 +351,9 @@ export default function CartPage() {
                             src={item.image || '/placeholder.png'}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.png';
+                            }}
                           />
                           {stockStatus === 'out_of_stock' && (
                             <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">

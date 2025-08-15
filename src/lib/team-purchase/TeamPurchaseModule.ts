@@ -24,9 +24,10 @@ export interface UseTeamPurchaseModuleReturn {
   createPurchase: (data: any) => Promise<void>;
   joinPurchase: (inviteCode: string, contribution: number) => Promise<void>;
   leavePurchase: (purchaseId: string) => Promise<void>;
-  startPurchase: (purchaseId: string) => Promise<void>;
+  startPurchase: (purchaseId: string) => Promise<{ success: boolean; message: string; }>;
   completePurchase: (purchaseId: string) => Promise<void>;
   cancelPurchase: (purchaseId: string, reason: string) => Promise<void>;
+  updateMemberContribution: (purchaseId: string, userId: string, newAmount: number) => Promise<void>;
   
   // Actions - Cart
   addToCart: (productId: string, quantity: number) => Promise<void>;
@@ -179,9 +180,12 @@ export const useTeamPurchaseModule = (
       } else {
         toast.error(result.message);
       }
+      
+      return result; // Возвращаем результат
     } catch (error: any) {
       console.error('Error starting purchase:', error);
       toast.error(error.message || 'Ошибка старта');
+      return { success: false, message: error.message || 'Ошибка старта' }; // Возвращаем ошибку
     }
   }, [loadPurchaseDetails]);
 
@@ -351,6 +355,27 @@ export const useTeamPurchaseModule = (
     }
   }, [getInviteLink]);
 
+  // Обновление вклада участника
+  const updateMemberContribution = useCallback(async (
+    purchaseId: string,
+    userId: string,
+    newAmount: number
+  ) => {
+    try {
+      await teamPurchaseLifecycleService.updateMemberContribution(
+        purchaseId,
+        userId,
+        newAmount
+      );
+      
+      toast.success('Вклад обновлен');
+      await loadPurchaseDetails(purchaseId);
+    } catch (error: any) {
+      console.error('Error updating contribution:', error);
+      toast.error(error.message || 'Ошибка обновления вклада');
+    }
+  }, [loadPurchaseDetails]);
+
   // Автозагрузка при монтировании
   useEffect(() => {
     if (currentUser) {
@@ -372,6 +397,7 @@ export const useTeamPurchaseModule = (
     startPurchase,
     completePurchase,
     cancelPurchase,
+    updateMemberContribution,
     
     // Actions - Cart
     addToCart,

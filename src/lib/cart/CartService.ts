@@ -1,5 +1,7 @@
+// src/lib/cart/CartService.ts
+
 import { supabase } from '@/lib/supabase/client';
-import type { Cart, CartItem, CartItemView, User } from '@/types';
+import type { Cart, CartItem, CartItemView } from '@/types';
 
 class CartService {
   /**
@@ -45,11 +47,31 @@ class CartService {
       image: item.product?.image_url || '',
       price: item.product?.price || 0,
       price_dealer: item.product?.price_dealer || 0,
-      stock: item.product?.stock || 0,
+      stock: item.product?.stock || 100,
       category: item.product?.category || 'Без категории'
     })) || [];
 
     return { cart: data, items };
+  }
+
+  /**
+   * Добавить новый товар в корзину
+   */
+  async addNewItem(cartId: string, productId: string, quantity: number): Promise<void> {
+    const { error } = await supabase
+      .from('cart_items')
+      .insert({
+        cart_id: cartId,
+        product_id: productId,
+        quantity: quantity,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error adding item to cart:', error);
+      throw new Error(error.message);
+    }
   }
 
   /**
@@ -98,6 +120,8 @@ class CartService {
    * Очистить выбранные товары
    */
   async clearSelectedItems(itemIds: string[]): Promise<void> {
+    if (itemIds.length === 0) return;
+    
     const { error } = await supabase
       .from('cart_items')
       .delete()
@@ -115,7 +139,8 @@ class CartService {
       .update({ 
         status: 'ordered',
         promo_code: null,
-        promo_discount: null
+        promo_discount: null,
+        updated_at: new Date().toISOString()
       })
       .eq('id', cartId);
 
@@ -130,7 +155,8 @@ class CartService {
       .from('carts')
       .update({ 
         promo_code: code,
-        promo_discount: discount
+        promo_discount: discount,
+        updated_at: new Date().toISOString()
       })
       .eq('id', cartId);
 
@@ -138,4 +164,5 @@ class CartService {
   }
 }
 
+// ВАЖНО: Экспортируем инстанс сервиса
 export const cartService = new CartService();

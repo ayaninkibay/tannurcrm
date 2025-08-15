@@ -1,126 +1,147 @@
+// @/lib/team-purchase/BusinessRules.ts
+
 /**
  * Бизнес-правила для командных закупок
- * Упрощенная версия без лишних ограничений
  */
-
 export const TEAM_PURCHASE_RULES = {
-  // ==========================================
-  // ОСНОВНЫЕ ПРАВИЛА
-  // ==========================================
-  
+  // Финансовые правила
   finance: {
-    // Единственное ограничение - минимальная сумма для старта
-    MIN_TOTAL_AMOUNT: 300000, // 300,000 ₸ - минимум для начала закупки
-    
-    // Минимальный вклад участника (по желанию организатора)
-    DEFAULT_MIN_CONTRIBUTION: 300000, // 10,000 ₸ (может быть изменено)
+    MIN_PERSONAL_PURCHASE: 300000,      // Минимальная сумма покупки на человека
+    DEFAULT_MIN_CONTRIBUTION: 10000,    // Минимальный вклад участника по умолчанию (не используется)
+    DISCOUNT_PERCENT: 25,               // Процент скидки
+    BONUS_THRESHOLD_1: 500000,          // Порог для серебряного уровня
+    BONUS_THRESHOLD_2: 1000000,         // Порог для золотого уровня  
+    BONUS_THRESHOLD_3: 3000000,         // Порог для платинового уровня
   },
-
-  // ==========================================
-  // УЧАСТНИКИ
-  // ==========================================
   
+  // Правила участников
   participants: {
-    // Минимум участников для старта (включая организатора)
-    MIN_MEMBERS: 2, // Минимум 2 человека
-    
-    // Без максимальных ограничений
-    MAX_MEMBERS: null, // Нет лимита
+    MIN_MEMBERS: 1,                     // Минимум участников (может быть 1)
+    MAX_MEMBERS: 100,                   // Максимум участников
+    ROLES: {
+      ORGANIZER: 'organizer',
+      MEMBER: 'member'
+    }
   },
-
-  // ==========================================
-  // СТАТУСЫ ЗАКУПКИ
-  // ==========================================
   
+  // Временные правила
+  timing: {
+    MIN_FORMING_DAYS: 1,                // Минимум дней на формирование
+    MAX_FORMING_DAYS: 30,               // Максимум дней на формирование
+    PAYMENT_DEADLINE_HOURS: 48,         // Часов на оплату после старта
+  },
+  
+  // Статусы закупки
   statuses: {
-    // Статусы закупки
-    PURCHASE_STATUSES: {
-      FORMING: 'forming',         // Сбор участников
-      ACTIVE: 'active',           // Выбор товаров
-      PURCHASING: 'purchasing',   // Оплата
-      CONFIRMING: 'confirming',   // Подтверждение
-      COMPLETED: 'completed',     // Завершена
-      CANCELLED: 'cancelled',     // Отменена
-    },
-    
-    // Статусы участника
-    MEMBER_STATUSES: {
-      ACCEPTED: 'accepted',       // Участвует
-      PURCHASED: 'purchased',     // Оплатил
-      LEFT: 'left',              // Вышел
-      REMOVED: 'removed',        // Удален организатором
-    },
+    FORMING: 'forming',                 // Формируется (сбор участников)
+    ACTIVE: 'active',                   // Активна (участники собирают корзины)
+    PURCHASING: 'purchasing',           // Идет оплата
+    CONFIRMING: 'confirming',           // Подтверждение оплат
+    COMPLETED: 'completed',             // Завершена
+    CANCELLED: 'cancelled'              // Отменена
   },
-
-  // ==========================================
-  // БОНУСНАЯ СИСТЕМА (стандартная)
-  // ==========================================
   
-  bonuses: {
-    // Личные бонусы по уровням дилера
-    personalLevels: [
-      { level: 1, percent: 0.05 },   // 5%
-      { level: 2, percent: 0.07 },   // 7%
-      { level: 3, percent: 0.10 },   // 10%
-      { level: 4, percent: 0.15 },   // 15%
-      { level: 5, percent: 0.20 },   // 20%
-    ],
-  },
+  // Статусы участников
+  memberStatuses: {
+    INVITED: 'invited',                 // Приглашен
+    ACCEPTED: 'accepted',               // Принял участие
+    PURCHASED: 'purchased',             // Оплатил
+    LEFT: 'left',                       // Вышел
+    REMOVED: 'removed'                  // Удален организатором
+  }
 };
 
-// ==========================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ==========================================
-
 /**
- * Проверить возможность старта закупки
+ * Проверка возможности оплаты заказа
+ * Минимум 300К на человека
  */
-export function canStartPurchase(
-  collectedAmount: number, 
-  membersCount: number
-): boolean {
-  return (
-    collectedAmount >= TEAM_PURCHASE_RULES.finance.MIN_TOTAL_AMOUNT &&
-    membersCount >= TEAM_PURCHASE_RULES.participants.MIN_MEMBERS
-  );
+export function canCheckout(cartTotal: number): boolean {
+  return cartTotal >= TEAM_PURCHASE_RULES.finance.MIN_PERSONAL_PURCHASE;
 }
 
 /**
- * Валидация суммы вклада
+ * Проверка возможности старта закупки
+ * Закупка может начаться сразу после создания
  */
-export function validateContribution(
-  amount: number,
-  minContribution: number
-): {
-  valid: boolean;
-  message?: string;
+export function canStartPurchase(): boolean {
+  return true; // Всегда можно начать
+}
+
+/**
+ * Расчет бонусов по сумме закупки
+ */
+export function calculateBonuses(totalAmount: number): {
+  level: number;
+  description: string;
+  benefits: string[];
 } {
-  if (amount < minContribution) {
+  if (totalAmount >= TEAM_PURCHASE_RULES.finance.BONUS_THRESHOLD_3) {
     return {
-      valid: false,
-      message: `Минимальный вклад: ${minContribution.toLocaleString('ru-RU')} ₸`
+      level: 3,
+      description: 'Платиновый уровень',
+      benefits: [
+        'Скидка 25%',
+        'Бесплатная доставка',
+        'Приоритетное обслуживание',
+        'Эксклюзивные подарки',
+        'Персональный менеджер'
+      ]
     };
   }
   
-  return { valid: true };
+  if (totalAmount >= TEAM_PURCHASE_RULES.finance.BONUS_THRESHOLD_2) {
+    return {
+      level: 2,
+      description: 'Золотой уровень',
+      benefits: [
+        'Скидка 25%',
+        'Бесплатная доставка',
+        'Приоритетное обслуживание',
+        'Бонусные товары'
+      ]
+    };
+  }
+  
+  if (totalAmount >= TEAM_PURCHASE_RULES.finance.BONUS_THRESHOLD_1) {
+    return {
+      level: 1,
+      description: 'Серебряный уровень',
+      benefits: [
+        'Скидка 25%',
+        'Бесплатная доставка',
+        'Приоритетное обслуживание'
+      ]
+    };
+  }
+  
+  return {
+    level: 0,
+    description: 'Базовый уровень',
+    benefits: [
+      'Скидка 25%',
+      'Бесплатная доставка'
+    ]
+  };
 }
 
 /**
- * Получить следующий доступный статус
+ * Проверка дедлайна
  */
-export function getNextStatus(currentStatus: string): string | null {
-  const { PURCHASE_STATUSES } = TEAM_PURCHASE_RULES.statuses;
+export function isDeadlineExpired(deadline: string | null): boolean {
+  if (!deadline) return false;
+  return new Date(deadline) < new Date();
+}
+
+/**
+ * Расчет дней до дедлайна
+ */
+export function daysUntilDeadline(deadline: string | null): number | null {
+  if (!deadline) return null;
   
-  switch (currentStatus) {
-    case PURCHASE_STATUSES.FORMING:
-      return PURCHASE_STATUSES.ACTIVE;
-    case PURCHASE_STATUSES.ACTIVE:
-      return PURCHASE_STATUSES.PURCHASING;
-    case PURCHASE_STATUSES.PURCHASING:
-      return PURCHASE_STATUSES.CONFIRMING;
-    case PURCHASE_STATUSES.CONFIRMING:
-      return PURCHASE_STATUSES.COMPLETED;
-    default:
-      return null;
-  }
+  const today = new Date();
+  const deadlineDate = new Date(deadline);
+  const diffTime = deadlineDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays > 0 ? diffDays : 0;
 }

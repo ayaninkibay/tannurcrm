@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { TEAM_PURCHASE_RULES, canStartPurchase } from '@/lib/team-purchase/BusinessRules';
+import { TEAM_PURCHASE_RULES, canCheckout } from '@/lib/team-purchase/BusinessRules';
 import type { TeamPurchase, TeamPurchaseMember } from '@/types';
 
 class TeamPurchaseLifecycleService {
@@ -11,28 +11,27 @@ class TeamPurchaseLifecycleService {
     data: {
       title: string;
       description?: string;
-      targetAmount: number;
-      minContribution?: number; // Опционально
-      deadline?: string; // Опционально
+      targetAmount: number;  // Это просто план, не ограничение
+      deadline?: string;
     }
   ): Promise<TeamPurchase> {
     try {
       // Генерируем уникальный код приглашения
       const inviteCode = this.generateInviteCode();
 
-      // Создаем закупку БЕЗ лишних ограничений
+      // Создаем закупку
       const { data: purchase, error: purchaseError } = await supabase
         .from('team_purchases')
         .insert({
           title: data.title,
           description: data.description,
           initiator_id: initiatorId,
-          target_amount: data.targetAmount,
-          min_contribution: data.minContribution || TEAM_PURCHASE_RULES.finance.DEFAULT_MIN_CONTRIBUTION,
-          deadline: data.deadline, // Может быть null
-          max_members: null, // Без ограничений
+          target_amount: data.targetAmount, // План сбора
+          min_contribution: 0, // Не используется
+          deadline: data.deadline,
+          max_members: null,
           invite_code: inviteCode,
-          status: 'forming',
+          status: 'forming', // Начинаем с формирования
           collected_amount: 0,
           paid_amount: 0
         })
@@ -44,7 +43,6 @@ class TeamPurchaseLifecycleService {
       }
 
       // Добавляем организатора как первого участника
-      // БЕЗ автоматического определения суммы вклада
       const { error: memberError } = await supabase
         .from('team_purchase_members')
         .insert({
@@ -52,7 +50,7 @@ class TeamPurchaseLifecycleService {
           user_id: initiatorId,
           role: 'organizer',
           status: 'accepted',
-          contribution_target: 0, // Организатор сам определит свой вклад
+          contribution_target: 0, // Не используется
           contribution_actual: 0,
           cart_total: 0
         });
@@ -74,12 +72,11 @@ class TeamPurchaseLifecycleService {
 
   /**
    * Присоединение к закупке по коду
-   * Участник САМ определяет сумму вклада
    */
   async joinByInviteCode(
     inviteCode: string,
     userId: string,
-    contributionTarget: number // Участник сам выбирает
+    contribution?: number // Добавляем опциональный параметр contribution
   ): Promise<{
     success: boolean;
     message: string;
@@ -100,19 +97,11 @@ class TeamPurchaseLifecycleService {
         };
       }
 
-      // Проверяем только статус (без временных ограничений)
-      if (purchase.status !== 'forming') {
+      // Можно присоединиться только на этапе формирования или активной закупки
+      if (!['forming', 'active'].includes(purchase.status)) {
         return {
           success: false,
-          message: 'Закупка уже началась, присоединение невозможно'
-        };
-      }
-
-      // Проверяем минимальный вклад (если установлен)
-      if (contributionTarget < purchase.min_contribution) {
-        return {
-          success: false,
-          message: `Минимальный вклад: ${purchase.min_contribution.toLocaleString('ru-RU')} ₸`
+          message: 'К этой закупке уже нельзя присоединиться'
         };
       }
 
@@ -124,39 +113,59 @@ class TeamPurchaseLifecycleService {
         .eq('user_id', userId)
         .single();
 
-      if (existingMember && existingMember.status !== 'left') {
-        return {
-          success: false,
-          message: 'Вы уже участвуете в этой закупке'
-        };
-      }
-
-      // Добавляем участника
       if (existingMember) {
-        await supabase
-          .from('team_purchase_members')
-          .update({
-            status: 'accepted',
-            contribution_target: contributionTarget,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingMember.id);
-      } else {
-        await supabase
-          .from('team_purchase_members')
-          .insert({
-            team_purchase_id: purchase.id,
-            user_id: userId,
-            role: 'member',
-            status: 'accepted',
-            contribution_target: contributionTarget,
-            contribution_actual: 0,
-            cart_total: 0
-          });
+        if (existingMember.status === 'invited') {
+          // Если был приглашен, принимаем приглашение
+          await supabase
+            .from('team_purchase_members')
+            .update({
+              status: 'accepted',
+              contribution_target: contribution || 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingMember.id);
+            
+          return {
+            success: true,
+            message: 'Приглашение принято',
+            purchaseId: purchase.id
+          };
+        } else if (existingMember.status === 'accepted') {
+          return {
+            success: false,
+            message: 'Вы уже участвуете в этой закупке'
+          };
+        } else if (existingMember.status === 'left') {
+          // Возвращаемся в закупку
+          await supabase
+            .from('team_purchase_members')
+            .update({
+              status: 'accepted',
+              contribution_target: contribution || 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingMember.id);
+            
+          return {
+            success: true,
+            message: 'Вы снова участвуете в закупке',
+            purchaseId: purchase.id
+          };
+        }
       }
 
-      // Обновляем собранную сумму
-      await this.updateCollectedAmount(purchase.id);
+      // Добавляем нового участника
+      await supabase
+        .from('team_purchase_members')
+        .insert({
+          team_purchase_id: purchase.id,
+          user_id: userId,
+          role: 'member',
+          status: 'accepted',
+          contribution_target: contribution || 0,
+          contribution_actual: 0,
+          cart_total: 0
+        });
 
       return {
         success: true,
@@ -173,29 +182,66 @@ class TeamPurchaseLifecycleService {
   }
 
   /**
-   * Обновление планируемого вклада участника
+   * Пригласить участника (создает запись со статусом invited)
    */
-  async updateMemberContribution(
+  async inviteUser(
     purchaseId: string,
-    userId: string,
-    newAmount: number
-  ): Promise<void> {
-    await supabase
-      .from('team_purchase_members')
-      .update({
-        contribution_target: newAmount,
-        updated_at: new Date().toISOString()
-      })
-      .eq('team_purchase_id', purchaseId)
-      .eq('user_id', userId);
+    userEmail: string,
+    invitedBy: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Находим пользователя по email
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
 
-    await this.updateCollectedAmount(purchaseId);
+      if (!user) {
+        return { success: false, message: 'Пользователь не найден' };
+      }
+
+      // Проверяем, не участвует ли уже
+      const { data: existingMember } = await supabase
+        .from('team_purchase_members')
+        .select('*')
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingMember) {
+        return { success: false, message: 'Пользователь уже приглашен или участвует' };
+      }
+
+      // Создаем приглашение
+      await supabase
+        .from('team_purchase_members')
+        .insert({
+          team_purchase_id: purchaseId,
+          user_id: user.id,
+          role: 'member',
+          status: 'invited',
+          contribution_target: 0,
+          contribution_actual: 0,
+          cart_total: 0
+        });
+
+      // TODO: Отправить email уведомление
+
+      return { success: true, message: 'Приглашение отправлено' };
+    } catch (error) {
+      console.error('Error inviting user:', error);
+      return { success: false, message: 'Ошибка отправки приглашения' };
+    }
   }
 
   /**
-   * Старт закупки - проверяем только минимум 300к
+   * Старт активной фазы закупки (переход из формирования в активную)
    */
-  async startPurchase(purchaseId: string): Promise<{
+  async startActivePurchase(purchaseId: string): Promise<{
     success: boolean;
     message: string;
   }> {
@@ -210,25 +256,12 @@ class TeamPurchaseLifecycleService {
         return { success: false, message: 'Закупка не найдена' };
       }
 
-      // Получаем количество участников
-      const { data: members } = await supabase
-        .from('team_purchase_members')
-        .select('id')
-        .eq('team_purchase_id', purchaseId)
-        .eq('status', 'accepted');
-
-      const membersCount = members?.length || 0;
-
-      // Проверяем минимальные условия
-      if (!canStartPurchase(purchase.collected_amount, membersCount)) {
-        return { 
-          success: false, 
-          message: `Не выполнены условия: минимум ${TEAM_PURCHASE_RULES.finance.MIN_TOTAL_AMOUNT.toLocaleString('ru-RU')} ₸ и ${TEAM_PURCHASE_RULES.participants.MIN_MEMBERS} участника` 
-        };
+      if (purchase.status !== 'forming') {
+        return { success: false, message: 'Закупка уже активна или завершена' };
       }
 
-      // Меняем статус на активный
-      await supabase
+      // Переводим в активный статус
+      const { error } = await supabase
         .from('team_purchases')
         .update({
           status: 'active',
@@ -236,7 +269,11 @@ class TeamPurchaseLifecycleService {
         })
         .eq('id', purchaseId);
 
-      return { success: true, message: 'Закупка успешно запущена' };
+      if (error) {
+        return { success: false, message: 'Ошибка активации закупки' };
+      }
+
+      return { success: true, message: 'Закупка активирована! Участники могут собирать корзины' };
     } catch (error) {
       console.error('Error starting purchase:', error);
       return { success: false, message: 'Ошибка запуска закупки' };
@@ -244,12 +281,94 @@ class TeamPurchaseLifecycleService {
   }
 
   /**
-   * Смена статуса закупки (организатор управляет вручную)
+   * Алиас для startActivePurchase для совместимости
    */
-  async changeStatus(
+  async startPurchase(purchaseId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return this.startActivePurchase(purchaseId);
+  }
+
+  /**
+   * Выход участника из закупки
+   */
+  async leavePurchase(
     purchaseId: string,
-    newStatus: string,
-    initiatorId: string
+    userId: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Проверяем статус закупки
+      const { data: purchase } = await supabase
+        .from('team_purchases')
+        .select('status, initiator_id')
+        .eq('id', purchaseId)
+        .single();
+
+      if (!purchase) {
+        return { success: false, message: 'Закупка не найдена' };
+      }
+
+      // Организатор не может выйти
+      if (purchase.initiator_id === userId) {
+        return { success: false, message: 'Организатор не может покинуть закупку' };
+      }
+
+      // Можно выйти только на этапах forming и active
+      if (!['forming', 'active'].includes(purchase.status)) {
+        return { success: false, message: 'На данном этапе выход невозможен' };
+      }
+
+      // Обновляем статус участника
+      await supabase
+        .from('team_purchase_members')
+        .update({
+          status: 'left',
+          updated_at: new Date().toISOString()
+        })
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', userId);
+
+      // Очищаем корзину участника
+      await supabase
+        .from('team_purchase_carts')
+        .update({ status: 'removed' })
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', userId);
+
+      // Обновляем общую сумму
+      await this.updateCollectedAmount(purchaseId);
+
+      return { success: true, message: 'Вы покинули закупку' };
+    } catch (error) {
+      console.error('Error leaving purchase:', error);
+      return { success: false, message: 'Ошибка выхода из закупки' };
+    }
+  }
+
+  /**
+   * Алиас для leavePurchase для совместимости
+   */
+  async leaveTeamPurchase(
+    purchaseId: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return this.leavePurchase(purchaseId, userId);
+  }
+
+  /**
+   * Удаление участника организатором
+   */
+  async removeMember(
+    purchaseId: string,
+    memberId: string,
+    organizerId: string
   ): Promise<{
     success: boolean;
     message: string;
@@ -258,27 +377,306 @@ class TeamPurchaseLifecycleService {
       // Проверяем, что это организатор
       const { data: purchase } = await supabase
         .from('team_purchases')
-        .select('initiator_id')
+        .select('initiator_id, status')
         .eq('id', purchaseId)
         .single();
 
-      if (purchase?.initiator_id !== initiatorId) {
-        return { success: false, message: 'Только организатор может менять статус' };
+      if (!purchase || purchase.initiator_id !== organizerId) {
+        return { success: false, message: 'Только организатор может удалять участников' };
       }
 
-      // Меняем статус
+      if (!['forming', 'active'].includes(purchase.status)) {
+        return { success: false, message: 'На данном этапе удаление невозможно' };
+      }
+
+      // Получаем данные участника
+      const { data: member } = await supabase
+        .from('team_purchase_members')
+        .select('user_id, role')
+        .eq('id', memberId)
+        .single();
+
+      if (!member) {
+        return { success: false, message: 'Участник не найден' };
+      }
+
+      if (member.role === 'organizer') {
+        return { success: false, message: 'Нельзя удалить организатора' };
+      }
+
+      // Удаляем участника
       await supabase
+        .from('team_purchase_members')
+        .update({
+          status: 'removed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', memberId);
+
+      // Очищаем корзину
+      await supabase
+        .from('team_purchase_carts')
+        .update({ status: 'removed' })
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', member.user_id);
+
+      await this.updateCollectedAmount(purchaseId);
+
+      return { success: true, message: 'Участник удален' };
+    } catch (error) {
+      console.error('Error removing member:', error);
+      return { success: false, message: 'Ошибка удаления участника' };
+    }
+  }
+
+  /**
+   * Обновление настроек закупки
+   */
+  async updatePurchaseSettings(
+    purchaseId: string,
+    organizerId: string,
+    settings: {
+      title?: string;
+      description?: string;
+      targetAmount?: number;
+      deadline?: string;
+    }
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Проверяем права
+      const { data: purchase } = await supabase
+        .from('team_purchases')
+        .select('initiator_id, status')
+        .eq('id', purchaseId)
+        .single();
+
+      if (!purchase || purchase.initiator_id !== organizerId) {
+        return { success: false, message: 'Только организатор может изменять настройки' };
+      }
+
+      if (!['forming', 'active'].includes(purchase.status)) {
+        return { success: false, message: 'Настройки можно изменять только на этапе формирования или активной закупки' };
+      }
+
+      // Обновляем настройки
+      const { error } = await supabase
         .from('team_purchases')
         .update({
-          status: newStatus,
+          ...settings,
           updated_at: new Date().toISOString()
         })
         .eq('id', purchaseId);
 
-      return { success: true, message: 'Статус успешно изменен' };
+      if (error) {
+        return { success: false, message: 'Ошибка обновления настроек' };
+      }
+
+      return { success: true, message: 'Настройки обновлены' };
     } catch (error) {
-      console.error('Error changing status:', error);
-      return { success: false, message: 'Ошибка изменения статуса' };
+      console.error('Error updating settings:', error);
+      return { success: false, message: 'Ошибка сохранения настроек' };
+    }
+  }
+
+  /**
+   * Обновление вклада участника
+   */
+  async updateMemberContribution(
+    purchaseId: string,
+    userId: string,
+    newAmount: number
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const { error } = await supabase
+        .from('team_purchase_members')
+        .update({
+          contribution_target: newAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', userId);
+
+      if (error) {
+        return { success: false, message: 'Ошибка обновления вклада' };
+      }
+
+      await this.updateCollectedAmount(purchaseId);
+
+      return { success: true, message: 'Вклад обновлен' };
+    } catch (error) {
+      console.error('Error updating contribution:', error);
+      return { success: false, message: 'Ошибка обновления' };
+    }
+  }
+
+  /**
+   * Подтверждение оплаты участника
+   */
+  async confirmMemberPayment(
+    purchaseId: string,
+    memberId: string,
+    orderId: string,
+    amount: number
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Обновляем статус участника
+      const { error } = await supabase
+        .from('team_purchase_members')
+        .update({
+          status: 'purchased',
+          contribution_actual: amount,
+          order_id: orderId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', memberId)
+        .eq('team_purchase_id', purchaseId);
+
+      if (error) {
+        return { success: false, message: 'Ошибка подтверждения оплаты' };
+      }
+
+      // Обновляем общую оплаченную сумму
+      const { data: members } = await supabase
+        .from('team_purchase_members')
+        .select('contribution_actual')
+        .eq('team_purchase_id', purchaseId)
+        .eq('status', 'purchased');
+
+      const paidAmount = members?.reduce((sum, m) => sum + (m.contribution_actual || 0), 0) || 0;
+
+      await supabase
+        .from('team_purchases')
+        .update({
+          paid_amount: paidAmount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId);
+
+      return { success: true, message: 'Оплата подтверждена' };
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      return { success: false, message: 'Ошибка подтверждения' };
+    }
+  }
+
+  /**
+   * Проверка возможности оплаты (минимум 300К)
+   */
+  async validateCheckout(
+    purchaseId: string,
+    userId: string
+  ): Promise<{
+    canCheckout: boolean;
+    message: string;
+    cartTotal: number;
+    minRequired: number;
+  }> {
+    try {
+      // Получаем сумму корзины
+      const { data: member } = await supabase
+        .from('team_purchase_members')
+        .select('cart_total')
+        .eq('team_purchase_id', purchaseId)
+        .eq('user_id', userId)
+        .single();
+
+      const cartTotal = member?.cart_total || 0;
+      const minRequired = TEAM_PURCHASE_RULES.finance.MIN_PERSONAL_PURCHASE;
+
+      if (cartTotal < minRequired) {
+        return {
+          canCheckout: false,
+          message: `Минимальная сумма заказа ${minRequired.toLocaleString('ru-RU')} ₸. Добавьте товаров на ${(minRequired - cartTotal).toLocaleString('ru-RU')} ₸`,
+          cartTotal,
+          minRequired
+        };
+      }
+
+      return {
+        canCheckout: true,
+        message: 'Можно оформить заказ',
+        cartTotal,
+        minRequired
+      };
+    } catch (error) {
+      console.error('Error validating checkout:', error);
+      return {
+        canCheckout: false,
+        message: 'Ошибка проверки',
+        cartTotal: 0,
+        minRequired: TEAM_PURCHASE_RULES.finance.MIN_PERSONAL_PURCHASE
+      };
+    }
+  }
+
+  /**
+   * Завершение закупки
+   */
+  async completePurchase(purchaseId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      await supabase
+        .from('team_purchases')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId);
+
+      return { success: true, message: 'Закупка завершена' };
+    } catch (error) {
+      console.error('Error completing purchase:', error);
+      return { success: false, message: 'Ошибка завершения' };
+    }
+  }
+
+  /**
+   * Отмена закупки
+   */
+  async cancelPurchase(
+    purchaseId: string,
+    organizerId: string,
+    reason: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Проверяем права
+      const { data: purchase } = await supabase
+        .from('team_purchases')
+        .select('initiator_id')
+        .eq('id', purchaseId)
+        .single();
+
+      if (!purchase || purchase.initiator_id !== organizerId) {
+        return { success: false, message: 'Только организатор может отменить закупку' };
+      }
+
+      await supabase
+        .from('team_purchases')
+        .update({
+          status: 'cancelled',
+          cancellation_reason: reason,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId);
+
+      return { success: true, message: 'Закупка отменена' };
+    } catch (error) {
+      console.error('Error cancelling purchase:', error);
+      return { success: false, message: 'Ошибка отмены' };
     }
   }
 
@@ -288,11 +686,11 @@ class TeamPurchaseLifecycleService {
   private async updateCollectedAmount(purchaseId: string): Promise<void> {
     const { data: members } = await supabase
       .from('team_purchase_members')
-      .select('contribution_target')
+      .select('cart_total')
       .eq('team_purchase_id', purchaseId)
       .in('status', ['accepted', 'purchased']);
 
-    const total = members?.reduce((sum, m) => sum + (m.contribution_target || 0), 0) || 0;
+    const total = members?.reduce((sum, m) => sum + (m.cart_total || 0), 0) || 0;
 
     await supabase
       .from('team_purchases')
