@@ -31,14 +31,53 @@ const MoreHeaderAD = ({ title }) => (
   </div>
 );
 
+// Типы для командных покупок
+interface Participant {
+  id: string;
+  name: string;
+  avatar: string;
+  contribution: number;
+  target: number;
+  isOrganizer?: boolean;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+interface TeamPurchase {
+  id: string;
+  title: string;
+  status: 'active' | 'pending' | 'completed';
+  organizer: {
+    name: string;
+    avatar: string;
+    role: string;
+  };
+  participants: Participant[];
+  targetAmount: number;
+  currentAmount: number;
+  minAmount: number;
+  deadline?: string;
+  completedDate?: string;
+  discount: number;
+  savedAmount?: number;
+  products: Product[];
+  benefits: string[];
+}
+
 export default function TeamPurchasePage() {
-  const [activeTab, setActiveTab] = useState('active');
-  const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'completed'>('active');
+  const [selectedPurchase, setSelectedPurchase] = useState<TeamPurchase | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [myContribution, setMyContribution] = useState({});
+  const [myContribution, setMyContribution] = useState<Record<string, number>>({});
 
   // Временные данные командных покупок
-  const [teamPurchases, setTeamPurchases] = useState([
+  const [teamPurchases, setTeamPurchases] = useState<TeamPurchase[]>([
     {
       id: '1',
       title: 'Оптовая закупка косметики Tannur',
@@ -131,7 +170,7 @@ export default function TeamPurchasePage() {
   });
 
   // Обновление вклада участника
-  const updateContribution = (purchaseId, productId, change) => {
+  const updateContribution = (purchaseId: string, productId: string, change: number) => {
     setMyContribution(prev => {
       const key = `${purchaseId}-${productId}`;
       const current = prev[key] || 0;
@@ -141,17 +180,17 @@ export default function TeamPurchasePage() {
   };
 
   // Форматирование цены
-  const formatPrice = (price) => {
+  const formatPrice = (price: number) => {
     return `${price.toLocaleString('ru-RU')} ₸`;
   };
 
   // Расчет прогресса
-  const calculateProgress = (current, target) => {
+  const calculateProgress = (current: number, target: number) => {
     return Math.min(100, (current / target) * 100);
   };
 
   // Расчет дней до дедлайна
-  const daysUntilDeadline = (deadline) => {
+  const daysUntilDeadline = (deadline: string) => {
     const today = new Date();
     const deadlineDate = new Date(deadline);
     const diffTime = deadlineDate - today;
