@@ -16,8 +16,6 @@ import {
   MoreVertical
 } from 'lucide-react';
 
-import MoreHeaderDE from '@/components/header/MoreHeaderDE';
-
 // Имитация компонента MoreHeaderAD
 const MoreHeaderAD = ({ title }) => (
   <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -25,16 +23,29 @@ const MoreHeaderAD = ({ title }) => (
   </div>
 );
 
+// Тип для товара в корзине
+interface CartItem {
+  id: string;
+  product_id: string;
+  name: string;
+  image: string;
+  price: number;
+  price_dealer: number;
+  quantity: number;
+  stock: number;
+  category: string;
+}
+
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
-  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
 
   // Загрузка временных данных
   useEffect(() => {
-    const tempItems = [
+    const tempItems: CartItem[] = [
       {
         id: '1',
         product_id: 'prod_1',
@@ -83,7 +94,7 @@ export default function CartPage() {
     
     setCartItems(tempItems);
     // По умолчанию выбираем все доступные товары
-    const availableItems = new Set(tempItems.filter(item => item.stock > 0).map(item => item.id));
+    const availableItems = new Set<string>(tempItems.filter(item => item.stock > 0).map(item => item.id));
     setSelectedItems(availableItems);
   }, []);
 
@@ -178,10 +189,10 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screenp-2 md:p-4 bg-[#F6F6F6]">
-      <MoreHeaderDE title="Корзина покупок" showBackButton={true} />
+    <div className="min-h-screen bg-[#F6F6F6]">
+      <MoreHeaderAD title="Корзина покупок" />
       
-      <div className="w-full mx-auto p-4 md:p-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Статистика карточки */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -407,7 +418,7 @@ export default function CartPage() {
               </div>
 
               {deliveryMethod === 'delivery' && subtotal < 50000 && (
-                <div className="mt-4 p-3 bg-[#D77E6C] rounded-lg flex items-start gap-2">
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-800">
                     Добавьте товары на <span className="font-semibold">{formatPrice(50000 - subtotal)}</span> для бесплатной доставки
