@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, 
   Minus, 
   Plus, 
   X, 
-  ChevronRight,
   Package,
   Truck,
   CreditCard,
@@ -15,171 +15,233 @@ import {
   CheckCircle,
   MoreVertical
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-// Имитация компонента MoreHeaderAD
-const MoreHeaderAD = ({ title }) => (
-  <div className="bg-white border-b border-gray-200 px-6 py-4">
-    <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-  </div>
-);
+// Компоненты
+import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 
-// Тип для товара в корзине
-interface CartItem {
-  id: string;
-  product_id: string;
-  name: string;
-  image: string;
-  price: number;
-  price_dealer: number;
-  quantity: number;
-  stock: number;
-  category: string;
-}
+// Модули и сервисы
+import { useCartModule } from '@/lib/cart/CartModule';
+import { usePromocodeModule } from '@/lib/promocode/PromocodeModule';
+import { useStockModule } from '@/lib/stock/StockModule';
+import { orderService } from '@/lib/order/OrderService';
+import { userService } from '@/lib/user/UserService';
+import { promocodeService } from '@/lib/promocode/PromocodeService';
+
+// Типы
+import type { User } from '@/types';
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [deliveryMethod, setDeliveryMethod] = useState('pickup');
-
-  // Загрузка временных данных
+  const router = useRouter();
+  
+  // State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  
+  // Используем модули
+  const cart = useCartModule();
+  const promo = usePromocodeModule();
+  const stock = useStockModule(currentUser?.id);
+  
+  // Загрузка данных при монтировании
   useEffect(() => {
-    const tempItems: CartItem[] = [
-      {
-        id: '1',
-        product_id: 'prod_1',
-        name: 'Ф-А Шоколады Tannur',
-        image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=200&fit=crop',
-        price: 25000,
-        price_dealer: 18000,
-        quantity: 2,
-        stock: 10,
-        category: 'Косметика'
-      },
-      {
-        id: '2',
-        product_id: 'prod_2',
-        name: 'Обваливающая маска Tannur',
-        image: 'https://images.unsplash.com/photo-1596755389378-c31202fa3b90?w=200&h=200&fit=crop',
-        price: 35000,
-        price_dealer: 28000,
-        quantity: 1,
-        stock: 5,
-        category: 'Уход за лицом'
-      },
-      {
-        id: '3',
-        product_id: 'prod_3',
-        name: 'Гелевая маска Tannur',
-        image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop',
-        price: 15000,
-        price_dealer: 12000,
-        quantity: 3,
-        stock: 0,
-        category: 'Уход за лицом'
-      },
-      {
-        id: '4',
-        product_id: 'prod_4',
-        name: 'Набор из 6 кремов Tannur',
-        image: 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=200&h=200&fit=crop',
-        price: 45000,
-        price_dealer: 38000,
-        quantity: 1,
-        stock: 15,
-        category: 'Наборы'
-      }
-    ];
-    
-    setCartItems(tempItems);
-    // По умолчанию выбираем все доступные товары
-    const availableItems = new Set<string>(tempItems.filter(item => item.stock > 0).map(item => item.id));
-    setSelectedItems(availableItems);
+    loadUserAndCart();
   }, []);
 
-  // Обновление количества
-  const updateQuantity = (itemId, change) => {
-    setCartItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        const newQuantity = Math.max(1, Math.min(item.quantity + change, item.stock));
-        return { ...item, quantity: newQuantity };
+  // Автосохранение метода доставки
+  useEffect(() => {
+    if (cart.cart && deliveryMethod !== cart.cart.delivery_method) {
+      cart.updateDeliveryMethod(deliveryMethod);
+    }
+  }, [deliveryMethod, cart.cart]);
+
+  // Загрузка пользователя и корзины
+  const loadUserAndCart = async () => {
+    try {
+      const userData = await userService.getCurrentUser();
+      if (!userData) {
+        router.push('/signin');
+        return;
       }
-      return item;
-    }));
-  };
-
-  // Удаление товара
-  const removeItem = (itemId) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(itemId);
-      return newSet;
-    });
-  };
-
-  // Переключение выбора товара
-  const toggleItemSelection = (itemId) => {
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
+      
+      setCurrentUser(userData);
+      await cart.loadUserCart(userData.id);
+      
+      // Загружаем остатки для товаров в корзине
+      if (cart.cartItems.length > 0) {
+        const productIds = cart.cartItems.map(item => item.product_id);
+        await stock.loadMultipleStocks(productIds);
       }
-      return newSet;
-    });
-  };
-
-  // Выбрать все/снять все
-  const toggleSelectAll = () => {
-    const availableItems = cartItems.filter(item => item.stock > 0);
-    if (selectedItems.size === availableItems.length) {
-      setSelectedItems(new Set());
-    } else {
-      setSelectedItems(new Set(availableItems.map(item => item.id)));
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Ошибка загрузки данных');
     }
   };
 
-  // Применение промокода
-  const applyPromoCode = () => {
-    if (promoCode.toUpperCase() === 'TANNUR20') {
-      setPromoDiscount(20);
-    } else if (promoCode.toUpperCase() === 'NEW10') {
-      setPromoDiscount(10);
-    } else {
-      setPromoDiscount(0);
-      alert('Недействительный промокод');
+  // Создание заказа
+  const createOrder = async () => {
+    // Валидация
+    if (cart.selectedItems.size === 0) {
+      toast.error('Выберите товары для заказа');
+      return;
+    }
+
+    if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
+      toast.error('Укажите адрес доставки');
+      return;
+    }
+
+    if (!currentUser || !cart.cart) {
+      toast.error('Ошибка авторизации');
+      return;
+    }
+
+    try {
+      setIsCreatingOrder(true);
+      
+      const selectedCartItems = cart.cartItems.filter(item => 
+        cart.selectedItems.has(item.id)
+      );
+      const totals = cart.calculateTotals();
+      
+      // Проверяем наличие всех товаров
+      const canFulfill = stock.canFulfillOrder(
+        selectedCartItems.map(item => ({
+          productId: item.product_id,
+          quantity: item.quantity
+        }))
+      );
+      
+      if (!canFulfill) {
+        toast.error('Недостаточно товаров на складе');
+        await loadUserAndCart(); // Перезагружаем данные
+        return;
+      }
+      
+      // Создаем заказ
+      const order = await orderService.createOrder(
+        currentUser.id,
+        totals.total,
+        deliveryMethod === 'delivery' ? deliveryAddress : 'Самовывоз',
+        promo.appliedPromoCode 
+          ? `Промокод: ${promo.appliedPromoCode.code} (${promo.appliedPromoCode.discount_percent}%)`
+          : undefined
+      );
+
+      // Создаем позиции заказа
+      await orderService.createOrderItems(
+        order.id, 
+        selectedCartItems.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price_dealer
+        }))
+      );
+
+      // Обновляем остатки для каждого товара
+      for (const item of selectedCartItems) {
+        await stock.decreaseStock(
+          item.product_id, 
+          item.quantity, 
+          order.id
+        );
+      }
+
+      // Обновляем товарооборот пользователя
+      await userService.updateTurnover(currentUser.id, totals.total);
+
+      // Записываем использование промокода
+      if (promo.appliedPromoCode) {
+        await promocodeService.recordUsage(
+          promo.appliedPromoCode.id,
+          currentUser.id,
+          order.id,
+          totals.discount,
+          totals.total
+        );
+      }
+
+      // Очищаем корзину
+      await cart.clearCart();
+
+      // Запускаем расчет бонусов
+      await orderService.calculateBonuses(order.id);
+
+      toast.success('Заказ успешно создан!');
+      router.push(`/dealer/orders/${order.id}`);
+      
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast.error(error.message || 'Ошибка создания заказа');
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
-  // Расчеты
-  const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
-  const subtotal = selectedCartItems.reduce((sum, item) => sum + (item.price_dealer * item.quantity), 0);
-  const discount = Math.round(subtotal * (promoDiscount / 100));
-  const deliveryFee = deliveryMethod === 'delivery' && subtotal < 50000 ? 5000 : 0;
-  const total = subtotal - discount + deliveryFee;
-  const totalSavings = selectedCartItems.reduce((sum, item) => 
-    sum + ((item.price - item.price_dealer) * item.quantity), 0
-  ) + discount;
-
-  // Форматирование цены
-  const formatPrice = (price) => {
-    return `${price.toLocaleString('ru-RU')} ₸`;
+  // Обработчики для UI
+  const handleUpdateQuantity = async (itemId: string, change: number) => {
+    await cart.updateQuantity(itemId, change);
+    // Обновляем информацию об остатках
+    const item = cart.cartItems.find(i => i.id === itemId);
+    if (item) {
+      await stock.loadStock(item.product_id);
+    }
   };
 
-  if (cartItems.length === 0) {
+  const handleRemoveItem = async (itemId: string) => {
+    await cart.removeItem(itemId);
+  };
+
+  const handleApplyPromoCode = async () => {
+    if (!currentUser || !cart.cart) return;
+    
+    const totals = cart.calculateTotals();
+    const success = await promo.applyPromoCode(
+      totals.subtotal, 
+      currentUser.id, 
+      cart.cart.id
+    );
+    
+    if (success) {
+      // Промокод применен успешно
+    }
+  };
+
+  const handleRemovePromoCode = async () => {
+    if (!cart.cart) return;
+    await promo.removePromoCode(cart.cart.id);
+  };
+
+  // Вычисления
+  const totals = cart.calculateTotals();
+  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
+
+  // Loading state
+  if (cart.loading) {
+    return (
+      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // Empty cart
+  if (cart.cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-[#F6F6F6]">
-        <MoreHeaderAD title="Корзина покупок" />
+        <MoreHeaderDE title="Корзина покупок" />
         
         <div className="flex flex-col items-center justify-center py-20">
           <div className="bg-white rounded-2xl border border-gray-200 p-12">
             <ShoppingCart className="w-24 h-24 text-gray-300 mx-auto mb-6" />
             <h2 className="text-2xl font-bold text-[#111] mb-2 text-center">Корзина пуста</h2>
             <p className="text-gray-500 mb-8 text-center">Добавьте товары, чтобы начать покупки</p>
-            <button className="px-8 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-colors font-medium">
+            <button 
+              onClick={() => router.push('/dealer/shop')}
+              className="px-8 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-colors font-medium"
+            >
               Перейти к покупкам
             </button>
           </div>
@@ -188,9 +250,10 @@ export default function CartPage() {
     );
   }
 
+  // Main render
   return (
     <div className="min-h-screen bg-[#F6F6F6]">
-      <MoreHeaderAD title="Корзина покупок" />
+      <MoreHeaderDE title="Корзина" showBackButton={true}/>
       
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Статистика карточки */}
@@ -202,7 +265,7 @@ export default function CartPage() {
               </div>
               <MoreVertical className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="text-2xl font-bold text-[#111]">{cartItems.length}</div>
+            <div className="text-2xl font-bold text-[#111]">{cart.cartItems.length}</div>
             <div className="text-sm text-gray-500">товаров в корзине</div>
           </div>
 
@@ -213,7 +276,7 @@ export default function CartPage() {
               </div>
               <MoreVertical className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="text-2xl font-bold text-[#111]">{selectedItems.size}</div>
+            <div className="text-2xl font-bold text-[#111]">{cart.selectedItems.size}</div>
             <div className="text-sm text-gray-500">выбрано товаров</div>
           </div>
 
@@ -224,7 +287,7 @@ export default function CartPage() {
               </div>
               <MoreVertical className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="text-2xl font-bold text-green-600">{formatPrice(totalSavings)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatPrice(totals.savings)}</div>
             <div className="text-sm text-gray-500">ваша экономия</div>
           </div>
 
@@ -235,7 +298,7 @@ export default function CartPage() {
               </div>
               <MoreVertical className="w-5 h-5 text-gray-400" />
             </div>
-            <div className="text-2xl font-bold text-[#D77E6C]">{formatPrice(total)}</div>
+            <div className="text-2xl font-bold text-[#D77E6C]">{formatPrice(totals.total)}</div>
             <div className="text-sm text-gray-500">итого к оплате</div>
           </div>
         </div>
@@ -250,14 +313,18 @@ export default function CartPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={selectedItems.size === cartItems.filter(item => item.stock > 0).length && selectedItems.size > 0}
-                  onChange={toggleSelectAll}
+                  checked={
+                    cart.selectedItems.size === cart.cartItems.filter(item => 
+                      stock.getStockLevel(item.product_id) > 0
+                    ).length && cart.selectedItems.size > 0
+                  }
+                  onChange={() => cart.toggleSelectAll()}
                   className="w-5 h-5 text-[#D77E6C] rounded focus:ring-[#D77E6C]"
                 />
                 <span className="font-medium text-[#111]">Выбрать все доступные товары</span>
               </label>
               <span className="text-sm text-gray-500">
-                {selectedItems.size} из {cartItems.length}
+                {cart.selectedItems.size} из {cart.cartItems.length}
               </span>
             </div>
 
@@ -266,96 +333,105 @@ export default function CartPage() {
               <h2 className="text-lg font-semibold text-[#111] mb-4">Товары в корзине</h2>
               
               <div className="space-y-4">
-                {cartItems.map(item => (
-                  <div 
-                    key={item.id} 
-                    className={`p-4 rounded-xl border ${item.stock === 0 ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 bg-white'}`}
-                  >
-                    <div className="flex gap-4">
-                      {/* Чекбокс */}
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.has(item.id)}
-                          onChange={() => toggleItemSelection(item.id)}
-                          disabled={item.stock === 0}
-                          className="w-5 h-5 text-[#D77E6C] rounded focus:ring-[#D77E6C] disabled:opacity-50"
-                        />
-                      </div>
-
-                      {/* Изображение */}
-                      <div className="relative">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-24 h-24 object-cover rounded-lg"
-                        />
-                        {item.stock === 0 && (
-                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-xs font-medium">Нет в наличии</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Информация о товаре */}
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold text-[#111]">{item.name}</h3>
-                            <p className="text-sm text-gray-500">{item.category}</p>
-                          </div>
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <X className="w-5 h-5 text-gray-400" />
-                          </button>
+                {cart.cartItems.map(item => {
+                  const stockLevel = stock.getStockLevel(item.product_id);
+                  const stockStatus = stock.getStockStatus(item.product_id);
+                  
+                  return (
+                    <div 
+                      key={item.id} 
+                      className={`p-4 rounded-xl border ${
+                        stockStatus === 'out_of_stock'
+                          ? 'border-gray-200 bg-gray-50 opacity-60' 
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex gap-4">
+                        {/* Чекбокс */}
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={cart.selectedItems.has(item.id)}
+                            onChange={() => cart.toggleItemSelection(item.id)}
+                            disabled={stockStatus === 'out_of_stock'}
+                            className="w-5 h-5 text-[#D77E6C] rounded focus:ring-[#D77E6C] disabled:opacity-50"
+                          />
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-lg font-bold text-[#D77E6C]">
-                                {formatPrice(item.price_dealer)}
-                              </span>
-                              <span className="text-sm text-gray-400 line-through">
-                                {formatPrice(item.price)}
-                              </span>
+                        {/* Изображение */}
+                        <div className="relative">
+                          <img
+                            src={item.image || '/placeholder.png'}
+                            alt={item.name}
+                            className="w-24 h-24 object-cover rounded-lg"
+                          />
+                          {stockStatus === 'out_of_stock' && (
+                            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-xs font-medium">Нет в наличии</span>
                             </div>
-                            {item.stock > 0 && item.stock <= 5 && (
-                              <p className="text-xs text-orange-600 mt-1">
-                                Осталось {item.stock} шт.
-                              </p>
-                            )}
+                          )}
+                        </div>
+
+                        {/* Информация о товаре */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-semibold text-[#111]">{item.name}</h3>
+                              <p className="text-sm text-gray-500">{item.category}</p>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              <X className="w-5 h-5 text-gray-400" />
+                            </button>
                           </div>
 
-                          {/* Количество */}
-                          {item.stock > 0 ? (
-                            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                              <button
-                                onClick={() => updateQuantity(item.id, -1)}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-white rounded transition-colors"
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </button>
-                              <span className="w-12 text-center font-medium">{item.quantity}</span>
-                              <button
-                                onClick={() => updateQuantity(item.id, 1)}
-                                className="w-8 h-8 flex items-center justify-center hover:bg-white rounded transition-colors"
-                                disabled={item.quantity >= item.stock}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-lg font-bold text-[#D77E6C]">
+                                  {formatPrice(item.price_dealer)}
+                                </span>
+                                <span className="text-sm text-gray-400 line-through">
+                                  {formatPrice(item.price)}
+                                </span>
+                              </div>
+                              {stockStatus === 'low_stock' && (
+                                <p className="text-xs text-orange-600 mt-1">
+                                  Осталось {stockLevel} шт.
+                                </p>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-sm text-red-600 font-medium">Нет в наличии</span>
-                          )}
+
+                            {/* Количество */}
+                            {stockStatus !== 'out_of_stock' ? (
+                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, -1)}
+                                  className="w-8 h-8 flex items-center justify-center hover:bg-white rounded transition-colors"
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <span className="w-12 text-center font-medium">{item.quantity}</span>
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, 1)}
+                                  className="w-8 h-8 flex items-center justify-center hover:bg-white rounded transition-colors"
+                                  disabled={item.quantity >= stockLevel}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-red-600 font-medium">Нет в наличии</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -377,7 +453,7 @@ export default function CartPage() {
                       name="delivery"
                       value="pickup"
                       checked={deliveryMethod === 'pickup'}
-                      onChange={(e) => setDeliveryMethod(e.target.value)}
+                      onChange={(e) => setDeliveryMethod(e.target.value as 'pickup' | 'delivery')}
                       className="text-[#D77E6C] focus:ring-[#D77E6C]"
                     />
                     <div>
@@ -399,7 +475,7 @@ export default function CartPage() {
                       name="delivery"
                       value="delivery"
                       checked={deliveryMethod === 'delivery'}
-                      onChange={(e) => setDeliveryMethod(e.target.value)}
+                      onChange={(e) => setDeliveryMethod(e.target.value as 'pickup' | 'delivery')}
                       className="text-[#D77E6C] focus:ring-[#D77E6C]"
                     />
                     <div>
@@ -408,7 +484,7 @@ export default function CartPage() {
                     </div>
                   </div>
                   <span className="font-medium">
-                    {subtotal >= 50000 ? (
+                    {totals.subtotal >= 50000 ? (
                       <span className="text-green-600">Бесплатно</span>
                     ) : (
                       <span className="text-[#111]">{formatPrice(5000)}</span>
@@ -417,11 +493,28 @@ export default function CartPage() {
                 </label>
               </div>
 
-              {deliveryMethod === 'delivery' && subtotal < 50000 && (
+              {deliveryMethod === 'delivery' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Адрес доставки
+                  </label>
+                  <textarea
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Введите полный адрес доставки"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {deliveryMethod === 'delivery' && totals.subtotal < 50000 && (
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-blue-800">
-                    Добавьте товары на <span className="font-semibold">{formatPrice(50000 - subtotal)}</span> для бесплатной доставки
+                    Добавьте товары на <span className="font-semibold">
+                      {formatPrice(50000 - totals.subtotal)}
+                    </span> для бесплатной доставки
                   </p>
                 </div>
               )}
@@ -436,25 +529,43 @@ export default function CartPage() {
               {/* Промокод */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Промокод</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Введите код"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                  />
-                  <button
-                    onClick={applyPromoCode}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Применить
-                  </button>
-                </div>
-                {promoDiscount > 0 && (
-                  <div className="mt-2 p-2 bg-green-50 rounded-lg flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-700">Скидка {promoDiscount}% применена</span>
+                {!promo.appliedPromoCode ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Введите код"
+                      value={promo.promoCode}
+                      onChange={(e) => promo.setPromoCode(e.target.value.toUpperCase())}
+                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+                      disabled={promo.loading}
+                    />
+                    <button
+                      onClick={handleApplyPromoCode}
+                      disabled={promo.loading || !promo.promoCode.trim()}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {promo.loading ? '...' : 'Применить'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="font-medium text-green-700">
+                          {promo.appliedPromoCode.code}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleRemovePromoCode}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <span className="text-sm text-green-600">
+                      Скидка {promo.appliedPromoCode.discount_percent}%
+                    </span>
                   </div>
                 )}
               </div>
@@ -462,32 +573,34 @@ export default function CartPage() {
               {/* Расчеты */}
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
-                  <span>Товары ({selectedItems.size} шт.)</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>Товары ({cart.selectedItems.size} шт.)</span>
+                  <span>{formatPrice(totals.subtotal)}</span>
                 </div>
                 
-                {promoDiscount > 0 && (
+                {promo.promoDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Скидка</span>
-                    <span>-{formatPrice(discount)}</span>
+                    <span>-{formatPrice(totals.discount)}</span>
                   </div>
                 )}
 
-                {deliveryFee > 0 && (
+                {totals.deliveryFee > 0 && (
                   <div className="flex justify-between text-gray-600">
                     <span>Доставка</span>
-                    <span>{formatPrice(deliveryFee)}</span>
+                    <span>{formatPrice(totals.deliveryFee)}</span>
                   </div>
                 )}
 
                 <div className="pt-3 border-t border-gray-200">
                   <div className="flex justify-between items-baseline">
                     <span className="text-lg font-semibold text-[#111]">Итого</span>
-                    <span className="text-2xl font-bold text-[#D77E6C]">{formatPrice(total)}</span>
+                    <span className="text-2xl font-bold text-[#D77E6C]">
+                      {formatPrice(totals.total)}
+                    </span>
                   </div>
-                  {totalSavings > 0 && (
+                  {totals.savings > 0 && (
                     <p className="text-sm text-green-600 mt-1 text-right">
-                      Экономия: {formatPrice(totalSavings)}
+                      Экономия: {formatPrice(totals.savings)}
                     </p>
                   )}
                 </div>
@@ -495,11 +608,12 @@ export default function CartPage() {
 
               {/* Кнопка оформления */}
               <button 
+                onClick={createOrder}
                 className="w-full py-3 bg-[#D77E6C] text-white rounded-xl font-semibold hover:bg-[#C56D5C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                disabled={selectedItems.size === 0}
+                disabled={cart.selectedItems.size === 0 || isCreatingOrder}
               >
                 <CreditCard className="w-5 h-5" />
-                Оформить заказ
+                {isCreatingOrder ? 'Оформление...' : 'Оформить заказ'}
               </button>
 
               {/* Информация */}
