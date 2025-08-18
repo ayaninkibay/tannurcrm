@@ -95,6 +95,23 @@ class UserService {
     }
     return publicUrlData.publicUrl;
   }
+
+  /**
+   * Выполняет выход пользователя из системы.
+   * Завершает текущую сессию и удаляет токены аутентификации.
+   * @returns {Promise<void>}
+   * @throws {Error} Если произошла ошибка при выходе из системы.
+   */
+  async logout(): Promise<void> {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('UserService: Ошибка при выходе из системы:', error.message);
+      throw new Error(`Не удалось выйти из системы: ${error.message}`);
+    }
+    
+    console.log('UserService: Пользователь успешно вышел из системы');
+  }
 }
 
 // Экспортируем единственный экземпляр класса, чтобы его можно было

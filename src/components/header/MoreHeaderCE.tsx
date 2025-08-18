@@ -1,4 +1,4 @@
-// src/components/header/MoreHeader.tsx
+// src/components/header/MoreHeaderCE.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,17 +8,15 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
-import { useUser } from '@/context/UserContext'
-
-
+import { useUser } from '@/context/UserContext';
 
 interface MoreHeaderCEProps {
   title: string;
 }
 
 export default function MoreHeaderCE({ title }: MoreHeaderCEProps) {
-  const { profile, loading } = useUser(); // ✅
-
+  // Используем logout из UserContext вместо создания своей функции
+  const { profile, loading, logout } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
@@ -26,18 +24,32 @@ export default function MoreHeaderCE({ title }: MoreHeaderCEProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
-useEffect(() => {
-  if (!loading && profile) {
-    setName(`${profile.first_name} ${profile.last_name}`);
-    setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
-  }
-}, [profile, loading]);
+  useEffect(() => {
+    if (!loading && profile) {
+      setName(`${profile.first_name} ${profile.last_name}`);
+      setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
+    }
+  }, [profile, loading]);
 
   const handleProfile = () => router.push('/celebrity/profile');
   const handleNotifications = () => router.push('/celebrity/notifications');
+  
+  // Обновленная функция handleSignOut использует logout из контекста
   const handleSignOut = async () => {
-    await fetch('/api/logout', { method: 'POST' });
-    router.push('/signin');
+    try {
+      // Закрываем меню перед выходом (если оно открыто)
+      setMenuOpen(false);
+      
+      // Вызываем функцию logout из UserContext
+      // Она уже содержит логику выхода через Supabase и редирект на /login
+      await logout();
+      
+      // Примечание: редирект на /signin уже не нужен, так как logout() из контекста
+      // перенаправляет на /login. Если вам нужен именно /signin, измените это в UserContext
+    } catch (error) {
+      console.error('Ошибка при выходе из системы:', error);
+      // Опционально: можно показать уведомление об ошибке пользователю
+    }
   };
 
   const menuItems = [
@@ -45,7 +57,6 @@ useEffect(() => {
     { label: 'Dashboard селебрити', href: '/celebrity/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
     { label: 'Магазин Селебрити', href: '/celebrity/store', icon: '/icons/sidebar/storegray.svg', activeIcon: '/icons/sidebar/storewhite.svg' },
     { label: 'Моя страница', href: '/celebrity/mypage', icon: '/icons/sidebar/mypagegray.svg', activeIcon: '/icons/sidebar/mypagewhite.svg' },
-
   ];
 
   return (
@@ -101,12 +112,11 @@ useEffect(() => {
             className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
           >
             <Lottie
-            animationData={hamburgerAnimation}
-            loop={true}
-            autoplay={true}
-            className="w-10 h-10"
-          />
-
+              animationData={hamburgerAnimation}
+              loop={true}
+              autoplay={true}
+              className="w-10 h-10"
+            />
           </button>
 
           <button
@@ -180,7 +190,10 @@ useEffect(() => {
                     <Image src="/icons/buttom/settingsblack.svg" alt="Язык" width={20} height={20} />
                     Русский
                   </button>
-                  <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]">
+                  <button 
+                    onClick={handleSignOut} 
+                    className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]"
+                  >
                     <Image src="/icons/buttom/signout_black.svg" alt="Выйти" width={20} height={20} />
                     Выйти
                   </button>
@@ -219,7 +232,6 @@ useEffect(() => {
                   </h2>
                   <p className="text-sm text-gray-500">www.inqo.tech</p>
                 </div>
-
             </motion.div>
           </motion.div>
         )}

@@ -33,10 +33,10 @@ import { orderService } from '@/lib/order/OrderService';
 interface Order {
   id: string;
   order_number: string;
-  user_id: string[];
+  user_id: string;
   total_amount: number;
-  order_status: 'new' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  order_status: 'new' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
+  payment_status: 'pending' | 'paid' | 'cancelled' | 'refunded' | 'processing';
   delivery_address: string;
   notes?: string;
   created_at: string;
@@ -90,7 +90,12 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const userOrders = await orderService.getUserOrders(currentUser.id);
-      setOrders(userOrders);
+      // Приводим тип к правильному формату (на случай если в БД еще есть старые данные)
+      const normalizedOrders = userOrders.map(order => ({
+        ...order,
+        user_id: Array.isArray(order.user_id) ? order.user_id[0] : order.user_id
+      })) as Order[];
+      setOrders(normalizedOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
       toast.error('Ошибка загрузки заказов');
@@ -149,10 +154,12 @@ export default function OrdersPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig: any = {
       'new': { label: 'Новый', color: 'bg-blue-100 text-blue-700', icon: Clock },
+      'confirmed': { label: 'Подтвержден', color: 'bg-indigo-100 text-indigo-700', icon: CheckCircle },
       'processing': { label: 'В обработке', color: 'bg-yellow-100 text-yellow-700', icon: Package },
       'shipped': { label: 'Отправлен', color: 'bg-purple-100 text-purple-700', icon: Truck },
       'delivered': { label: 'Доставлен', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-      'cancelled': { label: 'Отменен', color: 'bg-red-100 text-red-700', icon: XCircle }
+      'cancelled': { label: 'Отменен', color: 'bg-red-100 text-red-700', icon: XCircle },
+      'returned': { label: 'Возврат', color: 'bg-gray-100 text-gray-700', icon: XCircle }
     };
     
     const config = statusConfig[status] || statusConfig['new'];
@@ -170,8 +177,9 @@ export default function OrdersPage() {
     const statusConfig: any = {
       'pending': { label: 'Ожидает оплаты', color: 'bg-orange-100 text-orange-700' },
       'paid': { label: 'Оплачен', color: 'bg-green-100 text-green-700' },
-      'failed': { label: 'Ошибка оплаты', color: 'bg-red-100 text-red-700' },
-      'refunded': { label: 'Возврат', color: 'bg-gray-100 text-gray-700' }
+      'cancelled': { label: 'Отменен', color: 'bg-gray-100 text-gray-700' },
+      'refunded': { label: 'Возврат', color: 'bg-gray-100 text-gray-700' },
+      'processing': { label: 'Обработка', color: 'bg-blue-100 text-blue-700' }
     };
     
     const config = statusConfig[status] || statusConfig['pending'];
@@ -378,6 +386,9 @@ export default function OrdersPage() {
                             src={item.product?.image_url || '/placeholder.png'}
                             alt={item.product?.name}
                             className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.png';
+                            }}
                           />
                         </div>
                       ))}
@@ -471,6 +482,12 @@ export default function OrdersPage() {
                     <p className="text-sm text-gray-500 mb-1">Адрес доставки</p>
                     <p className="font-medium">{selectedOrder.delivery_address}</p>
                   </div>
+                  {selectedOrder.notes && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-500 mb-1">Примечание</p>
+                      <p className="font-medium">{selectedOrder.notes}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Товары */}
@@ -483,9 +500,12 @@ export default function OrdersPage() {
                           src={item.product?.image_url || '/placeholder.png'}
                           alt={item.product?.name}
                           className="w-20 h-20 object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.png';
+                          }}
                         />
                         <div className="flex-1">
-                          <h4 className="font-medium text-[#111]">{item.product?.name}</h4>
+                          <h4 className="font-medium text-[#111]">{item.product?.name || 'Товар'}</h4>
                           <p className="text-sm text-gray-500">{item.product?.category}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-sm">Количество: {item.quantity}</span>

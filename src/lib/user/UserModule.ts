@@ -6,6 +6,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { userService } from '@/lib/user/UserService';
 // Импортируем типы из "Офиса" для UserRow и UserUpdate
 import { Database } from '@/types/supabase';
+// Импортируем useRouter для редиректа после выхода
+import { useRouter } from 'next/navigation';
 
 // Типы для данных, которые будет возвращать наш хук
 type UserProfile = Database['public']['Tables']['users']['Row'];
@@ -21,6 +23,8 @@ interface UseUserModuleReturn {
   updateProfile: (userId: string, updates: UserUpdateData) => Promise<void>;
   // Теперь функция uploadUserAvatar возвращает Promise<void>, так как она сама обновляет профиль
   uploadUserAvatar: (userId: string, file: File) => Promise<void>;
+  // Новая функция для выхода из профиля
+  logout: () => Promise<void>;
 }
 
 export const useUserModule = (): UseUserModuleReturn => {
@@ -28,6 +32,9 @@ export const useUserModule = (): UseUserModuleReturn => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false); // По умолчанию false
   const [error, setError] = useState<string | null>(null);
+  
+  // Добавляем роутер для навигации после выхода
+  const router = useRouter();
 
   // 2. Функция для загрузки профиля пользователя
   const fetchProfile = useCallback(async (userId: string) => {
@@ -94,6 +101,30 @@ export const useUserModule = (): UseUserModuleReturn => {
     }
   }, []); // Зависимости пусты, так как мы используем userService, который не меняется
 
+  // 5. Функция для выхода из профиля
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Вызываем функцию logout из UserService
+      await userService.logout();
+      
+      // Очищаем локальное состояние профиля
+      setUserProfile(null);
+      
+      // Опционально: перенаправляем на страницу входа или главную
+      // Вы можете изменить путь в зависимости от вашей структуры приложения
+      router.push('/login');
+      
+    } catch (err: any) {
+      console.error("useUserModule: Ошибка при выходе из системы:", err.message);
+      setError(err.message || "Не удалось выйти из системы.");
+      // Не пробрасываем ошибку дальше, чтобы пользователь мог попробовать еще раз
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
   // 6. Возвращаем состояние и функции для использования в компонентах "Витрины"
   return {
     userProfile,
@@ -102,5 +133,6 @@ export const useUserModule = (): UseUserModuleReturn => {
     fetchProfile,
     updateProfile,
     uploadUserAvatar,
+    logout, // Добавляем функцию logout в возвращаемый объект
   };
 };

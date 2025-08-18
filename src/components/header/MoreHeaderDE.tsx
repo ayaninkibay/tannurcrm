@@ -1,10 +1,9 @@
-// src/components/header/MoreHeader.tsx
+// src/components/header/MoreHeaderDE.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
@@ -17,7 +16,8 @@ interface MoreHeaderDEProps {
 }
 
 export default function MoreHeader({ title, showBackButton = false }: MoreHeaderDEProps) {
-  const { profile, loading } = useUser();
+  // Используем logout из UserContext вместо создания своей функции
+  const { profile, loading, logout } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
@@ -34,26 +34,34 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
   const handleProfile = () => router.push('/dealer/profile');
   const handleNotifications = () => router.push('/dealer/notifications');
+  
+  // Обновленная функция handleSignOut использует logout из контекста
   const handleSignOut = async () => {
-    await fetch('/api/logout', { method: 'POST' });
-    router.push('/signin');
+    try {
+      // Закрываем меню перед выходом (если оно открыто)
+      setMenuOpen(false);
+      
+      // Вызываем функцию logout из UserContext
+      // Она уже содержит логику выхода через Supabase и редирект на /login
+      await logout();
+      
+      // Примечание: редирект на /signin уже не нужен, так как logout() из контекста
+      // перенаправляет на /login. Если вам нужен именно /signin, измените это в UserContext
+    } catch (error) {
+      console.error('Ошибка при выходе из системы:', error);
+      // Опционально: можно показать уведомление об ошибке пользователю
+    }
   };
 
   const handleBack = () => {
-    // Определяем куда вернуться на основе текущего пути
-
-    // ✨ ИСПРАВЛЕНИЕ: Добавьте проверку на null для pathname
+    // Проверка на null для pathname
     if (pathname === null) {
-      // Если pathname null, возможно, мы еще не загрузились
-      // или находимся в состоянии, где путь недоступен.
-      // Можно либо ничего не делать, либо использовать router.back() как запасной вариант.
-      // В данном случае, так как логика зависит от pathname, лучше просто выйти.
       console.warn("Pathname is null, cannot determine back path.");
-      router.back(); // Или просто return;
+      router.back();
       return;
     }
 
-    const pathSegments = pathname.split('/').filter(Boolean); // Эта строка теперь безопасна
+    const pathSegments = pathname.split('/').filter(Boolean);
 
     if (pathname.includes('/shop/')) {
       router.push('/dealer/shop');
@@ -225,7 +233,10 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                     <Image src="/icons/buttom/settingsblack.svg" alt="Язык" width={20} height={20} />
                     Русский
                   </button>
-                  <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]">
+                  <button 
+                    onClick={handleSignOut} 
+                    className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]"
+                  >
                     <Image src="/icons/buttom/signout_black.svg" alt="Выйти" width={20} height={20} />
                     Выйти
                   </button>
