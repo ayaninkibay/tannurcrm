@@ -1,13 +1,8 @@
-// services/TreeService.ts
+// lib/tree/TreeService.ts
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/types/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-
-// Интерфейс совместимый с вашим TeamTree компонентом
 export interface TeamMember {
   id: string;
   parentId: string | null;
@@ -18,7 +13,6 @@ export interface TeamMember {
   role?: string;
   verified: boolean;
   teamCount?: number;
-  // Дополнительные поля из БД
   email?: string;
   phone?: string;
   level?: number;
@@ -31,49 +25,28 @@ export class TreeService {
    */
   static async getMyTeam(userId: string): Promise<TeamMember[]> {
     try {
-      console.log('🔍 TreeService.getMyTeam для userId:', userId);
-      
-      // Получаем членов команды пользователя (функция возвращает SETOF uuid)
       const { data: teamData, error: teamError } = await supabase
         .rpc('get_team_members', { dealer_id: userId });
 
-      console.log('🔍 RPC результат:', { teamData, teamError });
-
       if (teamError) {
-        console.error('❌ Ошибка получения ID команды:', teamError);
-        // Если функции нет, пробуем получить напрямую
         return await this.getTeamDirectly(userId);
       }
 
-      // teamData приходит как массив UUID
       const teamIds = teamData?.map((item: any) => item) || [];
-      console.log('🔍 Team IDs из функции:', teamIds);
-
-      // Всегда включаем самого пользователя
       const allIds = teamIds.length > 0 ? [...teamIds, userId] : [userId];
-      console.log('🔍 Все ID для запроса:', allIds);
 
-      // Получаем детальную информацию о членах команды
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('*')
         .in('id', allIds);
 
-      console.log('🔍 Результат запроса users:', { users, usersError, count: users?.length });
-
       if (usersError) {
-        console.error('❌ Ошибка получения пользователей:', usersError);
         throw usersError;
       }
 
-      // Всегда возвращаем массив, даже если пустой
-      const result = this.transformUsersToTeamMembers(users || []);
-      console.log('🔍 Финальный результат после трансформации:', result);
-      
-      return result;
+      return this.transformUsersToTeamMembers(users || []);
     } catch (error) {
-      console.error('❌ Ошибка получения команды:', error);
-      // В случае ошибки возвращаем пустой массив
+      console.error('Ошибка получения команды:', error);
       return [];
     }
   }
@@ -83,37 +56,28 @@ export class TreeService {
    */
   static async getTeamDirectly(userId: string): Promise<TeamMember[]> {
     try {
-      console.log('🔍 getTeamDirectly для userId:', userId);
-      
       const allMembers: any[] = [];
       const processed = new Set<string>();
       
-      // Рекурсивная функция для получения всех подчиненных
       const fetchDescendants = async (parentId: string) => {
         if (processed.has(parentId)) return;
         processed.add(parentId);
-
-        console.log('🔍 Ищем подчиненных для parentId:', parentId);
 
         const { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('parent_id', parentId);
 
-        console.log('🔍 Найдено подчиненных:', data?.length || 0);
-
         if (error) throw error;
 
         if (data && data.length > 0) {
           allMembers.push(...data);
-          // Рекурсивно получаем подчиненных каждого найденного пользователя
           for (const user of data) {
             await fetchDescendants(user.id);
           }
         }
       };
 
-      // Получаем самого пользователя
       const { data: currentUser, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -122,15 +86,10 @@ export class TreeService {
 
       if (userError) throw userError;
       
-      console.log('🔍 Текущий пользователь:', currentUser?.first_name, currentUser?.last_name);
       allMembers.push(currentUser);
-      
-      // Получаем всех подчиненных
       await fetchDescendants(userId);
 
-      // Если у пользователя есть parent_id, получаем и родителя
       if (currentUser.parent_id) {
-        console.log('🔍 Получаем родителя:', currentUser.parent_id);
         const { data: parent, error: parentError } = await supabase
           .from('users')
           .select('*')
@@ -142,10 +101,9 @@ export class TreeService {
         }
       }
 
-      console.log('🔍 Всего участников найдено:', allMembers.length);
       return this.transformUsersToTeamMembers(allMembers);
     } catch (error) {
-      console.error('❌ Ошибка прямого получения команды:', error);
+      console.error('Ошибка прямого получения команды:', error);
       return [];
     }
   }
@@ -174,8 +132,6 @@ export class TreeService {
    * Преобразовать данные пользователей в формат TeamMember
    */
   private static transformUsersToTeamMembers(users: any[]): TeamMember[] {
-    console.log('🔍 transformUsersToTeamMembers получил пользователей:', users.length);
-    
     const members: TeamMember[] = users.map(user => ({
       id: user.id,
       parentId: user.parent_id,
@@ -192,12 +148,10 @@ export class TreeService {
       turnover: user.personal_turnover
     }));
 
-    // Подсчитываем количество членов команды для каждого участника
     members.forEach(member => {
       member.teamCount = this.countTeamMembers(member.id, members);
     });
 
-    console.log('🔍 Трансформированные участники:', members.map(m => ({ id: m.id, name: m.name, parentId: m.parentId })));
     return members;
   }
 
@@ -256,7 +210,6 @@ export class TreeService {
     
     count += children.length;
     
-    // Рекурсивно считаем потомков
     children.forEach(child => {
       count += this.countTeamMembers(child.id, allMembers);
     });
@@ -278,7 +231,7 @@ export class TreeService {
       
       const totalMembers = members.filter(m => m.id !== userId).length;
       const totalTurnover = members.reduce((sum, member) => sum + (member.turnover || 0), 0);
-      const goal = 9800000; // Можно сделать динамическим из настроек
+      const goal = 9800000;
       const remaining = Math.max(0, goal - totalTurnover);
 
       return {
