@@ -153,7 +153,7 @@ export default function CreateCoursPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Создать курс"showBackButton={true}  />
+      <MoreHeaderAD title="Создать курс" showBackButton={true}  />
       
 
       <form

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -19,7 +19,7 @@ type Course = {
   title: string;
 };
 
-export default function CreateLessonPage() {
+function CreateLessonContent() {
   const sp = useSearchParams();
   const courseId = (sp?.get('courseId') ?? '').trim();
 
@@ -87,7 +87,7 @@ export default function CreateLessonPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={heading}showBackButton={true}  />
+      <MoreHeaderAD title={heading} showBackButton={true} />
 
       {/* форма урока */}
       <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6">
@@ -205,5 +205,29 @@ export default function CreateLessonPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="p-2 md:p-6">
+      <MoreHeaderAD title="Создать урок" showBackButton={true} />
+      <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded mb-4"></div>
+          <div className="h-20 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CreateLessonPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <CreateLessonContent />
+    </Suspense>
   );
 }
