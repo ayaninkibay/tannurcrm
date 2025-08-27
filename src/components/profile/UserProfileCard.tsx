@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 
@@ -8,15 +9,30 @@ export default function UserProfileCard() {
 
   if (loading) {
     return (
-      <div className="w-full bg-white rounded-2xl p-6 transition-all duration-300 ease-in-out h-full">
-        <div className="h-6 w-32 bg-gray-200 rounded mb-4 animate-pulse" />
-        <div className="flex gap-4">
-          <div className="w-24 h-24 bg-gray-200 rounded-xl animate-pulse shrink-0" />
-          <div className="flex flex-1 min-w-0 flex-col justify-center space-y-2">
-            <div className="h-4 w-40 bg-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-28 bg-gray-200 rounded animate-pulse" />
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+        <div className="flex justify-between items-center mb-6">
+          <div className="h-6 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse" />
+          <div className="w-6 h-6 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-pulse" />
+        </div>
+        
+        <div className="flex gap-4 items-start">
+          <div className="w-20 h-20 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-xl animate-pulse shrink-0" />
+          <div className="flex-1 space-y-3">
+            <div className="h-5 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+            <div className="h-3 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+            <div className="h-3 w-28 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="text-center space-y-2">
+                <div className="h-5 w-8 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse mx-auto" />
+                <div className="h-3 w-12 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse mx-auto" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -25,14 +41,17 @@ export default function UserProfileCard() {
 
   if (!profile) {
     return (
-      <div className="w-full bg-white rounded-2xl p-6 transition-all duration-300 ease-in-out h-full">
-        <p className="text-gray-500">Профиль не найден</p>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-center h-32">
+          <p className="text-gray-500">Профиль не найден</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl transition-all duration-300 ease-in-out">
+    <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+      {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <h2 className="text-md font-semibold text-[#111]">Мой профиль</h2>
         <Image 
@@ -44,7 +63,9 @@ export default function UserProfileCard() {
         />
       </div>
 
+      {/* Profile Info */}
       <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
+        {/* Simple Avatar */}
         <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-300 shrink-0">
           <Image
             src={profile.avatar_url || '/img/avatar-default.png'}
@@ -56,6 +77,7 @@ export default function UserProfileCard() {
           />
         </div>
 
+        {/* User Details */}
         <div className="flex flex-col justify-center flex-1 min-w-[100px] space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm md:text-base font-semibold text-[#111] truncate">

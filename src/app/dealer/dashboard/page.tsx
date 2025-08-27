@@ -13,6 +13,7 @@ import { TurnoverChart, MonthValue } from '@/components/TurnoverChart'
 import { generateMonthlyData } from '@/components/generateData'
 import Lottie from 'lottie-react'
 import moneyAnimation from '@/components/lotties/reports_gray.json'
+import NewsEventsCard from '@/components/events/NewsEventsCard';
 import Link from 'next/link';
 
 const rawData: MonthValue[] = generateMonthlyData(new Date(2024, 8, 1), 12)
@@ -49,51 +50,31 @@ export default function DashboardPage() {
              <TeamCard title="Моя команда" count={68} goal={100} showButton variant="purple" />
            </div>
            <div className="h-full">
-             <BonusCard variant="color" turnover={7412000} goal={9800000} remaining={2388000} />
+             <BonusCard 
+  turnover={2500000}    // Текущий оборот в тенге
+  goal={5000000}        // Цель для следующего уровня
+  remaining={2500000}   // Сколько осталось до цели
+  variant="turnover"       // Тип карточки
+/>
            </div>
          </div>
 
          {/* Низ: график и новости - одинаковая высота */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
            {/* График */}
-           <div className="h-[400px]">
+           <div className="h-full">
              <TurnoverChart
                data={rawData}
                colorBar="#E9D7D6"
                colorLine="#DB6A56"
                lineOffset={300000}
-               showStats={false}
+               showStats={true}
              />
            </div>
 
            {/* Новости */}
-           <div className="h-[400px] rounded-2xl bg-white p-6 overflow-hidden flex flex-col">
-             <div className="flex justify-between items-center mb-4">
-               <h2 className="text-xl font-semibold text-gray-900">События за Август</h2>
-               <button className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-full hover:bg-gray-100 transition">
-                 <img src="/icons/Icon long arrow white.png" className="w-3.5 h-3.5" alt="Перейти" />
-               </button>
-             </div>
-             <div className="border-t border-gray-200 mb-4" />
-             <div className="flex-1 overflow-y-auto space-y-3">
-               {[
-                 { title: 'Новый филиал в Алматы', icon: 'Icon cover 1.png' },
-                 { title: 'Путевка в Египет за 50 человек', icon: 'Icon cover 2.png' },
-                 { title: 'TNBA – Новый спикер в Академии', icon: 'Icon cover 3.png' },
-                 { title: 'Мероприятие Tannur Event 08 в Astana Arena', icon: 'Icon cover 4.png' },
-               ].map(({ title, icon }, idx) => (
-                 <div key={idx} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition">
-                   <div className="flex items-center gap-3">
-                     <img src={`/icons/${icon}`} className="w-12 h-12 rounded-xl object-cover" alt="Иконка" />
-                     <div className="flex flex-col">
-                       <span className="text-sm font-semibold text-gray-900">{title}</span>
-                       <span className="text-xs text-gray-500">новости</span>
-                     </div>
-                   </div>
-                   <img src="/icons/buttom/DoubleIconArrowOrange.svg" className="w-6 h-6" alt="Подробнее" />
-                 </div>
-               ))}
-             </div>
+           <div className="min-h-[400px]  overflow-hidden flex flex-col">
+              <NewsEventsCard/>
            </div>
          </div>
        </div>

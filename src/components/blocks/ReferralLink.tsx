@@ -1,84 +1,138 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Image from 'next/image'
-import clsx from 'clsx'
-import { useUser } from '@/context/UserContext'
+import React, { useState } from 'react';
+import Image from 'next/image';
+import { useUser } from '@/context/UserContext';
 
-interface Props {
-  referralCode?: string
-  variant?: 'orange' | 'gray'
+interface ReferralLinkProps {
+  referralCode?: string;
+  variant?: 'orange' | 'gray';
 }
 
-export default function ReferralLink({ referralCode, variant = 'orange' }: Props) {
-  const { profile, loading: loadingProfile } = useUser()
-  const [copied, setCopied] = useState(false)
+export default function ReferralLink({ 
+  referralCode, 
+  variant = 'orange' 
+}: ReferralLinkProps) {
+  const { profile, loading: loadingProfile } = useUser();
+  const [copied, setCopied] = useState(false);
 
-  const code = referralCode || profile?.referral_code || ''
-  const fullLink = `https://tannur.app/${code}`
-  const isOrange = variant === 'orange'
+  const code = referralCode || profile?.referral_code || 'USER2024';
+  const fullLink = `https://tannur.app/${code}`;
+  const isOrange = variant === 'orange';
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(fullLink)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      await navigator.clipboard.writeText(fullLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Ошибка копирования ссылки:', err)
+      console.error('Ошибка копирования ссылки:', err);
+      const textArea = document.createElement('textarea');
+      textArea.value = fullLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }
+  };
 
   if (loadingProfile && !referralCode) {
     return (
-      <div className="w-full min-h-[96px] bg-white rounded-xl p-3">
-        <div className="h-4 w-32 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-[shimmer_1.5s_infinite]" />
-        <div className="mt-2 h-12 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-[shimmer_1.5s_infinite]" />
+      <div className="w-full">
+        <div className="h-4 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded mb-3 animate-pulse" />
+        <div className="bg-gray-100 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-4 h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+            <div className="h-3 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+          </div>
+          <div className="bg-white rounded-lg p-3">
+            <div className="h-4 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="w-full">
-      <p className="text-sm font-medium text-[#111] mb-2">Реферальная ссылка</p>
-
-      <div
-        className={clsx(
-          'rounded-xl p-3',
-          isOrange ? 'bg-[#DC7C67] text-white' : 'bg-gray-100 text-black'
-        )}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <Image
-            src={isOrange ? '/icons/buttom/share_white.svg' : '/icons/buttom/share_black.svg'}
-            alt="share"
-            width={16}
-            height={16}
-          />
-          <p className="text-[12px] font-medium">Ссылка для приглашения</p>
+      <p className="text-sm font-medium text-gray-900 mb-3">Реферальная ссылка</p>
+      
+      <div className={`rounded-xl p-4 relative overflow-hidden ${isOrange ? 'bg-[#DC7C67]' : 'bg-gray-100'}`}>
+        {/* Subtle background decoration */}
+        <div className="absolute top-0 right-0 w-16 h-16 opacity-5">
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
+            <circle cx="50" cy="30" r="8" />
+            <circle cx="70" cy="50" r="6" />
+            <circle cx="30" cy="60" r="4" />
+          </svg>
         </div>
 
-        <div className="bg-white rounded-md px-3 py-2 flex justify-between items-center">
-          <span className="text-[12px] truncate">
-            <span className="text-gray-400">tannur.app/</span>
-            <span className={isOrange ? 'text-black' : 'text-[#D77E6C]'}>{code}</span>
-          </span>
+        <div className="relative z-10">
+          {/* Header */}
+          <div className={`flex items-center gap-2 mb-3 ${isOrange ? 'text-white' : 'text-gray-700'}`}>
+            <div className={`p-1.5 rounded-lg ${isOrange ? 'bg-white/10' : 'bg-gray-200'}`}>
+              <Image
+                src={isOrange ? '/icons/buttom/share_white.svg' : '/icons/buttom/share_black.svg'}
+                alt="share"
+                width={14}
+                height={14}
+              />
+            </div>
+            <span className="text-sm font-medium">Ссылка для приглашения</span>
+          </div>
 
-          <div onClick={handleCopy} className="cursor-pointer">
-            <Image
-              src="/icons/buttom/copy_black.svg"
-              alt="copy"
-              width={16}
-              height={16}
-            />
+          {/* Link Container */}
+          <div className={`bg-white rounded-lg p-3 ${isOrange ? 'shadow-sm' : 'border border-gray-200'}`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <span className="text-sm">
+                  <span className="text-gray-400">tannur.app/</span>
+                  <span className="font-semibold text-[#DC7C67]">
+                    {code}
+                  </span>
+                </span>
+              </div>
+              
+              <button 
+                onClick={handleCopy}
+                className={`p-2 rounded-lg transition-all hover:scale-110 ${
+                  copied ? 'bg-green-50 text-green-600' : 'hover:bg-gray-50'
+                }`}
+                title="Копировать ссылку"
+              >
+                {copied ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <Image
+                    src="/icons/buttom/copy_black.svg"
+                    alt="copy"
+                    width={16}
+                    height={16}
+                  />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Success Message */}
+          {copied && (
+            <div className={`flex items-center gap-1.5 text-xs mt-2 transition-opacity duration-200 ${isOrange ? 'text-white/90' : 'text-gray-600'}`}>
+              <div className="w-1 h-1 bg-current rounded-full"></div>
+              Ссылка скопирована!
+            </div>
+          )}
+
+          {/* Simple stats */}
+          <div className={`mt-4 pt-3 flex justify-between text-xs border-t ${isOrange ? 'border-white/20 text-white/90' : 'border-gray-200 text-gray-600'}`}>
+            <span>Переходов: <span className={`font-medium ${isOrange ? 'text-white' : 'text-gray-700'}`}>24</span></span>
+            <span>Активных: <span className={`font-medium ${isOrange ? 'text-white' : 'text-gray-700'}`}>8</span></span>
           </div>
         </div>
-
-        {copied && (
-          <p className={clsx('text-[10px] mt-1', isOrange ? 'text-white' : 'text-gray-500')}>
-            Ссылка скопирована!
-          </p>
-        )}
       </div>
     </div>
-  )
+  );
 }
