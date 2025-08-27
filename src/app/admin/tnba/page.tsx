@@ -1,7 +1,7 @@
-// src/app/admin/tnba/page.tsx  (или ваш фактический путь)
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link'; // ⬅️ добавил
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import TannurButton from '@/components/Button';
 
@@ -17,34 +17,10 @@ export default function AcademyTannur() {
   const [selectedCategory] = useState('courses');
 
   const courses: Course[] = [
-    {
-      id: '1',
-      title: 'Знакомство с Tannur',
-      author: 'Tannur Cosmetics',
-      lessonsCount: 6,
-      icon: '/icons/IconEducationOrange.svg',
-    },
-    {
-      id: '2',
-      title: 'Маркетинговая стратегия',
-      author: 'Insy Anuarben',
-      lessonsCount: 5,
-      icon: '/icons/IconMarketingOrange.svg',
-    },
-    {
-      id: '3',
-      title: 'Менеджер по продажам',
-      author: 'Сыймова Мариям',
-      lessonsCount: 13,
-      icon: '/icons/IconSalesOrange.svg',
-    },
-    {
-      id: '4',
-      title: 'Как продавать продукцию?',
-      author: 'Tannur Cosmetics',
-      lessonsCount: 8,
-      icon: '/icons/IconProductOrange.svg',
-    },
+    { id: '1', title: 'Знакомство с Tannur',      author: 'Tannur Cosmetics', lessonsCount: 6,  icon: '/icons/IconEducationOrange.svg' },
+    { id: '2', title: 'Маркетинговая стратегия',  author: 'Insy Anuarben',    lessonsCount: 5,  icon: '/icons/IconMarketingOrange.svg' },
+    { id: '3', title: 'Менеджер по продажам',     author: 'Сыймова Мариям',   lessonsCount: 13, icon: '/icons/IconSalesOrange.svg' },
+    { id: '4', title: 'Как продавать продукцию?', author: 'Tannur Cosmetics', lessonsCount: 8,  icon: '/icons/IconProductOrange.svg' },
   ];
 
   return (
@@ -78,10 +54,7 @@ export default function AcademyTannur() {
 
                   <tbody className="bg-white">
                     {courses.map((course, index) => (
-                      <tr
-                        key={course.id}
-                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                      >
+                      <tr key={course.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <div className="w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center">
@@ -92,33 +65,29 @@ export default function AcademyTannur() {
                             <span className="text-sm font-medium text-gray-900">{course.title}</span>
                           </div>
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-600">{course.author}</span>
                         </td>
-
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">{course.lessonsCount} уроков</span>
                         </td>
                       </tr>
                     ))}
 
-                    {/* Добавить курс */}
-                    <tr className="hover:bg-gray-50 transition-colors cursor-pointer group">
+                    {/* Добавить курс — теперь ссылка */}
+                    <tr className="hover:bg-gray-50 transition-colors">
                       <td colSpan={3} className="px-6 py-4">
-                        <div className="flex items-center gap-3 text-gray-400 group-hover:text-[#DC7C67] transition-colors">
-                          <div className="w-6 h-6 border-2 border-dashed border-current rounded-md flex items-center justify-center">
+                        <Link
+                          href="/admin/tnba/create_cours"
+                          className="flex items-center gap-3 text-gray-400 hover:text-[#DC7C67] transition-colors"
+                        >
+                          <span className="w-6 h-6 border-2 border-dashed border-current rounded-md flex items-center justify-center">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                              />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                          </div>
+                          </span>
                           <span className="text-sm font-medium">Добавить курс</span>
-                        </div>
+                        </Link>
                       </td>
                     </tr>
                   </tbody>
@@ -127,22 +96,23 @@ export default function AcademyTannur() {
             </div>
           </div>
 
-          {/* Правая колонка — кнопки управления на TannurButton */}
+          {/* Правая колонка — кнопки управления */}
           <div className="xl:col-span-1 space-y-6">
             {/* Управление */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 mt-2">Управление</h3>
 
               <div className="space-y-2">
+                {/* Кнопка "Добавить курс" теперь ведёт на create_cours */}
                 <TannurButton
                   text="Добавить курс"
-                  href="#"
+                  href="/admin/tnba/create_cours"
                   iconSrc="/icons/iconusersorange.svg"
                   variant="white"
                   arrow="black"
                 />
                 <TannurButton
-                  text="Добавить спикера"
+                  text="Добавить Урок"
                   href="#"
                   iconSrc="/icons/iconusersorange.svg"
                   variant="white"
@@ -161,7 +131,6 @@ export default function AcademyTannur() {
             {/* Спикеры */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Спикеры</h3>
-
               <div className="space-y-2">
                 <TannurButton
                   text="Список спикеров"

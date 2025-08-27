@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import ProductCardWare from '@/components/ui/ProductCardWare';
 import RightSidebar from '@/components/ui/RightSidebar';
+
 import { 
   Package, 
   Users, 
@@ -270,12 +271,24 @@ const tabsData = [
 
                     </>
                   )}
-                  {activeTab !== 'warehouse' && (
-                    <button className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#D77E6C] hover:text-[#D77E6C] transition-all">
-                      <Plus className="w-4 h-4" />
-                      <span>{activeTab === 'distributors' ? 'Добавить дистрибьютора' : 'Добавить подарок'}</span>
-                    </button>
-                  )}
+{activeTab !== 'warehouse' && (
+  <button
+    onClick={() => {
+      if (activeTab === 'distributors') {
+        router.push('/admin/warehouse/create_distributor');
+      }
+      if (activeTab === 'gifts') {
+        router.push('/admin/warehouse/create_gift');
+      }
+    }}
+    className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#D77E6C] hover:text-[#D77E6C] transition-all"
+  >
+    <Plus className="w-4 h-4" />
+    <span>{activeTab === 'distributors' ? 'Добавить дистрибьютора' : 'Добавить подарок'}</span>
+  </button>
+)}
+
+
                 </div>
               </div>
             </div>

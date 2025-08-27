@@ -16,7 +16,8 @@ interface Props {
   transactions: Transaction[];
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
-  onView: (id: number) => void;
+  onView: (id: number) => void;                 // клик по «глазу»
+  onRowUserClick?: (tx: Transaction) => void;    // НОВОЕ: клик по строке/карточке
   currentDate: string;
 }
 
@@ -25,6 +26,7 @@ const PendingTransactionsTable: React.FC<Props> = ({
   onApprove,
   onReject,
   onView,
+  onRowUserClick,
   currentDate,
 }) => {
   const getTypeIcon = (type: string) => {
@@ -39,6 +41,8 @@ const PendingTransactionsTable: React.FC<Props> = ({
         return <CreditCard className="h-3 w-3 md:h-4 md:w-4 text-gray-500" />;
     }
   };
+
+  const money = (n: number) => n.toLocaleString('ru-RU');
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl border border-gray-200 h-full flex flex-col">
@@ -55,7 +59,7 @@ const PendingTransactionsTable: React.FC<Props> = ({
       {/* Desktop Table View */}
       <div className="hidden lg:block flex-1 overflow-auto">
         <table className="w-full">
-          <thead>
+          <thead className="sticky top-0 bg-white z-10">
             <tr className="border-b border-gray-100">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
@@ -67,7 +71,11 @@ const PendingTransactionsTable: React.FC<Props> = ({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {transactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50">
+              <tr
+                key={transaction.id}
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => onRowUserClick?.(transaction)}           // клик по строке
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -79,7 +87,7 @@ const PendingTransactionsTable: React.FC<Props> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                  {transaction.amount.toLocaleString()} ₸
+                  {money(transaction.amount)} ₸
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {transaction.date}
@@ -98,21 +106,21 @@ const PendingTransactionsTable: React.FC<Props> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-1">
                     <button
-                      onClick={() => onApprove(transaction.id)}
+                      onClick={(e) => { e.stopPropagation(); onApprove(transaction.id); }}
                       className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                       title="Одобрить"
                     >
                       <Check className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => onReject(transaction.id)}
+                      onClick={(e) => { e.stopPropagation(); onReject(transaction.id); }}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Отклонить"
                     >
                       <X className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => onView(transaction.id)}
+                      onClick={(e) => { e.stopPropagation(); onView(transaction.id); }}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Просмотр"
                     >
@@ -129,7 +137,11 @@ const PendingTransactionsTable: React.FC<Props> = ({
       {/* Mobile/Tablet Card View */}
       <div className="lg:hidden flex-1 overflow-auto divide-y divide-gray-100">
         {transactions.map((transaction) => (
-          <div key={transaction.id} className="p-4 hover:bg-gray-50">
+          <div
+            key={transaction.id}
+            className="p-4 hover:bg-gray-50 cursor-pointer"
+            onClick={() => onRowUserClick?.(transaction)}               // клик по карточке
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -144,36 +156,39 @@ const PendingTransactionsTable: React.FC<Props> = ({
               </div>
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">
-                  {transaction.amount.toLocaleString()} ₸
+                  {money(transaction.amount)} ₸
                 </p>
                 <span className="text-[10px] font-mono text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded inline-block mt-1">
                   {transaction.transactionId}
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5">
                 {getTypeIcon(transaction.type)}
                 <span className="text-xs text-gray-600">{transaction.type}</span>
               </div>
-              
+
               <div className="flex items-center space-x-1">
                 <button
-                  onClick={() => onApprove(transaction.id)}
+                  onClick={(e) => { e.stopPropagation(); onApprove(transaction.id); }}
                   className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Одобрить"
                 >
                   <Check className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => onReject(transaction.id)}
+                  onClick={(e) => { e.stopPropagation(); onReject(transaction.id); }}
                   className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Отклонить"
                 >
                   <X className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => onView(transaction.id)}
+                  onClick={(e) => { e.stopPropagation(); onView(transaction.id); }}
                   className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Просмотр"
                 >
                   <Eye className="h-4 w-4" />
                 </button>
