@@ -261,7 +261,7 @@ export default function ViewOrderPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={`Просмотр заказа #${order.id}`} />
+      <MoreHeaderAD title={`Просмотр заказа #${order.id}`} showBackButton={true} />
 
       {/* Шапка с быстрыми действиями */}
       <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">

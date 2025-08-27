@@ -87,9 +87,9 @@ export default function TeamPage() {
           {/* Левая колонка */}
           <div className="lg:col-span-4 flex flex-col gap-4">
             
-            <div className="bg-white rounded-xl p-4">
-              <TeamPurchaseList userId="current-user-id" />
-            </div>
+            
+              
+           
             
             <div className="bg-white rounded-xl">
               <TeamCard
@@ -113,18 +113,13 @@ export default function TeamPage() {
           </div>
 
           {/* Средняя колонка */}
-          <div className="lg:col-span-5 bg-white rounded-xl p-4">
-            <BonusTableBlock />
+          <div className="lg:col-span-3 rounded-xl ">
+          <TeamPurchaseList userId="current-user-id" />
           </div>
 
           {/* Правая колонка */}
-          <div className="lg:col-span-3 bg-white rounded-xl">
-            <AddDealerCard
-              title="Присоединить нового партнёра"
-              description="Вы можете пригласить человека в свою ветку, используя эту кнопку."
-              onAdd={handleAddDealer}
-              onAvatarClick={() => {}}
-            />
+          <div className="lg:col-span-5 bg-white p-4 rounded-xl">
+  <BonusTableBlock />
           </div>
 
         </section>

@@ -47,7 +47,7 @@ export default function DashboardPage() {
              <BalanceCard balance={890020} size="normal" variant="dark" />
            </div>
            <div className="h-full]">
-             <TeamCard title="Моя команда" count={68} goal={100} showButton variant="purple" />
+             <TeamCard title="Моя команда" count={68} goal={100} showButton variant="color" />
            </div>
            <div className="h-full">
              <BonusCard 

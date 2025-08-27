@@ -153,7 +153,8 @@ export default function CreateCoursPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Создать курс" />
+      <MoreHeaderAD title="Создать курс"showBackButton={true}  />
+      
 
       <form
         onSubmit={(e) => {
@@ -162,6 +163,7 @@ export default function CreateCoursPage() {
         }}
         className="mt-4 bg-white rounded-2xl border border-gray-100 p-6"
       >
+        
         {/* БАЗОВЫЕ ПОЛЯ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
@@ -294,6 +296,7 @@ export default function CreateCoursPage() {
               ))}
             </div>
           )}
+          
         </div>
 
         {/* ЧТО ПОЛУЧИТ СТУДЕНТ */}

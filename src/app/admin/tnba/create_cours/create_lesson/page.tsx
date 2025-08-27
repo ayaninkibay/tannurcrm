@@ -87,7 +87,7 @@ export default function CreateLessonPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={heading} />
+      <MoreHeaderAD title={heading}showBackButton={true}  />
 
       {/* форма урока */}
       <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6">

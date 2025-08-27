@@ -1,458 +1,554 @@
 // src/app/admin/finance/user/page.tsx
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import {
-  ArrowLeft, User as UserIcon, Wallet, CreditCard, Calendar,
-  Check, X, Eye, Search, Filter, ChevronDown, Shield
+  ArrowLeft,
+  User as UserIcon,
+  Search,
+  Eye,
+  Check,
+  X,
+  Mail,
+  Phone,
+  TrendingUp,
+  Clock,
+  CreditCard,
+  PlusCircle,
+  Gift,
 } from 'lucide-react';
 
-/* ===================== Типы ===================== */
-type TxType = 'л. товарооборот' | 'к. товарооборот' | 'за подписку' | 'покупка';
+/* ===== Типы ===== */
+type TxType   = 'л. товарооборот' | 'к. товарооборот' | 'за подписку' | 'покупка';
 type TxStatus = 'ожидает' | 'оплачен' | 'отклонён' | 'блок';
 
-interface Transaction {
+interface Tx {
   id: number;
-  userId: number;
   name: string;
   amount: number;
-  date: string;         // DD-MM-YYYY
+  date: string;            // DD-MM-YYYY
   transactionId: string;
   type: TxType;
-  method?: string;
   status: TxStatus;
+  method?: string;
+  // Детали для блока "На рассмотрении"
+  payoutCard?: string;     // куда вывести: "Kaspi Gold **** 2311"
+  sourceLabel?: string;    // источник денег: "Личный товарооборот / Подписка / ..."
 }
 
-interface User {
-  id: number;
+interface UserInfo {
   name: string;
   phone: string;
   email: string;
   role: string;
   tariff: string;
-  joinDate: string;
   balance: number;
   blocked: boolean;
 }
 
-/* ===================== Моки ===================== */
-const USERS: User[] = [
-  { id: 101, name: 'Әли Нысанбай', phone: '+7 700 111 22 33', email: 'ali@tannur.kz', role: 'Дилер', tariff: 'Base', joinDate: '05-02-2024', balance: 213000, blocked: false },
-  { id: 102, name: 'Айгерім Нұрболатқызы', phone: '+7 701 222 33 44', email: 'aigerim@tannur.kz', role: 'Дилер', tariff: 'Pro',  joinDate: '19-05-2024', balance: 156420, blocked: false },
-  { id: 103, name: 'Ерлан Серікбайұлы',   phone: '+7 702 333 44 55', email: 'erlan@tannur.kz', role: 'Менеджер', tariff: 'Pro', joinDate: '11-09-2024', balance: 67890,  blocked: false },
-  { id: 104, name: 'Динара Қалиева',       phone: '+7 705 444 55 66', email: 'dinara@tannur.kz', role: 'Дилер', tariff: 'Base', joinDate: '21-01-2025', balance: 127650, blocked: false },
-  { id: 105, name: 'Сыймова Мариям',       phone: '+7 706 555 66 77', email: 'mariyam@tannur.kz', role: 'Куратор', tariff: 'Pro', joinDate: '04-03-2025', balance: 412300, blocked: false },
-  { id: 106, name: 'Тәмірлан Смак',        phone: '+7 707 666 77 88', email: 'temirlan@tannur.kz', role: 'Дилер', tariff: 'Pro', joinDate: '12-03-2024', balance: 842130, blocked: false },
+type LedgerKind = 'пополнение' | 'бонус';
+interface LedgerEntry {
+  id: number;
+  name: string;
+  date: string;     // DD-MM-YYYY
+  kind: LedgerKind;
+  amount: number;
+  method: string;   // Kaspi QR / Halyk Card / Система
+  source?: string;  // комментарий/источник
+}
+
+/* ===== Моки ===== */
+const USERS: UserInfo[] = [
+  { name: 'Тәмірлан Смак',        phone: '+7 707 666 77 88', email: 'temirlan@tannur.kz', role: 'Дилер',    tariff: 'Pro',  balance: 842130, blocked: false },
+  { name: 'Айгерім Нұрболатқызы', phone: '+7 701 222 33 44', email: 'aigerim@tannur.kz',  role: 'Дилер',    tariff: 'Pro',  balance: 156420, blocked: false },
+  { name: 'Ерлан Серікбайұлы',    phone: '+7 702 333 44 55', email: 'erlan@tannur.kz',    role: 'Менеджер', tariff: 'Pro',  balance: 67890,  blocked: false },
 ];
 
-const PENDING_ALL_INIT: Transaction[] = [
-  { id: 1,  userId: 106, name: 'Тәмірлан Смак',        amount: 84370,  date: '22-08-2025', transactionId: 'KZ848970', type: 'л. товарооборот', status: 'ожидает', method: 'Kaspi' },
-  { id: 2,  userId: 102, name: 'Айгерім Нұрболатқызы', amount: 156420, date: '22-08-2025', transactionId: 'KZ849125', type: 'к. товарооборот', status: 'ожидает', method: 'Halyk' },
-  { id: 3,  userId: 103, name: 'Ерлан Серікбайұлы',   amount: 67890,  date: '22-08-2025', transactionId: 'KZ849247', type: 'за подписку',    status: 'ожидает', method: 'Kaspi' },
+const PENDING_INIT: Tx[] = [
+  {
+    id: 1,
+    name: 'Тәмірлан Смак',
+    amount: 84370,
+    date: '22-08-2025',
+    transactionId: 'KZ848970',
+    type: 'л. товарооборот',
+    status: 'ожидает',
+    method: 'Kaspi',
+    payoutCard: 'Kaspi Gold **** 2311',
+    sourceLabel: 'Личный товарооборот',
+  },
+  {
+    id: 2,
+    name: 'Айгерім Нұрболатқызы',
+    amount: 156420,
+    date: '22-08-2025',
+    transactionId: 'KZ849125',
+    type: 'к. товарооборот',
+    status: 'ожидает',
+    method: 'Halyk',
+    payoutCard: 'Halyk Visa **** 8842',
+    sourceLabel: 'Командный товарооборот',
+  },
+  {
+    id: 3,
+    name: 'Ерлан Серікбайұлы',
+    amount: 67890,
+    date: '22-08-2025',
+    transactionId: 'KZ849247',
+    type: 'за подписку',
+    status: 'ожидает',
+    method: 'Kaspi',
+    payoutCard: 'Kaspi Red **** 1022',
+    sourceLabel: 'Подписка',
+  },
 ];
 
-const HISTORY_ALL_INIT: Transaction[] = [
-  { id: 11, userId: 101, name: 'Әли Нысанбай',   amount: 213000, date: '22-08-2025', transactionId: 'KZ848970', type: 'за подписку',    status: 'блок',     method: 'Банк' },
-  { id: 12, userId: 106, name: 'Тәмірлан Смак',  amount: 584370, date: '22-08-2025', transactionId: 'KZ848971', type: 'л. товарооборот', status: 'оплачен', method: 'Kaspi' },
-  { id: 13, userId: 106, name: 'Тәмірлан Смак',  amount: 84370,  date: '22-08-2025', transactionId: 'KZ848972', type: 'к. товарооборот', status: 'оплачен', method: 'Kaspi' },
-  { id: 14, userId: 104, name: 'Динара Қалиева', amount: 127650, date: '21-08-2025', transactionId: 'KZ848751', type: 'за подписку',    status: 'отклонён', method: 'Банк' },
+const HISTORY_INIT: Tx[] = [
+  { id: 10, name: 'Тәмірлан Смак', amount: 584370, date: '22-08-2025', transactionId: 'KZ848971', type: 'л. товарооборот', status: 'оплачен',  method: 'Kaspi' },
+  { id: 11, name: 'Тәмірлан Смак', amount: 84370,  date: '22-08-2025', transactionId: 'KZ848972', type: 'к. товарооборот', status: 'оплачен',  method: 'Kaspi' },
+  { id: 12, name: 'Динара Қалиева',amount: 127650, date: '21-08-2025', transactionId: 'KZ848751', type: 'за подписку',     status: 'отклонён', method: 'Банк'  },
 ];
 
-const PURCHASES_ALL_INIT: Transaction[] = [
-  { id: 21, userId: 106, name: 'Тәмірлан Смак', amount: 49990, date: '17-08-2025', transactionId: 'ORD-9921', type: 'покупка', status: 'оплачен', method: 'Kaspi' },
-  { id: 22, userId: 101, name: 'Әли Нысанбай',  amount: 22490, date: '03-08-2025', transactionId: 'ORD-9734', type: 'покупка', status: 'оплачен', method: 'Card' },
+const LEDGER_INIT: LedgerEntry[] = [
+  { id: 100, name: 'Тәмірлан Смак',        date: '20-08-2025', kind: 'пополнение', amount: 300000, method: 'Kaspi QR',      source: 'Карта KZ****2311' },
+  { id: 101, name: 'Тәмірлан Смак',        date: '05-08-2025', kind: 'бонус',      amount: 15000,  method: 'Система',       source: 'Реферальный бонус' },
+  { id: 102, name: 'Айгерім Нұрболатқызы', date: '18-08-2025', kind: 'пополнение', amount: 120000, method: 'Halyk Card',    source: '**** 8842' },
+  { id: 103, name: 'Айгерім Нұрболатқызы', date: '02-08-2025', kind: 'бонус',      amount: 8000,   method: 'Система',       source: 'Промокод SUMMER' },
+  { id: 104, name: 'Ерлан Серікбайұлы',    date: '15-08-2025', kind: 'пополнение', amount: 70000,  method: 'Kaspi Перевод', source: 'IBAN KZ**...247' },
 ];
 
-/* ===================== Хелперы ===================== */
-const money = (v: number) => v.toLocaleString('ru-RU');
-const parseDDMMYYYY = (s: string) => {
-  const [dd, mm, yyyy] = s.split('-').map(Number);
-  return new Date(yyyy, (mm ?? 1) - 1, dd ?? 1).getTime();
+/* ===== Хелперы ===== */
+const money = (v:number)=>v.toLocaleString('ru-RU');
+const parseDDMMYYYY = (s:string)=>{ const [d,m,y]=s.split('-').map(Number); return new Date(y,(m??1)-1,(d??1)).getTime(); };
+
+const getStatusStyle = (s:TxStatus)=>{
+  if (s==='оплачен') return 'text-green-700 bg-green-50 border-green-200';
+  if (s==='отклонён') return 'text-red-700 bg-red-50 border-red-200';
+  if (s==='блок')     return 'text-amber-700 bg-amber-50 border-amber-200';
+  return 'text-gray-700 bg-gray-50 border-gray-200';
 };
 
-/* ===================== Мелкие компоненты ===================== */
-function StatBadge({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 border">
-      <div className="flex items-center gap-2">
-        <Icon size={18} />
-        <span className="text-sm text-gray-500">{label}</span>
-      </div>
-      <span className="font-semibold text-[#111]">{value}</span>
-    </div>
-  );
-}
+const getTypeIcon = (type: TxType) => {
+  if (type === 'л. товарооборот' || type === 'к. товарооборот') return TrendingUp;
+  if (type === 'за подписку') return Clock;
+  return CreditCard;
+};
 
-function StickyTable({
-  title,
-  rows,
-  emptyText,
-  actions,
-}: {
-  title: string;
-  rows: React.ReactNode[];
-  emptyText: string;
-  actions?: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="font-medium text-[#111]">{title}</div>
-        {actions}
-      </div>
-      <div className="max-h-[420px] overflow-y-auto">
-        <table className="w-full">
-          <thead className="sticky top-0 bg-white z-10">
-            <tr className="text-xs text-gray-500">
-              <th className="py-3 px-4 text-left">Дата</th>
-              <th className="py-3 px-4 text-left">Транзакция</th>
-              <th className="py-3 px-4 text-left">Тип</th>
-              <th className="py-3 px-4 text-center">Сумма</th>
-              <th className="py-3 px-4 text-left">Метод</th>
-              <th className="py-3 px-4 text-center">Статус</th>
-              <th className="py-3 px-4 text-center">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? rows : (
-              <tr>
-                <td colSpan={7} className="py-6 text-center text-gray-400">{emptyText}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+/* ===== UI ===== */
+const Card = ({children, className='' }:{children:React.ReactNode; className?:string}) =>
+  <div className={`bg-white border border-gray-200 rounded-2xl shadow-sm ${className}`}>{children}</div>;
 
-/* ===================== Страница ===================== */
-export default function FinanceUserTemplatePage() {
-  // Глобальные состояния моков (как будто БД)
-  const [pendingAll, setPendingAll]   = useState<Transaction[]>(PENDING_ALL_INIT);
-  const [historyAll, setHistoryAll]   = useState<Transaction[]>(HISTORY_ALL_INIT);
-  const [purchasesAll]                = useState<Transaction[]>(PURCHASES_ALL_INIT);
+/* ===== Страница ===== */
+export default function FinanceUserPage() {
+  // выбранный пользователь
+  const [userName, setUserName] = useState<string>(USERS[0].name);
+  useEffect(()=>{
+    try {
+      const n = typeof window !== 'undefined' ? sessionStorage.getItem('tannur_fin_user_name') : null;
+      if (n) setUserName(n);
+    } catch {}
+  },[]);
+  const user = useMemo(()=> USERS.find(u=>u.name===userName) ?? USERS[0], [userName]);
 
-  // Выбранный пользователь (без маршрута с [id])
-  const [selectedUserId, setSelectedUserId] = useState<number>(USERS[USERS.length - 1].id); // по умолчанию Тәмірлан
-  const selectedUser = useMemo(() => USERS.find(u => u.id === selectedUserId)!, [selectedUserId]);
+  // данные
+  const [pending, setPending]   = useState<Tx[]>(PENDING_INIT);
+  const [history, setHistory]   = useState<Tx[]>(HISTORY_INIT);
+  const [ledger]                = useState<LedgerEntry[]>(LEDGER_INIT);
 
-  // Фильтры
+  // поиск (в шапке транзакций)
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'Все' | TxType>('Все');
-  const [periodFilter, setPeriodFilter] = useState<'Все' | '7д' | '30д' | '90д'>('Все');
+  const [selectedTx, setSelectedTx] = useState<Tx|null>(null);
 
-  // Детальная панель
-  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  /* ====== ЕДИНЫЙ СПИСОК ДЛЯ "Транзакций" ====== */
+  const allByUser = useMemo(
+    () => [...pending, ...history].filter(t => t.name === user.name),
+    [pending, history, user]
+  );
+  // сортировка: ожидает первее, затем по дате (новее выше)
+  const sortedAll = useMemo(() => {
+    const order = (s:TxStatus)=> s==='ожидает' ? 0 : 1;
+    return [...allByUser].sort((a,b)=>{
+      const st = order(a.status) - order(b.status);
+      if (st !== 0) return st;
+      return parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date);
+    });
+  }, [allByUser]);
+  // фильтр по ID
+  const filtered = useMemo(()=>{
+    if (!search.trim()) return sortedAll;
+    const q = search.toLowerCase();
+    return sortedAll.filter(t => t.transactionId.toLowerCase().includes(q));
+  }, [sortedAll, search]);
 
-  // Применение фильтров к любому списку
-  const applyFilters = (list: Transaction[]) => {
-    let res = list.filter(r => r.userId === selectedUserId);
-    if (typeFilter !== 'Все') res = res.filter(r => r.type === typeFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      res = res.filter(r => r.transactionId.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
-    }
-    if (periodFilter !== 'Все') {
-      const now = Date.now();
-      const days = periodFilter === '7д' ? 7 : periodFilter === '30д' ? 30 : 90;
-      const from = now - days * 24 * 60 * 60 * 1000;
-      res = res.filter(r => parseDDMMYYYY(r.date) >= from);
-    }
-    return res;
+  // разрезы (для "На рассмотрении") и плоский список (для общей таблицы)
+  const waitingRows  = useMemo(()=> filtered.filter(t => t.status==='ожидает'), [filtered]);
+  const paidRows     = useMemo(()=> filtered.filter(t => t.status==='оплачен'), [filtered]);
+  const rejectedRows = useMemo(()=> filtered.filter(t => t.status!=='ожидает' && t.status!=='оплачен'), [filtered]);
+  const flatRows     = useMemo(()=> [...waitingRows, ...paidRows, ...rejectedRows], [waitingRows, paidRows, rejectedRows]);
+
+  /* ====== ДЕЙСТВИЯ ====== */
+  const approve = (id:number)=>{
+    setPending(prev=>{
+      const tx = prev.find(t=>t.id===id); if (!tx) return prev;
+      setHistory(h=>[{...tx, status:'оплачен'}, ...h]);
+      return prev.filter(t=>t.id!==id);
+    });
   };
-
-  const filteredPending   = useMemo(() => applyFilters(pendingAll), [pendingAll, selectedUserId, search, typeFilter, periodFilter]);
-  const filteredHistory   = useMemo(() => applyFilters(historyAll), [historyAll, selectedUserId, search, typeFilter, periodFilter]);
-  const filteredPurchases = useMemo(() => applyFilters(purchasesAll), [purchasesAll, selectedUserId, search, typeFilter, periodFilter]);
-
-  // Действия
-  const approveTx = (id: number) => {
-    setPendingAll(prev => {
-      const tx = prev.find(t => t.id === id);
-      if (!tx) return prev;
-      setHistoryAll(h => [{ ...tx, status: 'оплачен' }, ...h]);
-      return prev.filter(t => t.id !== id);
+  const reject = (id:number)=>{
+    setPending(prev=>{
+      const tx = prev.find(t=>t.id===id); if (!tx) return prev;
+      setHistory(h=>[{...tx, status:'отклонён'}, ...h]);
+      return prev.filter(t=>t.id!==id);
     });
   };
 
-  const rejectTx = (id: number) => {
-    setPendingAll(prev => {
-      const tx = prev.find(t => t.id === id);
-      if (!tx) return prev;
-      setHistoryAll(h => [{ ...tx, status: 'отклонён' }, ...h]);
-      return prev.filter(t => t.id !== id);
-    });
-  };
-
-  const currentDate = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  /* ====== ЛЕДЖЕР (пополнения/бонусы) ====== */
+  const userLedger = useMemo(
+    () => ledger.filter(l => l.name === user.name).sort((a,b)=>parseDDMMYYYY(b.date)-parseDDMMYYYY(a.date)),
+    [ledger, user]
+  );
 
   return (
-    <div className="w-full h-full p-2 md:p-4 lg:p-6">
+    <div className="w-full h-full p-2 md:p-4 lg:p-6 ">
       <MoreHeaderAD
         title={
-          <div className="flex items-center gap-2">
-            <Link href="/admin/finance" className="inline-flex items-center gap-1 text-gray-500 hover:text-[#111]">
-              <ArrowLeft size={18} /> Назад
+          <div className="flex items-center gap-3">
+            <Link href="/admin/finance" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors">
+              <ArrowLeft size={18}/> Назад
             </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-[#111]">Профиль пользователя — Финансовый отдел</span>
+            <span className="text-gray-300">/</span>
+            <span className="text-gray-900 font-medium">Финансы пользователя</span>
           </div>
         }
+        showBackButton={true} 
       />
 
-      <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
-        {/* Левая колонка: список пользователей */}
-        <aside className="xl:col-span-4">
-          <div className="bg-white rounded-2xl border overflow-hidden">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <div className="font-medium text-[#111]">Пользователи</div>
-              <div className="text-xs text-gray-500">{USERS.length}</div>
-            </div>
+      <div className="space-y-6 mt-6">
+        {/* ПРОФИЛЬ */}
+       {/* ПРОФИЛЬ — брендовый блок */}
+<Card className="bg-gradient-to-r from-[#D77E6C] to-[#c66857] text-white border-0 shadow-md">
+  <div className="p-6">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
+          <UserIcon className="text-white" size={20}/>
+        </div>
+        <div>
+          <div className="text-xl font-semibold">{user.name}</div>
 
-            <div className="p-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} />
-                <input
-                  placeholder="Поиск по имени…"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border"
-                  onChange={(e) => {
-                    const q = e.target.value.toLowerCase();
-                    const found = USERS.find(u => u.name.toLowerCase().includes(q));
-                    if (found) setSelectedUserId(found.id);
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="max-h-[520px] overflow-y-auto">
-              {USERS.map((u) => {
-                const isActive = u.id === selectedUserId;
-                return (
-                  <button
-                    key={u.id}
-                    onClick={() => setSelectedUserId(u.id)}
-                    className={`w-full text-left px-4 py-3 border-t first:border-t-0 hover:bg-gray-50 ${isActive ? 'bg-gray-50' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <UserIcon size={18} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-[#111]">{u.name}</div>
-                        <div className="text-xs text-gray-500">ID: {u.id} · {u.role} · {u.tariff}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{money(u.balance)} ₸</div>
-                        <div className={`text-[11px] ${u.blocked ? 'text-red-600' : 'text-green-600'}`}>
-                          {u.blocked ? 'Блок' : 'Активен'}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
-
-        {/* Правая колонка: профиль и таблицы */}
-        <section className="xl:col-span-8 space-y-4">
-          {/* Профиль */}
-          <div className="bg-white rounded-2xl border p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center">
-                  <UserIcon />
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-[#111]">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-500">ID: {selectedUser.id} · Роль: {selectedUser.role} · Тариф: {selectedUser.tariff}</div>
-                  <div className="text-xs text-gray-400">В системе с {selectedUser.joinDate}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full md:w-auto">
-                <StatBadge label="Баланс"  value={`${money(selectedUser.balance)} ₸`} icon={Wallet} />
-                <StatBadge label="Период"  value={currentDate} icon={Calendar} />
-                <StatBadge label="Статус"  value={selectedUser.blocked ? 'Заблокирован' : 'Активен'} icon={Shield} />
-                <StatBadge label="Контакты" value="Показать" icon={UserIcon} />
-              </div>
-            </div>
-
-            {/* Фильтры */}
-            <div className="mt-4 flex flex-col lg:flex-row lg:items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Поиск по ID транзакции или имени…"
-                  className="w-full pl-10 pr-3 py-2 rounded-xl border"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border">
-                  <Filter size={16} /> Фильтр
-                </button>
-
-                <div className="relative">
-                  <button className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border">
-                    Тип <ChevronDown size={16} />
-                  </button>
-                  <select
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
-                  >
-                    <option value="Все">Все типы</option>
-                    <option value="л. товарооборот">Личный товарооборот</option>
-                    <option value="к. товарооборот">Командный товарооборот</option>
-                    <option value="за подписку">Подписка</option>
-                    <option value="покупка">Покупки</option>
-                  </select>
-                </div>
-
-                <div className="relative">
-                  <button className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border">
-                    Период <ChevronDown size={16} />
-                  </button>
-                  <select
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    value={periodFilter}
-                    onChange={(e) => setPeriodFilter(e.target.value as any)}
-                  >
-                    <option value="Все">Все периоды</option>
-                    <option value="7д">За 7 дней</option>
-                    <option value="30д">За 30 дней</option>
-                    <option value="90д">За 90 дней</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+          <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-white/90">
+            <span className="inline-flex items-center gap-1">
+              <Phone size={14} className="text-white/80"/>{user.phone}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Mail size={14} className="text-white/80"/>{user.email}
+            </span>
           </div>
 
-          {/* Таблицы */}
-          <StickyTable
-            title="Запросы на одобрение"
-            actions={<div className="text-xs text-gray-500">Всего: {filteredPending.length}</div>}
-            rows={filteredPending.map((tx) => (
-              <tr key={tx.id} className="border-b last:border-0">
-                <td className="py-3 px-4">{tx.date}</td>
-                <td className="py-3 px-4">{tx.transactionId}</td>
-                <td className="py-3 px-4">{tx.type}</td>
-                <td className="py-3 px-4 text-center font-semibold">{money(tx.amount)} ₸</td>
-                <td className="py-3 px-4">{tx.method ?? '-'}</td>
-                <td className="py-3 px-4 text-center">
-                  <span className="inline-flex rounded-full border px-2 py-0.5 text-xs">ожидает</span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <div className="inline-flex gap-2">
-                    <button onClick={() => setSelectedTx(tx)} className="rounded-lg border px-2 py-1 hover:bg-gray-50" title="Просмотр">
-                      <Eye size={16} />
-                    </button>
-                    <button onClick={() => approveTx(tx.id)} className="rounded-lg border px-2 py-1 hover:bg-gray-50" title="Одобрить">
-                      <Check size={16} />
-                    </button>
-                    <button onClick={() => rejectTx(tx.id)} className="rounded-lg border px-2 py-1 hover:bg-gray-50" title="Отклонить">
-                      <X size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            emptyText="Нет запросов."
-          />
-
-          <StickyTable
-            title="История выплат"
-            actions={<div className="text-xs text-gray-500">Всего: {filteredHistory.length}</div>}
-            rows={filteredHistory.map((tx) => (
-              <tr key={tx.id} className="border-b last:border-0">
-                <td className="py-3 px-4">{tx.date}</td>
-                <td className="py-3 px-4">{tx.transactionId}</td>
-                <td className="py-3 px-4">{tx.type}</td>
-                <td className="py-3 px-4 text-center font-semibold">{money(tx.amount)} ₸</td>
-                <td className="py-3 px-4">{tx.method ?? '-'}</td>
-                <td className="py-3 px-4 text-center">
-                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${
-                    tx.status === 'оплачен' ? 'text-green-700' : tx.status === 'отклонён' ? 'text-red-600' : 'text-gray-700'
-                  }`}>{tx.status}</span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <button onClick={() => setSelectedTx(tx)} className="rounded-lg border px-2 py-1 hover:bg-gray-50" title="Просмотр">
-                    <Eye size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            emptyText="История пуста."
-          />
-
-          <StickyTable
-            title="Покупки пользователя"
-            actions={<div className="text-xs text-gray-500">Всего: {filteredPurchases.length}</div>}
-            rows={filteredPurchases.map((tx) => (
-              <tr key={tx.id} className="border-b last:border-0">
-                <td className="py-3 px-4">{tx.date}</td>
-                <td className="py-3 px-4">{tx.transactionId}</td>
-                <td className="py-3 px-4">{tx.type}</td>
-                <td className="py-3 px-4 text-center font-semibold">{money(tx.amount)} ₸</td>
-                <td className="py-3 px-4">{tx.method ?? '-'}</td>
-                <td className="py-3 px-4 text-center">
-                  <span className="inline-flex rounded-full border px-2 py-0.5 text-xs">оплачен</span>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <button onClick={() => setSelectedTx(tx)} className="rounded-lg border px-2 py-1 hover:bg-gray-50" title="Просмотр">
-                    <Eye size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            emptyText="Покупок нет."
-          />
-        </section>
+          <div className="mt-2 flex items-center gap-3 text-xs">
+            <span className="px-2 py-1 rounded-full border border-white/25 bg-white/10 text-white">
+              {user.role}
+            </span>
+            <span className="px-2 py-1 rounded-full border border-white/25 bg-white/15 text-white">
+              {user.tariff}
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Детали транзакции (сайдпанель) */}
+      <div className="text-right">
+        <div className="text-sm text-white/80">Баланс</div>
+        <div className="text-2xl font-bold">{money(user.balance)} ₸</div>
+      </div>
+    </div>
+  </div>
+</Card>
+
+        {/* НА РАССМОТРЕНИИ — отдельный блок */}
+        <Card className="overflow-hidden">
+          <div className="px-4 md:px-6 py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="text-[#111] font-medium">На рассмотрении</div>
+              <div className="text-xs text-gray-500">Всего заявок: {waitingRows.length}</div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="py-4 px-6 text-left">Пользователь</th>
+                  <th className="py-4 px-6 text-left">Дата</th>
+                  <th className="py-4 px-6 text-left">ID Транзакции</th>
+                  <th className="py-4 px-6 text-left">Источник денег</th>
+                  <th className="py-4 px-6 text-left">Вывод на карту</th>
+                  <th className="py-4 px-6 text-right">Сумма</th>
+                  <th className="py-4 px-6 text-center">Действия</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {waitingRows.map(tx=>(
+                  <tr key={`r_${tx.id}`} className="hover:bg-gray-50">
+                    <td className="py-4 px-6">
+                      <div className="font-medium text-gray-900">{tx.name}</div>
+                      <div className="text-xs text-gray-500">{tx.type}</div>
+                    </td>
+                    <td className="py-4 px-6">{tx.date}</td>
+                    <td className="py-4 px-6">
+                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded-md">{tx.transactionId}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-sm text-gray-900">{tx.sourceLabel ?? '—'}</div>
+                      <div className="text-xs text-gray-500">{tx.method}</div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="text-sm text-gray-900">{tx.payoutCard ?? '—'}</div>
+                    </td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900">{money(tx.amount)} ₸</td>
+                    <td className="py-4 px-6">
+                      {/* Компактные кнопки */}
+                      <div className="flex flex-col sm:flex-row items-stretch justify-center gap-2">
+                        <button
+                          onClick={()=>approve(tx.id)}
+                          className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-[#2eb85c] text-white hover:bg-[#29a551] active:scale-[.98] w-full sm:w-auto"
+                          title={`Одобрить выплату для ${tx.name}`}
+                        >
+                          <Check size={14}/> Одобрить выплату
+                        </button>
+                        <button
+                          onClick={()=>reject(tx.id)}
+                          className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border border-red-200 text-red-700 hover:bg-red-50 active:scale-[.98] w-full sm:w-auto"
+                          title={`Отклонить выплату для ${tx.name}`}
+                        >
+                          <X size={14}/> Отклонить
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center gap-2 px-2.5 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
+                          title={`Позвонить ${tx.name}`}
+                        >
+                          <Phone size={14}/> Позвонить {tx.name.split(' ')[0]}
+                        </button>
+                        <button
+                          className="inline-flex items-center justify-center gap-2 px-2.5 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
+                          title={`Написать ${tx.name}`}
+                        >
+                          <Mail size={14}/> Написать {tx.name.split(' ')[0]}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!waitingRows.length && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-400">Заявок нет.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* ТРАНЗАКЦИИ (единый список, поиск справа) */}
+        <Card className="overflow-hidden">
+          <div className="px-4 md:px-6 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div className="text-[#111] font-medium">Транзакции</div>
+            <div className="relative w-full max-w-[320px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18}/>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск по ID…"
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="py-4 px-6 text-left">Транзакция</th>
+                  <th className="py-4 px-6 text-left">Тип</th>
+                  <th className="py-4 px-6 text-right">Сумма</th>
+                  <th className="py-4 px-6 text-center">Статус</th>
+                  <th className="py-4 px-6 text-center">Действия</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {flatRows.map(tx => {
+                  const TypeIcon = getTypeIcon(tx.type);
+                  return (
+                    <tr key={`tx_${tx.id}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-4 px-6">
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded-md">{tx.transactionId}</span>
+                        <div className="text-xs text-gray-500 mt-1">{tx.date}</div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <TypeIcon size={14} className="text-gray-400"/>
+                          <span className="text-sm text-gray-900">{tx.type}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-right font-semibold text-gray-900">{money(tx.amount)} ₸</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusStyle(tx.status)}`}>
+                          {tx.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setSelectedTx(tx)}
+                            className="p-1.5 text-gray-400 hover:text-[#D77E6C] hover:bg-[#D77E6C]/10 rounded-lg transition-colors"
+                            title="Просмотр"
+                          >
+                            <Eye size={16}/>
+                          </button>
+                          {tx.status === 'ожидает' && (
+                            <>
+                              <button
+                                onClick={() => approve(tx.id)}
+                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Одобрить"
+                              >
+                                <Check size={16}/>
+                              </button>
+                              <button
+                                onClick={() => reject(tx.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Отклонить"
+                              >
+                                <X size={16}/>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {flatRows.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <Search className="text-gray-400" size={24}/>
+                        <div>Нет транзакций</div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {/* ПОПОЛНЕНИЯ И БОНУСЫ */}
+        <Card className="overflow-hidden">
+          <div className="px-4 md:px-6 py-3 border-b border-gray-100">
+            <div className="text-[#111] font-medium">Пополнения баланса и бонусы</div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="py-4 px-6 text-left">Дата</th>
+                  <th className="py-4 px-6 text-left">Операция</th>
+                  <th className="py-4 px-6 text-right">Сумма</th>
+                  <th className="py-4 px-6 text-left">Метод</th>
+                  <th className="py-4 px-6 text-left">Источник</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {userLedger.map((e)=>(
+                  <tr key={e.id} className="hover:bg-gray-50">
+                    <td className="py-4 px-6">{e.date}</td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center gap-2">
+                        {e.kind === 'пополнение' ? <PlusCircle size={16} className="text-blue-600"/> : <Gift size={16} className="text-purple-600"/>}
+                        <span className="text-sm text-gray-900">{e.kind === 'пополнение' ? 'Пополнение баланса' : 'Бонус'}</span>
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right font-semibold text-gray-900">{money(e.amount)} ₸</td>
+                    <td className="py-4 px-6">{e.method}</td>
+                    <td className="py-4 px-6">{e.source ?? '—'}</td>
+                  </tr>
+                ))}
+                {userLedger.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-10 text-center text-gray-500">Записей нет.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Сайд-панель деталей */}
       {selectedTx && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedTx(null)} />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white shadow-2xl p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-lg font-semibold text-[#111]">Транзакция {selectedTx.transactionId}</div>
-              <button onClick={() => setSelectedTx(null)} className="rounded-xl border px-3 py-1">Закрыть</button>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedTx(null)} />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              <div className="text-lg font-semibold text-gray-900">Детали транзакции</div>
+              <button onClick={() => setSelectedTx(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} />
+              </button>
             </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between"><span className="text-gray-500">Дата</span><span className="font-medium">{selectedTx.date}</span></div>
-              <div className="flex items-center justify-between"><span className="text-gray-500">Пользователь</span><span className="font-medium">{selectedTx.name}</span></div>
-              <div className="flex items-center justify-between"><span className="text-gray-500">Сумма</span><span className="font-semibold">{money(selectedTx.amount)} ₸</span></div>
-              <div className="flex items-center justify-between"><span className="text-gray-500">Тип</span><span className="font-medium">{selectedTx.type}</span></div>
-              <div className="flex items-center justify-between"><span className="text-gray-500">Метод</span><span className="font-medium">{selectedTx.method ?? '-'}</span></div>
-              <div className="flex items-center justify-between"><span className="text-gray-500">Статус</span><span className="font-medium">{selectedTx.status}</span></div>
-            </div>
-
-            {selectedTx.status === 'ожидает' && (
-              <div className="mt-6 grid grid-cols-2 gap-2">
-                <button onClick={() => { approveTx(selectedTx.id); setSelectedTx(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 hover:bg-gray-50">
-                  <Check size={16} /> Одобрить
-                </button>
-                <button onClick={() => { rejectTx(selectedTx.id); setSelectedTx(null); }} className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 hover:bg-gray-50">
-                  <X size={16} /> Отклонить
-                </button>
+            <div className="p-6 space-y-6">
+              <div className="bg-gray-50 rounded-xl p-4 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">ID Транзакции</div>
+                <div className="font-mono text-lg font-semibold text-gray-900">{selectedTx.transactionId}</div>
               </div>
-            )}
 
-            <div className="mt-6">
-              <div className="text-sm text-gray-500 mb-2">Комментарий (внутренний)</div>
-              <textarea className="w-full rounded-xl border p-3 min-h-[120px]" placeholder="Добавить заметку по транзакции…" />
-              <div className="mt-3 flex justify-end">
-                <button onClick={() => {}} className="rounded-xl border px-3 py-2 hover:bg-gray-50">Сохранить</button>
+              <div className="bg-white border rounded-xl p-4 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Сумма</div>
+                <div className="text-2xl font-bold text-gray-900">{money(selectedTx.amount)} ₸</div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white border rounded-xl p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Тип</div>
+                  <div className="font-medium text-gray-900">{selectedTx.type}</div>
+                </div>
+                <div className="bg-white border rounded-xl p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Метод</div>
+                  <div className="font-medium text-gray-900">{selectedTx.method ?? '—'}</div>
+                </div>
+                {selectedTx.payoutCard && (
+                  <div className="bg-white border rounded-xl p-4 col-span-2">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Вывод на карту</div>
+                    <div className="font-medium text-gray-900">{selectedTx.payoutCard}</div>
+                  </div>
+                )}
+                {selectedTx.sourceLabel && (
+                  <div className="bg-white border rounded-xl p-4 col-span-2">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Источник денег</div>
+                    <div className="font-medium text-gray-900">{selectedTx.sourceLabel}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white border rounded-xl p-4 text-center">
+                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Статус</div>
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${getStatusStyle(selectedTx.status)}`}>
+                  {selectedTx.status}
+                </span>
+              </div>
+
+              {selectedTx.status === 'ожидает' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => { approve(selectedTx.id); setSelectedTx(null); }} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2eb85c] text-white hover:bg-[#29a551] active:scale-[.98]">
+                    <Check size={16}/> Одобрить выплату
+                  </button>
+                  <button onClick={() => { reject(selectedTx.id); setSelectedTx(null); }} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-700 hover:bg-red-50 active:scale-[.98]">
+                    <X size={16}/> Отклонить
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
