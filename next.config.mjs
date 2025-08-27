@@ -9,9 +9,19 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: [
-      'nrxtrcugavrxpejbjiaq.supabase.co',  // Supabase
-      'localhost',                         // локальная разработка
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'nrxtrcugavrxpejbjiaq.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };

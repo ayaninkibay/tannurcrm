@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 
 interface SponsorCardProps {
-  variant?: 'dark' | 'light';
+  variant?: 'dark' | 'light' | 'gray';
   sponsor?: {
     name: string;
     avatar: string;
@@ -36,7 +36,7 @@ export default function SponsorCard({
     <div className="w-full">
       <p className="text-sm font-medium text-gray-900 mb-3">Мой спонсор</p>
 
-      <div className={`relative ${bgGradient} rounded-xl p-5 overflow-hidden  duration-300`}>
+      <div className={`relative ${bgGradient} rounded-xl p-5 overflow-hidden duration-300`}>
         {/* Background Pattern */}
         <div className={`absolute top-2 right-2 w-16 h-16 opacity-10 ${textColor}`}>
           <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
@@ -67,7 +67,8 @@ export default function SponsorCard({
                   alt="sponsor avatar"
                   width={48}
                   height={48}
-                  className="w-full h-full object-cover"
+                  className="object-cover"
+                  priority={true}
                 />
               </div>
               {/* Online status indicator */}
@@ -78,14 +79,13 @@ export default function SponsorCard({
               <div className={`flex items-center gap-2 mb-1 ${textColor}`}>
                 <span className="text-sm font-semibold">{sponsor.name}</span>
                 {sponsor.is_confirmed && (
-                  <div className="p-0.5 bg-blue-500 rounded-full">
-                    <Image 
-                      src={`/icons/confirmed${iconSuffix}.svg`} 
-                      alt="verified" 
-                      width={10} 
-                      height={10}
-                    />
-                  </div>
+                  <Image 
+                    src={`/icons/confirmed${iconSuffix}.svg`} 
+                    alt="verified" 
+                    width={10} 
+                    height={10}
+                    className="p-0.5 bg-blue-500 rounded-full"
+                  />
                 )}
               </div>
               <div className={`flex items-center gap-1.5 ${secondaryTextColor}`}>

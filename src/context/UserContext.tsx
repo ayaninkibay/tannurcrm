@@ -1,15 +1,12 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/types/supabase'
 import { useRouter } from 'next/navigation'
 
-// 1. Определяем тип для профиля пользователя на основе вашей схемы Supabase.
-// Это обеспечивает строгую типизацию и автодополнение.
 type UserProfile = Database['public']['Tables']['users']['Row']
 
-// 2. Создаем интерфейс для контекста, который будет содержать профиль, состояние загрузки и функцию logout.
 interface UserContextValue {
   profile: UserProfile | null
   loading: boolean
@@ -17,7 +14,6 @@ interface UserContextValue {
   refreshProfile: () => Promise<void>
 }
 
-// 3. Создаем сам контекст с начальными значениями.
 const UserContext = createContext<UserContextValue>({
   profile: null,
   loading: true,
@@ -25,100 +21,315 @@ const UserContext = createContext<UserContextValue>({
   refreshProfile: async () => {},
 })
 
-// 4. Компонент-провайдер, который будет загружать данные пользователя и предоставлять их всем дочерним компонентам.
+// Глобальные переменные для синхронизации между экземплярами
+let globalProfileCache: UserProfile | null = null
+let globalLoadingState = true
+let isInitialized = false
+let authSubscription: any = null
+
+// Ключи для localStorage
+const STORAGE_KEYS = {
+  PROFILE: 'tannur_user_profile',
+  LAST_UPDATE: 'tannur_profile_last_update',
+  USER_ID: 'tannur_user_id'
+}
+
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<UserProfile | null>(globalProfileCache)
+  const [loading, setLoading] = useState(globalLoadingState)
   const router = useRouter()
+  const loadingRef = useRef(false)
+  const mountedRef = useRef(true)
 
-  // Функция для загрузки/обновления профиля пользователя
-  const loadUser = useCallback(async () => {
+  // Синхронизация локального состояния с глобальным кэшем
+  const updateProfileState = useCallback((newProfile: UserProfile | null) => {
+    if (!mountedRef.current) return
+    
+    globalProfileCache = newProfile
+    setProfile(newProfile)
+    
+    // Сохраняем в localStorage для синхронизации между вкладками
     try {
-      // Получаем текущего пользователя из Supabase
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError || !user) {
-        setProfile(null)
-        setLoading(false)
-        return
-      }
-
-      // Если пользователь найден, получаем его профиль из таблицы 'users'
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (!error && data) {
-        setProfile(data)
+      if (newProfile) {
+        localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(newProfile))
+        localStorage.setItem(STORAGE_KEYS.LAST_UPDATE, Date.now().toString())
+        localStorage.setItem(STORAGE_KEYS.USER_ID, newProfile.id)
       } else {
-        setProfile(null)
+        localStorage.removeItem(STORAGE_KEYS.PROFILE)
+        localStorage.removeItem(STORAGE_KEYS.LAST_UPDATE)
+        localStorage.removeItem(STORAGE_KEYS.USER_ID)
       }
     } catch (error) {
-      console.error('UserProvider: Ошибка при загрузке профиля:', error)
-      setProfile(null)
-    } finally {
-      setLoading(false)
+      console.error('Error saving profile to localStorage:', error)
     }
   }, [])
 
-  // Функция для выхода из системы
+  const updateLoadingState = useCallback((newLoading: boolean) => {
+    if (!mountedRef.current) return
+    
+    globalLoadingState = newLoading
+    setLoading(newLoading)
+  }, [])
+
+  // Загрузка профиля из localStorage
+  const loadFromStorage = useCallback(() => {
+    try {
+      const cachedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE)
+      const lastUpdate = localStorage.getItem(STORAGE_KEYS.LAST_UPDATE)
+      
+      if (cachedProfile && lastUpdate) {
+        const profileData = JSON.parse(cachedProfile)
+        const updateTime = parseInt(lastUpdate)
+        const now = Date.now()
+        
+        // Используем кэш если он свежий (меньше 15 минут)
+        if (now - updateTime < 15 * 60 * 1000) {
+          globalProfileCache = profileData
+          setProfile(profileData)
+          console.log('Profile loaded from cache:', profileData.email)
+          return true
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profile from localStorage:', error)
+    }
+    return false
+  }, [])
+
+  // Основная функция загрузки профиля
+  const loadUser = useCallback(async (forceRefresh = false, source = 'manual') => {
+    if (loadingRef.current && !forceRefresh) return
+    if (!mountedRef.current) return
+    
+    try {
+      loadingRef.current = true
+      console.log(`Loading user profile (source: ${source}, force: ${forceRefresh})`)
+
+      // Если есть свежий кэш и не принудительное обновление
+      if (!forceRefresh && globalProfileCache && !globalLoadingState) {
+        console.log('Using cached profile')
+        return
+      }
+
+      // Пробуем загрузить из localStorage при инициализации
+      if (!forceRefresh && !isInitialized && loadFromStorage()) {
+        updateLoadingState(false)
+        isInitialized = true
+        return
+      }
+
+      updateLoadingState(true)
+
+      // ИСПРАВЛЕНО: убираем таймауты для auth операций
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        updateProfileState(null)
+        updateLoadingState(false)
+        return
+      }
+
+      if (!session?.user) {
+        console.log('No authenticated session found')
+        updateProfileState(null)
+        updateLoadingState(false)
+        isInitialized = true
+        return
+      }
+
+      console.log('Authenticated session found:', session.user.email)
+
+      // Проверяем не изменился ли пользователь
+      const cachedUserId = localStorage.getItem(STORAGE_KEYS.USER_ID)
+      if (cachedUserId && cachedUserId !== session.user.id) {
+        console.log('User changed, clearing cache')
+        globalProfileCache = null
+        localStorage.removeItem(STORAGE_KEYS.PROFILE)
+        localStorage.removeItem(STORAGE_KEYS.LAST_UPDATE)
+      }
+
+      // Загружаем профиль из базы данных с таймаутом только для DB запроса
+      const dbPromise = supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database timeout')), 10000)
+      )
+
+      const { data, error } = await Promise.race([
+        dbPromise,
+        timeoutPromise
+      ]) as any
+
+      if (!error && data) {
+        console.log('Profile loaded successfully:', data.email, data.role)
+        updateProfileState(data)
+      } else {
+        console.error('Error loading profile from database:', error)
+        updateProfileState(null)
+      }
+
+      isInitialized = true
+    } catch (error) {
+      console.error('Error in loadUser:', error)
+      updateProfileState(null)
+    } finally {
+      updateLoadingState(false)
+      loadingRef.current = false
+    }
+  }, [updateProfileState, updateLoadingState, loadFromStorage])
+
+  // Функция выхода
   const logout = useCallback(async () => {
     try {
-      setLoading(true)
+      updateLoadingState(true)
+      console.log('Logging out...')
       
-      // Выполняем выход через Supabase Auth
       const { error } = await supabase.auth.signOut()
       
       if (error) {
         throw error
       }
       
-      // Очищаем профиль из состояния
-      setProfile(null)
+      // Очищаем состояние
+      updateProfileState(null)
+      globalProfileCache = null
+      isInitialized = false
       
-      // Перенаправляем на страницу входа
       router.push('/signin')
       
     } catch (error) {
-      console.error('UserProvider: Ошибка при выходе из системы:', error)
-      // Даже если произошла ошибка, пытаемся очистить локальное состояние
-      setProfile(null)
+      console.error('Logout error:', error)
+      updateProfileState(null)
+      globalProfileCache = null
+      isInitialized = false
     } finally {
+      updateLoadingState(false)
+    }
+  }, [router, updateProfileState, updateLoadingState])
+
+  // Функция обновления профиля
+  const refreshProfile = useCallback(async () => {
+    console.log('Refreshing profile...')
+    await loadUser(true, 'refresh')
+  }, [loadUser])
+
+  // Инициализация и подписка на auth events (только один раз глобально)
+  useEffect(() => {
+    mountedRef.current = true
+
+    // Инициализируем только если еще не инициализировали
+    if (!isInitialized) {
+      loadUser(false, 'mount')
+    } else if (globalProfileCache && !profile) {
+      // Если глобальный кэш есть, но локальное состояние пустое
+      setProfile(globalProfileCache)
       setLoading(false)
     }
-  }, [router])
 
-  // Функция для обновления профиля (может быть полезна после обновления данных)
-  const refreshProfile = useCallback(async () => {
-    await loadUser()
-  }, [loadUser])
+    // Создаем подписку на auth события только один раз
+    if (!authSubscription) {
+      authSubscription = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('Auth state changed:', event, !!session?.user)
+          
+          if (!mountedRef.current) return
 
-  // Загружаем пользователя при монтировании компонента
+          switch (event) {
+            case 'SIGNED_OUT':
+              console.log('User signed out')
+              updateProfileState(null)
+              globalProfileCache = null
+              isInitialized = false
+              break
+              
+            case 'SIGNED_IN':
+              if (session?.user) {
+                console.log('User signed in, loading profile...')
+                // ИСПРАВЛЕНО: не перезагружаем профиль если он уже есть и для того же пользователя
+                if (!globalProfileCache || globalProfileCache.id !== session.user.id) {
+                  await loadUser(true, 'signin')
+                } else {
+                  console.log('Profile already loaded for this user')
+                }
+              }
+              break
+              
+            case 'TOKEN_REFRESHED':
+              console.log('Token refreshed')
+              // При обновлении токена НЕ перезагружаем профиль
+              if (!globalProfileCache && session?.user) {
+                console.log('No cached profile after token refresh, loading...')
+                await loadUser(false, 'token_refresh')
+              }
+              break
+              
+            case 'INITIAL_SESSION':
+              console.log('Initial session event')
+              // Обрабатываем начальную сессию только если не инициализированы
+              if (!isInitialized) {
+                if (session?.user && !globalProfileCache) {
+                  console.log('Initial session with user, loading profile...')
+                  await loadUser(false, 'initial')
+                } else if (!session?.user) {
+                  console.log('Initial session without user')
+                  updateProfileState(null)
+                  updateLoadingState(false)
+                  isInitialized = true
+                }
+              }
+              break
+          }
+        }
+      )
+    }
+
+    return () => {
+      mountedRef.current = false
+    }
+  }, [loadUser, updateProfileState, updateLoadingState, profile])
+
+  // Синхронизация между вкладками через storage events
   useEffect(() => {
-    loadUser()
-  }, [loadUser])
-
-  // Подписываемся на изменения состояния аутентификации
-  useEffect(() => {
-    // Слушаем изменения состояния авторизации
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          setProfile(null)
-        } else if (event === 'SIGNED_IN' && session) {
-          // При входе перезагружаем профиль
-          await loadUser()
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.PROFILE && mountedRef.current) {
+        try {
+          if (e.newValue) {
+            const newProfile = JSON.parse(e.newValue)
+            globalProfileCache = newProfile
+            setProfile(newProfile)
+            updateLoadingState(false)
+            console.log('Profile synced from another tab:', newProfile.email)
+          } else {
+            globalProfileCache = null
+            setProfile(null)
+            updateLoadingState(false)
+            console.log('Profile cleared from another tab')
+          }
+        } catch (error) {
+          console.error('Error parsing profile from storage event:', error)
         }
       }
-    )
-
-    // Отписываемся при размонтировании
-    return () => {
-      subscription.unsubscribe()
     }
-  }, [loadUser])
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [updateLoadingState])
+
+  // Cleanup при размонтировании последнего экземпляра
+  useEffect(() => {
+    return () => {
+      // Если это последний экземпляр, очищаем глобальную подписку
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe()
+        authSubscription = null
+      }
+    }
+  }, [])
 
   return (
     <UserContext.Provider value={{ profile, loading, logout, refreshProfile }}>
@@ -127,5 +338,4 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   )
 }
 
-// 5. Хук для использования контекста в компонентах.
 export const useUser = () => useContext(UserContext)

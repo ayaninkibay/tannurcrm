@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
+import { useUser } from '@/context/UserContext'; // Добавлено
 import { 
   Eye, EyeOff, LogIn, Mail, Lock,
   ArrowRight, CheckCircle, Sparkles, Heart
@@ -11,6 +12,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { profile, loading: userLoading, refreshProfile } = useUser(); // Добавлено
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +20,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [particles, setParticles] = useState([]);
+
+  // Проверяем, авторизован ли уже пользователь
+  useEffect(() => {
+    if (!userLoading && profile) {
+      // Если пользователь уже авторизован, перенаправляем его
+      router.push('/');
+    }
+  }, [profile, userLoading, router]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -54,18 +64,25 @@ export default function LoginPage() {
       return;
     }
     
-    // Вход через Supabase
-    const { error: authError } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
-    });
+    try {
+      // Вход через Supabase
+      const { error: authError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setIsLoading(false);
+      } else {
+        // Успешный вход - обновляем профиль и переходим на главную страницу
+        await refreshProfile(); // Обновляем контекст
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Произошла ошибка при входе в систему');
       setIsLoading(false);
-    } else {
-      // Успешный вход - переход на главную страницу
-      router.push('/');
     }
   };
 
@@ -74,6 +91,24 @@ export default function LoginPage() {
       await handleLogin();
     }
   };
+
+  // Показываем загрузку, если проверяем авторизацию пользователя
+  if (userLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-orange-50">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-2 border-[#D77E6C] border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  // Если пользователь уже авторизован, не показываем форму входа
+  if (profile) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-rose-50 via-white to-orange-50">

@@ -1,11 +1,11 @@
-// src/components/DashboardSidebarAdmin.tsx
+// src/components/SidebarAdmin.tsx
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { FastLink } from '@/components/FastLink';
 
 const adminNavItems = [
   { href: '/admin/dashboard', icon: '/icons/sidebar/homewhite.svg', iconGray: '/icons/sidebar/homegray.svg', label: 'Дэшборд' },
@@ -28,14 +28,11 @@ export default function DashboardSidebarAdmin() {
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
-      // **ДОБАВЛЕНО: Проверяем, что pathname не null**
       if (pathname === null) {
-        setActiveTop(null); // Если pathname null, индикатор не должен отображаться
+        setActiveTop(null);
         return;
       }
 
-      // Ищем индекс активного элемента.
-      // Используем `startsWith` для частичного совпадения, если у вас есть вложенные маршруты
       const activeItemIndex = adminNavItems.findIndex(item => pathname.startsWith(item.href));
       
       const activeEl = itemRefs.current[activeItemIndex];
@@ -45,7 +42,7 @@ export default function DashboardSidebarAdmin() {
         const offset = activeEl.getBoundingClientRect().top - containerEl.getBoundingClientRect().top;
         setActiveTop(offset);
       } else {
-        setActiveTop(null); // Если нет активного элемента, устанавливаем null
+        setActiveTop(null);
       }
     };
 
@@ -59,16 +56,11 @@ export default function DashboardSidebarAdmin() {
   }, [pathname]);
 
   const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
-    e.preventDefault();
-    // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
-    if (pathname !== null && pathname !== href) {
-      setLoadingIndex(idx);
-      router.push(href);
-    }
+    // Убираем preventDefault и router.push - теперь это делает FastLink
+    // Оставляем только логику для совместимости (если нужна)
   };
 
   const goToHome = () => {
-    // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
     if (pathname !== null && pathname !== '/') {
       router.push('/');
     }
@@ -110,7 +102,7 @@ export default function DashboardSidebarAdmin() {
         ref={containerRef}
         className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"
       >
-        {activeTop !== null && ( // Условный рендеринг: отображаем только если activeTop не null
+        {activeTop !== null && (
           <motion.div
             layout
             layoutId="admin-active-indicator"
@@ -126,16 +118,23 @@ export default function DashboardSidebarAdmin() {
         )}
 
         {adminNavItems.map((item, idx) => {
-          // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
           const isActive = pathname !== null && pathname.startsWith(item.href);
+          const isCurrentlyLoading = loadingIndex === idx;
 
           return (
-            <Link
+            <FastLink
               href={item.href}
               key={item.href}
               prefetch={false}
-              onClick={(e) => handleClick(e, idx, item.href)}
+              onLoadingChange={(loading) => {
+                if (loading) {
+                  setLoadingIndex(idx)
+                } else {
+                  setLoadingIndex(null)
+                }
+              }}
               className="relative z-10"
+              prefetchDelay={150}
             >
               <div
                 ref={(el) => {
@@ -148,7 +147,7 @@ export default function DashboardSidebarAdmin() {
                 "
                 title={item.label}
               >
-                {loadingIndex === idx ? (
+                {isCurrentlyLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
                 ) : (
                   <Image
@@ -164,7 +163,7 @@ export default function DashboardSidebarAdmin() {
                   />
                 )}
               </div>
-            </Link>
+            </FastLink>
           );
         })}
       </div>

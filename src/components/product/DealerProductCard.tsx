@@ -49,6 +49,7 @@ export default function DealerProductCard({
           alt={product.name || 'Товар'}
           fill
           className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Добавлено свойство sizes
           onError={(e) => {
             e.currentTarget.src = '/img/product1.jpg';
           }}

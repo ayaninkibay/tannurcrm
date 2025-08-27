@@ -1,17 +1,17 @@
-// src/components/Sidebar.tsx
+// src/components/Sidebar.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { FastLink } from '@/components/FastLink';
 
 const navItems = [
   {
     href: '/dealer/dashboard',
-    icon: '/icons/Icon home white.png', // Иконка для неактивного состояния
-    iconGray: '/icons/Icon home gray.png', // Иконка для активного состояния
+    icon: '/icons/Icon home white.png',
+    iconGray: '/icons/Icon home gray.png',
     label: 'Дэшборд',
   },
   {
@@ -34,8 +34,8 @@ const navItems = [
   },
   {
     href: '/dealer/stats',
-    icon: '/icons/IconStatsOpacity.svg', // Проверьте этот путь иконки, если это для белого
-    iconGray: '/icons/IconStatsGray.svg', // Проверьте этот путь иконки, если это для серого
+    icon: '/icons/IconStatsOpacity.svg',
+    iconGray: '/icons/IconStatsGray.svg',
     label: 'Ваши финансы',
   },
   {
@@ -62,13 +62,11 @@ export default function Sidebar() {
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
-      // **ДОБАВЛЕНО: Проверяем, что pathname не null**
       if (pathname === null) {
-        setActiveTop(null); // Если pathname null, индикатор не должен отображаться
+        setActiveTop(null);
         return;
       }
 
-      // Используем startsWith для частичного совпадения маршрутов
       const activeIndex = navItems.findIndex(item => pathname.startsWith(item.href));
       
       const activeEl = itemRefs.current[activeIndex];
@@ -79,7 +77,6 @@ export default function Sidebar() {
         const itemTop = activeEl.getBoundingClientRect().top;
         setActiveTop(itemTop - containerTop);
       } else {
-        // Если ни один элемент не активен, устанавливаем activeTop в null
         setActiveTop(null); 
       }
     };
@@ -87,28 +84,24 @@ export default function Sidebar() {
     updateActiveTop();
     window.addEventListener('resize', updateActiveTop);
     return () => window.removeEventListener('resize', updateActiveTop);
-  }, [pathname]); // Зависимость от pathname остается
+  }, [pathname]);
 
   useEffect(() => {
     setLoadingIndex(null);
   }, [pathname]);
 
   const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
-    e.preventDefault();
-    // **ДОБАВЛЕНО: Убедитесь, что pathname не null перед использованием**
-    if (pathname !== null && pathname !== href) {
-      setLoadingIndex(idx);
-      router.push(href);
-    }
+    // Убираем preventDefault и router.push - теперь это делает FastLink
+    // Оставляем только логику для совместимости (если нужна)
   };
 
   return (
     <aside
       className="
         hidden
-        lg:flex        /* показываем с lg+ */
+        lg:flex
         fixed left-0 top-0
-        h-screen w-22      /* 9rem — ширина сайдбара */
+        h-screen w-22
         bg-[#e08672] z-10
         flex-col items-center pt-12 pb-6
       "
@@ -137,7 +130,6 @@ export default function Sidebar() {
         ref={containerRef}
         className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"
       >
-        {/* Условный рендеринг: motion.div отображается только если activeTop не null */}
         {activeTop !== null && ( 
           <motion.div
             layout
@@ -154,15 +146,23 @@ export default function Sidebar() {
         )}
 
         {navItems.map((item, idx) => {
-          // **ДОБАВЛЕНО: Проверяем, что pathname не null перед использованием**
           const isActive = pathname !== null && pathname.startsWith(item.href); 
+          const isCurrentlyLoading = loadingIndex === idx;
+          
           return (
-            <Link
+            <FastLink
               href={item.href}
               key={item.href}
               prefetch={false}
-              onClick={(e) => handleClick(e, idx, item.href)}
+              onLoadingChange={(loading) => {
+                if (loading) {
+                  setLoadingIndex(idx)
+                } else {
+                  setLoadingIndex(null)
+                }
+              }}
               className="relative z-10"
+              prefetchDelay={150}
             >
               <div
                 ref={(el) => {
@@ -175,11 +175,10 @@ export default function Sidebar() {
                 "
                 title={item.label}
               >
-                {loadingIndex === idx ? (
+                {isCurrentlyLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
                 ) : (
                   <Image
-                    // Если активна, используем iconGray, иначе icon
                     src={isActive ? item.iconGray : item.icon} 
                     alt={item.label}
                     width={22}
@@ -187,7 +186,7 @@ export default function Sidebar() {
                   />
                 )}
               </div>
-            </Link>
+            </FastLink>
           );
         })}
       </div>

@@ -1,4 +1,4 @@
-// lib/tree/TreeService.ts
+// services/TreeService.ts
 
 import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/types/supabase';
@@ -8,7 +8,6 @@ export interface TeamMember {
   parentId: string | null;
   name: string;
   avatar?: string;
-  tariff?: string;
   profession?: string;
   role?: string;
   verified: boolean;
@@ -17,6 +16,7 @@ export interface TeamMember {
   phone?: string;
   level?: number;
   turnover?: number;
+  referralCode?: string;
 }
 
 export class TreeService {
@@ -137,15 +137,15 @@ export class TreeService {
       parentId: user.parent_id,
       name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Без имени',
       avatar: user.avatar_url,
-      tariff: this.getTariffByLevel(user.personal_level),
-      profession: this.mapRoleToProfession(user.role),
+      profession: user.profession,
       role: this.mapRoleToPosition(user.role),
       verified: user.is_confirmed || false,
       teamCount: 0,
       email: user.email,
       phone: user.phone,
       level: user.personal_level,
-      turnover: user.personal_turnover
+      turnover: user.personal_turnover,
+      referralCode: user.referral_code
     }));
 
     members.forEach(member => {
@@ -153,34 +153,6 @@ export class TreeService {
     });
 
     return members;
-  }
-
-  /**
-   * Определить тариф по уровню пользователя
-   */
-  private static getTariffByLevel(level: number): string {
-    if (level >= 30) return 'Enterprise';
-    if (level >= 20) return 'Premium';
-    if (level >= 10) return 'Business';
-    return 'Basic';
-  }
-
-  /**
-   * Маппинг роли на профессию
-   */
-  private static mapRoleToProfession(role: string | null): string {
-    switch (role) {
-      case 'admin':
-        return 'Администратор';
-      case 'celebrity':
-        return 'Знаменитость';
-      case 'dealer':
-        return 'Дилер';
-      case 'user':
-        return 'Пользователь';
-      default:
-        return 'Участник';
-    }
   }
 
   /**

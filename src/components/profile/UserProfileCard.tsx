@@ -54,13 +54,15 @@ export default function UserProfileCard() {
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <h2 className="text-md font-semibold text-[#111]">Мой профиль</h2>
-        <Image 
-          src="/icons/buttom/more.svg" 
-          alt="more" 
-          width={4} 
-          height={4} 
-          className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
-        />
+        <div className="relative w-4 h-4">
+          <Image 
+            src="/icons/buttom/more.svg" 
+            alt="more" 
+            fill
+            style={{ objectFit: 'contain' }}
+            className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
+          />
+        </div>
       </div>
 
       {/* Profile Info */}
@@ -72,8 +74,9 @@ export default function UserProfileCard() {
             alt="avatar"
             width={96}
             height={96}
-            className="object-cover w-full h-full"
+            className="object-cover"
             unoptimized={profile.avatar_url?.includes('supabase')}
+            priority={true} 
           />
         </div>
 
@@ -83,15 +86,15 @@ export default function UserProfileCard() {
             <p className="text-sm md:text-base font-semibold text-[#111] truncate">
               {profile.first_name} {profile.last_name}
             </p>
-            {profile.is_confirmed && (
-              <Image 
-                src="/icons/confirmed.svg" 
-                alt="confirmed" 
-                width={16} 
-                height={16}
-                className="flex-shrink-0"
-              />
-            )}
+{profile.is_confirmed && (
+  <Image 
+    src="/icons/confirmed.svg" 
+    alt="confirmed" 
+    width={16} 
+    height={16}
+    style={{ width: '16px', height: '16px' }}
+  />
+)}
           </div>
           
           {profile.referral_code && (
