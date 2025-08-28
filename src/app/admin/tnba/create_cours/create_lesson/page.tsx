@@ -8,7 +8,8 @@ import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 type LessonDraft = {
   id: string;
   title: string;
-  durationMin: number | '';
+  // было: number | ''
+  durationMin: number | string;
   videoUrl: string;
   summary: string;
   files: string[];      // имена/URL материалов
@@ -22,11 +23,14 @@ type Course = {
 export default function CreateLessonPage() {
   const sp = useSearchParams();
   const courseId = (sp?.get('courseId') ?? '').trim();
+  const editLessonId = (sp?.get('editLessonId') ?? '').trim();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<LessonDraft[]>([]);
+
   const [title, setTitle] = useState('');
-  const [durationMin, setDurationMin] = useState<number | ''>('');
+  // было: useState<number | ''>('')
+  const [durationMin, setDurationMin] = useState<number | string>('');
   const [videoUrl, setVideoUrl] = useState('');
   const [summary, setSummary] = useState('');
   const [fileInput, setFileInput] = useState('');
@@ -47,9 +51,24 @@ export default function CreateLessonPage() {
     try {
       const raw = localStorage.getItem(`admin_lessons_${courseId}`);
       const list: LessonDraft[] = raw ? JSON.parse(raw) : [];
-      setLessons(list);
+      setLessons(Array.isArray(list) ? list : []);
     } catch {}
   }, [courseId]);
+
+  // режим редактирования
+  const isEdit = useMemo(() => !!editLessonId, [editLessonId]);
+
+  // если редактируем — подставляем значения
+  useEffect(() => {
+    if (!isEdit) return;
+    const found = lessons.find((l) => l.id === editLessonId);
+    if (!found) return;
+    setTitle(found.title);
+    setDurationMin(found.durationMin);
+    setVideoUrl(found.videoUrl);
+    setSummary(found.summary);
+    setFiles(found.files ?? []);
+  }, [isEdit, editLessonId, lessons]);
 
   function addFile() {
     const v = fileInput.trim();
@@ -61,20 +80,7 @@ export default function CreateLessonPage() {
     setFiles((p) => p.filter((_, idx) => idx !== i));
   }
 
-  function addLesson() {
-    if (!title.trim()) return;
-    const l: LessonDraft = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      durationMin: durationMin === '' ? '' : Number(durationMin),
-      videoUrl: videoUrl.trim(),
-      summary: summary.trim(),
-      files: files.slice(),
-    };
-    const next = [...lessons, l];
-    setLessons(next);
-    localStorage.setItem(`admin_lessons_${courseId}`, JSON.stringify(next));
-    // очистка формы
+  function resetForm() {
     setTitle('');
     setDurationMin('');
     setVideoUrl('');
@@ -83,11 +89,50 @@ export default function CreateLessonPage() {
     setFileInput('');
   }
 
-  const heading = useMemo(() => (course ? `Создать урок: ${course.title}` : 'Создать урок'), [course]);
+  function saveLessons(next: LessonDraft[]) {
+    setLessons(next);
+    localStorage.setItem(`admin_lessons_${courseId}`, JSON.stringify(next));
+  }
+
+  function onSubmit() {
+    if (!title.trim()) return;
+
+    if (isEdit) {
+      const next = lessons.map((l) =>
+        l.id === editLessonId
+          ? {
+              ...l,
+              title: title.trim(),
+              durationMin: durationMin === '' ? '' : Number(durationMin),
+              videoUrl: videoUrl.trim(),
+              summary: summary.trim(),
+              files: files.slice(),
+            }
+          : l
+      );
+      saveLessons(next);
+    } else {
+      const l: LessonDraft = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        durationMin: durationMin === '' ? '' : Number(durationMin),
+        videoUrl: videoUrl.trim(),
+        summary: summary.trim(),
+        files: files.slice(),
+      };
+      saveLessons([...lessons, l]);
+      resetForm();
+    }
+  }
+
+  const heading = useMemo(
+    () => (course ? `${isEdit ? 'Редактировать' : 'Создать'} урок: ${course.title}` : `${isEdit ? 'Редактировать' : 'Создать'} урок`),
+    [course, isEdit]
+  );
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={heading}showBackButton={true}  />
+      <MoreHeaderAD title={heading} showBackButton={true} />
 
       {/* форма урока */}
       <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6">
@@ -169,10 +214,10 @@ export default function CreateLessonPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={addLesson}
+            onClick={onSubmit}
             className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] text-white rounded-lg text-sm font-medium"
           >
-            Добавить урок
+            {isEdit ? 'Сохранить изменения' : 'Добавить урок'}
           </button>
 
           <Link href="/admin/tnba" className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">

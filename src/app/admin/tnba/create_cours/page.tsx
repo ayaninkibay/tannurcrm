@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 
 type CourseDraft = {
@@ -13,12 +13,12 @@ type CourseDraft = {
   level: 'Новичок' | 'Средний' | 'Продвинутый';
   language: string;
   thumbnail: string;
-  shortDesc: string;        // краткое описание (для карточек/листа)
-  fullDesc: string;         // полное описание (для страницы курса)
+  shortDesc: string;
+  fullDesc: string;
   tags: string[];
-  outcomes: string[];       // что получит студент
-  prerequisites: string[];  // требования/что нужно знать
-  syllabus: string[];       // структура/модули
+  outcomes: string[];
+  prerequisites: string[];
+  syllabus: string[];
   totalMinutes?: number;
   isPublished: boolean;
 };
@@ -34,8 +34,11 @@ const LEVELS: CourseDraft['level'][] = ['Новичок', 'Средний', 'П�
 
 export default function CreateCoursPage() {
   const router = useRouter();
+  const sp = useSearchParams();
+  const editingCourseId = (sp?.get('courseId') ?? '').trim(); // опционально — редактирование
 
   // ----- FORM STATE -----
+  const [id, setId] = useState<string>(''); // держим id, чтобы при редактировании не генерить новый
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [author, setAuthor] = useState('Tannur Cosmetics');
@@ -56,6 +59,38 @@ export default function CreateCoursPage() {
   const [isPublished, setIsPublished] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // загрузка курса для редактирования
+  const isEdit = useMemo(() => !!editingCourseId, [editingCourseId]);
+
+  useEffect(() => {
+    if (!isEdit) {
+      setId(''); // новый курс
+      return;
+    }
+    try {
+      const raw = localStorage.getItem('admin_courses');
+      const list: CourseDraft[] = raw ? JSON.parse(raw) : [];
+      const found = list.find((c) => c.id === editingCourseId);
+      if (!found) return;
+
+      setId(found.id);
+      setTitle(found.title);
+      setCategory(found.category);
+      setAuthor(found.author);
+      setLevel(found.level);
+      setLanguage(found.language);
+      setThumbnail(found.thumbnail);
+      setShortDesc(found.shortDesc);
+      setFullDesc(found.fullDesc);
+      setTags(found.tags ?? []);
+      setOutcomes(found.outcomes ?? []);
+      setPrereq(found.prerequisites ?? []);
+      setSyllabus(found.syllabus ?? []);
+      setTotalMinutes(typeof found.totalMinutes === 'number' ? found.totalMinutes : '');
+      setIsPublished(!!found.isPublished);
+    } catch {}
+  }, [isEdit, editingCourseId]);
 
   // ----- HELPERS -----
   function addTag() {
@@ -123,9 +158,9 @@ export default function CreateCoursPage() {
   function handleSave(goToLessons: boolean) {
     if (!validate()) return;
 
-    const id = Date.now().toString();
+    const finalId = id || Date.now().toString();
     const draft: CourseDraft = {
-      id,
+      id: finalId,
       title: title.trim(),
       category,
       author: author.trim(),
@@ -145,16 +180,18 @@ export default function CreateCoursPage() {
     saveToLocalStorage(draft);
 
     if (goToLessons) {
-      router.push(`/admin/tnba/create_cours/create_lesson?courseId=${id}`);
+      router.push(`/admin/tnba/create_cours/create_lesson?courseId=${finalId}`);
     }
   }
 
-  const isValid = useMemo(() => title.trim() && shortDesc.trim() && fullDesc.trim(), [title, shortDesc, fullDesc]);
+  const isValid = useMemo(
+    () => !!(title.trim() && shortDesc.trim() && fullDesc.trim()),
+    [title, shortDesc, fullDesc]
+  );
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Создать курс"showBackButton={true}  />
-      
+      <MoreHeaderAD title={isEdit ? 'Редактировать курс' : 'Создать курс'} showBackButton={true} />
 
       <form
         onSubmit={(e) => {
@@ -163,7 +200,6 @@ export default function CreateCoursPage() {
         }}
         className="mt-4 bg-white rounded-2xl border border-gray-100 p-6"
       >
-        
         {/* БАЗОВЫЕ ПОЛЯ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
@@ -185,7 +221,9 @@ export default function CreateCoursPage() {
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
             >
               {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
             {errors.category && <div className="text-xs text-red-500 mt-1">{errors.category}</div>}
@@ -209,7 +247,11 @@ export default function CreateCoursPage() {
                 onChange={(e) => setLevel(e.target.value as CourseDraft['level'])}
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               >
-                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                {LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -278,7 +320,12 @@ export default function CreateCoursPage() {
             <input
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
               className="w-full md:w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               placeholder="например: skincare, продажи"
             />
@@ -291,22 +338,28 @@ export default function CreateCoursPage() {
               {tags.map((t, i) => (
                 <span key={i} className="inline-flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-full bg-gray-100">
                   {t}
-                  <button type="button" onClick={() => removeTag(i)} className="text-gray-500 hover:text-gray-700">×</button>
+                  <button type="button" onClick={() => removeTag(i)} className="text-gray-500 hover:text-gray-700">
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
           )}
-          
         </div>
 
-        {/* ЧТО ПОЛУЧИТ СТУДЕНТ */}
+        {/* РЕЗУЛЬТАТЫ */}
         <div className="mt-6">
           <div className="text-sm font-semibold text-gray-900 mb-2">Результаты обучения</div>
           <div className="flex gap-2">
             <input
               value={outcomeInput}
               onChange={(e) => setOutcomeInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addOutcome(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addOutcome();
+                }
+              }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               placeholder="Например: научится проводить консультацию…"
             />
@@ -319,7 +372,13 @@ export default function CreateCoursPage() {
               {outcomes.map((o, i) => (
                 <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm text-gray-800">{o}</span>
-                  <button type="button" onClick={() => removeOutcome(i)} className="text-xs text-gray-500 hover:text-gray-700">Удалить</button>
+                  <button
+                    type="button"
+                    onClick={() => removeOutcome(i)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Удалить
+                  </button>
                 </li>
               ))}
             </ul>
@@ -333,7 +392,12 @@ export default function CreateCoursPage() {
             <input
               value={prereqInput}
               onChange={(e) => setPrereqInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPrereq(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addPrereq();
+                }
+              }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               placeholder="Что нужно знать/иметь заранее"
             />
@@ -346,21 +410,32 @@ export default function CreateCoursPage() {
               {prereq.map((p, i) => (
                 <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm text-gray-800">{p}</span>
-                  <button type="button" onClick={() => removePrereq(i)} className="text-xs text-gray-500 hover:text-gray-700">Удалить</button>
+                  <button
+                    type="button"
+                    onClick={() => removePrereq(i)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Удалить
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* СТРУКТУРА/МОДУЛИ */}
+        {/* СТРУКТУРА */}
         <div className="mt-6">
           <div className="text-sm font-semibold text-gray-900 mb-2">Структура курса (модули)</div>
           <div className="flex gap-2">
             <input
               value={syllabusInput}
               onChange={(e) => setSyllabusInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSyllabus(); } }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addSyllabus();
+                }
+              }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               placeholder="Название модуля/блока"
             />
@@ -373,7 +448,13 @@ export default function CreateCoursPage() {
               {syllabus.map((s, i) => (
                 <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm text-gray-800">{s}</span>
-                  <button type="button" onClick={() => removeSyllabus(i)} className="text-xs text-gray-500 hover:text-gray-700">Удалить</button>
+                  <button
+                    type="button"
+                    onClick={() => removeSyllabus(i)}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Удалить
+                  </button>
                 </li>
               ))}
             </ul>
@@ -382,8 +463,15 @@ export default function CreateCoursPage() {
 
         {/* ПУБЛИКАЦИЯ */}
         <div className="mt-6 flex items-center gap-2">
-          <input id="publish" type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} />
-          <label htmlFor="publish" className="text-sm text-gray-700">Опубликовать курс сразу</label>
+          <input
+            id="publish"
+            type="checkbox"
+            checked={isPublished}
+            onChange={(e) => setIsPublished(e.target.checked)}
+          />
+          <label htmlFor="publish" className="text-sm text-gray-700">
+            Опубликовать курс сразу
+          </label>
         </div>
 
         {/* ДЕЙСТВИЯ */}
@@ -402,10 +490,13 @@ export default function CreateCoursPage() {
             className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium"
             title={!isValid ? 'Заполните обязательные поля' : ''}
           >
-            Сохранить и перейти к урокам
+            {isEdit ? 'Сохранить и перейти к урокам' : 'Сохранить и перейти к урокам'}
           </button>
 
-          <Link href="/admin/tnba" className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+          <Link
+            href="/admin/tnba"
+            className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+          >
             Отмена
           </Link>
         </div>

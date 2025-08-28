@@ -251,7 +251,7 @@ export default function Team() {
 
       <TannurButton
         text="Создать складовщика"
-        href="/admin/teamcontent/create_storekeeper"
+        href="/admin/teamcontent/create_rockmaker"
         iconSrc="/icons/iconusersorange.svg"
         variant="white"
         arrow="black"

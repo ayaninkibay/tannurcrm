@@ -34,33 +34,13 @@ export default function RightSidebar() {
         </div>
       </div>
 
-      {/* Выпуск товара */}
-      <button
-        onClick={() => router.push('/admin/warehouse/product_view')}
-        className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
-      >
-        <span className="flex items-center gap-2 text-[#111] font-medium">
-          <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-          Выпуск товара из склада
-        </span>
-        <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-      </button>
 
       {/* История */}
       <div className="w-full">
-        <p className="text-sm font-semibold mb-2 text-[#111] px-2">История</p>
         <div className="space-y-2">
-          <Link href="/admin/teamcontent/create_dealer" className="block w-full">
-            <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
-              <span className="flex items-center gap-2 text-[#111] font-medium">
-                <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
-                Составить отчет по остаткам
-              </span>
-              <Image src="/icons/Icon arow botom.png" alt=">" width={18} height={18} />
-            </button>
-          </Link>
+
           
-          <Link href="/admin/teamcontent/create_star" className="block w-full">
+          <Link href="/admin/warehouse/product_view" className="block w-full">
             <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
               <span className="flex items-center gap-2 text-[#111] font-medium">
                 <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />
@@ -74,7 +54,7 @@ export default function RightSidebar() {
 
       {/* Товары (создание) */}
       <div className="w-full">
-        <p className="text-sm font-semibold mb-2 text-[#111] px-2">Товары</p>
+      
         <button
           onClick={() => router.push('/admin/warehouse/create_product')}
           className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
@@ -87,30 +67,7 @@ export default function RightSidebar() {
         </button>
       </div>
 
-      {/* Пользователи */}
-      <div className="w-full">
-        <p className="text-sm font-semibold mb-2 text-[#111] px-2">Пользователи</p>
-        <button
-          onClick={() => router.push('/admin/teamcontent/profile_dealer')}
-          className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
-        >
-          <span className="flex items-center gap-2 text-[#111] font-medium">
-            <Image
-              src="/icons/IconProfileOrange.png"
-              alt="icon"
-              width={16}
-              height={16}
-            />
-            Создать менеджера
-          </span>
-          <Image
-            src="/icons/Icon arow botom.png"
-            alt="arrow"
-            width={18}
-            height={18}
-          />
-        </button>
-      </div>
+
     </div>
   );
 }
