@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -152,7 +152,8 @@ const Section = ({ title, icon: Icon, children }:{
   </div>
 );
 
-export default function ViewOrderPage() {
+/* ===== Основной компонент с useSearchParams ===== */
+function ViewOrderContent() {
   const sp = useSearchParams();
 
   const [order, setOrder] = useState<ExtendedOrder | null>(null);
@@ -204,7 +205,7 @@ export default function ViewOrderPage() {
 
   const applyStatusChange = () => {
     if (!order || !confirm.to) return;
-    const to = confirm.to as OrderStatus; // сужаем тип
+    const to = confirm.to as OrderStatus;
 
     const next: ExtendedOrder = {
       ...order,
@@ -248,15 +249,12 @@ export default function ViewOrderPage() {
   if (!order) {
     return (
       <div className="p-2 md:p-6">
-        <MoreHeaderAD title="Просмотр заказа" />
+        <MoreHeaderAD title="Просмотр заказа" showBackButton={true} />
         <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">
           <div className="text-gray-700">Данные заказа не найдены.</div>
-       showBackButton={true}
         </div>
       </div>
-      
     );
- 
   }
 
   return (
@@ -559,5 +557,29 @@ export default function ViewOrderPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/* ===== Компонент-загрузчик ===== */
+function LoadingFallback() {
+  return (
+    <div className="p-2 md:p-6">
+      <MoreHeaderAD title="Просмотр заказа" showBackButton={true} />
+      <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== Экспортируемый компонент с Suspense ===== */
+export default function ViewOrderPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ViewOrderContent />
+    </Suspense>
   );
 }

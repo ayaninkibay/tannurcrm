@@ -191,7 +191,12 @@ export default function CreateCoursPage() {
 
   return (
     <div className="p-2 md:p-6">
+<<<<<<< HEAD
       <MoreHeaderAD title={isEdit ? 'Редактировать курс' : 'Создать курс'} showBackButton={true} />
+=======
+      <MoreHeaderAD title="Создать курс" showBackButton={true}  />
+      
+>>>>>>> 9359c06ca0f70e9571ce87c70542e7cbc83cf1ff
 
       <form
         onSubmit={(e) => {
