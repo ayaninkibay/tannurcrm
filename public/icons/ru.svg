@@ -1,13 +1,18 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
- "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
- width="2560.000000pt" height="1707.000000pt" viewBox="0 0 2560.000000 1707.000000"
- preserveAspectRatio="xMidYMid meet">
-
-<g transform="translate(0.000000,1707.000000) scale(0.100000,-0.100000)"
-fill="#000000" stroke="none">
-<path d="M0 5695 l0 -5685 12800 0 12800 0 0 5685 0 5685 -12800 0 -12800 0 0
--5685z"/>
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_3334_1826)">
+<rect width="400" height="400" fill="white"/>
+<g clip-path="url(#clip1_3334_1826)">
+<path d="M-57 0C140.67 0 338.34 0 542 0C542 132 542 264 542 400C344.33 400 146.66 400 -57 400C-57 268 -57 136 -57 0Z" fill="#0038A5"/>
+<path d="M-57 266.667C140.67 266.667 338.34 266.667 542 266.667C542 310.667 542 354.667 542 400C344.33 400 146.66 400 -57 400C-57 356 -57 312 -57 266.667Z" fill="#D52B1E"/>
+<path d="M-57 0C140.67 0 338.34 0 542 0C542 44 542 88 542 133.333C344.33 133.333 146.66 133.333 -57 133.333C-57 89.3333 -57 45.3333 -57 0Z" fill="#FEFEFE"/>
 </g>
+</g>
+<defs>
+<clipPath id="clip0_3334_1826">
+<rect width="400" height="400" fill="white"/>
+</clipPath>
+<clipPath id="clip1_3334_1826">
+<rect width="599" height="400" fill="white" transform="translate(-57)"/>
+</clipPath>
+</defs>
 </svg>

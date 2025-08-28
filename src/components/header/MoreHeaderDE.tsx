@@ -18,8 +18,8 @@ interface MoreHeaderDEProps {
 
 // Данные языков с флагами
 const languages = [
-  { code: 'ru', name: 'Русский', flagSvg: '/icons/ru.svg', short: 'RU' },
-  { code: 'en', name: 'English', flagSvg: '/icons/en.svg', short: 'EN' },
+  { code: 'ru', name: 'Русский', flagSvg: '/icons/ru.svg', short: 'RU', className: 'rounded-full' },
+  { code: 'cn', name: 'China', flagSvg: '/icons/ch.svg', short: 'CN' },
   { code: 'kz', name: 'Қазақша', flagSvg: '/icons/kz.svg', short: 'KZ' },
 ];
 
@@ -132,7 +132,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                 alt={currentLanguage.name}
                 width={20}
                 height={15}
-                className="object-contain"
+                className="object-contain rounded-2xl"
               />
               <span className="text-sm font-medium text-gray-700 hidden md:block">
                 {currentLanguage.short}
