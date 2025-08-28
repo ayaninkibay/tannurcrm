@@ -8,22 +8,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
 import { useUser } from '@/context/UserContext';
-import { ArrowLeft } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate'; // Добавляем импорт
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 interface MoreHeaderDEProps {
   title: string | React.ReactNode;
-  showBackButton?: boolean; // По умолчанию false
+  showBackButton?: boolean;
 }
 
+// Данные языков с флагами
+const languages = [
+  { code: 'ru', name: 'Русский', flagSvg: '/icons/ru.svg', short: 'RU' },
+  { code: 'en', name: 'English', flagSvg: '/icons/en.svg', short: 'EN' },
+  { code: 'kz', name: 'Қазақша', flagSvg: '/icons/kz.svg', short: 'KZ' },
+];
+
 export default function MoreHeader({ title, showBackButton = false }: MoreHeaderDEProps) {
-  // Используем logout из UserContext вместо создания своей функции
   const { profile, loading, logout } = useUser();
+  const { t, language, changeLanguage } = useTranslate(); // Добавляем хук перевода
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
   const [avatarUrl, setAvatarUrl] = useState<string>('/img/avatar-default.png');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState<boolean>(false); // Новое состояние для меню языков
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
+
+  // Получаем текущий язык
+  const currentLanguage = languages.find(lang => lang.code === language) || languages[0];
 
   useEffect(() => {
     if (!loading && profile) {
@@ -33,28 +45,17 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
   }, [profile, loading]);
 
   const handleProfile = () => router.push('/dealer/profile');
-  const handleNotifications = () => router.push('/dealer/notifications');
   
-  // Обновленная функция handleSignOut использует logout из контекста
   const handleSignOut = async () => {
     try {
-      // Закрываем меню перед выходом (если оно открыто)
       setMenuOpen(false);
-      
-      // Вызываем функцию logout из UserContext
-      // Она уже содержит логику выхода через Supabase и редирект на /login
       await logout();
-      
-      // Примечание: редирект на /signin уже не нужен, так как logout() из контекста
-      // перенаправляет на /login. Если вам нужен именно /signin, измените это в UserContext
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
-      // Опционально: можно показать уведомление об ошибке пользователю
     }
   };
 
   const handleBack = () => {
-    // Проверка на null для pathname
     if (pathname === null) {
       console.warn("Pathname is null, cannot determine back path.");
       router.back();
@@ -74,26 +75,31 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
     } else if (pathname.includes('/documents/')) {
       router.push('/dealer/documents');
     } else {
-      // По умолчанию просто идем назад
       router.back();
     }
   };
 
+  // Обновленный список меню с переводами
   const menuItems = [
-    { label: 'Tannur Главная', href: '/', icon: '/icons/company/tannurapp_1.svg' },
-    { label: 'Мой дэшборд', href: '/dealer/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
-    { label: 'Моя команда', href: '/dealer/myteam', icon: '/icons/sidebar/teamgray.svg', activeIcon: '/icons/sidebar/teamwhite.svg' },
-    { label: 'Мои финансы', href: '/dealer/stats', icon: '/icons/sidebar/statsgray.svg', activeIcon: '/icons/sidebar/statswhite.svg' },
-    { label: 'Tannur Store', href: '/dealer/shop', icon: '/icons/sidebar/storegray.svg', activeIcon: '/icons/sidebar/storewhite.svg' },
-    { label: 'Tannur BA', href: '/dealer/education', icon: '/icons/sidebar/tnbagray.svg', activeIcon: '/icons/sidebar/tnbawhite.svg' },
-    { label: 'Файлы', href: '/dealer/documents', icon: '/icons/sidebar/foldergray.svg', activeIcon: '/icons/sidebar/folderwhite.svg' },
+    { label: t('Tannur Главная') || 'Tannur Главная', href: '/', icon: '/icons/company/tannurapp_1.svg' },
+    { label: t('Мой дэшборд') || 'Мой дэшборд', href: '/dealer/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
+    { label: t('Моя команда') || 'Моя команда', href: '/dealer/myteam', icon: '/icons/sidebar/teamgray.svg', activeIcon: '/icons/sidebar/teamwhite.svg' },
+    { label: t('Мои финансы') || 'Мои финансы', href: '/dealer/stats', icon: '/icons/sidebar/statsgray.svg', activeIcon: '/icons/sidebar/statswhite.svg' },
+    { label: t('Tannur Store') || 'Tannur Store', href: '/dealer/shop', icon: '/icons/sidebar/storegray.svg', activeIcon: '/icons/sidebar/storewhite.svg' },
+    { label: t('Tannur BA') || 'Tannur BA', href: '/dealer/education', icon: '/icons/sidebar/tnbagray.svg', activeIcon: '/icons/sidebar/tnbawhite.svg' },
+    { label: t('Файлы') || 'Файлы', href: '/dealer/documents', icon: '/icons/sidebar/foldergray.svg', activeIcon: '/icons/sidebar/folderwhite.svg' },
   ];
+
+  // Функция смены языка
+  const handleLanguageChange = (langCode: string) => {
+    changeLanguage(langCode);
+    setLanguageMenuOpen(false);
+  };
 
   return (
     <div className="w-full -mt-5 border-b border-gray-200 relative">
       <div className="h-[72px] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* Кнопка назад - показывается только если showBackButton={true} */}
           {showBackButton && (
             <button
               onClick={handleBack}
@@ -115,17 +121,65 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <button
-            onClick={handleNotifications}
-            className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white flex items-center justify-center"
-          >
-            <Image
-              src="/icons/notification_red.svg"
-              alt="Уведомления"
-              width={24}
-              height={24}
-            />
-          </button>
+          {/* Переключатель языка */}
+          <div className="relative">
+            <button
+              onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+              className="flex items-center gap-1 bg-white rounded-lg px-2 py-1.5 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <Image
+                src={currentLanguage.flagSvg}
+                alt={currentLanguage.name}
+                width={20}
+                height={15}
+                className="object-contain"
+              />
+              <span className="text-sm font-medium text-gray-700 hidden md:block">
+                {currentLanguage.short}
+              </span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            </button>
+
+            {/* Выпадающее меню языков */}
+            <AnimatePresence>
+              {languageMenuOpen && (
+                <>
+                  {/* Невидимая подложка для закрытия меню */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setLanguageMenuOpen(false)}
+                  />
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]"
+                  >
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                          language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                        }`}
+                      >
+                        <Image
+                          src={lang.flagSvg}
+                          alt={lang.name}
+                          width={18}
+                          height={13}
+                          className="object-contain"
+                        />
+                        <span className="font-medium">{lang.short}</span>
+                        <span className="hidden md:block text-xs text-gray-500">{lang.name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
 
           <button
             onClick={handleProfile}
@@ -176,6 +230,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
         </div>
       </div>
 
+      {/* Мобильное меню */}
       <AnimatePresence>
         {menuOpen && (
           <>
@@ -227,18 +282,46 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
                 <div className="w-full h-px bg-gray-300 mt-10 mb-10 my-3" />
 
-                <p className="text-[#D77E6C] text-sm px-4 font-semibold uppercase">Прочее</p>
+                <p className="text-[#D77E6C] text-sm px-4 font-semibold uppercase">
+                  {t('Прочее') || 'Прочее'}
+                </p>
                 <div className="flex flex-col gap-2 mt-2">
-                  <button className="flex items-center gap-3 px-4 py-2 rounded-xl w-full text-left text-black font-medium hover:bg-[#F4ECEB]">
-                    <Image src="/icons/buttom/settingsblack.svg" alt="Язык" width={20} height={20} />
-                    Русский
-                  </button>
+                  {/* Переключатель языка в мобильном меню */}
+                  <div className="px-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Image src="/icons/buttom/settingsblack.svg" alt="Язык" width={20} height={20} />
+                      <span className="text-black font-medium">{t('Язык') || 'Язык'}</span>
+                    </div>
+                    <div className="flex gap-1 ml-7">
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleLanguageChange(lang.code)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                            language === lang.code 
+                              ? 'bg-[#D77E6C] text-white' 
+                              : 'bg-white text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Image
+                            src={lang.flagSvg}
+                            alt={lang.name}
+                            width={16}
+                            height={12}
+                            className="object-contain"
+                          />
+                          <span>{lang.short}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <button 
                     onClick={handleSignOut} 
                     className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]"
                   >
                     <Image src="/icons/buttom/signout_black.svg" alt="Выйти" width={20} height={20} />
-                    Выйти
+                    {t('Выйти') || 'Выйти'}
                   </button>
                 </div>
               </div>
