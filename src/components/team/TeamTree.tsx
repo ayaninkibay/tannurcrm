@@ -123,7 +123,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
     <div className="relative">
       <div 
         onClick={() => onSelect(member)}
-        className={`w-48 sm:w-56 rounded-xl shadow-sm border cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 ${
+        className={`w-40 sm:w-48 md:w-56 rounded-xl shadow-sm border cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 ${
           isCurrentUser 
             ? 'bg-white border-[#DC7C67] border-2' 
             : 'bg-white border-gray-200 hover:border-gray-300'
@@ -208,7 +208,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
               e.stopPropagation();
               onToggle(member.id);
             }}
-            className="w-5 h-5 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:border-[#DC7C67] hover:bg-[#DC7C67] hover:text-white transition-all shadow-sm"
+            className="w-6 h-6 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center hover:border-[#DC7C67] hover:bg-[#DC7C67] hover:text-white transition-all shadow-sm"
             aria-label={member.expanded ? 'Свернуть' : 'Развернуть'}
           >
             <svg 
@@ -283,7 +283,7 @@ const TreeNodeComponent: React.FC<TreeNodeProps> = ({
             />
           )}
 
-          <div className="flex items-start gap-12 pt-4">
+          <div className="flex items-start gap-8 sm:gap-12 pt-4">
             {node.children.map((child) => (
               <div key={child.id} className="relative">
                 {node.children.length > 1 && (
@@ -431,8 +431,6 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
-
-
       {/* Таблица */}
       <div className="flex-1 overflow-auto">
         {filteredAndSortedMembers.length === 0 ? (
@@ -449,50 +447,20 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
             </p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                {[
-                  { key: 'name', label: 'Участник' },
-                  { key: 'id', label: 'ID' },
-                  { key: 'position', label: 'Профессия' },
-                  { key: 'teamCount', label: 'Команда' },
-                  { key: 'verified', label: 'Статус' }
-                ].map(({ key, label }) => (
-                  <th 
-                    key={key}
-                    onClick={() => handleSort(key as keyof TeamMember)}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+          <>
+            {/* Мобильная версия - карточки */}
+            <div className="block sm:hidden">
+              <div className="p-3 space-y-3">
+                {filteredAndSortedMembers.map(member => (
+                  <div
+                    key={member.id}
+                    onClick={() => onSelectMember(member)}
+                    className={`bg-white border rounded-lg p-4 cursor-pointer transition-colors ${
+                      member.id === currentUserId ? 'border-[#DC7C67] bg-orange-50' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
                   >
-                    <div className="flex items-center gap-1">
-                      {label}
-                      <svg 
-                        className={`w-3 h-3 transform transition-transform ${
-                          sortField === key ? (sortDirection === 'asc' ? 'rotate-0' : 'rotate-180') : ''
-                        }`}
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
-                      </svg>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedMembers.map(member => (
-                <tr
-                  key={member.id}
-                  onClick={() => onSelectMember(member)}
-                  className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                    member.id === currentUserId ? 'bg-orange-50' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                         {member.avatar ? (
                           <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                         ) : (
@@ -501,11 +469,12 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                           </span>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 truncate text-sm">
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-gray-900 text-sm truncate">
                             {member.name || 'Без имени'}
-                          </span>
+                          </h3>
                           {member.verified && (
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                           )}
@@ -515,52 +484,171 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                             </span>
                           )}
                         </div>
+                        
+                        <div className="text-xs text-gray-500 mb-2 font-mono">
+                          ID: {member.referralCode || member.id.substring(0, 8)}
+                        </div>
+                        
                         {member.phone && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
                             <Phone className="w-3 h-3" />
                             <span className="truncate">{member.phone}</span>
                           </div>
                         )}
+                        
+                        {(member.position || member.profession) && (
+                          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+                            <Briefcase className="w-3 h-3" />
+                            <span className="truncate">{member.position || member.profession}</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-3">
+                            {member.teamCount !== undefined && member.teamCount > 0 && (
+                              <div className="flex items-center gap-1">
+                                <Users className="w-3 h-3 text-[#DC7C67]" />
+                                <span className="font-semibold text-[#DC7C67] text-xs">{member.teamCount}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div>
+                            {member.verified ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle className="w-3 h-3" />
+                                Проверен
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Не проверен
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="text-sm text-gray-600 font-mono">
-                      {member.referralCode || member.id.substring(0, 8)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Briefcase className="w-4 h-4" />
-                      <span className="truncate">{member.position || member.profession || '—'}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {member.teamCount !== undefined && member.teamCount > 0 ? (
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-[#DC7C67]" />
-                        <span className="font-semibold text-[#DC7C67] text-sm">{member.teamCount}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {member.verified ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3" />
-                        Проверен
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Не проверен
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Десктопная версия - таблица */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    {[
+                      { key: 'name', label: 'Участник', width: 'w-48' },
+                      { key: 'id', label: 'ID', width: 'w-24' },
+                      { key: 'position', label: 'Профессия', width: 'w-32' },
+                      { key: 'teamCount', label: 'Команда', width: 'w-20' },
+                      { key: 'verified', label: 'Статус', width: 'w-24' }
+                    ].map(({ key, label, width }) => (
+                      <th 
+                        key={key}
+                        onClick={() => handleSort(key as keyof TeamMember)}
+                        className={`${width} px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="truncate">{label}</span>
+                          <svg 
+                            className={`w-3 h-3 flex-shrink-0 transform transition-transform ${
+                              sortField === key ? (sortDirection === 'asc' ? 'rotate-0' : 'rotate-180') : ''
+                            }`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
+                          </svg>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredAndSortedMembers.map(member => (
+                    <tr
+                      key={member.id}
+                      onClick={() => onSelectMember(member)}
+                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                        member.id === currentUserId ? 'bg-orange-50' : ''
+                      }`}
+                    >
+                      <td className="w-48 px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {member.avatar ? (
+                              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="font-bold text-gray-600 text-sm">
+                                {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 truncate text-sm">
+                                {member.name || 'Без имени'}
+                              </span>
+                              {member.verified && (
+                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              )}
+                              {member.id === currentUserId && (
+                                <span className="px-2 py-0.5 bg-[#DC7C67] text-white text-xs rounded-full flex-shrink-0">
+                                  Вы
+                                </span>
+                              )}
+                            </div>
+                            {member.phone && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                <Phone className="w-3 h-3" />
+                                <span className="truncate">{member.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="w-24 px-4 py-3">
+                        <span className="text-sm text-gray-600 font-mono truncate block">
+                          {member.referralCode || member.id.substring(0, 6)}
+                        </span>
+                      </td>
+                      <td className="w-32 px-4 py-3">
+                        <div className="flex items-center gap-1 text-sm text-gray-600 min-w-0">
+                          <Briefcase className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{member.position || member.profession || '—'}</span>
+                        </div>
+                      </td>
+                      <td className="w-20 px-4 py-3">
+                        {member.teamCount !== undefined && member.teamCount > 0 ? (
+                          <div className="flex items-center gap-1 justify-center">
+                            <Users className="w-4 h-4 text-[#DC7C67]" />
+                            <span className="font-semibold text-[#DC7C67] text-sm">{member.teamCount}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm block text-center">—</span>
+                        )}
+                      </td>
+                      <td className="w-24 px-4 py-3">
+                        {member.verified ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="w-3 h-3" />
+                            Проверен
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Не проверен
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -569,13 +657,13 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
 
 // Простые заглушки для шиммеров
 const ListShimmer = () => (
-    <div className="p-4 space-y-4 animate-pulse">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 animate-pulse">
         {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-gray-200 rounded-lg"></div>
+            <div key={i} className="flex items-center space-x-2 sm:space-x-4">
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg"></div>
                 <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
                 </div>
             </div>
         ))}
@@ -583,18 +671,17 @@ const ListShimmer = () => (
 );
 
 const TreeShimmer = () => (
-    <div className="flex items-center justify-center h-full animate-pulse">
+    <div className="flex items-center justify-center h-full animate-pulse p-4">
         <div className="flex flex-col items-center">
-            <div className="w-48 h-32 bg-gray-200 rounded-xl"></div>
-            <div className="w-0.5 h-16 bg-gray-300"></div>
-            <div className="flex justify-center gap-8 mt-4">
-                <div className="w-48 h-32 bg-gray-200 rounded-xl"></div>
-                <div className="w-48 h-32 bg-gray-200 rounded-xl"></div>
+            <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
+            <div className="w-0.5 h-12 sm:h-16 bg-gray-300"></div>
+            <div className="flex justify-center gap-4 sm:gap-8 mt-4">
+                <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
+                <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
             </div>
         </div>
     </div>
 );
-
 
 const TeamTree: React.FC<TeamTreeProps> = ({ 
   members = [], 
@@ -620,7 +707,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'tree' | 'list'>('list'); // Изменили дефолт на 'list'
+  const [viewMode, setViewMode] = useState<'tree' | 'list'>('list');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { 
@@ -722,12 +809,12 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   if (validMembers.length === 0) {
     return (
       <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 ${className}`}>
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-            <Users className="w-8 h-8 text-gray-400" />
+        <div className="text-center p-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Нет данных о команде</h3>
-          <p className="text-gray-500">Добавьте участников для отображения структуры</p>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Нет данных о команде</h3>
+          <p className="text-sm text-gray-500">Добавьте участников для отображения структуры</p>
         </div>
       </div>
     );
@@ -735,22 +822,22 @@ const TeamTree: React.FC<TeamTreeProps> = ({
 
   return (
     <div className={`flex flex-col w-full ${viewMode === 'list' ? 'min-h-0 h-full' : 'h-screen'} ${className}`}>
-      <div className="flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white z-50 gap-3 sm:gap-0">
-        <div className="flex items-center gap-3">
+      <div className="flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white z-50 gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <h1 className="text-base sm:text-lg font-semibold text-gray-900">
             Команда
           </h1>
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <Users className="w-4 h-4" />
+          <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>{validMembers.length}</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <div className="border border-gray-300 rounded-lg flex-1 sm:flex-initial min-w-0 sm:w-48">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <div className="border border-gray-300 rounded-lg flex-1 sm:flex-initial min-w-0 sm:w-40 md:w-48">
             <div className="flex items-center">
               <div className="p-2 flex-shrink-0">
-                <Search className="w-3 h-3 text-gray-500" />
+                <Search className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
               </div>
               <input
                 type="text"
@@ -758,54 +845,56 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                className="flex-1 pr-2 py-1.5 text-xs border-0 focus:outline-none bg-transparent min-w-0"
+                className="flex-1 pr-2 py-1.5 text-xs sm:text-sm border-0 focus:outline-none bg-transparent min-w-0"
               />
             </div>
           </div>
 
-          {viewMode === 'tree' && (
-            <div className="flex items-center border border-gray-300 rounded-lg">
-              <button 
-                onClick={zoomOut} 
-                className="p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-50"
-                disabled={zoom <= 0.3}
-                aria-label="Уменьшить"
+          <div className="flex items-center gap-2">
+            {viewMode === 'tree' && (
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button 
+                  onClick={zoomOut} 
+                  className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  disabled={zoom <= 0.3}
+                  aria-label="Уменьшить"
+                >
+                  <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                </button>
+                <span className="px-2 text-xs text-gray-600 min-w-[40px] text-center border-x border-gray-300">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button 
+                  onClick={zoomIn} 
+                  className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  disabled={zoom >= 2}
+                  aria-label="Увеличить"
+                >
+                  <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                </button>
+              </div>
+            )}
+
+            <div className="flex border border-gray-300 rounded-lg">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 transition-all ${
+                  viewMode === 'list' ? 'bg-[#DC7C67] text-white' : 'text-gray-600 hover:bg-gray-100'
+                } rounded-l-lg`}
+                aria-label="Списочный вид"
               >
-                <ZoomOut className="w-3 h-3 text-gray-600" />
+                <List className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
-              <span className="px-2 text-xs text-gray-600 min-w-[35px] text-center border-x border-gray-300">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button 
-                onClick={zoomIn} 
-                className="p-1.5 hover:bg-gray-100 transition-colors disabled:opacity-50"
-                disabled={zoom >= 2}
-                aria-label="Увеличить"
+              <button
+                onClick={() => setViewMode('tree')}
+                className={`p-2 transition-all border-l border-gray-300 ${
+                  viewMode === 'tree' ? 'bg-[#DC7C67] text-white' : 'text-gray-600 hover:bg-gray-100'
+                } rounded-r-lg`}
+                aria-label="Древовидный вид"
               >
-                <ZoomIn className="w-3 h-3 text-gray-600" />
+                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
-          )}
-
-          <div className="flex border border-gray-300 rounded-lg">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 transition-all ${
-                viewMode === 'list' ? 'bg-[#DC7C67] text-white' : 'text-gray-600 hover:bg-gray-100'
-              } rounded-l-lg`}
-              aria-label="Списочный вид"
-            >
-              <List className="w-3 h-3" />
-            </button>
-            <button
-              onClick={() => setViewMode('tree')}
-              className={`p-1.5 transition-all border-l border-gray-300 ${
-                viewMode === 'tree' ? 'bg-[#DC7C67] text-white' : 'text-gray-600 hover:bg-gray-100'
-              } rounded-r-lg`}
-              aria-label="Древовидный вид"
-            >
-              <Grid3x3 className="w-3 h-3" />
-            </button>
           </div>
         </div>
       </div>
@@ -855,7 +944,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                   transformOrigin: 'center center'
                 }}
               >
-                <div className="flex flex-col items-center gap-10 sm:gap-20 p-10 sm:p-20">
+                <div className="flex flex-col items-center gap-8 sm:gap-10 md:gap-20 p-8 sm:p-10 md:p-20">
                   {currentUserId && (() => {
                     const currentUser = validMembers.find(m => m.id === currentUserId);
                     const parent = currentUser?.parentId ? validMembers.find(m => m.id === currentUser.parentId) : null;
@@ -870,7 +959,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                           expanded: false
                         };
                         return (
-                          <div key={`parent-${parent.id}`} className="mb-5 sm:mb-10">
+                          <div key={`parent-${parent.id}`} className="mb-4 sm:mb-5 md:mb-10">
                             <TreeNodeComponent
                               node={tempParentNode}
                               expandedNodes={new Set()}

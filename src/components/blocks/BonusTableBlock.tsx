@@ -21,8 +21,6 @@ export default function BonusTableBlock() {
 
   return (
     <div className="flex-1 flex flex-col justify-start">
-      <h3 className="text-lg font-semibold text-[#111] mb-2">Таблица бонусов</h3>
-
       <p className="text-sm text-gray-500 mb-4">
         Для выхода на доход свыше 13%, необходимо лично пригласить в Бизнес Академию 10 человек.
       </p>

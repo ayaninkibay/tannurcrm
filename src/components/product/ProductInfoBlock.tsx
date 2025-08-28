@@ -360,7 +360,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                </p>
              </div>
 
-             {/* Табы БЕЗ нижнего бордера */}
+             {/* Табы */}
              <div className="mb-6">
                <div className="flex gap-0">
                  <button
@@ -471,7 +471,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                  </div>
                </div>
 
-               {/* Кнопки действий - ОБНОВЛЕННЫЕ */}
+               {/* Кнопки действий */}
                <div className="flex flex-col sm:flex-row gap-3">
                  <button 
                    onClick={handleAddToCart}
@@ -508,31 +508,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
              </div>
            </div>
          </div>
-       </div>
-     </div>
-
-     {/* Фиксированная панель на мобильных - ОБНОВЛЕННАЯ */}
-     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50">
-       <div className="flex items-center justify-between mb-3">
-         <div>
-           <p className="text-sm text-gray-600">Дилерская цена</p>
-           <div className="flex items-baseline gap-2">
-             <p className="text-xl font-bold text-[#D77E6C]">
-               {formatPrice(product.price_dealer)} ₸
-             </p>
-             <span className="text-xs text-gray-500 line-through">
-               {formatPrice(product.price)} ₸
-             </span>
-           </div>
-         </div>
-         <button 
-           onClick={handleAddToCart}
-           disabled={isAddingToCart}
-           className="bg-[#D77E6C] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 disabled:opacity-50"
-         >
-           <ShoppingCart className="w-5 h-5" />
-           {isAddingToCart ? '...' : 'В корзину'}
-         </button>
        </div>
      </div>
    </div>

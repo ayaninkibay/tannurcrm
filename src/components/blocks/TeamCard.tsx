@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { Plus, Sparkles } from 'lucide-react'
 
 interface TeamCardProps {
   title?: string
@@ -22,84 +23,133 @@ export default function TeamCard({
   const remaining = Math.max(goal - count, 0)
   const isColor = variant === 'color'
 
+  // Apple Memoji стиль аватары
+  const memojiAvatars = [
+    '/memoji-1.png', // Поместите реальные изображения memoji
+    '/memoji-2.png',
+    '/memoji-3.png',
+  ]
+
   return (
-    <div className={`rounded-2xl p-6 h-full flex flex-col relative overflow-hidden ${
+    <div className={`rounded-2xl p-4 h-full flex flex-col relative overflow-hidden ${
       isColor 
-        ? 'bg-gradient-to-br from-[#DC7C67] to-[#C86B56] text-white ' 
-        : 'bg-white border border-gray-200 '
+        ? 'bg-gradient-to-br from-[#DC7C67] to-[#C66B5A] text-white' 
+        : 'bg-white border border-gray-100 text-gray-900 '
     }`}>
       
-      {/* Subtle background pattern */}
-      {isColor && (
-        <div className="absolute top-0 right-0 w-16 h-16 opacity-10">
-          <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
-            <circle cx="70" cy="30" r="12" />
-            <circle cx="85" cy="15" r="6" />
-          </svg>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6 relative z-10">
-        <div>
-          <h3 className={`font-medium text-sm mb-2 ${isColor ? 'text-white/90' : 'text-gray-600'}`}>
-            {title}
-          </h3>
-          <div className={`text-3xl font-bold ${isColor ? 'text-white' : 'text-[#111]'}`}>
-            {count}
-          </div>
-          <div className={`text-sm ${isColor ? 'text-white/80' : 'text-gray-500'}`}>
-            участников
-          </div>
-        </div>
-        
-        {showButton && (
-          <Link href="/dealer/create_dealer">
-            <button className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-105 ${
-              isColor 
-                ? 'bg-white/15 hover:bg-white/25 text-white border border-white/20 backdrop-blur-sm' 
-                : 'bg-[#DC7C67] hover:bg-[#C86B56] text-white'
-            }`}>
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Добавить
-            </button>
-          </Link>
-        )}
+      {/* Декоративные шейпы */}
+      <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-10">
+        <div className={`w-full h-full rounded-full ${
+          isColor ? 'bg-white' : 'bg-[#DC7C67]'
+        }`} />
+      </div>
+      <div className="absolute bottom-0 left-0 w-16 h-16 -translate-x-8 translate-y-8">
+        <div className={`w-full h-full rounded-full opacity-10 ${
+          isColor ? 'bg-white' : 'bg-[#E89380]'
+        }`} />
       </div>
 
-      {/* Progress Section */}
-      <div className={`mt-auto p-4 rounded-xl relative z-10 ${
-        isColor ? 'bg-white/10 backdrop-blur-sm border border-white/20' : 'bg-gray-50'
-      }`}>
-        <div className="flex justify-between items-center mb-3">
-          <span className={`text-sm ${isColor ? 'text-white/90' : 'text-gray-600'}`}>
-            До награды
-          </span>
-          <span className={`font-semibold ${isColor ? 'text-white' : 'text-[#111]'}`}>
-            {remaining} чел.
-          </span>
-        </div>
+      {/* Мини-декор в углу */}
+      <div className="absolute top-3 right-3">
+        <Sparkles className={`w-4 h-4 ${isColor ? 'text-white/30' : 'text-[#DC7C67]/30'}`} />
+      </div>
 
-        <div className={`w-full h-3 rounded-full overflow-hidden mb-2 ${
-          isColor ? 'bg-white/20' : 'bg-gray-200'
+      {/* Заголовок и статистика */}
+      <div className="relative z-10 mb-3">
+        <h3 className={`text-xs font-medium uppercase tracking-wider mb-2 ${
+          isColor ? 'text-white/80' : 'text-gray-500'
+        }`}>
+          {title}
+        </h3>
+        <div className="flex items-baseline justify-between">
+          <div>
+            <span className={`text-3xl font-bold ${isColor ? 'text-white' : 'text-gray-900'}`}>
+              {count}
+            </span>
+            <span className={`text-sm ml-1 ${isColor ? 'text-white/70' : 'text-gray-500'}`}>
+              / {goal}
+            </span>
+          </div>
+          <div className={`text-xl font-bold ${isColor ? 'text-white/90' : 'text-[#DC7C67]'}`}>
+            {Math.round(percentage)}%
+          </div>
+        </div>
+      </div>
+
+      {/* Прогресс-бар с градиентом */}
+      <div className="relative z-10 mb-3">
+        <div className={`w-full h-10 rounded-xl overflow-hidden ${
+          isColor ? 'bg-black/20' : 'bg-gray-50 border border-gray-200'
         }`}>
           <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              isColor ? 'bg-white shadow-sm' : 'bg-[#DC7C67]'
-            }`}
-            style={{ width: `${percentage}%` }}
-          />
+            className="h-full rounded-xl transition-all duration-700 ease-out relative overflow-hidden"
+            style={{ 
+              width: `${percentage}%`,
+              background: isColor 
+                ? 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)' 
+                : 'linear-gradient(135deg, #DC7C67 0%, #E89380 100%)'
+            }}
+          >
+            {/* Shimmer эффект */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+          </div>
         </div>
         
-        <div className={`flex justify-between text-xs ${
-          isColor ? 'text-white/70' : 'text-gray-500'
+        {/* Метка под прогресс-баром */}
+        <div className={`text-xs mt-1 ${isColor ? 'text-white/60' : 'text-gray-500'}`}>
+          Осталось пригласить: {remaining}
+        </div>
+      </div>
+
+      {/* Нижняя секция с аватарами */}
+      <div className="mt-auto relative z-10">
+        <div className={`rounded-xl p-3 ${
+          isColor ? 'bg-white/10 backdrop-blur-sm' : 'bg-gray-50'
         }`}>
-          <span>{count} / {goal}</span>
-          <span className={`font-medium ${isColor ? 'text-white' : 'text-[#DC7C67]'}`}>
-            {Math.round(percentage)}%
-          </span>
+          <div className="flex items-center justify-between">
+            {/* Memoji аватары */}
+            <div className="flex -space-x-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`w-8 h-8 rounded-full ring-2 overflow-hidden ${
+                    isColor ? 'ring-white/30' : 'ring-white'
+                  }`}
+                  style={{
+                    background: `linear-gradient(135deg, #${['FFB6C1', 'ADD8E6', 'FFE4B5'][i-1]} 0%, #${['FFC0CB', 'B0E0E6', 'FFDEAD'][i-1]} 100%)`
+                  }}
+                >
+                  {/* Заглушка для memoji - замените на реальные изображения */}
+                  <div className="w-full h-full flex items-center justify-center text-lg">
+                    {['🧑', '👩', '👨'][i-1]}
+                  </div>
+                </div>
+              ))}
+              {count > 3 && (
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ${
+                  isColor 
+                    ? 'bg-white/20 text-white ring-white/30' 
+                    : 'bg-white text-gray-700 ring-white border border-gray-200'
+                }`}>
+                  +{count - 3}
+                </div>
+              )}
+            </div>
+
+            {/* Кнопка добавления */}
+            {showButton && (
+              <Link href="/dealer/create_dealer">
+                <button className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 ${
+                  isColor 
+                    ? 'bg-white text-[#DC7C67] hover:bg-white/95' 
+                    : 'bg-[#DC7C67] hover:bg-[#C66B5A] text-white'
+                }`}>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Добавить</span>
+                </button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

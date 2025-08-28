@@ -48,9 +48,9 @@ export default function ShopPage() {
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
-        .neq('id', '538dd152-4d6f-471e-8cf1-dcdf6ba564ec') // Исключаем большой товар
+        .neq('id', '538dd152-4d6f-471e-8cf1-dcdf6ba564ec')
         .eq('is_active', true)
-        .limit(8)
+        .limit(8) // Вернул ваш оригинальный лимит
         .order('created_at', { ascending: false })
 
       if (productsError) throw productsError
@@ -97,7 +97,10 @@ export default function ShopPage() {
           </div>
 
           <div className="flex items-center justify-center h-full">
-            <SortProductBlock />
+            <SortProductBlock 
+              showClientPrice={showClientPrices}
+              onToggleClientPrice={setShowClientPrices}
+            />
           </div>
         </div>
       </section>
@@ -130,6 +133,18 @@ export default function ShopPage() {
           </div>
         </div>
       </section>
+
+      {/* Блок "Загрузить еще", если товаров много */}
+      {products.length >= 12 && (
+        <section className="flex justify-center py-8">
+          <button 
+            onClick={fetchProducts}
+            className="px-8 py-3 bg-[#D77E6C] text-white font-medium rounded-xl hover:bg-[#C66B5A] transition-colors"
+          >
+            Загрузить еще товары
+          </button>
+        </section>
+      )}
     </div>
   )
 }

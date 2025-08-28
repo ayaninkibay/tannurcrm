@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface DealerBigProductCardProps {
-  product: any;                 // можно заменить на ваш тип ProductRow
+  product: any;
   showClientPrice: boolean;
   className?: string;
 }
@@ -15,12 +15,10 @@ export default function DealerBigProductCard({
   showClientPrice,
   className
 }: DealerBigProductCardProps) {
-  const [liked, setLiked] = useState(false);
   const router = useRouter();
 
   const handleArrowClick = () => {
-    // Всегда переходим на страницу с фиксированным товаром
-    router.push('/dealer/shop/product_view?id=538dd152-4d6f-471e-8cf1-dcdf6ba564ec');
+    router.push(`/dealer/shop/product_view?id=${product?.id || '538dd152-4d6f-471e-8cf1-dcdf6ba564ec'}`);
   };
 
   // Формируем корректный url картинки
@@ -30,38 +28,22 @@ export default function DealerBigProductCard({
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
   };
 
-  // ВАЖНО: next/image не любит прямую подмену e.currentTarget.src
   const [imgSrc, setImgSrc] = useState<string>(getImageUrl(product?.image_url));
   const handleImgError = () => setImgSrc('/img/productBig.jpg');
 
   return (
     <div className={`bg-white rounded-2xl p-2 relative w-full max-w-full ${className || ''}`}>
-      {/* Кнопка лайка */}
-      <button
-        onClick={() => setLiked(!liked)}
-        className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10"
-        aria-label="like"
-      >
-        <Image
-          src={liked ? '/icons/heart_white.svg' : '/icons/heart_red.svg'}
-          alt="like"
-          width={24}
-          height={24}
-          className="hidden md:block"
-        />
-      </button>
-
-      {/* Блок с картинкой (fill требует родителя relative + фикс. высоту/аспект) */}
+      {/* Блок с картинкой */}
       <div className="w-full aspect-[11/5] relative rounded-2xl overflow-hidden">
         <Image
           src={imgSrc}
           alt={product?.name || 'Товар'}
           fill
-          priority                 // ✅ фикс для LCP (только один такой Image на странице!)
-          loading="eager"          // опционально; priority и так делает eager
+          priority
+          loading="eager"
           className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          onError={handleImgError}  // ✅ корректный fallback
+          onError={handleImgError}
         />
       </div>
 
@@ -81,7 +63,6 @@ export default function DealerBigProductCard({
         <div className="flex items-end justify-between gap-2 mt-1">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
             <div>
-              <p className="text-xs text-[#8C8C8C] leading-none">Дилерская цена</p>
               <p className="text-base font-semibold text-[#1C1C1C]">
                 {(product?.price_dealer || 0).toLocaleString('ru-RU')}₸
               </p>

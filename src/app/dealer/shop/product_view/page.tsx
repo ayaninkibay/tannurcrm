@@ -91,22 +91,14 @@ function ProductViewContent() {
   }
 
   return (
-    <div className="flex flex-col p-2 md:p-4 bg-[#F6F6F6] min-h-screen">
-      <MoreHeaderDE 
-        title={
-          <span className="flex items-center">
-            <span className="text-gray-400">Магазин</span>
-            <span className="mx-1 text-[#111]">/</span>
-            <span className="text-[#111]">{product.name || 'Карточка товара'}</span>
-          </span>
-        }
-        showBackButton={true}
+    <div className="flex flex-col p-2 md:p-4 bg-[#F6F6F6]">
+      <MoreHeaderDE title="Товар" showBackButton={true}
       />
       
       <div className="w-full h-px bg-gray-200" />
 
-      <div className="p-3 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="mt-5 md:mt-10">
+        <div className="w-full mx-auto">
           <ProductInfoBlock product={product} />
         </div>
       </div>
@@ -118,7 +110,7 @@ function ProductViewContent() {
 export default function ProductView() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
+      <div className="flex items-center justify-center bg-[#F6F6F6]">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
       </div>
     }>

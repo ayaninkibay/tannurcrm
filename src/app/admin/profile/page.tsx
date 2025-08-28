@@ -5,6 +5,22 @@ import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import ReferalLink from '@/components/blocks/ReferralLink';
 import SponsorCard from '@/components/blocks/SponsorCard';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Instagram, 
+  Calendar,
+  Edit2,
+  Camera,
+  X,
+  Shield,
+  Key,
+  AlertCircle,
+  ChevronRight,
+  Check
+} from 'lucide-react';
 
 // Импорты для работы с пользователем
 import { useUser } from '@/context/UserContext';
@@ -16,14 +32,271 @@ import { supabase } from '@/lib/supabase/client';
 type UserProfile = Database['public']['Tables']['users']['Row'];
 type UserUpdateData = Database['public']['Tables']['users']['Update'];
 
+// Модальное окно смены пароля
+const PasswordModal = ({ isOpen, onClose }: any) => {
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setError('');
+  };
+
+  const handleSubmit = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError('Новые пароли не совпадают');
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setError('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      });
+      
+      if (error) throw error;
+      
+      alert('Пароль успешно изменен');
+      onClose();
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      setError(error.message || 'Ошибка при смене пароля');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+          <h2 className="text-xl font-bold text-gray-900">Изменить пароль</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Текущий пароль
+              </label>
+              <input
+                type="password"
+                name="oldPassword"
+                value={passwordForm.oldPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Введите текущий пароль"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Новый пароль
+              </label>
+              <input
+                type="password"
+                name="newPassword"
+                value={passwordForm.newPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Минимум 6 символов"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Подтвердите новый пароль
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={passwordForm.confirmPassword}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Повторите новый пароль"
+              />
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 bg-gray-50 border-t">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-xl font-medium transition-colors"
+            disabled={loading}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
+            disabled={loading || !passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+          >
+            {loading ? 'Сохранение...' : 'Изменить пароль'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Модальное окно редактирования
+const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+          <h2 className="text-xl font-bold text-gray-900">Редактировать профиль</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Имя
+              </label>
+              <input
+                name="first_name"
+                value={form.first_name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Введите имя"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Фамилия
+              </label>
+              <input
+                name="last_name"
+                value={form.last_name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Введите фамилию"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Телефон
+              </label>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="+7 (___) ___-__-__"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                E-mail
+              </label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="example@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Город
+              </label>
+              <input
+                name="region"
+                value={form.region}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="Введите город"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Instagram
+              </label>
+              <input
+                name="instagram"
+                value={form.instagram}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
+                placeholder="@username"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 bg-gray-50 border-t">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-xl font-medium transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onSave}
+            className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all"
+          >
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function ProfilePage() {
-  // Получаем глобальные данные пользователя из контекста
   const { profile, loading: userContextLoading } = useUser();
-
-  // Состояние для ID пользователя из Auth
   const [userId, setUserId] = useState<string | null>(null);
-
-  // Получаем функции для обновления профиля и загрузки аватара
   const {
     updateProfile,
     uploadUserAvatar,
@@ -31,10 +304,10 @@ export default function ProfilePage() {
     error: userModuleError,
   } = useUserModule();
 
-  // Состояние для режима редактирования
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Состояние формы для редактирования данных
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
+  
   const [form, setForm] = useState<UserUpdateData>({
     first_name: '',
     last_name: '',
@@ -43,70 +316,27 @@ export default function ProfilePage() {
     email: '',
     region: '',
   });
-
-  // Состояние для смены пароля
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-
-  // Состояние для предпросмотра фото
-  const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
-
-  // Объединяем состояния загрузки
+  
   const overallLoading = userContextLoading || userModuleLoading;
 
-  // Функция для получения ID пользователя из профиля
-  const getUserId = useCallback(() => {
-    if (!profile) return null;
-    
-    // Проверяем различные возможные поля ID
-    return profile.id || 
-           (profile as any).user_id || 
-           (profile as any).uuid || 
-           (profile as any).auth_id || 
-           null;
-  }, [profile]);
-
-  // Получаем ID пользователя из Supabase Auth
+  // Получаем ID пользователя
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error('Ошибка получения пользователя:', error);
-          return;
-        }
-        if (user) {
-          console.log('Текущий пользователь из Auth:', user);
-          console.log('User ID из Auth:', user.id);
+        if (!error && user) {
           setUserId(user.id);
         }
       } catch (error) {
         console.error('Ошибка при получении пользователя:', error);
       }
     };
-
     getCurrentUser();
   }, []);
 
-  // Заполняем форму данными пользователя после их загрузки из контекста
+  // Заполняем форму данными
   useEffect(() => {
-    console.log("useEffect сработал. Profile:", profile, "Loading:", userContextLoading);
-    
     if (profile && !userContextLoading) {
-      console.log("Profile ID:", profile.id);
-      console.log("Profile keys:", Object.keys(profile));
-      console.log("Profile data:", profile);
-      
-      // Ищем возможные варианты ID
-      console.log("Возможные ID поля:");
-      console.log("profile.id:", profile.id);
-      console.log("profile.user_id:", (profile as any).user_id);
-      console.log("profile.uuid:", (profile as any).uuid);
-      console.log("profile.auth_id:", (profile as any).auth_id);
-      
       setForm({
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
@@ -123,69 +353,37 @@ export default function ProfilePage() {
   }, [profile, userContextLoading]);
 
   // Обработчик изменения фото
-  const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log("handlePhotoChange вызван. File:", file, "User ID:", userId);
-    
     if (file && userId) {
       setPhotoPreview(URL.createObjectURL(file));
       try {
-        console.log("Начинаем загрузку аватара для пользователя:", userId);
         await uploadUserAvatar(userId, file);
-        console.log("Аватар успешно загружен");
-        alert("Фото успешно обновлено!");
       } catch (error) {
         console.error("Ошибка при загрузке фото:", error);
-        alert(`Ошибка при загрузке фото: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
-        // Возвращаем старое фото при ошибке
         if (profile?.avatar_url) {
           setPhotoPreview(profile.avatar_url);
         }
       }
-    } else {
-      console.error("Файл не выбран или ID пользователя отсутствует. File:", file, "User ID:", userId);
     }
-  }, [userId, uploadUserAvatar, profile?.avatar_url]);
+  };
 
-  // Обработчик изменения полей формы
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  }, []);
-
-  // Обработчик изменения полей пароля
-  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
-  }, []);
-
-  // Обработчик сохранения данных формы
-  const handleSubmit = useCallback(async () => {
-    console.log("handleSubmit вызван. Profile:", profile);
-    console.log("User ID из Auth:", userId);
-    console.log("Form data:", form);
-
-    if (!userId) {
-      console.error("ID пользователя не найден. Profile:", profile, "UserId:", userId);
-      alert("Ошибка: ID пользователя не найден. Попробуйте обновить страницу или войти заново.");
-      return;
-    }
+  // Обработчик сохранения профиля
+  const handleSaveProfile = async () => {
+    if (!userId) return;
     
     try {
-      console.log("Начинаем обновление профиля с ID:", userId, "и данными:", form);
       await updateProfile(userId, form);
-      console.log("Профиль успешно обновлен");
-      setIsEditing(false); // Выходим из режима редактирования после успешного сохранения
+      setIsEditModalOpen(false);
       alert("Данные успешно сохранены!");
     } catch (error) {
-      console.error("Ошибка при сохранении данных:", error);
+      console.error("Ошибка при сохранении:", error);
       alert(`Ошибка при сохранении: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     }
-  }, [userId, form, updateProfile]);
+  };
 
   // Обработчик отмены редактирования
-  const handleCancel = useCallback(() => {
-    // Восстанавливаем оригинальные данные
+  const handleCancelEdit = () => {
     if (profile) {
       setForm({
         first_name: profile.first_name || '',
@@ -196,36 +394,12 @@ export default function ProfilePage() {
         region: profile.region || '',
       });
     }
-    setIsEditing(false);
-  }, [profile]);
-
-  // Обработчик смены пароля
-  const handlePasswordSubmit = useCallback(async () => {
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('Новые пароли не совпадают');
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      alert('Пароль должен содержать минимум 6 символов');
-      return;
-    }
-    
-    // Здесь должна быть логика смены пароля через соответствующий сервис
-    console.log('Смена пароля:', passwordForm);
-    
-    // Очищаем форму после успешной смены
-    setPasswordForm({
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
-    
-    alert('Пароль успешно изменен');
-  }, [passwordForm]);
+    setIsEditModalOpen(false);
+  };
 
   if (userContextLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-[#F3F3F3]">
+      <div className="flex justify-center items-center min-h-screen bg-[#F5F5F5]">
         <div className="bg-white rounded-2xl p-8 shadow-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DC7C67] mx-auto"></div>
           <p className="mt-4 text-gray-600">Загрузка профиля...</p>
@@ -235,238 +409,172 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className=" p-2 md:p-6">
-      <div className="w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-[#F5F5F5] p-2 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <MoreHeaderAD title="Мой профиль" />
 
-        {/* Основная информация профиля */}
-        <div className="bg-white rounded-3xl shadow overflow-hidden">
-          {/* Заголовок с кнопками */}
-          <div className="bg-gradient-to-r from-[#DC7C67] to-[#C26D5C] px-6 py-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Информация профиля</h2>
-              <div className="flex gap-3">
-                {!isEditing ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-4 py-2 rounded-xl hover:bg-white/30 transition-all duration-200 font-medium"
-                  >
-                    ✏️ Изменить
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleCancel}
-                      className="bg-white/20 backdrop-blur-sm border border-white/30 text-white px-4 py-2 rounded-xl hover:bg-white/30 transition-all duration-200 font-medium"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={overallLoading}
-                      className="bg-white text-[#DC7C67] px-4 py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium disabled:opacity-50"
-                    >
-                      {overallLoading ? 'Сохранение...' : '💾 Сохранить'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+        {/* Основная карточка профиля */}
+        <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+          {/* Обложка с градиентом */}
+          <div className="h-32 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/50"></div>
           </div>
 
-          {/* Контент профиля */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Блок аватара */}
-              <div className="lg:col-span-1">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 text-center space-y-4 border border-gray-200">
-                  <div className="relative w-32 h-32 mx-auto">
-                    <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow">
-                      <Image
-                        src={photoPreview}
-                        alt="avatar"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    {isEditing && (
-                      <label className="absolute -bottom-2 -right-2 bg-[#DC7C67] text-white p-2 rounded-full cursor-pointer hover:bg-[#C26D5C] transition-colors shadow">
-                        📷
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handlePhotoChange}
-                          disabled={overallLoading}
-                        />
-                      </label>
-                    )}
+          {/* Информация профиля */}
+          <div className="px-6 pb-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 relative z-10">
+              {/* Аватар */}
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-2xl overflow-hidden bg-white p-1 shadow-xl">
+                  <Image
+                    src={photoPreview}
+                    alt="avatar"
+                    width={128}
+                    height={128}
+                    className="w-full h-full rounded-xl object-cover"
+                  />
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer">
+                  <div className="text-white text-center">
+                    <Camera className="w-8 h-8 mx-auto mb-1" />
+                    <span className="text-xs">Изменить</span>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {profile?.first_name || 'Имя'} {profile?.last_name || 'Фамилия'}
-                    </h3>
-                    <p className="text-sm text-gray-500 break-all">
-                      {profile?.email || 'email@example.com'}
-                    </p>
-                    {profile?.region && (
-                      <p className="text-sm text-gray-600 flex items-center justify-center gap-1">
-                        📍 {profile.region}
-                      </p>
-                    )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                    disabled={overallLoading}
+                  />
+                </label>
+              </div>
+
+              {/* Имя и статус */}
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {profile?.first_name || 'Имя'} {profile?.last_name || 'Фамилия'}
+                </h1>
+                <p className="text-gray-500 mt-1">Роль: <span className="font-semibold">Администратор</span></p>
+                <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Активен
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                    <Shield className="w-3 h-3" />
+                    Admin
+                  </span>
+                </div>
+              </div>
+
+              {/* Кнопка редактирования */}
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium"
+              >
+                <Edit2 className="w-4 h-4" />
+                Редактировать
+              </button>
+            </div>
+
+            {/* Контактная информация и безопасность */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#DC7C67]" />
+                  Контактная информация
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{profile?.email || 'Не указан'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{profile?.phone || 'Не указан'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{profile?.region || 'Не указан'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Instagram className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{profile?.instagram || 'Не указан'}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      Регистрация: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Форма данных */}
-              <div className="lg:col-span-3">
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
-                  <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    👤 Личные данные
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                      { name: 'first_name', label: 'Имя', placeholder: 'Введите имя', icon: '👤' },
-                      { name: 'last_name', label: 'Фамилия', placeholder: 'Введите фамилию', icon: '👤' },
-                      { name: 'phone', label: 'Телефон', placeholder: '+7 (___) ___-__-__', icon: '📱' },
-                      { name: 'email', label: 'E-mail', placeholder: 'example@email.com', type: 'email', icon: '📧' },
-                      { name: 'region', label: 'Город', placeholder: 'Введите город', icon: '📍' },
-                      { name: 'instagram', label: 'Instagram', placeholder: '@username или ссылка', icon: '📸' },
-                    ].map(field => (
-                      <div key={field.name} className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                          {field.icon} {field.label}
-                        </label>
-                        <div className="relative">
-                          <input
-                            name={field.name}
-                            value={String(form[field.name as keyof UserUpdateData] ?? '')}
-                            onChange={handleChange}
-                            placeholder={field.placeholder}
-                            type={field.type || 'text'}
-                            readOnly={!isEditing}
-                            disabled={overallLoading}
-                            className={`w-full rounded-xl p-4 text-sm transition-all duration-200 border-2 ${
-                              isEditing 
-                                ? 'bg-white border-gray-300 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 cursor-text' 
-                                : 'bg-gray-100 border-gray-200 text-gray-600 cursor-default'
-                            } focus:outline-none`}
-                          />
-                          {!isEditing && (
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-                              <span className="text-gray-400 text-xs">🔒</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {userModuleError && (
-                    <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                      <p className="text-red-600 text-sm flex items-center gap-2">
-                        ⚠️ {userModuleError}
-                      </p>
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#DC7C67]" />
+                  Безопасность
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setIsPasswordModalOpen(true)}
+                    className="w-full flex items-center justify-between p-3 bg-white rounded-xl hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Key className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-700">Изменить пароль</span>
                     </div>
-                  )}
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                    <div className="flex gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-amber-700">
+                        Используйте надежный пароль и не передавайте его третьим лицам
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Нижние блоки */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Дополнительные блоки */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Реферальная ссылка */}
-          <div className="bg-white rounded-2xl p-6 shadow border border-gray-100">
-            <div className="text-gray-600 mb-6 font-medium">
-              🤝 Добавить дилера в свою сеть
-            </div>
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Добавить дилера в сеть
+            </h3>
             <ReferalLink variant="orange" />
           </div>
 
-          {/* Спонсорская карта */}
-          <div className="bg-white rounded-2xl p-6 shadow border border-gray-100">
+          {/* Спонсор */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Информация о спонсоре
+            </h3>
             <SponsorCard variant="gray" />
           </div>
-
-          {/* Смена пароля */}
-          <div className="lg:col-span-3 bg-white rounded-2xl p-6 shadow border border-gray-100">
-            <div className="mb-6">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-2">
-                🔐 Смена пароля
-              </h3>
-              <p className="text-sm text-gray-500">
-                Вы можете восстановить пароль{' '}
-                <a href="#" className="text-[#DC7C67] hover:underline font-medium">
-                  Забыли пароль? Восстановить
-                </a>
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Старый пароль
-                </label>
-                <input
-                  type="password"
-                  name="oldPassword"
-                  value={passwordForm.oldPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Введите старый пароль"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all duration-200"
-                  disabled={overallLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Новый пароль
-                </label>
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordForm.newPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Введите новый пароль"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all duration-200"
-                  disabled={overallLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Подтвердите пароль
-                </label>
-                <input
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordForm.confirmPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Повторите новый пароль"
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all duration-200"
-                  disabled={overallLoading}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 items-start">
-              <button
-                onClick={handlePasswordSubmit}
-                disabled={overallLoading || !passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                className="bg-[#DC7C67] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#C26D5C] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                🔄 Изменить пароль
-              </button>
-              
-              <div className="text-xs text-gray-500 leading-relaxed">
-                💡 Не передавайте пароль посторонним — даже самому обаятельному коллеге — и
-                обязательно включите многофакторную аутентификацию.
-              </div>
-            </div>
-          </div>
         </div>
+
+        {/* Модальное окно редактирования */}
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={handleCancelEdit}
+          profile={profile}
+          onSave={handleSaveProfile}
+          form={form}
+          setForm={setForm}
+        />
+
+        {/* Модальное окно смены пароля */}
+        <PasswordModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => setIsPasswordModalOpen(false)}
+        />
       </div>
     </div>
   );
