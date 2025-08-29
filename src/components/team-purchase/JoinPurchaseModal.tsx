@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  X, Plus, Minus, Users, TrendingUp, 
-  Calendar, AlertCircle, CheckCircle 
-} from 'lucide-react';
+import { X, Plus, Minus, Users, TrendingUp, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import type { TeamPurchaseView } from '@/lib/team-purchase/TeamPurchaseService';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface JoinPurchaseModalProps {
   purchase: TeamPurchaseView;
@@ -18,6 +16,7 @@ export default function JoinPurchaseModal({
   onClose,
   onJoin
 }: JoinPurchaseModalProps) {
+  const { t } = useTranslate();
   const [contributionAmount, setContributionAmount] = useState(10000);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -25,11 +24,11 @@ export default function JoinPurchaseModal({
 
   const handleJoin = () => {
     if (!agreeToTerms) {
-      alert('Необходимо согласиться с условиями');
+      alert(t('Необходимо согласиться с условиями'));
       return;
     }
     if (contributionAmount < 5000) {
-      alert('Минимальный вклад 5000 ₸');
+      alert(t('Минимальный вклад {amount}').replace('{amount}', '5000 ₸'));
       return;
     }
     onJoin(contributionAmount);
@@ -37,7 +36,6 @@ export default function JoinPurchaseModal({
 
   // Расчет вашей доли
   const yourShare = ((contributionAmount / purchase.order.total_amount) * 100).toFixed(1);
-  
   // Расчет экономии
   const estimatedSavings = contributionAmount * 0.25; // 25% экономия
 
@@ -48,10 +46,11 @@ export default function JoinPurchaseModal({
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-[#111]">
-              Присоединиться к закупке
+              {t('Присоединиться к закупке')}
             </h2>
             <button
               onClick={onClose}
+              aria-label={t('Закрыть')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -65,32 +64,31 @@ export default function JoinPurchaseModal({
             <h3 className="font-semibold text-[#111] mb-3">
               {purchase.order.order_number}
             </h3>
-            
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 flex items-center gap-2">
                   <Users className="w-4 h-4" />
-                  Участников
+                  {t('Участников')}
                 </span>
                 <span className="text-sm font-medium">
                   {purchase.participants.length}
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
-                  Собрано
+                  {t('Собрано')}
                 </span>
                 <span className="text-sm font-medium">
                   {formatPrice(purchase.totalContributions)} ({Math.round(purchase.progress)}%)
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  Осталось дней
+                  {t('Осталось дней')}
                 </span>
                 <span className="text-sm font-medium">
                   {purchase.daysLeft}
@@ -102,9 +100,9 @@ export default function JoinPurchaseModal({
           {/* Выбор суммы вклада */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Ваш вклад
+              {t('Ваш вклад')}
             </label>
-            
+
             {/* Быстрый выбор */}
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[5000, 10000, 20000].map(amount => (
@@ -130,16 +128,16 @@ export default function JoinPurchaseModal({
               >
                 <Minus className="w-5 h-5" />
               </button>
-              
+
               <div className="flex-1 text-center">
                 <p className="text-2xl font-bold text-[#D77E6C]">
                   {formatPrice(contributionAmount)}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Ваша доля: {yourShare}%
+                  {t('Ваша доля: {n}%').replace('{n}', yourShare)}
                 </p>
               </div>
-              
+
               <button
                 onClick={() => setContributionAmount(contributionAmount + 1000)}
                 className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -157,38 +155,38 @@ export default function JoinPurchaseModal({
               </div>
               <div>
                 <p className="text-sm font-medium text-[#111]">
-                  Экономия ~{formatPrice(estimatedSavings)}
+                  {t('Экономия ~{amount}').replace('{amount}', formatPrice(estimatedSavings))}
                 </p>
                 <p className="text-xs text-gray-500">
-                  При скидке 25% от розничной цены
+                  {t('При скидке 25% от розничной цены')}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-4 h-4 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm font-medium text-[#111]">
-                  Коллективная выгода
+                  {t('Коллективная выгода')}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Больше участников — больше скидка
+                  {t('Больше участников — больше скидка')}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                 <TrendingUp className="w-4 h-4 text-purple-600" />
               </div>
               <div>
                 <p className="text-sm font-medium text-[#111]">
-                  Бонусы за участие
+                  {t('Бонусы за участие')}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Дополнительные баллы в программе лояльности
+                  {t('Дополнительные баллы в программе лояльности')}
                 </p>
               </div>
             </div>
@@ -198,11 +196,11 @@ export default function JoinPurchaseModal({
           <div className="p-3 bg-yellow-50 rounded-lg flex items-start gap-2">
             <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-yellow-800">
-              <p className="font-medium mb-1">Важно!</p>
+              <p className="font-medium mb-1">{t('Важно!')}</p>
               <ul className="space-y-1 text-xs">
-                <li>• Вклад можно изменить до закрытия сбора</li>
-                <li>• Возврат средств возможен только при отмене закупки</li>
-                <li>• Товар будет доставлен после полной оплаты всеми участниками</li>
+                <li>• {t('Вклад можно изменить до закрытия сбора')}</li>
+                <li>• {t('Возврат средств возможен только при отмене закупки')}</li>
+                <li>• {t('Товар будет доставлен после полной оплаты всеми участниками')}</li>
               </ul>
             </div>
           </div>
@@ -216,8 +214,7 @@ export default function JoinPurchaseModal({
               className="mt-1 w-4 h-4 text-[#D77E6C] rounded focus:ring-[#D77E6C]"
             />
             <span className="text-sm text-gray-600">
-              Я согласен с условиями командной закупки и понимаю, что мой вклад 
-              будет зарезервирован до завершения сбора
+              {t('Я согласен с условиями командной закупки и понимаю, что мой вклад будет зарезервирован до завершения сбора')}
             </span>
           </label>
         </div>
@@ -229,16 +226,16 @@ export default function JoinPurchaseModal({
               onClick={onClose}
               className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
-              Отмена
+              {t('Отмена')}
             </button>
             <button
               onClick={handleJoin}
               disabled={!agreeToTerms}
               className="flex-1 px-4 py-3 bg-[#D77E6C] text-white rounded-lg font-medium hover:bg-[#C56D5C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Внести {formatPrice(contributionAmount)}
+              {t('Внести {amount}').replace('{amount}', formatPrice(contributionAmount))}
             </button>
-          </div>
+          </div>ф
         </div>
       </div>
     </div>

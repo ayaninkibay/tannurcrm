@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface DealerBigProductCardProps {
   product: any;
@@ -16,6 +17,7 @@ export default function DealerBigProductCard({
   className
 }: DealerBigProductCardProps) {
   const router = useRouter();
+  const { t } = useTranslate();
 
   const handleArrowClick = () => {
     router.push(`/dealer/shop/product_view?id=${product?.id || '538dd152-4d6f-471e-8cf1-dcdf6ba564ec'}`);
@@ -37,7 +39,7 @@ export default function DealerBigProductCard({
       <div className="w-full aspect-[11/5] relative rounded-2xl overflow-hidden">
         <Image
           src={imgSrc}
-          alt={product?.name || 'Товар'}
+          alt={product?.name || t('Товар')}
           fill
           priority
           loading="eager"
@@ -50,12 +52,12 @@ export default function DealerBigProductCard({
       <div className="p-3 pt-6">
         <div className="flex justify-between items-start -mb-1 gap-2">
           <h3 className="text-base font-bold text-[#1C1C1C] line-clamp-2 min-h-[3rem]">
-            {product?.name || 'Без названия'}
+            {product?.name || t('Без названия')}
           </h3>
 
           {product?.flagman && (
             <span className="bg-[#D77E6C] text-white text-[10px] font-medium px-3 py-1 rounded-full whitespace-nowrap">
-              Хит продаж
+              {t('Хит продаж')}
             </span>
           )}
         </div>
@@ -70,7 +72,7 @@ export default function DealerBigProductCard({
 
             {showClientPrice && (
               <div>
-                <p className="text-xs text-[#8C8C8C] leading-none">Цена</p>
+                <p className="text-xs text-[#8C8C8C] leading-none">{t('Цена')}</p>
                 <p className="text-base font-semibold text-[#D77E6C]">
                   {(product?.price || 0).toLocaleString('ru-RU')}₸
                 </p>
@@ -79,10 +81,11 @@ export default function DealerBigProductCard({
           </div>
 
           <div className="shrink-0 self-end">
-            <button onClick={handleArrowClick} aria-label="View Product">
+            <button onClick={handleArrowClick} aria-label={t('Открыть товар')} title={t('Открыть товар')}>
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"
-                alt="arrow"
+                alt=""
+                aria-hidden="true"
                 width={24}
                 height={24}
                 style={{ height: 'auto' }}

@@ -1,4 +1,4 @@
-// src/app/admin/teamcontent/profile_star/page.tsx
+// src/app/admin/teamcontent/profile_star/page.tsx (обновлённый)
 'use client';
 
 import React, { useState, MouseEvent, useEffect, Suspense } from 'react';
@@ -11,6 +11,7 @@ import DealerBigProductCard from '@/components/product/DealerBigProductCard';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
 import { Database } from '@/types/supabase';
+import { useTranslate } from '@/hooks/useTranslate';
 
 // Типы
 type ProductRow = Database['public']['Tables']['products']['Row'];
@@ -19,6 +20,7 @@ type UserRow = Database['public']['Tables']['users']['Row'];
 function ProfileStarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useTranslate();
   const starId = searchParams?.get('id');
   
   const [showClientPrices, setShowClientPrices] = useState(false);
@@ -29,6 +31,7 @@ function ProfileStarContent() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [starId]);
 
   // Загрузка данных
@@ -68,7 +71,7 @@ function ProfileStarContent() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Ошибка загрузки данных');
+      toast.error(t('Ошибка загрузки данных'));
     } finally {
       setLoading(false);
     }
@@ -83,8 +86,8 @@ function ProfileStarContent() {
     
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success('Ссылка скопирована!'))
-      .catch(() => toast.error('Не удалось скопировать ссылку'));
+      .then(() => toast.success(t('Ссылка скопирована!')))
+      .catch(() => toast.error(t('Не удалось скопировать ссылку')));
   };
 
   // Переход на страницу товара
@@ -95,7 +98,7 @@ function ProfileStarContent() {
   // Форматирование имени
   const getStarName = () => {
     if (starProfile) {
-      return `${starProfile.first_name || ''} ${starProfile.last_name || ''}`.trim() || 'Знаменитость';
+      return `${starProfile.first_name || ''} ${starProfile.last_name || ''}`.trim() || t('Знаменитость');
     }
     return 'Інжу Ануарбек';
   };
@@ -127,7 +130,7 @@ function ProfileStarContent() {
   return (
     <FifthTemplate
       header={
-        <MoreHeaderAD title="Страница знаменитости" />
+        <MoreHeaderAD title={t('Страница знаменитости')} />
       }
       /* Первая колонка — профиль */
       column1={
@@ -154,7 +157,7 @@ function ProfileStarContent() {
                 </h1>
 
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                  {starProfile?.region || 'Эстрада әншісі'}
+                  {starProfile?.region || t('Эстрадный певец')}
                 </p>
 
                 {/* Ссылки */}
@@ -183,7 +186,7 @@ function ProfileStarContent() {
                   <Image src="/icons/IconUsersOrange.svg" alt="subscribers" width={20} height={20} className="sm:w-6 sm:h-6" />
                   <span className="text-xl sm:text-2xl font-semibold text-[#111]">1 283</span>
                 </div>
-                <span className="text-xs sm:text-sm text-gray-500">Подписчики</span>
+                <span className="text-xs sm:text-sm text-gray-500">{t('Подписчики')}</span>
               </div>
 
               {/* Декор */}
@@ -197,7 +200,7 @@ function ProfileStarContent() {
       /* Вторая колонка — компания */
       column2={
         <>
-          <h3 className="text-base sm:text-lg font-semibold text-[#111] mt-4 sm:mt-7 mb-4 sm:mb-7 px-2 sm:px-0">О компании</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-[#111] mt-4 sm:mt-7 mb-4 sm:mb-7 px-2 sm:px-0">{t('О компании')}</h3>
 
           <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col gap-4 sm:gap-6 mx-2 sm:mx-0">
             <div className="flex mt-3 sm:mt-5 justify-center">
@@ -206,24 +209,24 @@ function ProfileStarContent() {
 
             <div className="space-y-3 sm:space-y-4">
               <p className="text-xs leading-relaxed text-gray-500">
-                It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more‑or‑less normal distribution of letters, as opposed to using &apos;Content here&apos;, making it look like readable English.
+                {t('Описание компании — абзац 1')}
               </p>
               <p className="text-xs leading-relaxed text-gray-500">
-                Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for &apos;lorem ipsum&apos; will uncover many web sites still in their infancy.
+                {t('Описание компании — абзац 2')}
               </p>
               <p className="text-xs leading-relaxed text-gray-500">
-                Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
+                {t('Описание компании — абзац 3')}
               </p>
             </div>
 
             <div className="inline-flex items-center rounded-full border border-[#DC7C67] overflow-hidden w-full sm:w-auto">
               <a href="#" className="flex items-center justify-center gap-2 px-3 py-1.5 bg-[#DC7C67] text-white text-xs flex-1 sm:flex-initial hover:bg-opacity-90 transition-colors">
                 <Image src="/icons/IconGalleryWhite.svg" alt="link" width={14} height={14} />
-                <span>Перейти на сайт</span>
+                <span>{t('Перейти на сайт')}</span>
               </a>
               <a href="#" className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white text-[#111] text-xs flex-1 sm:flex-initial hover:bg-gray-50 transition-colors">
                 <Image src="/icons/IconStarBlack.svg" alt="factory" width={14} height={14} />
-                <span>Завод Tannur</span>
+                <span>{t('Завод Tannur')}</span>
               </a>
             </div>
           </div>
@@ -233,7 +236,7 @@ function ProfileStarContent() {
       column3={
         <>
           <div className="flex justify-between items-center px-2 sm:px-4 md:px-6 lg:px-8 xl:px-0 mt-4 sm:mt-6 mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#111]">Tannur Store</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#111]">{t('Tannur Store')}</h2>
             <Image src="/icons/IconFilterBlack.svg" alt="filter" width={18} height={18} className="sm:w-5 sm:h-5 cursor-pointer hover:opacity-70 transition-opacity" />
           </div>
 
@@ -269,7 +272,7 @@ function ProfileStarContent() {
               {/* Заглушка если нет товаров */}
               {!bigProduct && products.length === 0 && (
                 <div className="col-span-5 text-center py-12 text-gray-500">
-                  <p>Товары будут доступны в ближайшее время</p>
+                  <p>{t('Товары будут доступны в ближайшее время')}</p>
                 </div>
               )}
             </div>
@@ -277,13 +280,13 @@ function ProfileStarContent() {
 
           {/* Фотографии */}
           <div className="mt-8 sm:mt-10 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-0">
-            <h2 className="text-xl sm:text-2xl font-semibold text-[#111] mb-4 sm:mb-6">Фотографии</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#111] mb-4 sm:mb-6">{t('Фотографии')}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {['/icons/gallery1.jpg', '/icons/gallery2.jpg', '/icons/gallery3.jpg', '/icons/gallery4.jpg'].map((src, index) => (
                 <div key={index} className="aspect-square overflow-hidden rounded-2xl group cursor-pointer">
                   <img
                     src={src}
-                    alt={`Фото ${index + 1}`}
+                    alt={t('Фото {n}').replace('{n}', String(index + 1))}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>

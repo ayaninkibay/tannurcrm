@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type FinancierDraft = {
   id: string;
@@ -30,11 +31,12 @@ type FinancierDraft = {
 
 export default function CreateFinancierPage() {
   const router = useRouter();
+  const { t } = useTranslate();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [position, setPosition] = useState('Финансист');
+  const [position, setPosition] = useState(t('Финансист'));
   const [hireDate, setHireDate] = useState('');
   const [salary, setSalary] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
@@ -62,9 +64,9 @@ export default function CreateFinancierPage() {
 
   function validate() {
     const n: Record<string, string> = {};
-    if (!fullName.trim()) n.fullName = 'Введите ФИО';
-    if (!phone.trim()) n.phone = 'Укажите телефон';
-    if (!email.trim()) n.email = 'Укажите e-mail';
+    if (!fullName.trim()) n.fullName = t('Введите ФИО');
+    if (!phone.trim()) n.phone = t('Укажите телефон');
+    if (!email.trim()) n.email = t('Укажите e-mail');
     setErrors(n);
     return Object.keys(n).length === 0;
   }
@@ -102,59 +104,113 @@ export default function CreateFinancierPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Создать финансиста" 
-      showBackButton={true}
+      <MoreHeaderAD
+        title={t('Создать финансиста')}
+        showBackButton={true}
       />
 
       <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         {/* базовые поля */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm text-gray-700">ФИО *</span>
-            <input value={fullName} onChange={e=>setFullName(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="ФИО"/>
+            <span className="text-sm text-gray-700">{t('ФИО *')}</span>
+            <input
+              value={fullName}
+              onChange={e=>setFullName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('ФИО')}
+            />
             {errors.fullName && <div className="text-xs text-red-500 mt-1">{errors.fullName}</div>}
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Телефон *</span>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="+7 ..."/>
+            <span className="text-sm text-gray-700">{t('Телефон *')}</span>
+            <input
+              value={phone}
+              onChange={e=>setPhone(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('+7 ...')}
+            />
             {errors.phone && <div className="text-xs text-red-500 mt-1">{errors.phone}</div>}
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">E-mail *</span>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="mail@domain.kz"/>
+            <span className="text-sm text-gray-700">{t('E-mail *')}</span>
+            <input
+              type="email"
+              value={email}
+              onChange={e=>setEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('mail@domain.kz')}
+            />
             {errors.email && <div className="text-xs text-red-500 mt-1">{errors.email}</div>}
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Должность</span>
-            <input value={position} onChange={e=>setPosition(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Финансист / Бухгалтер"/>
+            <span className="text-sm text-gray-700">{t('Должность')}</span>
+            <input
+              value={position}
+              onChange={e=>setPosition(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Финансист / Бухгалтер')}
+            />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Дата выхода</span>
-            <input type="date" value={hireDate} onChange={e=>setHireDate(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" />
+            <span className="text-sm text-gray-700">{t('Дата выхода')}</span>
+            <input
+              type="date"
+              value={hireDate}
+              onChange={e=>setHireDate(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+            />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">Оклад</span>
-            <input type="number" min={0} value={salary} onChange={e=>setSalary(e.target.value === '' ? '' : Number(e.target.value))} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="300000"/>
+            <span className="text-sm text-gray-700">{t('Оклад')}</span>
+            <input
+              type="number"
+              min={0}
+              value={salary}
+              onChange={e=>setSalary(e.target.value === '' ? '' : Number(e.target.value))}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder="300000"
+            />
           </label>
           <label className="block md:col-span-2">
-            <span className="text-sm text-gray-700">Заметки</span>
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Особые условия, испытательный срок…"/>
+            <span className="text-sm text-gray-700">{t('Заметки')}</span>
+            <textarea
+              value={notes}
+              onChange={e=>setNotes(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Особые условия, испытательный срок…')}
+            />
           </label>
         </div>
 
         {/* списки */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Обязанности</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Обязанности')}</div>
           <div className="flex gap-2">
-            <input value={respInput} onChange={e=>setRespInput(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setResponsibilities, respInput, ()=>setRespInput(''))}}} className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Платёжки, сверки, бюджеты…"/>
-            <button type="button" onClick={()=>add(setResponsibilities, respInput, ()=>setRespInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Добавить пункт</button>
+            <input
+              value={respInput}
+              onChange={e=>setRespInput(e.target.value)}
+              onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setResponsibilities, respInput, ()=>setRespInput(''))}}}
+              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Платёжки, сверки, бюджеты…')}
+            />
+            <button
+              type="button"
+              onClick={()=>add(setResponsibilities, respInput, ()=>setRespInput(''))}
+              className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            >
+              {t('Добавить пункт')}
+            </button>
           </div>
           {!!responsibilities.length && (
             <ul className="mt-3 space-y-2">
               {responsibilities.map((o,i)=>(
                 <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm text-gray-800">{o}</span>
-                  <button type="button" onClick={()=>remove(setResponsibilities,i)} className="text-xs text-gray-500 hover:text-gray-700">Удалить</button>
+                  <button type="button" onClick={()=>remove(setResponsibilities,i)} className="text-xs text-gray-500 hover:text-gray-700">
+                    {t('Удалить')}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -162,10 +218,22 @@ export default function CreateFinancierPage() {
         </div>
 
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Банковские счета</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Банковские счета')}</div>
           <div className="flex gap-2">
-            <input value={accInput} onChange={e=>setAccInput(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setBankAccounts, accInput, ()=>setAccInput(''))}}} className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Банк/номер счёта"/>
-            <button type="button" onClick={()=>add(setBankAccounts, accInput, ()=>setAccInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Добавить</button>
+            <input
+              value={accInput}
+              onChange={e=>setAccInput(e.target.value)}
+              onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setBankAccounts, accInput, ()=>setAccInput(''))}}}
+              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Банк/номер счёта')}
+            />
+            <button
+              type="button"
+              onClick={()=>add(setBankAccounts, accInput, ()=>setAccInput(''))}
+              className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            >
+              {t('Добавить')}
+            </button>
           </div>
           {!!bankAccounts.length && (
             <div className="flex flex-wrap gap-2 mt-3">
@@ -180,10 +248,22 @@ export default function CreateFinancierPage() {
         </div>
 
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Валюты</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Валюты')}</div>
           <div className="flex gap-2">
-            <input value={curInput} onChange={e=>setCurInput(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setCurrencies, curInput, ()=>setCurInput(''))}}} className="w-full md:w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="KZT, USD, EUR…"/>
-            <button type="button" onClick={()=>add(setCurrencies, curInput, ()=>setCurInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Добавить</button>
+            <input
+              value={curInput}
+              onChange={e=>setCurInput(e.target.value)}
+              onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setCurrencies, curInput, ()=>setCurInput(''))}}}
+              className="w-full md:w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('KZT, USD, EUR…')}
+            />
+            <button
+              type="button"
+              onClick={()=>add(setCurrencies, curInput, ()=>setCurInput(''))}
+              className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            >
+              {t('Добавить')}
+            </button>
           </div>
           {!!currencies.length && (
             <div className="flex flex-wrap gap-2 mt-3">
@@ -199,19 +279,49 @@ export default function CreateFinancierPage() {
 
         {/* права */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canApprovePayments} onChange={e=>setCanApprovePayments(e.target.checked)} /> Подтверждение платежей</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canViewPayroll} onChange={e=>setCanViewPayroll(e.target.checked)} /> ФОТ и начисления</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canViewPnL} onChange={e=>setCanViewPnL(e.target.checked)} /> P&L / отчёты</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canEditBudgets} onChange={e=>setCanEditBudgets(e.target.checked)} /> Редактирование бюджетов</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canViewSalesData} onChange={e=>setCanViewSalesData(e.target.checked)} /> Доступ к продажам</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={isActive} onChange={e=>setIsActive(e.target.checked)} /> Активен</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={canApprovePayments} onChange={e=>setCanApprovePayments(e.target.checked)} /> {t('Подтверждение платежей')}
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={canViewPayroll} onChange={e=>setCanViewPayroll(e.target.checked)} /> {t('ФОТ и начисления')}
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={canViewPnL} onChange={e=>setCanViewPnL(e.target.checked)} /> {t('P&L / отчёты')}
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={canEditBudgets} onChange={e=>setCanEditBudgets(e.target.checked)} /> {t('Редактирование бюджетов')}
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={canViewSalesData} onChange={e=>setCanViewSalesData(e.target.checked)} /> {t('Доступ к продажам')}
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800">
+            <input type="checkbox" checked={isActive} onChange={e=>setIsActive(e.target.checked)} /> {t('Активен')}
+          </label>
         </div>
 
         {/* действия */}
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={()=>save(false)} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">Сохранить черновик</button>
-          <button type="button" disabled={!isValid} onClick={()=>save(true)} className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium">Сохранить и выйти</button>
-          <Link href="/admin/teamcontent" className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">Отмена</Link>
+          <button
+            type="button"
+            onClick={()=>save(false)}
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+          >
+            {t('Сохранить черновик')}
+          </button>
+          <button
+            type="button"
+            disabled={!isValid}
+            onClick={()=>save(true)}
+            className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium"
+          >
+            {t('Сохранить и выйти')}
+          </button>
+          <Link
+            href="/admin/teamcontent"
+            className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+          >
+            {t('Отмена')}
+          </Link>
         </div>
       </div>
     </div>

@@ -3,9 +3,11 @@
 import React from 'react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export default function UserProfileCard() {
   const { profile, loading } = useUser();
+  const { t } = useTranslate();
 
   if (loading) {
     return (
@@ -43,7 +45,7 @@ export default function UserProfileCard() {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-500">Профиль не найден</p>
+          <p className="text-gray-500">{t('Профиль не найден')}</p>
         </div>
       </div>
     );
@@ -53,11 +55,11 @@ export default function UserProfileCard() {
     <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
-        <h2 className="text-md font-semibold text-[#111]">Мой профиль</h2>
+        <h2 className="text-md font-semibold text-[#111]">{t('Мой профиль')}</h2>
         <div className="relative w-4 h-4">
           <Image 
             src="/icons/buttom/more.svg" 
-            alt="more" 
+            alt={t('Ещё')}
             fill
             style={{ objectFit: 'contain' }}
             className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
@@ -86,15 +88,15 @@ export default function UserProfileCard() {
             <p className="text-sm md:text-base font-semibold text-[#111] truncate">
               {profile.first_name} {profile.last_name}
             </p>
-{profile.is_confirmed && (
-  <Image 
-    src="/icons/confirmed.svg" 
-    alt="confirmed" 
-    width={16} 
-    height={16}
-    style={{ width: '16px', height: '16px' }}
-  />
-)}
+            {profile.is_confirmed && (
+              <Image 
+                src="/icons/confirmed.svg" 
+                alt={t('Подтвержден')}
+                width={16} 
+                height={16}
+                style={{ width: '16px', height: '16px' }}
+              />
+            )}
           </div>
           
           {profile.referral_code && (

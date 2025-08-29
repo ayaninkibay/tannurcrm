@@ -6,6 +6,7 @@ import {
   Package, Target, AlertCircle 
 } from 'lucide-react';
 import type { CreateTeamPurchaseInput } from '@/lib/team-purchase/TeamPurchaseService';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface CreateTeamPurchaseModalProps {
   onClose: () => void;
@@ -16,6 +17,8 @@ export default function CreateTeamPurchaseModal({
   onClose,
   onCreate
 }: CreateTeamPurchaseModalProps) {
+  const { t } = useTranslate();
+
   const [formData, setFormData] = useState<CreateTeamPurchaseInput>({
     title: '',
     targetAmount: 0,
@@ -31,7 +34,7 @@ export default function CreateTeamPurchaseModal({
   // Добавление участника
   const addParticipant = () => {
     if (!newParticipantEmail) {
-      setErrors({ ...errors, participant: 'Введите email участника' });
+      setErrors({ ...errors, participant: t('Введите email участника') });
       return;
     }
 
@@ -69,16 +72,16 @@ export default function CreateTeamPurchaseModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Введите название закупки';
+      newErrors.title = t('Введите название закупки');
     }
     if (formData.targetAmount <= 0) {
-      newErrors.targetAmount = 'Укажите целевую сумму';
+      newErrors.targetAmount = t('Укажите целевую сумму');
     }
     if (!formData.deadline) {
-      newErrors.deadline = 'Укажите дедлайн';
+      newErrors.deadline = t('Укажите дедлайн');
     }
     if (formData.participants.length === 0) {
-      newErrors.participants = 'Добавьте хотя бы одного участника';
+      newErrors.participants = t('Добавьте хотя бы одного участника');
     }
 
     setErrors(newErrors);
@@ -107,11 +110,12 @@ export default function CreateTeamPurchaseModal({
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-[#111]">
-              Создать командную закупку
+              {t('Создать командную закупку')}
             </h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -123,19 +127,19 @@ export default function CreateTeamPurchaseModal({
           <div>
             <h3 className="text-lg font-semibold text-[#111] mb-4 flex items-center gap-2">
               <Package className="w-5 h-5 text-[#D77E6C]" />
-              Основная информация
+              {t('Основная информация')}
             </h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Название закупки
+                  {t('Название закупки')}
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Например: Закупка печей Tannur для команды"
+                  placeholder={t('Например: Закупка печей Tannur для команды')}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] ${
                     errors.title ? 'border-red-500' : 'border-gray-200'
                   }`}
@@ -148,7 +152,7 @@ export default function CreateTeamPurchaseModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Целевая сумма
+                    {t('Целевая сумма')}
                   </label>
                   <input
                     type="number"
@@ -169,7 +173,7 @@ export default function CreateTeamPurchaseModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Мин. вклад
+                    {t('Мин. вклад')}
                   </label>
                   <input
                     type="number"
@@ -186,7 +190,7 @@ export default function CreateTeamPurchaseModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Дедлайн сбора
+                  {t('Дедлайн сбора')}
                 </label>
                 <input
                   type="date"
@@ -208,7 +212,7 @@ export default function CreateTeamPurchaseModal({
           <div>
             <h3 className="text-lg font-semibold text-[#111] mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-[#D77E6C]" />
-              Участники
+              {t('Участники')}
             </h3>
 
             <div className="space-y-4">
@@ -218,7 +222,7 @@ export default function CreateTeamPurchaseModal({
                   type="email"
                   value={newParticipantEmail}
                   onChange={(e) => setNewParticipantEmail(e.target.value)}
-                  placeholder="Email участника"
+                  placeholder={t('Email участника')}
                   className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
                 />
                 <button
@@ -226,7 +230,7 @@ export default function CreateTeamPurchaseModal({
                   className="px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Добавить
+                  {t('Добавить')}
                 </button>
               </div>
 
@@ -244,11 +248,11 @@ export default function CreateTeamPurchaseModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-[#D77E6C] text-white rounded-full flex items-center justify-center text-sm font-medium">
-                        ВЫ
+                        {t('ВЫ')}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-[#111]">Организатор</p>
-                        <p className="text-xs text-gray-500">Ваш вклад</p>
+                        <p className="text-sm font-medium text-[#111]">{t('Организатор')}</p>
+                        <p className="text-xs text-gray-500">{t('Ваш вклад')}</p>
                       </div>
                     </div>
                     <p className="text-sm font-semibold text-[#D77E6C]">
@@ -269,7 +273,7 @@ export default function CreateTeamPurchaseModal({
                           <p className="text-sm font-medium text-[#111]">
                             {participant.user_id}
                           </p>
-                          <p className="text-xs text-gray-500">Участник</p>
+                          <p className="text-xs text-gray-500">{t('Участник')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -277,6 +281,7 @@ export default function CreateTeamPurchaseModal({
                           <button
                             onClick={() => updateParticipantAmount(index, participant.amount - 1000)}
                             className="p-1 hover:bg-gray-100 rounded"
+                            aria-label="Decrease"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
@@ -286,6 +291,7 @@ export default function CreateTeamPurchaseModal({
                           <button
                             onClick={() => updateParticipantAmount(index, participant.amount + 1000)}
                             className="p-1 hover:bg-gray-100 rounded"
+                            aria-label="Increase"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
@@ -293,6 +299,7 @@ export default function CreateTeamPurchaseModal({
                         <button
                           onClick={() => removeParticipant(index)}
                           className="p-1 hover:bg-red-50 text-red-500 rounded"
+                          aria-label="Remove"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -307,13 +314,13 @@ export default function CreateTeamPurchaseModal({
           {/* Итоговая информация */}
           <div className="p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Общая сумма вкладов:</span>
+              <span className="text-sm text-gray-600">{t('Общая сумма вкладов:')}</span>
               <span className="text-lg font-semibold text-[#111]">
                 {formatPrice(totalContributions)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Целевая сумма:</span>
+              <span className="text-sm text-gray-600">{t('Целевая сумма:')}</span>
               <span className="text-lg font-semibold text-[#D77E6C]">
                 {formatPrice(formData.targetAmount)}
               </span>
@@ -322,7 +329,10 @@ export default function CreateTeamPurchaseModal({
               <div className="mt-2 p-2 bg-yellow-50 rounded flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
                 <p className="text-xs text-yellow-700">
-                  Недостаточно вкладов. Нужно еще {formatPrice(formData.targetAmount - totalContributions)}
+                  {t('Недостаточно вкладов. Нужно еще {amount}').replace(
+                    '{amount}',
+                    formatPrice(formData.targetAmount - totalContributions)
+                  )}
                 </p>
               </div>
             )}
@@ -336,13 +346,13 @@ export default function CreateTeamPurchaseModal({
               onClick={onClose}
               className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
-              Отмена
+              {t('Отмена')}
             </button>
             <button
               onClick={handleSubmit}
               className="flex-1 px-4 py-3 bg-[#D77E6C] text-white rounded-lg font-medium hover:bg-[#C56D5C] transition-colors"
             >
-              Создать закупку
+              {t('Создать закупку')}
             </button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+// page.tsx (обновлённый)
 'use client';
 
 import React from 'react';
@@ -10,35 +11,38 @@ import retailAnimation from '@/components/lotties/Retail.json';
 
 import CelebrityProductCard from '@/components/product/CelebrityProductCard';
 import CelebrityBigProductCard from '@/components/product/CelebrityBigProductCard';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export default function CelebrityStorePage() {
+  const { t } = useTranslate();
+
   // МАЛЕНЬКИЕ карточки (8 штук: 3 до большой + 5 после)
   const smallProducts = [
-    { id: 1, name: '9-A шампунь Tannur', price: 89850, imageUrl: '/img/product1.jpg', isHit: true },
-    { id: 2, name: '9-A Крем для волос Tannur', price: 89850, imageUrl: '/img/product2.jpg' },
-    { id: 3, name: '9-A Крем для волос Tannur', price: 89850, imageUrl: '/img/product3.jpg' },
+    { id: 1, name: t('9-A шампунь Tannur'), price: 89850, imageUrl: '/img/product1.jpg', isHit: true },
+    { id: 2, name: t('9-A Крем для волос Tannur'), price: 89850, imageUrl: '/img/product2.jpg' },
+    { id: 3, name: t('9-A Крем для волос Tannur'), price: 89850, imageUrl: '/img/product3.jpg' },
 
-    { id: 4, name: 'Отбеливающая маска Tannur', price: 89850, imageUrl: '/img/product4.jpg' },
-    { id: 5, name: 'Гелевая маска Tannur', price: 89850, imageUrl: '/img/product5.jpg' },
-    { id: 6, name: 'Гелевая маска Tannur', price: 89850, imageUrl: '/img/product6.jpg' },
-    { id: 7, name: 'Набор из 3 кремов Tannur', price: 89850, imageUrl: '/img/product7.jpg' },
-    { id: 8, name: 'Набор из 6 кремов Tannur', price: 89850, imageUrl: '/img/product8.jpg' },
+    { id: 4, name: t('Отбеливающая маска Tannur'), price: 89850, imageUrl: '/img/product4.jpg' },
+    { id: 5, name: t('Гелевая маска Tannur'), price: 89850, imageUrl: '/img/product5.jpg' },
+    { id: 6, name: t('Гелевая маска Tannur'), price: 89850, imageUrl: '/img/product6.jpg' },
+    { id: 7, name: t('Набор из 3 кремов Tannur'), price: 89850, imageUrl: '/img/product7.jpg' },
+    { id: 8, name: t('Набор из 6 кремов Tannur'), price: 89850, imageUrl: '/img/product8.jpg' },
   ];
 
   // БОЛЬШАЯ карточка-герой
   const heroProduct = {
     id: 101,
-    name: '6 Этапный уходовый набор Tannur',
-    subtitle: 'Премиальный набор для ежедневного ухода',
+    name: t('6 Этапный уходовый набор Tannur'),
+    subtitle: t('Премиальный набор для ежедневного ухода'),
     price: 129000,
     oldPrice: 149000,
-    tag: 'Эксклюзив',
+    tag: t('Эксклюзив'),
     imageUrl: '/img/productBig.jpg',
   };
 
   return (
     <main className="min-h-screen bg-[#F6F6F6]">
-      <MoreHeaderCE title="Магазин Tannur" />
+      <MoreHeaderCE title={t('Магазин Tannur')} />
 
       {/* Верхняя плашка */}
       <section className="bg-white rounded-2xl w-full mt-5 p-6">
@@ -49,7 +53,7 @@ export default function CelebrityStorePage() {
               <div className="w-10 h-10 md:w-15 md:h-15">
                 <Lottie animationData={retailAnimation} loop autoplay />
               </div>
-              <h2 className="text-lg md:text-lg font-semibold text-[#1C1C1C]">Магазин Селебрити</h2>
+              <h2 className="text-lg md:text-lg font-semibold text-[#1C1C1C]">{t('Магазин Селебрити')}</h2>
             </div>
           </div>
           {/* 2 */}

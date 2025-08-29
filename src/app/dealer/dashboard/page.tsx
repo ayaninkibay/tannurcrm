@@ -18,19 +18,19 @@ import Link from 'next/link'
 const rawData: MonthValue[] = generateMonthlyData(new Date(2024, 8, 1), 12)
 
 export default function DashboardPage() {
-  const { t } = useTranslate() // Получаем функцию перевода
+  const { t } = useTranslate()
 
   return (
     <div className="p-2 md:p-6 space-y-6">
       {/* Хидер */}
       <div className="flex justify-between items-center">
-        <MoreHeaderDE title={t("Дэшборд")} />
+        <MoreHeaderDE title={t('Дэшборд')} />
       </div>
 
       {/* Приветствие */}
       <div className="bg-white p-6 rounded-2xl flex justify-between items-center">
         <span className="text-gray-700 font-medium text-base">
-          {t("С возвращением, Інжу")}
+          {t('С возвращением, Інжу')}
         </span>
         <Link
           href="/dealer/dashboard/shop/"
@@ -38,7 +38,7 @@ export default function DashboardPage() {
           role="button"
         >
           <img src="/icons/IconShoppingWhite.png" className="w-3.5 h-3.5" alt="shop" />
-          {t("Мои покупки")}
+          {t('Мои покупки')}
         </Link>
       </div>
 
@@ -52,10 +52,10 @@ export default function DashboardPage() {
               <BalanceCard balance={890020} size="normal" variant="dark" />
             </div>
             <div className="h-full">
-              <TeamCard title={t("Моя команда")} count={68} goal={100} showButton variant="color" />
+              <TeamCard title={t('Моя команда')} count={68} goal={100} showButton variant="color" />
             </div>
             <div className="h-full">
-              <BonusCard 
+              <BonusCard
                 turnover={2500000}
                 goal={5000000}
                 remaining={2500000}
@@ -76,7 +76,7 @@ export default function DashboardPage() {
               />
             </div>
             <div className="min-h-[400px] overflow-hidden flex flex-col">
-              <NewsEventsCard/>
+              <NewsEventsCard />
             </div>
           </div>
         </div>
@@ -85,28 +85,28 @@ export default function DashboardPage() {
         <div className="h-fit xl:sticky xl:top-6">
           <div className="bg-white rounded-2xl overflow-hidden p-6 space-y-4">
             <UserProfileCard />
-            
+
             <div className="space-y-3 hidden md:block">
-              <TannurButton 
-                href="/dealer/profile_dealer" 
-                text={t("Моя страница")} 
-                iconSrc="/icons/IconGroupBlack.png" 
-                arrow="black" 
-                variant="gray" 
+              <TannurButton
+                href="/dealer/profile_dealer"
+                text={t('Моя страница')}
+                iconSrc="/icons/IconGroupBlack.png"
+                arrow="black"
+                variant="gray"
               />
-              <TannurButton 
-                href="/notifications" 
-                text={t("Уведомления")} 
-                iconSrc="/icons/Icon notifications.png" 
-                arrow="black" 
-                variant="gray" 
+              <TannurButton
+                href="/notifications"
+                text={t('Уведомления')}
+                iconSrc="/icons/Icon notifications.png"
+                arrow="black"
+                variant="gray"
               />
             </div>
-            
+
             <div className="pt-2">
               <ReferalLink variant="orange" />
             </div>
-            
+
             <div className="pt-2">
               <SponsorCard variant="gray" />
             </div>

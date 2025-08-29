@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export interface TaskCardProps {
   /** Заголовок задачи */
@@ -24,6 +25,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   statusText = 'text-blue-800',
   settingsUrl = '#',
 }) => {
+  const { t } = useTranslate();
   const [completed, setCompleted] = useState(false);
 
   return (
@@ -34,19 +36,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           src="/icons/IconHourglassBlack.svg"
           width={15}
           height={15}
-          alt="Task"
+          alt={t('Задача')}
         />
       </div>
 
       {/* Текст задачи */}
       <div className="flex-1">
         <h4 className="pl-2 text-sm font-medium text-gray-900">{title}</h4>
-        <p className="pl-2 text-xs text-gray-500">Задача</p>
+        <p className="pl-2 text-xs text-gray-500">{t('Задача')}</p>
       </div>
 
       {/* Цветной статус */}
       <div className={`${statusBg} px-3 rounded-full`}>
-        <span className={`text-[12px] font-medium ${statusText}`}>{statusLabel}</span>
+        <span className={`text-[12px] font-medium ${statusText}`}>{t(statusLabel)}</span>
       </div>
 
       {/* Чекбокс */}
@@ -56,14 +58,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             src="/icons/IconCheckBox.svg"
             width={15}
             height={15}
-            alt="Completed"
+            alt={t('Выполнено')}
           />
         ) : (
           <Image
             src="/icons/IconBoxBlack.svg"
             width={15}
             height={15}
-            alt="Not completed"
+            alt={t('Не выполнено')}
           />
         )}
       </button>
@@ -74,7 +76,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           src="/icons/IconBlackSettings.svg"
           width={17}
           height={17}
-          alt="Settings"
+          alt={t('Настройки')}
         />
       </button>
     </div>
@@ -82,7 +84,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 };
 
 // Пример вставки сразу трёх задач в блок:
-//
+// (если используете моки, оборачивайте статусы через t(...), сами строки — по-русски)
 // <div className="bg-white rounded-2xl p-4 space-y-4">
 //   <TaskCard
 //     title="Открыть новый филиал до 18 августа"
@@ -106,4 +108,3 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 //     settingsUrl="#"
 //   />
 // </div>
-

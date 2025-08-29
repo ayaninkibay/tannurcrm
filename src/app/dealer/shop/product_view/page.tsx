@@ -8,11 +8,13 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'react-hot-toast';
 import { Database } from '@/types/supabase';
 import { Package } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 // Определяем тип для продукта
 type ProductRow = Database['public']['Tables']['products']['Row'];
 
 function ProductViewContent() {
+  const { t } = useTranslate();
   const searchParams = useSearchParams();
   const router = useRouter();
   const productId = searchParams?.get('id') || null;
@@ -24,13 +26,12 @@ function ProductViewContent() {
     if (productId) {
       fetchProduct();
     } else {
-      // Если нет ID, перенаправляем на страницу магазина
       router.push('/dealer/shop');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   const fetchProduct = async () => {
-    // Проверяем и сохраняем productId в локальную переменную
     const id = productId;
     if (!id) {
       router.push('/dealer/shop');
@@ -51,12 +52,11 @@ function ProductViewContent() {
       if (data) {
         setProduct(data);
       } else {
-        throw new Error('Товар не найден');
+        throw new Error(t('Товар не найден'));
       }
     } catch (error) {
       console.error('Error fetching product:', error);
-      toast.error('Ошибка загрузки товара');
-      // Перенаправляем на страницу магазина при ошибке
+      toast.error(t('Ошибка загрузки товара'));
       setTimeout(() => {
         router.push('/dealer/shop');
       }, 2000);
@@ -78,12 +78,12 @@ function ProductViewContent() {
       <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
         <div className="text-center bg-white p-8 rounded-2xl border border-gray-200">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Товар не найден</h2>
+          <h2 className="text-2xl font-bold mb-4">{t('Товар не найден')}</h2>
           <button 
             onClick={() => router.push('/dealer/shop')}
             className="px-6 py-3 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors"
           >
-            Вернуться в магазин
+            {t('Вернуться в магазин')}
           </button>
         </div>
       </div>
@@ -92,8 +92,7 @@ function ProductViewContent() {
 
   return (
     <div className="flex flex-col p-2 md:p-4 bg-[#F6F6F6]">
-      <MoreHeaderDE title="Товар" showBackButton={true}
-      />
+      <MoreHeaderDE title={t('Товар')} showBackButton={true} />
       
       <div className="w-full h-px bg-gray-200" />
 
@@ -109,11 +108,13 @@ function ProductViewContent() {
 // Оборачиваем в Suspense для правильной работы с useSearchParams
 export default function ProductView() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center bg-[#F6F6F6]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center bg-[#F6F6F6] min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+        </div>
+      }
+    >
       <ProductViewContent />
     </Suspense>
   );

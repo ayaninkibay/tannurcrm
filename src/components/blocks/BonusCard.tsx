@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TrendingUp, Gift, Target, Zap, Trophy, DollarSign } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface BonusCardProps {
   turnover: number;
@@ -22,6 +23,7 @@ export default function BonusCard({
   storeDiscount = 30,
   dealerBonus = 50
 }: BonusCardProps) {
+  const { t } = useTranslate();
   const percentage = Math.min((turnover / goal) * 100, 100);
   const isBonus = variant === 'bonus';
 
@@ -47,8 +49,8 @@ export default function BonusCard({
         {/* Header */}
         <div className="flex justify-between items-start mb-4 relative z-10">
           <div>
-            <h3 className="text-xl font-bold mb-1">Ваши бонусы</h3>
-            <p className="text-white/70 text-sm">активные преимущества</p>
+            <h3 className="text-xl font-bold mb-1">{t('Ваши бонусы')}</h3>
+            <p className="text-white/70 text-sm">{t('активные преимущества')}</p>
           </div>
           <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
             <Trophy className="w-6 h-6" />
@@ -67,17 +69,17 @@ export default function BonusCard({
             <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
               <Gift className="w-5 h-5 mx-auto mb-1 text-white/90" />
               <div className="text-lg font-bold">{bonusPercent}%</div>
-              <div className="text-xs text-white/70">с оборота</div>
+              <div className="text-xs text-white/70">{t('с оборота')}</div>
             </div>
             <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
               <DollarSign className="w-5 h-5 mx-auto mb-1 text-white/90" />
               <div className="text-lg font-bold">{storeDiscount}%</div>
-              <div className="text-xs text-white/70">скидка</div>
+              <div className="text-xs text-white/70">{t('скидка')}</div>
             </div>
             <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
               <Zap className="w-5 h-5 mx-auto mb-1 text-white/90" />
               <div className="text-lg font-bold">{dealerBonus}%</div>
-              <div className="text-xs text-white/70">с дилеров</div>
+              <div className="text-xs text-white/70">{t('с дилеров')}</div>
             </div>
           </div>
         </div>
@@ -85,8 +87,10 @@ export default function BonusCard({
         {/* Progress to next level */}
         <div className="relative z-10">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-white/80 font-medium">Прогресс уровня</span>
-            <span className="font-bold">осталось {formatMoney(remaining)} ₸</span>
+            <span className="text-white/80 font-medium">{t('Прогресс уровня')}</span>
+            <span className="font-bold">
+              {t('осталось {amount} ₸').replace('{amount}', formatMoney(remaining))}
+            </span>
           </div>
           
           <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
@@ -119,8 +123,8 @@ export default function BonusCard({
       {/* Header */}
       <div className="flex justify-between items-start mb-4 relative z-10">
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Товарооборот</h3>
-          <p className="text-gray-500 text-sm">команды за период</p>
+          <h3 className="text-xl font-bold text-gray-900">{t('Товарооборот')}</h3>
+          <p className="text-gray-500 text-sm">{t('команды за период')}</p>
         </div>
         <div className="w-12 h-12 bg-gradient-to-br from-[#D77E6C]/10 to-[#E89380]/10 rounded-2xl flex items-center justify-center">
           <TrendingUp className="w-6 h-6 text-[#D77E6C]" />
@@ -141,14 +145,14 @@ export default function BonusCard({
             <TrendingUp className="w-3.5 h-3.5" />
             <span className="font-medium">+24%</span>
           </div>
-          <span className="text-gray-500">vs прошлый месяц</span>
+          <span className="text-gray-500">{t('vs прошлый месяц')}</span>
         </div>
       </div>
 
       {/* Progress to next status */}
       <div className="relative z-10">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-600">До следующего статуса</span>
+          <span className="text-sm font-medium text-gray-600">{t('До следующего статуса')}</span>
           <span className="text-sm font-bold text-gray-900">{formatMoney(remaining)} ₸</span>
         </div>
         
@@ -162,9 +166,9 @@ export default function BonusCard({
         </div>
         
         <div className="flex justify-between text-xs mt-2 text-gray-500">
-          <span>Текущий: {formatMoney(turnover)} ₸</span>
+          <span>{t('Текущий: {amount} ₸').replace('{amount}', formatMoney(turnover))}</span>
           <span className="font-bold text-[#D77E6C]">{Math.round(percentage)}%</span>
-          <span>Цель: {formatMoney(goal)} ₸</span>
+          <span>{t('Цель: {amount} ₸').replace('{amount}', formatMoney(goal))}</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { Check, X, Eye, Calendar, CreditCard, Users, User } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface Transaction {
   id: number;
@@ -29,6 +30,8 @@ const PendingTransactionsTable: React.FC<Props> = ({
   onRowUserClick,
   currentDate,
 }) => {
+  const { t } = useTranslate();
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'л. товарооборот':
@@ -42,13 +45,22 @@ const PendingTransactionsTable: React.FC<Props> = ({
     }
   };
 
+  const getTypeLabel = (type: string) => {
+    if (type === 'л. товарооборот') return t('Личный товарооборот');
+    if (type === 'к. товарооборот') return t('Командный товарооборот');
+    if (type === 'за подписку') return t('За подписку');
+    return type;
+  };
+
   const money = (n: number) => n.toLocaleString('ru-RU');
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl border border-gray-200 h-full flex flex-col">
       <div className="p-4 md:p-6 border-b border-gray-100 flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h2 className="text-base md:text-lg font-semibold text-gray-900">Транзакции на одобрение</h2>
+          <h2 className="text-base md:text-lg font-semibold text-gray-900">
+            {t('Транзакции на одобрение')}
+          </h2>
           <div className="flex items-center space-x-2">
             <Calendar className="h-3 w-3 md:h-4 md:w-4 text-gray-500" />
             <span className="text-xs md:text-sm font-medium text-gray-700">{currentDate}</span>
@@ -61,12 +73,24 @@ const PendingTransactionsTable: React.FC<Props> = ({
         <table className="w-full">
           <thead className="sticky top-0 bg-white z-10">
             <tr className="border-b border-gray-100">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тип</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('Имя')}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('Сумма')}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('Дата')}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('ID')}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('Тип')}
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('Действия')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -83,6 +107,7 @@ const PendingTransactionsTable: React.FC<Props> = ({
                         {transaction.name.charAt(0)}
                       </span>
                     </div>
+                    {/* Имя человека не переводим */}
                     <span className="text-sm font-medium text-gray-900">{transaction.name}</span>
                   </div>
                 </td>
@@ -100,7 +125,9 @@ const PendingTransactionsTable: React.FC<Props> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-2">
                     {getTypeIcon(transaction.type)}
-                    <span className="text-sm text-gray-600">{transaction.type}</span>
+                    <span className="text-sm text-gray-600">
+                      {getTypeLabel(transaction.type)}
+                    </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -108,21 +135,21 @@ const PendingTransactionsTable: React.FC<Props> = ({
                     <button
                       onClick={(e) => { e.stopPropagation(); onApprove(transaction.id); }}
                       className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Одобрить"
+                      title={t('Одобрить')}
                     >
                       <Check className="h-4 w-4" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); onReject(transaction.id); }}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Отклонить"
+                      title={t('Отклонить')}
                     >
                       <X className="h-4 w-4" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); onView(transaction.id); }}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Просмотр"
+                      title={t('Просмотр')}
                     >
                       <Eye className="h-4 w-4" />
                     </button>
@@ -150,6 +177,7 @@ const PendingTransactionsTable: React.FC<Props> = ({
                   </span>
                 </div>
                 <div>
+                  {/* Имя человека не переводим */}
                   <p className="text-sm font-medium text-gray-900">{transaction.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{transaction.date}</p>
                 </div>
@@ -167,28 +195,28 @@ const PendingTransactionsTable: React.FC<Props> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5">
                 {getTypeIcon(transaction.type)}
-                <span className="text-xs text-gray-600">{transaction.type}</span>
+                <span className="text-xs text-gray-600">{getTypeLabel(transaction.type)}</span>
               </div>
 
               <div className="flex items-center space-x-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); onApprove(transaction.id); }}
                   className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Одобрить"
+                  title={t('Одобрить')}
                 >
                   <Check className="h-4 w-4" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onReject(transaction.id); }}
                   className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Отклонить"
+                  title={t('Отклонить')}
                 >
                   <X className="h-4 w-4" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onView(transaction.id); }}
                   className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Просмотр"
+                  title={t('Просмотр')}
                 >
                   <Eye className="h-4 w-4" />
                 </button>

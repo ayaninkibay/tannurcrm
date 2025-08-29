@@ -4,6 +4,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export interface StatisticCardProps {
   /** Путь к иконке слева */
@@ -22,6 +23,8 @@ export const StatisticCard: React.FC<StatisticCardProps> = ({
   count,
   href,
 }) => {
+  const { t } = useTranslate();
+
   // Форматируем число для RU
   const formattedCount =
     typeof count === 'number' ? count.toLocaleString('ru-RU') : count;
@@ -36,19 +39,19 @@ export const StatisticCard: React.FC<StatisticCardProps> = ({
             width={20}
             height={20}
             className="w-4 h-4 sm:w-5 sm:h-5 md:w-[20px] md:h-[20px]"
-            alt={title}
+            alt={t(title)}
           />
           <h3 className="text-sm sm:text-base md:text-lg font-medium text-gray-900">
-            {title}
+            {t(title)}
           </h3>
         </div>
-        <Link href={href}>
+        <Link href={href} aria-label={t('Перейти')}>
           <Image
             src="/icons/IconArrowBlack.svg"
             width={24}
             height={24}
             className="w-6 h-6 sm:w-8 sm:h-8 md:w-[34px] md:h-[34px]"
-            alt="Перейти"
+            alt={t('Перейти')}
           />
         </Link>
       </div>
@@ -58,11 +61,11 @@ export const StatisticCard: React.FC<StatisticCardProps> = ({
         <p className="mt-2 sm:mt-3 md:mt-4 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
           {formattedCount}
           <span className="ml-1 text-base sm:text-lg md:text-xl font-normal text-gray-600">
-            человек
+            {t('человек')}
           </span>
         </p>
         <p className="mt-1 text-xs sm:text-sm text-gray-500">
-          Общее количество
+          {t('Общее количество')}
         </p>
       </div>
     </div>

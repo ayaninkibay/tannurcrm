@@ -3,6 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, CalendarDays, MessageSquare } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export type TaskStatus = 'в процессе' | 'просрочено' | 'сделано';
 
@@ -23,6 +24,8 @@ interface Props {
 const STATUS_OPTIONS: TaskStatus[] = ['в процессе', 'просрочено', 'сделано'];
 
 export default function CreateTaskModal({ open, onClose, onSave, target }: Props) {
+  const { t } = useTranslate();
+
   const [title, setTitle] = useState('');
   const [statusLabel, setStatusLabel] = useState<TaskStatus>('в процессе');
   const [dueDate, setDueDate] = useState<string>('');
@@ -71,15 +74,15 @@ export default function CreateTaskModal({ open, onClose, onSave, target }: Props
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg md:text-xl font-semibold text-[#111]">Создать задачу</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-[#111]">{t('Создать задачу')}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Список: {target === 'short' ? 'Краткосрочные цели' : 'Долгосрочные цели'}
+              {t('Список')}: {t(target === 'short' ? 'Краткосрочные цели' : 'Долгосрочные цели')}
             </p>
           </div>
           <button
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Закрыть"
+            aria-label={t('Закрыть')}
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
@@ -88,37 +91,37 @@ export default function CreateTaskModal({ open, onClose, onSave, target }: Props
         {/* Body */}
         <div className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Заголовок *</label>
+            <label className="block text-sm text-gray-600 mb-1">{t('Заголовок *')}</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => setTouched(true)}
-              placeholder="Например: Объявить акцию на Сентябрь"
+              placeholder={t('Например: Объявить акцию на Сентябрь')}
               className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${
                 touched && !isValid ? 'border-red-300' : 'border-gray-200'
               }`}
             />
             {touched && !isValid && (
-              <p className="mt-1 text-xs text-red-500">Минимум 3 символа.</p>
+              <p className="mt-1 text-xs text-red-500">{t('Минимум 3 символа.')}</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Статус</label>
+              <label className="block text-sm text-gray-600 mb-1">{t('Статус')}</label>
               <select
                 value={statusLabel}
                 onChange={(e) => setStatusLabel(e.target.value as TaskStatus)}
                 className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200"
               >
                 {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{t(s)}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Дедлайн</label>
+              <label className="block text-sm text-gray-600 mb-1">{t('Дедлайн')}</label>
               <div className="relative">
                 <input
                   type="date"
@@ -132,12 +135,12 @@ export default function CreateTaskModal({ open, onClose, onSave, target }: Props
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Комментарий</label>
+            <label className="block text-sm text-gray-600 mb-1">{t('Комментарий')}</label>
             <div className="relative">
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Краткое описание задачи (необязательно)"
+                placeholder={t('Краткое описание задачи (необязательно)')}
                 className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200 min-h-[88px]"
               />
               <MessageSquare className="w-4 h-4 text-gray-400 absolute right-3 top-3.5" />
@@ -151,7 +154,7 @@ export default function CreateTaskModal({ open, onClose, onSave, target }: Props
             onClick={onClose}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
           >
-            Отмена
+            {t('Отмена')}
           </button>
           <button
             onClick={() => {
@@ -163,7 +166,7 @@ export default function CreateTaskModal({ open, onClose, onSave, target }: Props
             }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d]"
           >
-            Сохранить
+            {t('Сохранить')}
           </button>
         </div>
       </div>

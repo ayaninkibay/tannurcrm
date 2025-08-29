@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Crown, Download, Calendar } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 /**
  * Период для отчета
@@ -21,7 +22,7 @@ interface Subscription {
   status: "Зачислен" | "Отменен";
 }
 
-// Пример данных
+// Пример данных (моки): строки показываем через t(...), ключи оставляем русскими
 const sampleSubscriptions: Subscription[] = [
   {
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ayan",
@@ -35,7 +36,7 @@ const sampleSubscriptions: Subscription[] = [
   {
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tomiris",
     name: "Томирис Смак",
-    profession: "Business",
+    profession: "Бизнес",
     date: "22-02-2025",
     id: "KZ84971",
     amount: "30 000₸",
@@ -44,7 +45,7 @@ const sampleSubscriptions: Subscription[] = [
   {
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Asel",
     name: "Асель Жаныбек",
-    profession: "Designer",
+    profession: "Дизайнер",
     date: "21-02-2025",
     id: "KZ84972",
     amount: "15 000₸",
@@ -53,7 +54,7 @@ const sampleSubscriptions: Subscription[] = [
   {
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Dauren",
     name: "Даурен Кайрат",
-    profession: "Developer",
+    profession: "Разработчик",
     date: "20-02-2025",
     id: "KZ84973",
     amount: "45 000₸",
@@ -62,7 +63,7 @@ const sampleSubscriptions: Subscription[] = [
   {
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Madina",
     name: "Мадина Ержан",
-    profession: "Marketing",
+    profession: "Маркетинг",
     date: "19-02-2025",
     id: "KZ84974",
     amount: "20 000₸",
@@ -83,59 +84,63 @@ const periodOptions = [
 ];
 
 // Мобильная карточка подписки
-const MobileSubscriptionCard: React.FC<{ sub: Subscription; index: number }> = ({ sub, index }) => (
-  <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
-    <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <img
-            src={sub.avatar}
-            alt={sub.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+const MobileSubscriptionCard: React.FC<{ sub: Subscription; index: number }> = ({ sub }) => {
+  const { t } = useTranslate();
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <img
+              src={sub.avatar}
+              alt={sub.name}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+          </div>
+          <div>
+            <p className="font-medium text-sm">{sub.name}</p>
+            <p className="text-xs text-gray-500">{t(sub.profession)}</p>
+          </div>
         </div>
-        <div>
-          <p className="font-medium text-sm">{sub.name}</p>
-          <p className="text-xs text-gray-500">{sub.profession}</p>
+        {sub.status === "Зачислен" ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs font-medium text-green-700">{t("Зачислен")}</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
+            <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
+            </svg>
+            <span className="text-xs font-medium text-red-700">{t("Отменен")}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">{t("ID")}</span>
+          <span className="font-mono">{sub.id}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">{t("Дата")}</span>
+          <span>{sub.date}</span>
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+          <span className="text-xs text-gray-500">{t("Сумма")}</span>
+          <span className="font-semibold text-base">{sub.amount}</span>
         </div>
       </div>
-      {sub.status === "Зачислен" ? (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs font-medium text-green-700">Зачислен</span>
-        </div>
-      ) : (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
-          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
-          </svg>
-          <span className="text-xs font-medium text-red-700">Отменен</span>
-        </div>
-      )}
     </div>
-    
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs">
-        <span className="text-gray-500">ID</span>
-        <span className="font-mono">{sub.id}</span>
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-gray-500">Дата</span>
-        <span>{sub.date}</span>
-      </div>
-      <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-        <span className="text-xs text-gray-500">Сумма</span>
-        <span className="font-semibold text-base">{sub.amount}</span>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const SubscriptionsReport: React.FC<Props> = ({ 
   period = "all", 
   onPeriodChange = () => {} 
 }) => {
+  const { t } = useTranslate();
   const [selectedPeriod, setSelectedPeriod] = useState(period);
   
   const handlePeriodChange = (newPeriod: Period) => {
@@ -158,17 +163,17 @@ const SubscriptionsReport: React.FC<Props> = ({
               <Crown className="w-5 h-5" style={{ color: '#D77E6C' }} />
             </div>
             <h3 className="text-xl md:text-2xl font-medium text-gray-900">
-              Отчет по подпискам
+              {t("Отчет по подпискам")}
             </h3>
           </div>
           <p className="text-gray-600 text-sm">
-            Детальная информация о транзакциях
+            {t("Детальная информация о транзакциях")}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">Общая сумма</p>
+            <p className="text-xs text-gray-500 mb-1">{t("Общая сумма")}</p>
             <p className="text-lg md:text-xl font-bold" style={{ color: '#D77E6C' }}>
               {totalAmount.toLocaleString('ru-KZ')}₸
             </p>
@@ -180,7 +185,7 @@ const SubscriptionsReport: React.FC<Props> = ({
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D77E6C'}
           >
             <Download className="w-4 h-4" />
-            <span className="text-sm font-medium">Скачать</span>
+            <span className="text-sm font-medium">{t("Скачать")}</span>
           </button>
         </div>
       </div>
@@ -198,7 +203,7 @@ const SubscriptionsReport: React.FC<Props> = ({
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -218,25 +223,25 @@ const SubscriptionsReport: React.FC<Props> = ({
             <thead>
               <tr className="bg-gray-50">
                 <th className="text-left py-3 px-6 font-medium text-gray-700 text-sm">
-                  Клиент
+                  {t("Клиент")}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  Профессия
+                  {t("Профессия")}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    Дата
+                    {t("Дата")}
                   </div>
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  ID
+                  {t("ID")}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  Сумма
+                  {t("Сумма")}
                 </th>
                 <th className="text-center py-3 px-6 font-medium text-gray-700 text-sm">
-                  Статус
+                  {t("Статус")}
                 </th>
               </tr>
             </thead>
@@ -258,13 +263,13 @@ const SubscriptionsReport: React.FC<Props> = ({
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{sub.name}</p>
-                        <p className="text-xs text-gray-500">Активный клиент</p>
+                        <p className="text-xs text-gray-500">{t("Активный клиент")}</p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
-                      {sub.profession}
+                      {t(sub.profession)}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-gray-600">
@@ -286,7 +291,7 @@ const SubscriptionsReport: React.FC<Props> = ({
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                           <span className="text-sm font-medium text-green-700">
-                            Зачислен
+                            {t("Зачислен")}
                           </span>
                         </div>
                       ) : (
@@ -295,7 +300,7 @@ const SubscriptionsReport: React.FC<Props> = ({
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
                           </svg>
                           <span className="text-sm font-medium text-red-700">
-                            Отменен
+                            {t("Отменен")}
                           </span>
                         </div>
                       )}
@@ -310,7 +315,9 @@ const SubscriptionsReport: React.FC<Props> = ({
 
       {/* Пагинация */}
       <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-        <p className="text-center sm:text-left">Показано {sampleSubscriptions.length} записей</p>
+        <p className="text-center sm:text-left">
+          {t("Показано {n} записей").replace("{n}", String(sampleSubscriptions.length))}
+        </p>
         <div className="flex gap-1">
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             ←

@@ -18,34 +18,30 @@ import {
   Clock,
   Filter,
   RefreshCw,
-  Download,
-  CalendarDays,
-  X
+  CalendarDays
 } from 'lucide-react';
 
-// Импортируем Database из сгенерированного файла
-import { Database } from '@/types/supabase'; // или src/types/supabase в зависимости от вашей структуры
+import { Database } from '@/types/supabase';
+import { useTranslate } from '@/hooks/useTranslate';
 
-// Определяем типы на основе сгенерированной схемы
 type StockMovementSource = Database['public']['Enums']['stock_movement_source'];
 type StockMovementRow = Database['public']['Tables']['stock_movements']['Row'];
 type ProductRow = Database['public']['Tables']['products']['Row'];
 type UserRow = Database['public']['Tables']['users']['Row'];
 
-// Расширенный тип для отображения с данными связанных таблиц
 type StockMovementWithRelations = StockMovementRow & {
   product?: ProductRow | null;
   user?: UserRow | null;
-  // Добавляем поля, которых нет в текущей БД, но которые используются в коде
   previous_stock?: number | null;
   new_stock?: number | null;
 };
 
 export default function StockMovementsPage() {
+  const { t } = useTranslate();
   const router = useRouter();
   const [movements, setMovements] = useState<StockMovementWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<'all' | 'incoming' | 'outgoing'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -57,10 +53,8 @@ export default function StockMovementsPage() {
   });
 
   useEffect(() => {
-    // Устанавливаем даты по умолчанию (последние 30 дней)
     const today = new Date();
     const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-    
     setDateTo(today.toISOString().split('T')[0]);
     setDateFrom(thirtyDaysAgo.toISOString().split('T')[0]);
   }, []);
@@ -71,11 +65,9 @@ export default function StockMovementsPage() {
     }
   }, [dateFrom, dateTo]);
 
-  // Загрузка движений из базы данных
   const fetchMovements = async () => {
     try {
       setLoading(true);
-      
       const query = supabase
         .from('stock_movements')
         .select(`
@@ -93,9 +85,7 @@ export default function StockMovementsPage() {
           )
         `);
 
-      // Применяем фильтр по датам
       let finalQuery = query.order('created_at', { ascending: false });
-      
       if (dateFrom) {
         finalQuery = finalQuery.gte('created_at', `${dateFrom}T00:00:00`);
       }
@@ -104,13 +94,10 @@ export default function StockMovementsPage() {
       }
 
       const { data, error } = await finalQuery.limit(200);
-
       if (error) throw error;
 
       if (data) {
         setMovements(data as StockMovementWithRelations[]);
-        
-        // Подсчитываем статистику
         const totalMovements = data.length;
         const incomingSum = data
           .filter(m => m.change && m.change > 0)
@@ -120,7 +107,6 @@ export default function StockMovementsPage() {
             .filter(m => m.change && m.change < 0)
             .reduce((acc, m) => acc + (m.change || 0), 0)
         );
-        
         setStats({
           total: totalMovements,
           incoming: incomingSum,
@@ -129,17 +115,15 @@ export default function StockMovementsPage() {
       }
     } catch (error) {
       console.error('Error fetching movements:', error);
-      toast.error('Ошибка загрузки истории движений');
+      toast.error(t('Ошибка загрузки истории движений'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Быстрые фильтры по датам
   const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'year') => {
     const today = new Date();
     let from = new Date();
-    
     switch(type) {
       case 'today':
         from = new Date(today);
@@ -154,27 +138,22 @@ export default function StockMovementsPage() {
         from = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000));
         break;
     }
-    
     setDateFrom(from.toISOString().split('T')[0]);
     setDateTo(today.toISOString().split('T')[0]);
   };
 
-  // Фильтрация движений
   const filteredMovements = movements.filter(movement => {
     const productName = movement.product?.name || '';
     const matchesSearch = 
       productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (movement.reason?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    
     const matchesFilter = 
       filter === 'all' || 
       (filter === 'incoming' && movement.change && movement.change > 0) ||
       (filter === 'outgoing' && movement.change && movement.change < 0);
-    
     return matchesSearch && matchesFilter;
   });
 
-  // Форматирование даты
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ru-RU', {
@@ -186,7 +165,6 @@ export default function StockMovementsPage() {
     });
   };
 
-  // Форматирование короткой даты для мобильных
   const formatShortDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', {
@@ -195,7 +173,6 @@ export default function StockMovementsPage() {
     });
   };
 
-  // Получение имени пользователя
   const getUserName = (movement: StockMovementWithRelations) => {
     if (movement.user) {
       const { first_name, last_name, email } = movement.user;
@@ -207,38 +184,35 @@ export default function StockMovementsPage() {
     return 'Система';
   };
 
-  // Получение инициалов пользователя
   const getUserInitials = (movement: StockMovementWithRelations) => {
     const name = getUserName(movement);
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Получение цвета для источника
   const getSourceStyle = (source: StockMovementSource) => {
     const styles: Record<StockMovementSource, string> = {
-      'direct_update': 'bg-gray-100 text-gray-700',
-      'sale': 'bg-[#D77E6C]/10 text-[#D77E6C]',
-      'purchase': 'bg-green-100 text-green-700',
-      'return': 'bg-orange-100 text-orange-700',
-      'adjustment': 'bg-blue-100 text-blue-700',
-      'write_off': 'bg-red-100 text-red-700',
-      'transfer': 'bg-purple-100 text-purple-700',
-      'production': 'bg-indigo-100 text-indigo-700'
+      direct_update: 'bg-gray-100 text-gray-700',
+      sale: 'bg-[#D77E6C]/10 text-[#D77E6C]',
+      purchase: 'bg-green-100 text-green-700',
+      return: 'bg-orange-100 text-orange-700',
+      adjustment: 'bg-blue-100 text-blue-700',
+      write_off: 'bg-red-100 text-red-700',
+      transfer: 'bg-purple-100 text-purple-700',
+      production: 'bg-indigo-100 text-indigo-700'
     };
     return styles[source] || 'bg-gray-100 text-gray-700';
   };
 
-  // Получение текста для источника
   const getSourceText = (source: StockMovementSource) => {
     const texts: Record<StockMovementSource, string> = {
-      'direct_update': 'Ручное',
-      'sale': 'Продажа',
-      'purchase': 'Поступление',
-      'return': 'Возврат',
-      'adjustment': 'Корректировка',
-      'write_off': 'Списание',
-      'transfer': 'Перемещение',
-      'production': 'Производство'
+      direct_update: t('Ручное'),
+      sale: t('Продажа'),
+      purchase: t('Поступление'),
+      return: t('Возврат'),
+      adjustment: t('Корректировка'),
+      write_off: t('Списание'),
+      transfer: t('Перемещение'),
+      production: t('Производство')
     };
     return texts[source] || source;
   };
@@ -246,7 +220,7 @@ export default function StockMovementsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F6F6F6]">
-        <MoreHeaderAD title="История движений товаров" />
+        <MoreHeaderAD title={t('История движений товаров')} />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
         </div>
@@ -259,16 +233,16 @@ export default function StockMovementsPage() {
       <MoreHeaderAD 
         title={
           <span className="flex items-center">
-            <span className="text-gray-400">Склад</span>
+            <span className="text-gray-400">{t('Склад')}</span>
             <span className="mx-1 text-[#111]">/</span>
-            <span className="text-[#111]">История движений</span>
+            <span className="text-[#111]">{t('История движений')}</span>
           </span>
         }
         showBackButton={true}
       />
       
       <div className="p-0 mt-10">
-        {/* Статистика - адаптивная */}
+        {/* Статистика */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200">
             <div className="flex items-center justify-between md:justify-start md:gap-3 mb-2 md:mb-4">
@@ -276,12 +250,12 @@ export default function StockMovementsPage() {
                 <div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
                   <Package className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                 </div>
-                <span className="text-xs md:text-sm text-gray-500">Всего операций</span>
+                <span className="text-xs md:text-sm text-gray-500">{t('Всего операций')}</span>
               </div>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-bold text-[#111]">{stats.total}</span>
-              <span className="text-xs md:text-sm text-gray-500">записей</span>
+              <span className="text-xs md:text-sm text-gray-500">{t('записей')}</span>
             </div>
           </div>
 
@@ -291,12 +265,12 @@ export default function StockMovementsPage() {
                 <div className="p-1.5 md:p-2 bg-[#D77E6C]/10 rounded-lg">
                   <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-[#D77E6C]" />
                 </div>
-                <span className="text-xs md:text-sm text-gray-500">Поступило</span>
+                <span className="text-xs md:text-sm text-gray-500">{t('Поступило')}</span>
               </div>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-bold text-[#D77E6C]">+{stats.incoming}</span>
-              <span className="text-xs md:text-sm text-gray-500">единиц</span>
+              <span className="text-xs md:text-sm text-gray-500">{t('единиц')}</span>
             </div>
           </div>
 
@@ -306,19 +280,18 @@ export default function StockMovementsPage() {
                 <div className="p-1.5 md:p-2 bg-gray-100 rounded-lg">
                   <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
                 </div>
-                <span className="text-xs md:text-sm text-gray-500">Списано</span>
+                <span className="text-xs md:text-sm text-gray-500">{t('Списано')}</span>
               </div>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl md:text-3xl font-bold text-gray-700">-{stats.outgoing}</span>
-              <span className="text-xs md:text-sm text-gray-500">единиц</span>
+              <span className="text-xs md:text-sm text-gray-500">{t('единиц')}</span>
             </div>
           </div>
         </div>
 
-        {/* Фильтры - адаптивные */}
+        {/* Фильтры */}
         <div className="bg-white rounded-xl border border-gray-200 p-3 md:p-4 mb-4 md:mb-6">
-          {/* Мобильная кнопка фильтров */}
           <div className="md:hidden mb-3">
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -326,7 +299,7 @@ export default function StockMovementsPage() {
             >
               <span className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <span className="text-sm font-medium">Фильтры и поиск</span>
+                <span className="text-sm font-medium">{t('Фильтры и поиск')}</span>
               </span>
               <ChevronRight className={`w-4 h-4 transition-transform ${showMobileFilters ? 'rotate-90' : ''}`} />
             </button>
@@ -338,17 +311,17 @@ export default function StockMovementsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Поиск по товару или причине..."
+                placeholder={t('Поиск по товару или причине...')}
                 className="w-full pl-9 md:pl-10 pr-4 py-2 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-[#D77E6C] transition-colors"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* Выбор дат */}
+            {/* Даты */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <label className="block text-xs md:text-sm text-gray-600 mb-1">От</label>
+                <label className="block text-xs md:text-sm text-gray-600 mb-1">{t('От')}</label>
                 <input
                   type="date"
                   value={dateFrom}
@@ -357,7 +330,7 @@ export default function StockMovementsPage() {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs md:text-sm text-gray-600 mb-1">До</label>
+                <label className="block text-xs md:text-sm text-gray-600 mb-1">{t('До')}</label>
                 <input
                   type="date"
                   value={dateTo}
@@ -367,35 +340,43 @@ export default function StockMovementsPage() {
               </div>
             </div>
 
-            {/* Быстрые фильтры по датам */}
+            {/* Быстрые периоды */}
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setQuickDateFilter('today')}
                 className="px-3 py-1.5 text-xs md:text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Сегодня
+                {t('Сегодня')}
               </button>
               <button
                 onClick={() => setQuickDateFilter('week')}
                 className="px-3 py-1.5 text-xs md:text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Неделя
+                {t('Неделя')}
               </button>
               <button
                 onClick={() => setQuickDateFilter('month')}
                 className="px-3 py-1.5 text-xs md:text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Месяц
+                {t('Месяц')}
               </button>
               <button
                 onClick={() => setQuickDateFilter('year')}
                 className="px-3 py-1.5 text-xs md:text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Год
+                {t('Год')}
+              </button>
+
+              <button
+                onClick={fetchMovements}
+                className="ml-auto px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title={t('Обновить')}
+              >
+                <RefreshCw className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
               </button>
             </div>
-            
-            {/* Фильтры по типу */}
+
+            {/* Тип операции */}
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
@@ -405,7 +386,7 @@ export default function StockMovementsPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Все
+                {t('Все')}
               </button>
               <button
                 onClick={() => setFilter('incoming')}
@@ -415,7 +396,7 @@ export default function StockMovementsPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Поступления
+                {t('Поступления')}
               </button>
               <button
                 onClick={() => setFilter('outgoing')}
@@ -425,34 +406,26 @@ export default function StockMovementsPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Списания
-              </button>
-              
-              <button
-                onClick={fetchMovements}
-                className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Обновить"
-              >
-                <RefreshCw className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+                {t('Списания')}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Таблица для десктопа / Карточки для мобильных */}
+        {/* Таблица / карточки */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Десктоп таблица */}
+          {/* Десктоп */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Товар</th>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Дата</th>
-                  <th className="text-center px-6 py-4 text-sm font-medium text-gray-700">Изменение</th>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Остаток</th>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Причина</th>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Тип</th>
-                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Ответственный</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Товар')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Дата')}</th>
+                  <th className="text-center px-6 py-4 text-sm font-medium text-gray-700">{t('Изменение')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Остаток')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Причина')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Тип')}</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">{t('Ответственный')}</th>
                   <th className="text-center px-6 py-4 text-sm font-medium text-gray-700"></th>
                 </tr>
               </thead>
@@ -466,10 +439,10 @@ export default function StockMovementsPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-[#111] truncate">
-                            {movement.product?.name || 'Товар удален'}
+                            {movement.product?.name || t('Товар удален')}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ID: {movement.product_id?.slice(0, 8)}...
+                            {t('ID:')} {movement.product_id?.slice(0, 8)}...
                           </div>
                         </div>
                       </div>
@@ -498,10 +471,8 @@ export default function StockMovementsPage() {
                     </td>
                     
                     <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="text-gray-500">
-                          {movement.previous_stock || 0} → {movement.new_stock || 0}
-                        </div>
+                      <div className="text-sm text-gray-500">
+                        {movement.previous_stock || 0} → {movement.new_stock || 0}
                       </div>
                     </td>
                     
@@ -510,9 +481,7 @@ export default function StockMovementsPage() {
                     </td>
                     
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        getSourceStyle(movement.source)
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getSourceStyle(movement.source)}`}>
                         {getSourceText(movement.source)}
                       </span>
                     </td>
@@ -532,7 +501,7 @@ export default function StockMovementsPage() {
                       <button 
                         onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Открыть товар"
+                        title={t('Открыть товар')}
                       >
                         <ChevronRight className="w-5 h-5 text-gray-500" />
                       </button>
@@ -547,7 +516,6 @@ export default function StockMovementsPage() {
           <div className="lg:hidden">
             {filteredMovements.map((movement) => (
               <div key={movement.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
-                {/* Заголовок карточки */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -555,7 +523,7 @@ export default function StockMovementsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-[#111] text-sm truncate">
-                        {movement.product?.name || 'Товар удален'}
+                        {movement.product?.name || t('Товар удален')}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                         <CalendarDays className="w-3 h-3" />
@@ -578,31 +546,28 @@ export default function StockMovementsPage() {
                   </div>
                 </div>
 
-                {/* Детали */}
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Остаток:</span>
+                    <span className="text-gray-500">{t('Остаток:')}</span>
                     <span className="text-gray-700 font-medium">
                       {movement.previous_stock || 0} → {movement.new_stock || 0}
                     </span>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Причина:</span>
+                    <span className="text-gray-500">{t('Причина:')}</span>
                     <span className="text-gray-700">{movement.reason || '-'}</span>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Тип:</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      getSourceStyle(movement.source)
-                    }`}>
+                    <span className="text-gray-500">{t('Тип:')}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getSourceStyle(movement.source)}`}>
                       {getSourceText(movement.source)}
                     </span>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Ответственный:</span>
+                    <span className="text-gray-500">{t('Ответственный:')}</span>
                     <div className="flex items-center gap-1">
                       <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
                         <span className="text-[10px] text-gray-600">
@@ -616,12 +581,11 @@ export default function StockMovementsPage() {
                   </div>
                 </div>
 
-                {/* Кнопка действия */}
                 <button 
                   onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
                   className="mt-3 w-full py-2 text-xs text-[#D77E6C] bg-[#D77E6C]/10 rounded-lg hover:bg-[#D77E6C]/20 transition-colors"
                 >
-                  Открыть товар
+                  {t('Открыть товар')}
                 </button>
               </div>
             ))}
@@ -630,8 +594,8 @@ export default function StockMovementsPage() {
           {filteredMovements.length === 0 && (
             <div className="p-8 md:p-12 text-center">
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Нет данных для отображения</p>
-              <p className="text-sm text-gray-400 mt-2">Попробуйте изменить фильтры или период</p>
+              <p className="text-gray-500">{t('Нет данных для отображения')}</p>
+              <p className="text-sm text-gray-400 mt-2">{t('Попробуйте изменить фильтры или период')}</p>
             </div>
           )}
         </div>

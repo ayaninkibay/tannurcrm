@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase/client';
 import { bonusService } from '@/lib/team-purchase/BonusService';
 import { useRouter } from 'next/navigation';
 import type { TeamPurchaseCart, User as UserType } from '@/types';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface CheckoutProps {
   purchaseId: string;
@@ -28,6 +29,7 @@ export default function TeamPurchaseCheckout({
   onPaymentComplete
 }: CheckoutProps) {
   const router = useRouter();
+  const { t } = useTranslate();
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<UserType | null>(null);
   const [bonusInfo, setBonusInfo] = useState<any>(null);
@@ -46,7 +48,7 @@ export default function TeamPurchaseCheckout({
 
   const loadUserInfo = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
@@ -69,7 +71,7 @@ export default function TeamPurchaseCheckout({
     setLoading(true);
     try {
       // Сначала проверяем, существует ли участник в таблице team_purchase_members
-      const { data: members, error: checkError } = await supabase
+      const { data: members } = await supabase
         .from('team_purchase_members')
         .select('*')
         .eq('team_purchase_id', purchaseId)
@@ -96,29 +98,27 @@ export default function TeamPurchaseCheckout({
           throw new Error('Ошибка создания участника');
         }
 
-        members[0] = newMember;
+        (members as any[])[0] = newMember;
       }
 
-      const member = members[0];
+      const member = (members as any[])[0];
 
       // Генерируем уникальный ID для заказа
       const teamOrderId = crypto.randomUUID();
       const orderNumber = `TEAM-${Date.now()}`;
       
       // 1. Создаем запись в team_purchase_orders с правильным member_id
-      const { data: teamOrder, error: teamOrderError } = await supabase
+      const { error: teamOrderError } = await supabase
         .from('team_purchase_orders')
         .insert({
           id: teamOrderId,
           team_purchase_id: purchaseId,
           user_id: userId,
-          member_id: member.id, // Используем реальный member_id из таблицы
-          order_id: teamOrderId, // используем тот же ID
+          member_id: member.id,
+          order_id: teamOrderId,
           order_amount: total,
           payment_status: 'paid'
-        })
-        .select()
-        .single();
+        });
 
       if (teamOrderError) {
         console.error('Team purchase order error:', teamOrderError);
@@ -133,13 +133,12 @@ export default function TeamPurchaseCheckout({
         .eq('user_id', userId)
         .eq('status', 'active');
 
-      // 3. Обновляем статус участника (убираем order_id, так как его нет в таблице)
+      // 3. Обновляем статус участника
       const { error: memberUpdateError } = await supabase
         .from('team_purchase_members')
         .update({
           status: 'purchased',
           contribution_actual: total
-          // order_id убран, так как этого поля нет в таблице
         })
         .eq('team_purchase_id', purchaseId)
         .eq('user_id', userId);
@@ -151,29 +150,10 @@ export default function TeamPurchaseCheckout({
       // 4. Обновляем прогресс командной закупки
       await updateTeamPurchaseProgress(purchaseId);
 
-      // 5. Начисляем бонусы если есть (закомментировано, так как таблицы user_bonuses нет)
-      /*
-      if (bonusInfo && bonusInfo.bonusAmount > 0) {
-        const { error: bonusError } = await supabase
-          .from('user_bonuses')
-          .insert({
-            user_id: userId,
-            amount: bonusInfo.bonusAmount,
-            type: 'earned',
-            description: `Бонус за командную закупку ${bonusInfo.percent}%`,
-            order_id: teamOrderId
-          });
-
-        if (bonusError) {
-          console.error('Bonus error:', bonusError);
-        }
-      }
-      */
-
       setOrderId(orderNumber);
       setIsSuccess(true);
       
-      toast.success('Заказ успешно оформлен и оплачен!');
+      toast.success(t('Заказ успешно оформлен и оплачен!'));
       
       // Через 2 секунды переходим на страницу team_relations
       setTimeout(() => {
@@ -182,7 +162,7 @@ export default function TeamPurchaseCheckout({
 
     } catch (error: any) {
       console.error('Error creating order:', error);
-      toast.error(error.message || 'Ошибка создания заказа');
+      toast.error(error.message || t('Ошибка создания заказа'));
     } finally {
       setLoading(false);
     }
@@ -207,7 +187,7 @@ export default function TeamPurchaseCheckout({
         sum + (order.order_amount || 0), 0
       ) || 0;
 
-      // Обновляем collected_amount и paid_amount (вместо current_volume)
+      // Обновляем collected_amount и paid_amount
       const { error: updateError } = await supabase
         .from('team_purchases')
         .update({
@@ -229,7 +209,6 @@ export default function TeamPurchaseCheckout({
         .single();
 
       if (teamPurchase && teamPurchase.collected_amount >= teamPurchase.target_amount) {
-        // Можно обновить статус на "ready" если достигнута цель
         await supabase
           .from('team_purchases')
           .update({ 
@@ -253,30 +232,30 @@ export default function TeamPurchaseCheckout({
             <CheckCircle className="w-12 h-12 text-green-600" />
           </div>
 
-          <h2 className="text-2xl font-bold text-[#111] mb-2">Заказ оформлен!</h2>
+          <h2 className="text-2xl font-bold text-[#111] mb-2">{t('Заказ оформлен!')}</h2>
           <p className="text-gray-600 mb-4">
-            Ваш заказ <span className="font-mono font-bold">{orderId}</span> успешно оплачен
+            {t('Ваш заказ')} <span className="font-mono font-bold">{orderId}</span> {t('успешно оплачен')}
           </p>
 
           {bonusInfo && bonusInfo.bonusAmount > 0 && (
             <div className="bg-blue-50 rounded-lg p-4 mb-4">
               <p className="text-sm text-blue-800">
-                🎉 Вам начислено <span className="font-bold">{formatPrice(bonusInfo.bonusAmount)}</span> бонусов!
+                🎉 {t('Вам начислено {amount} бонусов!').replace('{amount}', formatPrice(bonusInfo.bonusAmount))}
               </p>
             </div>
           )}
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-gray-600 mb-2">Что дальше?</p>
+            <p className="text-sm text-gray-600 mb-2">{t('Что дальше?')}</p>
             <ul className="text-sm text-left space-y-1">
-              <li>✓ Мы подготовим ваш заказ</li>
-              <li>✓ Отправим в течение 2-3 дней</li>
-              <li>✓ Вы получите SMS с трек-номером</li>
+              <li>✓ {t('Мы подготовим ваш заказ')}</li>
+              <li>✓ {t('Отправим в течение 2-3 дней')}</li>
+              <li>✓ {t('Вы получите SMS с трек-номером')}</li>
             </ul>
           </div>
 
           <p className="text-sm text-gray-500">
-            Переход на страницу команды через 2 секунды...
+            {t('Переход на страницу команды через 2 секунды...')}
           </p>
         </div>
       </div>
@@ -288,7 +267,7 @@ export default function TeamPurchaseCheckout({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-[#111]">Оформление заказа</h2>
+          <h2 className="text-2xl font-bold text-[#111]">{t('Оформление заказа')}</h2>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
@@ -296,7 +275,7 @@ export default function TeamPurchaseCheckout({
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-[#111] mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
-              Информация о покупателе
+              {t('Информация о покупателе')}
             </h3>
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <div className="flex items-center gap-3">
@@ -305,11 +284,11 @@ export default function TeamPurchaseCheckout({
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-gray-500" />
-                <span>{userInfo?.phone || 'Не указан'}</span>
+                <span>{userInfo?.phone || t('Не указан')}</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="w-4 h-4 text-gray-500" />
-                <span>{userInfo?.address || 'Адрес доставки не указан'}</span>
+                <span>{userInfo?.address || t('Адрес доставки не указан')}</span>
               </div>
             </div>
           </div>
@@ -318,7 +297,7 @@ export default function TeamPurchaseCheckout({
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-[#111] mb-4 flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Товары в заказе ({cart.length})
+              {t('Товары в заказе ({n})').replace('{n}', String(cart.length))}
             </h3>
             <div className="space-y-3">
               {cart.map(item => (
@@ -339,29 +318,29 @@ export default function TeamPurchaseCheckout({
 
           {/* Расчет стоимости */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-[#111] mb-4">Итоговая стоимость</h3>
+            <h3 className="text-lg font-semibold text-[#111] mb-4">{t('Итоговая стоимость')}</h3>
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Сумма товаров:</span>
+                <span className="text-gray-600">{t('Сумма товаров:')}</span>
                 <span className="font-medium">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-green-600">
                 <span className="flex items-center gap-2">
                   <Gift className="w-4 h-4" />
-                  Скидка 25%:
+                  {t('Скидка 25%:')}
                 </span>
                 <span className="font-medium">-{formatPrice(discount)}</span>
               </div>
               {bonusInfo && bonusInfo.bonusAmount > 0 && (
                 <div className="flex justify-between items-center text-blue-600">
                   <span className="flex items-center gap-2">
-                    Бонусы {bonusInfo.percent}%:
+                    {t('Бонусы {n}%:').replace('{n}', String(bonusInfo.percent))}
                   </span>
                   <span className="font-medium">+{formatPrice(bonusInfo.bonusAmount)}</span>
                 </div>
               )}
               <div className="border-t pt-3 flex justify-between items-center">
-                <span className="text-lg font-semibold text-[#111]">К оплате:</span>
+                <span className="text-lg font-semibold text-[#111]">{t('К оплате:')}</span>
                 <span className="text-2xl font-bold text-[#D77E6C]">
                   {formatPrice(total)}
                 </span>
@@ -373,15 +352,15 @@ export default function TeamPurchaseCheckout({
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <Truck className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-              <p className="text-sm font-medium">Бесплатная доставка</p>
+              <p className="text-sm font-medium">{t('Бесплатная доставка')}</p>
             </div>
             <div className="text-center">
               <Calendar className="w-8 h-8 mx-auto mb-2 text-green-600" />
-              <p className="text-sm font-medium">Доставка 3-5 дней</p>
+              <p className="text-sm font-medium">{t('Доставка 3-5 дней')}</p>
             </div>
             <div className="text-center">
               <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <p className="text-sm font-medium">Гарантия качества</p>
+              <p className="text-sm font-medium">{t('Гарантия качества')}</p>
             </div>
           </div>
         </div>
@@ -391,7 +370,7 @@ export default function TeamPurchaseCheckout({
             onClick={onClose}
             className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50"
           >
-            Отмена
+            {t('Отмена')}
           </button>
           <button
             onClick={handleCreateOrder}
@@ -401,10 +380,10 @@ export default function TeamPurchaseCheckout({
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                Обработка...
+                {t('Обработка...')}
               </>
             ) : (
-              'Оформить и оплатить'
+              t('Оформить и оплатить')
             )}
           </button>
         </div>

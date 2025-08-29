@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Check, 
-  Package, 
-  Truck, 
-  CheckCircle, 
+import React, { useMemo, useState } from 'react';
+import {
+  Check,
+  Package,
+  Truck,
+  CheckCircle,
   XCircle,
   ShoppingBag,
   Users,
@@ -18,10 +18,11 @@ import {
   ChevronDown,
   CalendarDays,
   AlertTriangle,
-  MoreVertical,
+  MoreVertical
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { useTranslate } from '@/hooks/useTranslate';
 
 // Типы
 type OrderStatus = 'pending' | 'accepted' | 'collecting' | 'delivery' | 'delivered' | 'rejected';
@@ -41,7 +42,7 @@ interface Order {
   type: OrderType;
 }
 
-// Моки
+// Моки (ключи оставляем русскими — показываем через t(...))
 const mockOrders: Order[] = [
   { id:'ORD-001', clientId:'TN82732', name:'Айгерим Нурланова', phone:'+7 777 123 45 67', date:'2025-01-20 14:30', products:['Товар 1','Товар 2'], address:'ул. Абая 150, кв. 45', status:'pending',   amount:45000,  type:'shop' },
   { id:'ORD-002', clientId:'TN82733', name:'Ерлан Сериков',    phone:'+7 708 987 65 43', date:'2025-01-20 15:45', products:['Товар 3'],         address:'пр. Достык 89',       status:'delivery',  amount:25000,  type:'shop' },
@@ -55,40 +56,43 @@ const StatCard = ({
   icon: Icon, title, count, amount, subtitle, iconColor, iconBg
 }: {
   icon: React.ElementType; title: string; count: number; amount?: number; subtitle: string; iconColor: string; iconBg: string;
-}) => (
-  <div className="bg-white rounded-2xl p-4 sm:p-5 md:p-6 border border-gray-100 relative overflow-hidden">
-    <div className="flex items-start justify-between">
-      <div className={`flex items-center gap-2 md:gap-3 mb-3 md:mb-4 ${iconColor}`}>
-        <Icon className="w-4 h-4 md:w-5 md:h-5" />
-        <span className="text-xs sm:text-sm font-medium text-gray-700">{title}</span>
-      </div>
-      <div className="absolute top-3 right-3 md:top-4 md:right-4">
-        <div className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-full`} />
-      </div>
-    </div>
-    <div className="flex items-end justify-between">
-      <div>
-        <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-          {count}
-          <span className="text-xs sm:text-sm font-normal text-gray-600 ml-2">
-            {count === 1 ? 'заказ' : 'заказов'}
-          </span>
+}) => {
+  const { t } = useTranslate();
+  return (
+    <div className="bg-white rounded-2xl p-4 sm:p-5 md:p-6 border border-gray-100 relative overflow-hidden">
+      <div className="flex items-start justify-between">
+        <div className={`flex items-center gap-2 md:gap-3 mb-3 md:mb-4 ${iconColor}`}>
+          <Icon className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="text-xs sm:text-sm font-medium text-gray-700">{title}</span>
         </div>
-        {amount !== undefined && amount > 0 && (
-          <div className="text-base sm:text-lg font-semibold text-gray-900">
-            {amount.toLocaleString()} ₸
-          </div>
-        )}
-        <div className="text-xs text-gray-500 mt-1">{subtitle}</div>
+        <div className="absolute top-3 right-3 md:top-4 md:right-4">
+          <div className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-full`} />
+        </div>
       </div>
-      <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 gap-1 opacity-10">
-        {[...Array(12)].map((_, i) => (
-          <div key={i} className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-sm`} />
-        ))}
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
+            {count}
+            <span className="text-xs sm:text-sm font-normal text-gray-600 ml-2">
+              {t(count === 1 ? 'заказ' : 'заказов')}
+            </span>
+          </div>
+          {amount !== undefined && amount > 0 && (
+            <div className="text-base sm:text-lg font-semibold text-gray-900">
+              {amount.toLocaleString()} ₸
+            </div>
+          )}
+          <div className="text-xs text-gray-500 mt-1">{subtitle}</div>
+        </div>
+        <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 gap-1 opacity-10">
+          {[...Array(12)].map((_, i) => (
+            <div key={i} className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-sm`} />
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Мобильная карточка
 const MobileOrderCard = ({
@@ -102,6 +106,7 @@ const MobileOrderCard = ({
   type: 'active' | 'completed';
   onOpen: (o: Order) => void;
 }) => {
+  const { t } = useTranslate();
   const [showActions, setShowActions] = useState(false);
 
   const getStatusColor = (status: OrderStatus) => ({
@@ -110,16 +115,16 @@ const MobileOrderCard = ({
     collecting: 'bg-purple-100 text-purple-700',
     delivery: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
-    rejected: 'bg-red-100 text-red-700',
+    rejected: 'bg-red-100 text-red-700'
   }[status]);
 
   const getStatusText = (status: OrderStatus) => ({
-    pending: 'Ожидает',
-    accepted: 'Принят',
-    collecting: 'Сборка',
-    delivery: 'Доставка',
-    delivered: 'Доставлен',
-    rejected: 'Отклонен',
+    pending: t('Ожидает'),
+    accepted: t('Принят'),
+    collecting: t('Сборка'),
+    delivery: t('Доставка'),
+    delivered: t('Доставлен'),
+    rejected: t('Отклонен')
   }[status]);
 
   return (
@@ -127,7 +132,7 @@ const MobileOrderCard = ({
       className="bg-white rounded-xl border border-gray-100 p-4 mb-3 cursor-pointer hover:bg-gray-50 transition-colors"
       onClick={() => onOpen(order)}
       role="button"
-      aria-label={`Открыть заказ ${order.id}`}
+      aria-label={`${t('Открыть заказ')} ${order.id}`}
     >
       <div className="flex justify-between items-start mb-3">
         <div>
@@ -137,7 +142,7 @@ const MobileOrderCard = ({
               {getStatusText(order.status)}
             </span>
           </div>
-          <p className="font-medium text-sm">{order.name}</p>
+          <p className="font-medium text-sm">{t(order.name)}</p>
           <p className="text-xs text-gray-500">{order.clientId}</p>
         </div>
         {type === 'active' && (
@@ -162,29 +167,31 @@ const MobileOrderCard = ({
         {order.address && (
           <div className="flex items-start gap-2">
             <MapPin className="w-3 h-3 text-gray-400 mt-0.5" />
-            <span>{order.address}</span>
+            <span>{t(order.address)}</span>
           </div>
         )}
       </div>
 
       <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-        <div className="text-xs text-gray-600">{order.products.length} товаров</div>
+        <div className="text-xs text-gray-600">
+          {order.products.length} {t('товаров')}
+        </div>
         <div className="font-semibold text-sm">{order.amount.toLocaleString()} ₸</div>
       </div>
 
       {showActions && type === 'active' && (
         <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => onStatusChange(order.id, 'accepted', 'принять')} className="flex flex-col items-center gap-1 p-2 hover:bg-blue-50 rounded-lg text-xs">
+          <button onClick={() => onStatusChange(order.id, 'accepted', t('принять'))} className="flex flex-col items-center gap-1 p-2 hover:bg-blue-50 rounded-lg text-xs">
             <Check className="w-4 h-4 text-blue-600" />
-            <span>Принять</span>
+            <span>{t('Принять')}</span>
           </button>
-          <button onClick={() => onStatusChange(order.id, 'delivery', 'доставить')} className="flex flex-col items-center gap-1 p-2 hover:bg-orange-50 rounded-lg text-xs">
+          <button onClick={() => onStatusChange(order.id, 'delivery', t('доставить'))} className="flex flex-col items-center gap-1 p-2 hover:bg-orange-50 rounded-lg text-xs">
             <Truck className="w-4 h-4 text-orange-600" />
-            <span>Доставка</span>
+            <span>{t('Доставка')}</span>
           </button>
-          <button onClick={() => onStatusChange(order.id, 'rejected', 'отклонить')} className="flex flex-col items-center gap-1 p-2 hover:bg-red-50 rounded-lg text-xs">
+          <button onClick={() => onStatusChange(order.id, 'rejected', t('отклонить'))} className="flex flex-col items-center gap-1 p-2 hover:bg-red-50 rounded-lg text-xs">
             <XCircle className="w-4 h-4 text-red-600" />
-            <span>Отклонить</span>
+            <span>{t('Отклонить')}</span>
           </button>
         </div>
       )}
@@ -194,6 +201,7 @@ const MobileOrderCard = ({
 
 const OrdersManagementPage = () => {
   const router = useRouter();
+  const { t } = useTranslate();
 
   const [activeTab, setActiveTab] = useState<OrderType>('shop');
   const [orders, setOrders] = useState<Order[]>(mockOrders);
@@ -241,26 +249,27 @@ const OrdersManagementPage = () => {
     collecting: 'bg-purple-100 text-purple-700',
     delivery: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
-    rejected: 'bg-red-100 text-red-700',
+    rejected: 'bg-red-100 text-red-700'
   }[status]);
 
   const getStatusText = (status: OrderStatus) => ({
-    pending: 'Ожидает',
-    accepted: 'Принят',
-    collecting: 'Сборка',
-    delivery: 'Доставка',
-    delivered: 'Доставлен',
-    rejected: 'Отклонен',
+    pending: t('Ожидает'),
+    accepted: t('Принят'),
+    collecting: t('Сборка'),
+    delivery: t('Доставка'),
+    delivered: t('Доставлен'),
+    rejected: t('Отклонен')
   }[status]);
 
   // Кнопки действий (десктоп)
   const ActionButtons = ({ order }: { order: Order }) => {
+    const { t } = useTranslate();
     const buttons = [
-      { icon: Check,       status: 'accepted' as OrderStatus,  tooltip: 'Принять заказ',            action: 'принять',                 color: 'hover:bg-blue-50 hover:text-blue-600' },
-      { icon: Package,     status: 'collecting' as OrderStatus,tooltip: 'Собрать заказ',            action: 'начать сборку',           color: 'hover:bg-purple-50 hover:text-purple-600' },
-      { icon: Truck,       status: 'delivery' as OrderStatus,  tooltip: 'Отправить на доставку',    action: 'отправить на доставку',   color: 'hover:bg-orange-50 hover:text-orange-600' },
-      { icon: CheckCircle, status: 'delivered' as OrderStatus, tooltip: 'Отметить доставленным',    action: 'отметить доставленным',   color: 'hover:bg-green-50 hover:text-green-600' },
-      { icon: XCircle,     status: 'rejected' as OrderStatus,  tooltip: 'Отклонить заказ',          action: 'отклонить',               color: 'hover:bg-red-50 hover:text-red-600' },
+      { icon: Check,       status: 'accepted' as OrderStatus,  tooltip: t('Принять заказ'),           action: t('принять'),                 color: 'hover:bg-blue-50 hover:text-blue-600' },
+      { icon: Package,     status: 'collecting' as OrderStatus,tooltip: t('Собрать заказ'),           action: t('начать сборку'),           color: 'hover:bg-purple-50 hover:text-purple-600' },
+      { icon: Truck,       status: 'delivery' as OrderStatus,  tooltip: t('Отправить на доставку'),   action: t('отправить на доставку'),   color: 'hover:bg-orange-50 hover:text-orange-600' },
+      { icon: CheckCircle, status: 'delivered' as OrderStatus, tooltip: t('Отметить доставленным'),   action: t('отметить доставленным'),   color: 'hover:bg-green-50 hover:text-green-600' },
+      { icon: XCircle,     status: 'rejected' as OrderStatus,  tooltip: t('Отклонить заказ'),         action: t('отклонить'),               color: 'hover:bg-red-50 hover:text-red-600' }
     ];
 
     return (
@@ -284,26 +293,26 @@ const OrdersManagementPage = () => {
   return (
     <div className="flex p-2 md:p-4 lg:p-6">
       <div className="grid w-full h-full">
-        <MoreHeaderAD title="Управление заказами" />
+        <MoreHeaderAD title={t('Управление заказами')} />
 
         {/* Статистика */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-6 md:mt-10 mb-4 md:mb-6">
-          <StatCard icon={Calendar} title="Заказы за сегодня" count={todayOrders.length} amount={todayTotal} subtitle="Заказы за сегодня" iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
-          <StatCard icon={Truck}    title="На доставке"        count={deliveryOrders.length} amount={deliveryTotal} subtitle="В пути к клиентам" iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
-          <StatCard icon={AlertTriangle} title="Требуют внимания" count={pendingOrders.length} amount={pendingTotal} subtitle="Ожидают обработки" iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
+          <StatCard icon={Calendar} title={t('Заказы за сегодня')} count={todayOrders.length} amount={todayTotal} subtitle={t('Заказы за сегодня')} iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
+          <StatCard icon={Truck}    title={t('На доставке')}        count={deliveryOrders.length} amount={deliveryTotal} subtitle={t('В пути к клиентам')} iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
+          <StatCard icon={AlertTriangle} title={t('Требуют внимания')} count={pendingOrders.length} amount={pendingTotal} subtitle={t('Ожидают обработки')} iconColor="text-[#D77E6C]" iconBg="bg-[#D77E6C]" />
         </div>
 
         {/* Табы */}
         <div className="overflow-x-auto mb-4 md:mb-6">
           <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 inline-flex min-w-full sm:min-w-0">
             <button onClick={() => setActiveTab('shop')} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap ${activeTab === 'shop' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">Магазин</span>
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">{t('Магазин')}</span>
             </button>
             <button onClick={() => setActiveTab('dealers')} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap ${activeTab === 'dealers' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-              <Users className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">Дилеры</span>
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">{t('Дилеры')}</span>
             </button>
             <button onClick={() => setActiveTab('star')} className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap ${activeTab === 'star' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-              <Star className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">Звезды</span>
+              <Star className="w-4 h-4 sm:w-5 sm:h-5" /><span className="text-xs sm:text-base font-medium">{t('Звезды')}</span>
             </button>
           </div>
         </div>
@@ -311,7 +320,7 @@ const OrdersManagementPage = () => {
         {/* Активные — мобильные */}
         <div className="md:hidden">
           <div className="mb-4">
-            <h2 className="text-base font-medium mb-3">Активные заказы ({activeOrders.length})</h2>
+            <h2 className="text-base font-medium mb-3">{t('Активные заказы')} ({activeOrders.length})</h2>
             {activeOrders.map((order) => (
               <MobileOrderCard
                 key={order.id}
@@ -322,7 +331,7 @@ const OrdersManagementPage = () => {
               />
             ))}
             {activeOrders.length === 0 && (
-              <div className="text-center text-gray-500 py-8 bg-white rounded-xl">Нет активных заказов</div>
+              <div className="text-center text-gray-500 py-8 bg-white rounded-xl">{t('Нет активных заказов')}</div>
             )}
           </div>
         </div>
@@ -330,20 +339,20 @@ const OrdersManagementPage = () => {
         {/* Активные — десктоп */}
         <div className="hidden md:block bg-white rounded-2xl border border-gray-100 mb-6">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-medium">Активные заказы</h2>
+            <h2 className="text-lg font-medium">{t('Активные заказы')}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left py-3 px-6 text-sm font-medium text-gray-700">ID</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Клиент</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Телефон</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Товары</th>
-                  {activeTab !== 'dealers' && <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Адрес</th>}
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Сумма</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Статус</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-700">Действия</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Клиент')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Телефон')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Товары')}</th>
+                  {activeTab !== 'dealers' && <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Адрес')}</th>}
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Сумма')}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Статус')}</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-700">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -354,7 +363,7 @@ const OrdersManagementPage = () => {
                       className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
                       onClick={() => openOrder(order)}
                       role="button"
-                      aria-label={`Открыть заказ ${order.id}`}
+                      aria-label={`${t('Открыть заказ')} ${order.id}`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2">
@@ -364,7 +373,7 @@ const OrdersManagementPage = () => {
                       </td>
                       <td className="py-4 px-4">
                         <div>
-                          <p className="font-medium">{order.name}</p>
+                          <p className="font-medium">{t(order.name)}</p>
                           <p className="text-xs text-gray-500">{order.clientId}</p>
                         </div>
                       </td>
@@ -376,7 +385,7 @@ const OrdersManagementPage = () => {
                       </td>
                       <td className="py-4 px-4">
                         <div className="text-sm">
-                          {order.products.slice(0, 2).join(', ')}
+                          {order.products.slice(0, 2).map(p => t(p)).join(', ')}
                           {order.products.length > 2 && <span className="text-gray-500"> +{order.products.length - 2}</span>}
                         </div>
                       </td>
@@ -384,7 +393,7 @@ const OrdersManagementPage = () => {
                         <td className="py-4 px-4">
                           <div className="flex items-start gap-2">
                             <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                            <span className="text-sm">{order.address}</span>
+                            <span className="text-sm">{t(order.address || '')}</span>
                           </div>
                         </td>
                       )}
@@ -404,7 +413,7 @@ const OrdersManagementPage = () => {
                 ) : (
                   <tr>
                     <td colSpan={activeTab === 'dealers' ? 7 : 8} className="py-8 text-center text-gray-500">
-                      Нет активных заказов
+                      {t('Нет активных заказов')}
                     </td>
                   </tr>
                 )}
@@ -417,26 +426,26 @@ const OrdersManagementPage = () => {
         <div className="md:hidden">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-base font-medium">
-              Завершенные заказы
+              {t('Завершенные заказы')}
               <span className="ml-2 text-gray-500">({completedOrders.length})</span>
             </h2>
 
             <div className="flex items-center gap-2">
-              {/* Фильтр периода — разместим рядом, как было */}
+              {/* Фильтр периода — рядом */}
               <div className="relative">
                 <button
                   onClick={() => setShowDateDropdown(v => !v)}
                   className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
                 >
                   <CalendarDays className="w-3 h-3" />
-                  <span>Период</span>
+                  <span>{t('Период')}</span>
                   <ChevronDown className="w-3 h-3" />
                 </button>
                 {showDateDropdown && (
                   <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 min-w-[120px]">
-                    <button onClick={() => { /* неделя */ setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">Неделя</button>
-                    <button onClick={() => { /* месяц */ setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">Месяц</button>
-                    <button onClick={() => { /* период */ setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">Выбрать период</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">{t('Неделя')}</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">{t('Месяц')}</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-3 py-1.5 text-left hover:bg-gray-100 text-xs">{t('Выбрать период')}</button>
                   </div>
                 )}
               </div>
@@ -446,7 +455,7 @@ const OrdersManagementPage = () => {
                 onClick={() => setShowCompleted(v => !v)}
                 className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
               >
-                <span>{showCompleted ? 'Свернуть' : 'Показать'}</span>
+                <span>{showCompleted ? t('Свернуть') : t('Показать')}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
               </button>
             </div>
@@ -455,9 +464,9 @@ const OrdersManagementPage = () => {
           {showCompleted && (
             <>
               {completedOrders.map((order) => (
-                <MobileOrderCard 
-                  key={order.id} 
-                  order={order} 
+                <MobileOrderCard
+                  key={order.id}
+                  order={order}
                   onStatusChange={(id, st, act) => setConfirmModal({ isOpen: true, orderId: id, newStatus: st, action: act })}
                   type="completed"
                   onOpen={openOrder}
@@ -465,7 +474,7 @@ const OrdersManagementPage = () => {
               ))}
               {completedOrders.length === 0 && (
                 <div className="text-center text-gray-500 py-8 bg-white rounded-xl">
-                  Нет завершенных заказов за выбранный период
+                  {t('Нет завершенных заказов за выбранный период')}
                 </div>
               )}
             </>
@@ -477,7 +486,7 @@ const OrdersManagementPage = () => {
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-medium">
-                Завершенные заказы
+                {t('Завершенные заказы')}
                 <span className="ml-2 text-gray-500 text-base">({completedOrders.length})</span>
               </h2>
             </div>
@@ -489,14 +498,14 @@ const OrdersManagementPage = () => {
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                 >
                   <CalendarDays className="w-4 h-4" />
-                  <span>Период</span>
+                  <span>{t('Период')}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {showDateDropdown && (
                   <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 min-w-[160px]">
-                    <button onClick={() => { /* неделя */ setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">Неделя</button>
-                    <button onClick={() => { /* месяц */ setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">Месяц</button>
-                    <button onClick={() => { /* период */ setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">Выбрать период</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">{t('Неделя')}</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">{t('Месяц')}</button>
+                    <button onClick={() => { setShowDateDropdown(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">{t('Выбрать период')}</button>
                   </div>
                 )}
               </div>
@@ -505,7 +514,7 @@ const OrdersManagementPage = () => {
                 onClick={() => setShowCompleted(v => !v)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
-                <span>{showCompleted ? 'Свернуть' : 'Показать'}</span>
+                <span>{showCompleted ? t('Свернуть') : t('Показать')}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
               </button>
             </div>
@@ -516,13 +525,13 @@ const OrdersManagementPage = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-700">ID клиента</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Имя Фамилия</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Дата</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Телефон</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Товар</th>
-                    {activeTab !== 'dealers' && <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Адрес</th>}
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Статус</th>
+                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-700">{t('ID клиента')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Имя Фамилия')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Дата')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Телефон')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Товар')}</th>
+                    {activeTab !== 'dealers' && <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Адрес')}</th>}
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Статус')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -533,10 +542,10 @@ const OrdersManagementPage = () => {
                         className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
                         onClick={() => openOrder(order)}
                         role="button"
-                        aria-label={`Открыть заказ ${order.id}`}
+                        aria-label={`${t('Открыть заказ')} ${order.id}`}
                       >
                         <td className="py-4 px-6"><span className="font-mono text-sm">{order.clientId}</span></td>
-                        <td className="py-4 px-4 font-medium">{order.name}</td>
+                        <td className="py-4 px-4 font-medium">{t(order.name)}</td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-gray-400" />
@@ -544,8 +553,8 @@ const OrdersManagementPage = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-sm">{order.phone}</td>
-                        <td className="py-4 px-4 text-sm">{order.products.join(', ')}</td>
-                        {activeTab !== 'dealers' && <td className="py-4 px-4 text-sm">{order.address}</td>}
+                        <td className="py-4 px-4 text-sm">{order.products.map(p => t(p)).join(', ')}</td>
+                        {activeTab !== 'dealers' && <td className="py-4 px-4 text-sm">{t(order.address || '')}</td>}
                         <td className="py-4 px-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
@@ -556,7 +565,7 @@ const OrdersManagementPage = () => {
                   ) : (
                     <tr>
                       <td colSpan={activeTab === 'dealers' ? 6 : 7} className="py-8 text-center text-gray-500">
-                        Нет завершенных заказов за выбранный период
+                        {t('Нет завершенных заказов за выбранный период')}
                       </td>
                     </tr>
                   )}
@@ -573,9 +582,9 @@ const OrdersManagementPage = () => {
               <div className="flex items-center justify-center w-12 h-12 bg-[#D77E6C]/10 rounded-full mb-4 mx-auto">
                 <AlertTriangle className="w-6 h-6 text-[#D77E6C]" />
               </div>
-              <h3 className="text-lg font-semibold text-center mb-2">Подтверждение действия</h3>
+              <h3 className="text-lg font-semibold text-center mb-2">{t('Подтверждение действия')}</h3>
               <p className="text-gray-600 text-center mb-6">
-                Вы действительно хотите <strong>{confirmModal.action}</strong> заказ{' '}
+                {t('Вы действительно хотите')} <strong>{confirmModal.action}</strong> {t('заказ')}{' '}
                 <span className="font-mono text-sm">#{confirmModal.orderId}</span>?
               </p>
               <div className="flex gap-3">
@@ -583,13 +592,13 @@ const OrdersManagementPage = () => {
                   onClick={() => setConfirmModal({ isOpen: false, orderId: '', newStatus: 'pending', action: '' })}
                   className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                 >
-                  Отмена
+                  {t('Отмена')}
                 </button>
                 <button
                   onClick={() => updateOrderStatus(confirmModal.orderId, confirmModal.newStatus)}
                   className="flex-1 py-2.5 px-4 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-lg font-medium transition-colors"
                 >
-                  Подтвердить
+                  {t('Подтвердить')}
                 </button>
               </div>
             </div>

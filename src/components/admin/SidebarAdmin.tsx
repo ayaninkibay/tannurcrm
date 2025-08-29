@@ -1,4 +1,3 @@
-// src/components/SidebarAdmin.tsx
 'use client';
 
 import Image from 'next/image';
@@ -6,19 +5,21 @@ import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FastLink } from '@/components/FastLink';
+import { useTranslate } from '@/hooks/useTranslate';
 
 const adminNavItems = [
-  { href: '/admin/dashboard', icon: '/icons/sidebar/homewhite.svg', iconGray: '/icons/sidebar/homegray.svg', label: 'Дэшборд' },
-  { href: '/admin/reports', icon: '/icons/sidebar/reportgray.svg', iconGray: '/icons/sidebar/reportwhite.svg', label: 'Отчеты' },
-  { href: '/admin/teamcontent', icon: '/icons/sidebar/teamwhite.svg', iconGray: '/icons/sidebar/teamgray.svg', label: 'Команда' },
-  { href: '/admin/store', icon: '/icons/sidebar/storewhite.svg', iconGray: '/icons/sidebar/storegray.svg', label: 'Tannutstore' },
-  { href: '/admin/tnba', icon: '/icons/sidebar/tnbawhite.svg', iconGray: '/icons/sidebar/tnbawhite.svg', label: 'Настройки' },
-  { href: '/admin/finance', icon: '/icons/sidebar/statswhite.svg', iconGray: '/icons/sidebar/statsgray.svg', label: 'Ваши финансы' },
-  { href: '/admin/warehouse', icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
-  { href: '/admin/documents', icon: '/icons/sidebar/folderwhite.svg', iconGray: '/icons/sidebar/foldergray.svg', label: 'Документы' },
+  { href: '/admin/dashboard',  icon: '/icons/sidebar/homewhite.svg',  iconGray: '/icons/sidebar/homegray.svg',     label: 'Дэшборд' },
+  { href: '/admin/reports',    icon: '/icons/sidebar/reportgray.svg', iconGray: '/icons/sidebar/reportwhite.svg',  label: 'Отчеты' },
+  { href: '/admin/teamcontent',icon: '/icons/sidebar/teamwhite.svg',  iconGray: '/icons/sidebar/teamgray.svg',     label: 'Команда' },
+  { href: '/admin/store',      icon: '/icons/sidebar/storewhite.svg', iconGray: '/icons/sidebar/storegray.svg',    label: 'Tannutstore' },
+  { href: '/admin/tnba',       icon: '/icons/sidebar/tnbawhite.svg',  iconGray: '/icons/sidebar/tnbawhite.svg',    label: 'Настройки' },
+  { href: '/admin/finance',    icon: '/icons/sidebar/statswhite.svg', iconGray: '/icons/sidebar/statsgray.svg',    label: 'Ваши финансы' },
+  { href: '/admin/warehouse',  icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
+  { href: '/admin/documents',  icon: '/icons/sidebar/folderwhite.svg', iconGray: '/icons/sidebar/foldergray.svg',  label: 'Документы' }
 ];
 
 export default function DashboardSidebarAdmin() {
+  const { t } = useTranslate();
   const pathname = usePathname();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,9 +33,7 @@ export default function DashboardSidebarAdmin() {
         setActiveTop(null);
         return;
       }
-
       const activeItemIndex = adminNavItems.findIndex(item => pathname.startsWith(item.href));
-      
       const activeEl = itemRefs.current[activeItemIndex];
       const containerEl = containerRef.current;
 
@@ -54,11 +53,6 @@ export default function DashboardSidebarAdmin() {
   useEffect(() => {
     setLoadingIndex(null);
   }, [pathname]);
-
-  const handleClick = (e: React.MouseEvent, idx: number, href: string) => {
-    // Убираем preventDefault и router.push - теперь это делает FastLink
-    // Оставляем только логику для совместимости (если нужна)
-  };
 
   const goToHome = () => {
     if (pathname !== null && pathname !== '/') {
@@ -87,11 +81,11 @@ export default function DashboardSidebarAdmin() {
           rounded-xl flex items-center justify-center transition-all
           ${pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
         `}
-        title="Главная"
+        title={t('Главная')}
       >
         <Image
           src="/icons/company/tannur_black.svg"
-          alt="Логотип"
+          alt={t('Логотип')}
           width={70}
           height={70}
         />
@@ -127,11 +121,8 @@ export default function DashboardSidebarAdmin() {
               key={item.href}
               prefetch={false}
               onLoadingChange={(loading) => {
-                if (loading) {
-                  setLoadingIndex(idx)
-                } else {
-                  setLoadingIndex(null)
-                }
+                if (loading) setLoadingIndex(idx);
+                else setLoadingIndex(null);
               }}
               className="relative z-10"
               prefetchDelay={150}
@@ -145,14 +136,14 @@ export default function DashboardSidebarAdmin() {
                   rounded-xl flex items-center justify-center
                   transition-all hover:bg-[#00000011]
                 "
-                title={item.label}
+                title={t(item.label)}
               >
                 {isCurrentlyLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
                 ) : (
                   <Image
                     src={isActive ? item.iconGray : item.icon}
-                    alt={item.label}
+                    alt={t(item.label)}
                     width={24}
                     height={24}
                     style={{

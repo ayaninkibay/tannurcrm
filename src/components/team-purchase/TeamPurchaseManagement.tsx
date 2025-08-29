@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { TeamPurchaseView } from '@/types';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface TeamPurchaseManagementProps {
   purchase: TeamPurchaseView;
@@ -28,6 +29,8 @@ export default function TeamPurchaseManagement({
   onInviteUser,
   onCancelPurchase
 }: TeamPurchaseManagementProps) {
+  const { t } = useTranslate();
+
   const [activeTab, setActiveTab] = useState<'info' | 'members' | 'settings'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -43,7 +46,7 @@ export default function TeamPurchaseManagement({
 
   const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
   const formatDate = (date: string | null) => {
-    if (!date) return 'Не установлен';
+    if (!date) return t('Не установлен');
     return new Date(date).toLocaleDateString('ru-RU');
   };
 
@@ -51,54 +54,54 @@ export default function TeamPurchaseManagement({
     try {
       await onUpdateSettings(editForm);
       setIsEditing(false);
-      toast.success('Настройки сохранены');
+      toast.success(t('Настройки сохранены'));
       onUpdate();
     } catch (error) {
-      toast.error('Ошибка сохранения настроек');
+      toast.error(t('Ошибка сохранения настроек'));
     }
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (confirm(`Удалить участника ${memberName}?`)) {
+    if (confirm(t('Удалить участника {name}?').replace('{name}', memberName))) {
       try {
         await onRemoveMember(memberId);
-        toast.success('Участник удален');
+        toast.success(t('Участник удален'));
         onUpdate();
       } catch (error) {
-        toast.error('Ошибка удаления участника');
+        toast.error(t('Ошибка удаления участника'));
       }
     }
   };
 
   const handleInvite = async () => {
     if (!inviteEmail) {
-      toast.error('Введите email');
+      toast.error(t('Введите email'));
       return;
     }
 
     try {
       await onInviteUser(inviteEmail);
       setInviteEmail('');
-      toast.success('Приглашение отправлено');
+      toast.success(t('Приглашение отправлено'));
       onUpdate();
     } catch (error) {
-      toast.error('Ошибка отправки приглашения');
+      toast.error(t('Ошибка отправки приглашения'));
     }
   };
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      toast.error('Укажите причину отмены');
+      toast.error(t('Укажите причину отмены'));
       return;
     }
 
     try {
       await onCancelPurchase(cancelReason);
       setShowCancelModal(false);
-      toast.success('Закупка отменена');
+      toast.success(t('Закупка отменена'));
       onClose();
     } catch (error) {
-      toast.error('Ошибка отмены закупки');
+      toast.error(t('Ошибка отмены закупки'));
     }
   };
 
@@ -110,11 +113,12 @@ export default function TeamPurchaseManagement({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Settings className="w-6 h-6 text-[#D77E6C]" />
-              <h2 className="text-xl font-bold text-[#111]">Управление закупкой</h2>
+              <h2 className="text-xl font-bold text-[#111]">{t('Управление закупкой')}</h2>
             </div>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -130,7 +134,7 @@ export default function TeamPurchaseManagement({
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Информация
+              {t('Информация')}
             </button>
             <button
               onClick={() => setActiveTab('members')}
@@ -140,7 +144,7 @@ export default function TeamPurchaseManagement({
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Участники ({purchase.members.length})
+              {t('Участники ({count})').replace('{count}', String(purchase.members.length))}
             </button>
             <button
               onClick={() => setActiveTab('settings')}
@@ -150,7 +154,7 @@ export default function TeamPurchaseManagement({
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Настройки
+              {t('Настройки')}
             </button>
           </div>
         </div>
@@ -162,39 +166,39 @@ export default function TeamPurchaseManagement({
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Статус</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('Статус')}</p>
                   <p className="font-semibold text-[#111]">
-                    {purchase.purchase.status === 'forming' && 'Формируется'}
-                    {purchase.purchase.status === 'active' && 'Активна'}
-                    {purchase.purchase.status === 'completed' && 'Завершена'}
+                    {purchase.purchase.status === 'forming' && t('Формируется')}
+                    {purchase.purchase.status === 'active' && t('Активна')}
+                    {purchase.purchase.status === 'completed' && t('Завершена')}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Код приглашения</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('Код приглашения')}</p>
                   <p className="font-mono font-semibold text-[#111]">
                     {purchase.purchase.invite_code}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">План сбора</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('План сбора')}</p>
                   <p className="font-semibold text-[#111]">
                     {formatPrice(purchase.purchase.target_amount)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Собрано</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('Собрано')}</p>
                   <p className="font-semibold text-green-600">
                     {formatPrice(purchase.purchase.collected_amount)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Участников</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('Участников')}</p>
                   <p className="font-semibold text-[#111]">
                     {purchase.members.filter(m => m.member.status === 'accepted').length}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">Дедлайн</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('Дедлайн')}</p>
                   <p className="font-semibold text-[#111]">
                     {formatDate(purchase.purchase.deadline)}
                   </p>
@@ -203,14 +207,14 @@ export default function TeamPurchaseManagement({
 
               {purchase.purchase.description && (
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-2">Описание</p>
+                  <p className="text-sm text-gray-600 mb-2">{t('Описание')}</p>
                   <p className="text-[#111]">{purchase.purchase.description}</p>
                 </div>
               )}
 
               {/* Статистика по участникам */}
               <div>
-                <h3 className="font-semibold text-[#111] mb-3">Статистика участников</h3>
+                <h3 className="font-semibold text-[#111] mb-3">{t('Статистика участников')}</h3>
                 <div className="space-y-2">
                   {purchase.members
                     .filter(m => m.member.cart_total > 0)
@@ -233,7 +237,7 @@ export default function TeamPurchaseManagement({
                             {formatPrice(member.member.cart_total)}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {member.member.status === 'purchased' ? 'Оплачено' : 'В корзине'}
+                            {member.member.status === 'purchased' ? t('Оплачено') : t('В корзине')}
                           </p>
                         </div>
                       </div>
@@ -248,7 +252,7 @@ export default function TeamPurchaseManagement({
             <div className="space-y-4">
               {/* Приглашение нового участника */}
               <div className="bg-blue-50 rounded-lg p-4">
-                <h3 className="font-medium text-blue-900 mb-3">Пригласить участника</h3>
+                <h3 className="font-medium text-blue-900 mb-3">{t('Пригласить участника')}</h3>
                 <div className="flex gap-2">
                   <input
                     type="email"
@@ -262,7 +266,7 @@ export default function TeamPurchaseManagement({
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
                     <Mail className="w-4 h-4" />
-                    Пригласить
+                    {t('Пригласить')}
                   </button>
                 </div>
               </div>
@@ -280,18 +284,19 @@ export default function TeamPurchaseManagement({
                           {member.user.first_name} {member.user.last_name}
                           {member.isOrganizer && (
                             <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                              Организатор
+                              {t('Организатор')}
                             </span>
                           )}
                         </p>
                         <p className="text-sm text-gray-500">{member.user.email}</p>
                         <p className="text-xs text-gray-400">
-                          Статус: {
-                            member.member.status === 'invited' ? 'Приглашен' :
-                            member.member.status === 'accepted' ? 'Участвует' :
-                            member.member.status === 'purchased' ? 'Оплатил' :
-                            member.member.status === 'left' ? 'Вышел' :
-                            'Удален'
+                          {t('Статус:')}{' '}
+                          {
+                            member.member.status === 'invited' ? t('Приглашен') :
+                            member.member.status === 'accepted' ? t('Участвует') :
+                            member.member.status === 'purchased' ? t('Оплатил') :
+                            member.member.status === 'left' ? t('Вышел') :
+                            t('Удален')
                           }
                         </p>
                       </div>
@@ -309,6 +314,7 @@ export default function TeamPurchaseManagement({
                             `${member.user.first_name} ${member.user.last_name}`
                           )}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label="Remove member"
                         >
                           <UserMinus className="w-4 h-4" />
                         </button>
@@ -327,7 +333,7 @@ export default function TeamPurchaseManagement({
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Название закупки
+                      {t('Название закупки')}
                     </label>
                     <input
                       type="text"
@@ -339,19 +345,20 @@ export default function TeamPurchaseManagement({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Описание
+                      {t('Описание')}
                     </label>
                     <textarea
                       value={editForm.description}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                      placeholder={t('Без описания')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      План сбора
+                      {t('План сбора')}
                     </label>
                     <input
                       type="number"
@@ -363,7 +370,7 @@ export default function TeamPurchaseManagement({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Дедлайн
+                      {t('Дедлайн')}
                     </label>
                     <input
                       type="date"
@@ -378,14 +385,14 @@ export default function TeamPurchaseManagement({
                       onClick={() => setIsEditing(false)}
                       className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      Отмена
+                      {t('Отмена')}
                     </button>
                     <button
                       onClick={handleSaveSettings}
                       className="flex-1 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors flex items-center justify-center gap-2"
                     >
                       <Save className="w-4 h-4" />
-                      Сохранить
+                      {t('Сохранить')}
                     </button>
                   </div>
                 </div>
@@ -394,11 +401,12 @@ export default function TeamPurchaseManagement({
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-[#111] mb-2">{purchase.purchase.title}</h3>
-                      <p className="text-gray-600">{purchase.purchase.description || 'Без описания'}</p>
+                      <p className="text-gray-600">{purchase.purchase.description || t('Без описания')}</p>
                     </div>
                     <button
                       onClick={() => setIsEditing(true)}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Edit"
                     >
                       <Edit2 className="w-4 h-4 text-gray-600" />
                     </button>
@@ -406,13 +414,13 @@ export default function TeamPurchaseManagement({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">План сбора</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('План сбора')}</p>
                       <p className="font-semibold text-[#111]">
                         {formatPrice(purchase.purchase.target_amount)}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">Дедлайн</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('Дедлайн')}</p>
                       <p className="font-semibold text-[#111]">
                         {formatDate(purchase.purchase.deadline)}
                       </p>
@@ -421,13 +429,13 @@ export default function TeamPurchaseManagement({
 
                   {/* Опасная зона */}
                   <div className="border-t border-gray-200 pt-6">
-                    <h3 className="font-semibold text-red-600 mb-3">Опасная зона</h3>
+                    <h3 className="font-semibold text-red-600 mb-3">{t('Опасная зона')}</h3>
                     <button
                       onClick={() => setShowCancelModal(true)}
                       className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Отменить закупку
+                      {t('Отменить закупку')}
                     </button>
                   </div>
                 </div>
@@ -445,22 +453,22 @@ export default function TeamPurchaseManagement({
               <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-lg font-semibold text-[#111] mb-1">
-                  Отменить закупку?
+                  {t('Отменить закупку?')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Это действие нельзя отменить. Все участники получат уведомление об отмене.
+                  {t('Это действие нельзя отменить. Все участники получат уведомление об отмене.')}
                 </p>
               </div>
             </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Причина отмены *
+                {t('Причина отмены *')}
               </label>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Укажите причину отмены закупки"
+                placeholder={t('Укажите причину отмены закупки')}
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               />
@@ -471,14 +479,14 @@ export default function TeamPurchaseManagement({
                 onClick={() => setShowCancelModal(false)}
                 className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Отмена
+                {t('Отмена')}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={!cancelReason.trim()}
                 className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Отменить закупку
+                {t('Отменить закупку')}
               </button>
             </div>
           </div>

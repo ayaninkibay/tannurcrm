@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export interface GiftItem {
   name: string;
@@ -15,16 +17,18 @@ interface PresentsProps {
 }
 
 export default function Presents({ items, onRowClick }: PresentsProps) {
+  const { t } = useTranslate();
+
   return (
     <>
       {/* Заголовок таблицы */}
       <div className="flex items-center text-gray-400 text-sm border-b pb-2">
         <div className="grid grid-cols-5 gap-4 w-full text-xs">
-          <div className="text-left">Имя</div>
-          <div className="text-left">Кол-во</div>
-          <div className="text-left">Общая сумма</div>
-          <div className="text-left">Заметка</div>
-          <div className="text-right">Инфо</div>
+          <div className="text-left">{t('Имя')}</div>
+          <div className="text-left">{t('Кол-во')}</div>
+          <div className="text-left">{t('Общая сумма')}</div>
+          <div className="text-left">{t('Заметка')}</div>
+          <div className="text-right">{t('Инфо')}</div>
         </div>
       </div>
 
@@ -38,11 +42,13 @@ export default function Presents({ items, onRowClick }: PresentsProps) {
           >
             <div className="grid grid-cols-5 gap-4 items-center">
               <div className="font-medium text-sm text-black">{it.name}</div>
-              <div className="text-sm text-black">{it.qty} шт</div>
+              <div className="text-sm text-black">
+                {it.qty} {t('шт')}
+              </div>
               <div className="text-sm font-medium text-black">{it.total}</div>
               <div className="text-sm text-black">{it.note}</div>
               <div className="text-right">
-                <button className="text-orange-500 hover:text-orange-600">
+                <button className="text-orange-500 hover:text-orange-600" aria-label={t('Инфо')}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>

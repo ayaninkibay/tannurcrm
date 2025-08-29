@@ -3,16 +3,18 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface ReferralLinkProps {
   referralCode?: string;
   variant?: 'orange' | 'gray';
 }
 
-export default function ReferralLink({ 
-  referralCode, 
-  variant = 'orange' 
+export default function ReferralLink({
+  referralCode,
+  variant = 'orange'
 }: ReferralLinkProps) {
+  const { t } = useTranslate();
   const { profile, loading: loadingProfile } = useUser();
   const [copied, setCopied] = useState(false);
 
@@ -57,8 +59,8 @@ export default function ReferralLink({
 
   return (
     <div className="w-full">
-      <p className="text-sm font-medium text-gray-900 mb-3">Реферальная ссылка</p>
-      
+      <p className="text-sm font-medium text-gray-900 mb-3">{t('Реферальная ссылка')}</p>
+
       <div className={`rounded-xl p-4 relative overflow-hidden ${isOrange ? 'bg-[#DC7C67]' : 'bg-gray-100'}`}>
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-16 h-16 opacity-5">
@@ -75,12 +77,12 @@ export default function ReferralLink({
             <div className={`p-1.5 rounded-lg ${isOrange ? 'bg-white/10' : 'bg-gray-200'}`}>
               <Image
                 src={isOrange ? '/icons/buttom/share_white.svg' : '/icons/buttom/share_black.svg'}
-                alt="share"
+                alt={t('Поделиться')}
                 width={14}
                 height={14}
               />
             </div>
-            <span className="text-sm font-medium">Ссылка для приглашения</span>
+            <span className="text-sm font-medium">{t('Ссылка для приглашения')}</span>
           </div>
 
           {/* Link Container */}
@@ -94,22 +96,22 @@ export default function ReferralLink({
                   </span>
                 </span>
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleCopy}
                 className={`p-2 rounded-lg transition-all hover:scale-110 ${
                   copied ? 'bg-green-50 text-green-600' : 'hover:bg-gray-50'
                 }`}
-                title="Копировать ссылку"
+                title={t('Копировать ссылку')}
               >
                 {copied ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
                   <Image
                     src="/icons/buttom/copy_black.svg"
-                    alt="copy"
+                    alt={t('Копировать')}
                     width={16}
                     height={16}
                   />
@@ -122,14 +124,18 @@ export default function ReferralLink({
           {copied && (
             <div className={`flex items-center gap-1.5 text-xs mt-2 transition-opacity duration-200 ${isOrange ? 'text-white/90' : 'text-gray-600'}`}>
               <div className="w-1 h-1 bg-current rounded-full"></div>
-              Ссылка скопирована!
+              {t('Ссылка скопирована!')}
             </div>
           )}
 
           {/* Simple stats */}
           <div className={`mt-4 pt-3 flex justify-between text-xs border-t ${isOrange ? 'border-white/20 text-white/90' : 'border-gray-200 text-gray-600'}`}>
-            <span>Переходов: <span className={`font-medium ${isOrange ? 'text-white' : 'text-gray-700'}`}>24</span></span>
-            <span>Активных: <span className={`font-medium ${isOrange ? 'text-white' : 'text-gray-700'}`}>8</span></span>
+            <span>
+              {t('Переходов: {n}').replace('{n}', '24')}
+            </span>
+            <span>
+              {t('Активных: {n}').replace('{n}', '8')}
+            </span>
           </div>
         </div>
       </div>

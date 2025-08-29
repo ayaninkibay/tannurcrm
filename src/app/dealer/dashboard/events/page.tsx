@@ -1,6 +1,7 @@
-// src/app/dealer/purchases/page.tsx
+// src/app/dealer/events/page.tsx
 'use client';
 
+import { useTranslate } from '@/hooks/useTranslate';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import OrdersSection from '@/components/purchases/OrdersSection';
 import type { Order } from '@/components/purchases/OrderRow';
@@ -8,6 +9,8 @@ import { ArrowLeft, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PurchasesPage() {
+  const { t } = useTranslate();
+
   // Активные заказы
   const activeOrders: Order[] = [
     {
@@ -16,8 +19,8 @@ export default function PurchasesPage() {
       items: ['9-А шампунь Tannur', '9-А Крем для волос Tannur'],
       orderNumber: '#12345',
       date: '15.07.2024',
-      status: 'Оплачено',
-      amount: '4,500 ₸',
+      status: t('Оплачено'),
+      amount: '4,500 ₸'
     },
     {
       id: 2,
@@ -25,9 +28,9 @@ export default function PurchasesPage() {
       items: ['6 Этапный уходовый набор Tannur'],
       orderNumber: '#12346',
       date: '10.07.2024',
-      status: 'Ожидание оплаты',
-      amount: '12,000 ₸',
-    },
+      status: t('Ожидание оплаты'),
+      amount: '12,000 ₸'
+    }
   ];
 
   // Завершенные заказы
@@ -38,8 +41,8 @@ export default function PurchasesPage() {
       items: ['Отбеливащая маска Tannur', 'Гелеон маска Tannur'],
       orderNumber: '#12340',
       date: '01.07.2024',
-      status: 'Оплачено',
-      amount: '18,500 ₸',
+      status: t('Оплачено'),
+      amount: '18,500 ₸'
     },
     {
       id: 4,
@@ -47,8 +50,8 @@ export default function PurchasesPage() {
       items: ['9-А Крем для волос Tannur'],
       orderNumber: '#12338',
       date: '25.06.2024',
-      status: 'Возврат',
-      amount: '6,800 ₸',
+      status: t('Возврат'),
+      amount: '6,800 ₸'
     },
     {
       id: 5,
@@ -56,14 +59,14 @@ export default function PurchasesPage() {
       items: ['Набор из 6 кремов Tannur', 'Гелеон маска Tannur'],
       orderNumber: '#12335',
       date: '20.06.2024',
-      status: 'Оплачено',
-      amount: '9,200 ₸',
-    },
+      status: t('Оплачено'),
+      amount: '9,200 ₸'
+    }
   ];
 
   return (
     <main className="p-4 sm:p-6">
-      <MoreHeaderDE title="Мои покупки" />
+      <MoreHeaderDE title={t('Мои покупки')} />
 
       <div className="w-full">
         {/* Назад */}
@@ -73,7 +76,7 @@ export default function PurchasesPage() {
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Назад
+            {t('Назад')}
           </Link>
         </div>
 
@@ -82,17 +85,13 @@ export default function PurchasesPage() {
           <div className="flex-1 order-2 lg:order-1 w-full">
             <div className="bg-white rounded-2xl p-4 sm:p-6 w-full">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                История покупок
+                {t('История покупок')}
               </h2>
 
-              <OrdersSection
-                title=""
-                orders={activeOrders}
-                className="mb-8"
-              />
+              <OrdersSection title="" orders={activeOrders} className="mb-8" />
 
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Завершенные заказы
+                {t('Завершенные заказы')}
               </h2>
               <OrdersSection title="" orders={completedOrders} />
             </div>
@@ -102,7 +101,7 @@ export default function PurchasesPage() {
           <div className="w-full lg:w-72 order-1 lg:order-2">
             <div className="bg-white rounded-2xl p-4 w-full">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Ваш способ оплаты
+                {t('Ваш способ оплаты')}
               </h3>
 
               {/* Банковская карта */}
@@ -112,7 +111,7 @@ export default function PurchasesPage() {
                   <div className="flex items-start justify-between mb-3">
                     <CreditCard className="w-6 h-6" />
                     <div className="text-right">
-                      <div className="text-xs opacity-70">BANK NAME</div>
+                      <div className="text-xs opacity-70">{t('BANK NAME')}</div>
                     </div>
                   </div>
 
@@ -124,11 +123,11 @@ export default function PurchasesPage() {
 
                   <div className="flex justify-between items-end">
                     <div>
-                      <div className="text-xs opacity-70 mb-1">CARDHOLDER NAME</div>
+                      <div className="text-xs opacity-70 mb-1">{t('CARDHOLDER NAME')}</div>
                       <div className="text-xs font-medium">JOHN DOE</div>
                     </div>
                     <div>
-                      <div className="text-xs opacity-70 mb-1">VALID THRU</div>
+                      <div className="text-xs opacity-70 mb-1">{t('VALID THRU')}</div>
                       <div className="text-xs">12/28</div>
                     </div>
                   </div>
@@ -142,10 +141,10 @@ export default function PurchasesPage() {
               {/* Кнопки */}
               <div className="space-y-2">
                 <button className="w-full px-3 py-2 text-sm bg-[#DC7C67] text-white rounded-lg hover:opacity-90 transition-colors">
-                  Изменить
+                  {t('Изменить')}
                 </button>
                 <button className="w-full px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                  Добавить карту
+                  {t('Добавить карту')}
                 </button>
               </div>
             </div>

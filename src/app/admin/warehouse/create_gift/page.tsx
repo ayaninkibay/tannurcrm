@@ -6,23 +6,24 @@ import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useProductModule } from '@/lib/product/ProductModule';
 import {
-  Gift, User, MessageSquare, ShieldCheck, Save, X, Plus, Trash2,
+  Gift, User, ShieldCheck, Save, X, Plus, Trash2,
   ShoppingBag, DollarSign, Box, ClipboardList, Users as UsersIcon
 } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type GiftItem = {
   productId: string;
   name: string;
-  price: number;   // берем дилерскую, если есть
+  price: number;
   qty: number;
 };
 
 type GiftForm = {
-  recipient: string;        // Кому
-  reason: string;           // За что/зачем
-  responsible: string;      // Ответственный за выпуск со склада
-  comment?: string;         // Комментарий
-  items: GiftItem[];        // Позиции подарка
+  recipient: string;
+  reason: string;
+  responsible: string;
+  comment?: string;
+  items: GiftItem[];
 };
 
 const RESPONSIBLES = [
@@ -33,9 +34,9 @@ const RESPONSIBLES = [
 ];
 
 export default function CreateGiftPage() {
+  const { t } = useTranslate();
   const router = useRouter();
 
-  // Продукты из модуля склада
   const { products, listProducts, isLoading } = useProductModule();
 
   const [form, setForm] = useState<GiftForm>({
@@ -50,7 +51,6 @@ export default function CreateGiftPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Подтянем продукты для селекта
     listProducts({ limit: 100, orderBy: 'created_at', order: 'desc' }).catch(() => {});
   }, [listProducts]);
 
@@ -120,16 +120,12 @@ export default function CreateGiftPage() {
 
     try {
       setSubmitting(true);
-
-      // TODO: здесь будет реальный запрос (создание выдачи подарка)
-      // await createGift(form);
-
+      // TODO: create gift request
       await new Promise((r) => setTimeout(r, 700));
-      // Возврат к складу сразу на вкладку "Подарочный фонд"
       router.push('/admin/warehouse?tab=gifts');
     } catch (err) {
       console.error(err);
-      alert('Не удалось сохранить. Попробуйте ещё раз.');
+      alert(t('Не удалось сохранить. Попробуйте ещё раз.'));
     } finally {
       setSubmitting(false);
     }
@@ -140,11 +136,11 @@ export default function CreateGiftPage() {
       <MoreHeaderAD
         title={
           <span>
-            <span className="text-gray-400">Tannur</span>
+            <span className="text-gray-400">{t('Tannur')}</span>
             <span className="mx-1 text-[#111]">/</span>
-            <span className="text-gray-400">Склад</span>
+            <span className="text-gray-400">{t('Склад')}</span>
             <span className="mx-1 text-[#111]">/</span>
-            <span className="text-[#111]">Добавить подарок</span>
+            <span className="text-[#111]">{t('Добавить подарок')}</span>
           </span>
         }
       />
@@ -155,7 +151,7 @@ export default function CreateGiftPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Gift className="w-6 h-6 text-[#D77E6C]" />
-              <h2 className="text-xl font-bold text-gray-900">Оформление выдачи подарка</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('Оформление выдачи подарка')}</h2>
             </div>
 
             <div className="flex items-center gap-2">
@@ -165,7 +161,7 @@ export default function CreateGiftPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
               >
                 <X className="w-4 h-4" />
-                Отмена
+                {t('Отмена')}
               </button>
               <button
                 type="submit"
@@ -173,7 +169,7 @@ export default function CreateGiftPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
-                {submitting ? 'Сохранение…' : 'Сохранить'}
+                {submitting ? t('Сохранение…') : t('Сохранить')}
               </button>
             </div>
           </div>
@@ -186,53 +182,53 @@ export default function CreateGiftPage() {
               <div className="border border-gray-100 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <User className="w-5 h-5 text-gray-500" />
-                  <h3 className="font-semibold text-gray-900">Кому и за что</h3>
+                  <h3 className="font-semibold text-gray-900">{t('Кому и за что')}</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Кому выдаём *</label>
+                    <label className="block text-sm text-gray-600 mb-1">{t('Кому выдаём *')}</label>
                     <input
                       className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${errors.recipient ? 'border-red-400' : 'border-gray-200'}`}
-                      placeholder="Имя/ник, компания или профиль"
+                      placeholder={t('Имя/ник, компания или профиль')}
                       value={form.recipient}
                       onChange={(e) => setField('recipient', e.target.value)}
                     />
-                    {errors.recipient && <p className="mt-1 text-xs text-red-500">{errors.recipient}</p>}
+                    {errors.recipient && <p className="mt-1 text-xs text-red-500">{t(errors.recipient)}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Ответственный (выпуск со склада) *</label>
+                    <label className="block text-sm text-gray-600 mb-1">{t('Ответственный (выпуск со склада) *')}</label>
                     <select
                       className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${errors.responsible ? 'border-red-400' : 'border-gray-200'}`}
                       value={form.responsible}
                       onChange={(e) => setField('responsible', e.target.value)}
                     >
-                      <option value="">Выберите</option>
+                      <option value="">{t('Выберите')}</option>
                       {RESPONSIBLES.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                        <option key={r} value={t(r)}>{t(r)}</option>
                       ))}
                     </select>
-                    {errors.responsible && <p className="mt-1 text-xs text-red-500">{errors.responsible}</p>}
+                    {errors.responsible && <p className="mt-1 text-xs text-red-500">{t(errors.responsible)}</p>}
                   </div>
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm text-gray-600 mb-1">За что и зачем дают подарок Tannur *</label>
+                  <label className="block text-sm text-gray-600 mb-1">{t('За что и зачем дают подарок Tannur *')}</label>
                   <textarea
                     className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] min-h-[96px] ${errors.reason ? 'border-red-400' : 'border-gray-200'}`}
-                    placeholder="Например: активная поддержка бренда, Stories, рекламные ролики, коллаборация и т.д."
+                    placeholder={t('Например: активная поддержка бренда, Stories, рекламные ролики, коллаборация и т.д.')}
                     value={form.reason}
                     onChange={(e) => setField('reason', e.target.value)}
                   />
-                  {errors.reason && <p className="mt-1 text-xs text-red-500">{errors.reason}</p>}
+                  {errors.reason && <p className="mt-1 text-xs text-red-500">{t(errors.reason)}</p>}
                 </div>
 
                 <div className="mt-4">
-                  <label className="block text-sm text-gray-600 mb-1">Комментарии</label>
+                  <label className="block text-sm text-gray-600 mb-1">{t('Комментарии')}</label>
                   <textarea
                     className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200 min-h-[80px]"
-                    placeholder="Любые уточнения к выдаче"
+                    placeholder={t('Любые уточнения к выдаче')}
                     value={form.comment || ''}
                     onChange={(e) => setField('comment', e.target.value)}
                   />
@@ -244,7 +240,7 @@ export default function CreateGiftPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <ClipboardList className="w-5 h-5 text-gray-500" />
-                    <h3 className="font-semibold text-gray-900">Позиции подарка</h3>
+                    <h3 className="font-semibold text-gray-900">{t('Позиции подарка')}</h3>
                   </div>
                   <button
                     type="button"
@@ -252,22 +248,22 @@ export default function CreateGiftPage() {
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
                   >
                     <Plus className="w-4 h-4" />
-                    Добавить позицию
+                    {t('Добавить позицию')}
                   </button>
                 </div>
 
-                {errors.items && <p className="mb-3 text-xs text-red-500">{errors.items}</p>}
+                {errors.items && <p className="mb-3 text-xs text-red-500">{t(errors.items)}</p>}
 
                 <div className="space-y-3">
                   {form.items.length === 0 && (
-                    <div className="text-sm text-gray-500">Добавьте хотя бы одну позицию.</div>
+                    <div className="text-sm text-gray-500">{t('Добавьте хотя бы одну позицию')}</div>
                   )}
 
                   {form.items.map((it, idx) => (
                     <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-gray-50 rounded-xl p-3">
                       {/* Товар */}
                       <div className="md:col-span-6">
-                        <label className="block text-xs text-gray-600 mb-1">Товар</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('Товар')}</label>
                         <div className="relative">
                           <select
                             className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200"
@@ -275,7 +271,7 @@ export default function CreateGiftPage() {
                             onChange={(e) => handleProductChange(idx, e.target.value)}
                             disabled={isLoading}
                           >
-                            <option value="">{isLoading ? 'Загрузка…' : 'Выберите товар'}</option>
+                            <option value="">{isLoading ? t('Загрузка…') : t('Выберите товар')}</option>
                             {products.map((p) => (
                               <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
@@ -285,7 +281,7 @@ export default function CreateGiftPage() {
 
                       {/* Цена */}
                       <div className="md:col-span-2">
-                        <label className="block text-xs text-gray-600 mb-1">Цена (₸)</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('Цена (₸)')}</label>
                         <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5">
                           <DollarSign className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-700">{(it.price || 0).toLocaleString('ru-RU')}</span>
@@ -294,7 +290,7 @@ export default function CreateGiftPage() {
 
                       {/* Кол-во */}
                       <div className="md:col-span-2">
-                        <label className="block text-xs text-gray-600 mb-1">Кол-во</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('Кол-во')}</label>
                         <div className="relative">
                           <input
                             type="number"
@@ -309,7 +305,7 @@ export default function CreateGiftPage() {
 
                       {/* Сумма по позиции */}
                       <div className="md:col-span-1">
-                        <label className="block text-xs text-gray-600 mb-1">Сумма</label>
+                        <label className="block text-xs text-gray-600 mb-1">{t('Сумма')}</label>
                         <div className="text-sm font-medium">
                           {((it.price || 0) * (it.qty || 0)).toLocaleString('ru-RU')} ₸
                         </div>
@@ -321,7 +317,7 @@ export default function CreateGiftPage() {
                           type="button"
                           onClick={() => removeItem(idx)}
                           className="inline-flex items-center justify-center w-full md:w-auto gap-2 px-3 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-100"
-                          title="Удалить"
+                          title={t('Удалить')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -337,17 +333,19 @@ export default function CreateGiftPage() {
               <div className="border border-gray-100 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <UsersIcon className="w-5 h-5 text-gray-500" />
-                  <h3 className="font-semibold text-gray-900">Итоги</h3>
+                  <h3 className="font-semibold text-gray-900">{t('Итоги')}</h3>
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-700">
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="w-4 h-4 text-gray-400" />
-                    <span>Позиций: {form.items.length}</span>
+                    <span>{t('Позиций: {n}').replace('{n}', String(form.items.length))}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-gray-400" />
-                    <span className="font-semibold">Итого: {total.toLocaleString('ru-RU')} ₸</span>
+                    <span className="font-semibold">
+                      {t('Итого: {sum} ₸').replace('{sum}', total.toLocaleString('ru-RU'))}
+                    </span>
                   </div>
                 </div>
 
@@ -355,12 +353,12 @@ export default function CreateGiftPage() {
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-gray-400" />
                     <span>
-                      Ответственный: {form.responsible || 'не выбран'}
+                      {t('Ответственный: {name}').replace('{name}', form.responsible || t('не выбран'))}
                     </span>
                   </div>
                   {form.comment && (
                     <div className="mt-2">
-                      <span className="text-gray-500">Комментарий:</span> {form.comment}
+                      <span className="text-gray-500">{t('Комментарий:')}</span> {form.comment}
                     </div>
                   )}
                 </div>
@@ -372,7 +370,7 @@ export default function CreateGiftPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
                   >
                     <X className="w-4 h-4" />
-                    Отмена
+                    {t('Отмена')}
                   </button>
                   <button
                     type="submit"
@@ -380,7 +378,7 @@ export default function CreateGiftPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
                   >
                     <Save className="w-4 h-4" />
-                    {submitting ? 'Сохранение…' : 'Сохранить'}
+                    {submitting ? t('Сохранение…') : t('Сохранить')}
                   </button>
                 </div>
               </div>

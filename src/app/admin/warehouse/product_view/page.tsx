@@ -1,3 +1,4 @@
+// src/app/admin/warehouse/product_view/page.tsx (обновлённый)
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -21,12 +22,14 @@ import {
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type ProductRow = Database['public']['Tables']['products']['Row']
 
 function ProductViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useTranslate();
   const productId = searchParams?.get('id') || null;
   
   const [product, setProduct] = useState<ProductRow | null>(null)
@@ -43,11 +46,11 @@ function ProductViewContent() {
     } else {
       router.push('/admin/warehouse');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
   // Получаем данные товара
   const fetchProduct = async () => {
-    // Проверяем productId перед использованием и сохраняем в константу
     const id = productId;
     if (!id) {
       router.push('/admin/warehouse');
@@ -60,7 +63,7 @@ function ProductViewContent() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', id) // Используем локальную константу id
+        .eq('id', id)
         .single<ProductRow>()
 
       if (error) throw error;
@@ -68,7 +71,7 @@ function ProductViewContent() {
       setProduct(data);
     } catch (error) {
       console.error('Error fetching product:', error);
-      toast.error('Ошибка загрузки товара');
+      toast.error(t('Ошибка загрузки товара'));
       router.push('/admin/warehouse');
     } finally {
       setLoading(false);
@@ -81,7 +84,7 @@ function ProductViewContent() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('users')
           .select('role')
           .eq('id', user.id)
@@ -97,7 +100,7 @@ function ProductViewContent() {
   // Функция для удаления товара
   const handleDeleteProduct = async () => {
     if (!productId) return;
-    if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
+    if (!confirm(t('Вы уверены, что хотите удалить этот товар?'))) return;
     
     try {
       const { error } = await supabase
@@ -107,11 +110,11 @@ function ProductViewContent() {
 
       if (error) throw error;
       
-      toast.success('Товар успешно удален');
+      toast.success(t('Товар успешно удален'));
       router.push('/admin/warehouse');
     } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error('Ошибка при удалении товара');
+      toast.error(t('Ошибка при удалении товара'));
     }
   };
 
@@ -129,7 +132,7 @@ function ProductViewContent() {
     const amount = parseInt(stockAmount);
     
     if (!amount || isNaN(amount) || amount <= 0) {
-      toast.error('Введите корректное количество');
+      toast.error(t('Введите корректное количество'));
       return;
     }
     
@@ -145,12 +148,15 @@ function ProductViewContent() {
 
       if (error) throw error;
       
-      toast.success(`Остаток успешно ${stockModalType === 'add' ? 'пополнен' : 'уменьшен'}`);
+      toast.success(
+        t('Остаток успешно {action}')
+          .replace('{action}', t(stockModalType === 'add' ? 'пополнен' : 'уменьшен'))
+      );
       setShowStockModal(false);
       fetchProduct();
     } catch (error) {
       console.error('Error updating stock:', error);
-      toast.error('Ошибка при обновлении остатков');
+      toast.error(t('Ошибка при обновлении остатков'));
     }
   };
 
@@ -180,12 +186,12 @@ function ProductViewContent() {
       <div className="flex items-center justify-center min-h-screen bg-[#F6F6F6]">
         <div className="text-center bg-white p-8 rounded-2xl border border-gray-200">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Товар не найден</h2>
+          <h2 className="text-2xl font-bold mb-4">{t('Товар не найден')}</h2>
           <button 
             onClick={() => router.push('/admin/warehouse')}
             className="px-6 py-3 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors"
           >
-            Вернуться к списку товаров
+            {t('Вернуться к списку товаров')}
           </button>
         </div>
       </div>
@@ -200,7 +206,7 @@ function ProductViewContent() {
             <span>
               <span className="text-gray-400">Tannur</span>
               <span className="mx-1 text-[#111]">/</span>
-              <span className="text-[#111]">{product.name || 'Карточка товара'}</span>
+              <span className="text-[#111]">{product.name || t('Карточка товара')}</span>
             </span>
           }
           showBackButton={true}
@@ -216,19 +222,19 @@ function ProductViewContent() {
 
             {/* Информация снизу */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-              <h2 className="text-xl font-bold text-[#111]">Информация</h2>
+              <h2 className="text-xl font-bold text-[#111]">{t('Информация')}</h2>
 
               <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center text-sm font-semibold text-gray-500 border-b border-gray-200 pb-2 px-4 gap-6">
-                <span className="text-left">Наименование</span>
-                <span className="text-center">Цена в Магазине</span>
-                <span className="text-center">Дилерская цена</span>
-                <span className="text-center">Количество в Складе</span>
-                <span className="text-center">Инфо</span>
+                <span className="text-left">{t('Наименование')}</span>
+                <span className="text-center">{t('Цена в Магазине')}</span>
+                <span className="text-center">{t('Дилерская цена')}</span>
+                <span className="text-center">{t('Количество в Складе')}</span>
+                <span className="text-center">{t('Инфо')}</span>
               </div>
 
               <ProductCardWare
                 image={getImageUrl(product.image_url)}
-                title={product.name ?? 'Без названия'}
+                title={product.name ?? t('Без названия')}
                 priceOld={formatPrice(product.price)}
                 priceNew={formatPrice(product.price_dealer)}
                 count={product.stock ?? 0}
@@ -244,14 +250,14 @@ function ProductViewContent() {
                     className="flex items-center justify-center gap-2 px-4 py-3 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors"
                   >
                     <TrendingUp className="w-5 h-5" />
-                    <span>Пополнить остаток</span>
+                    <span>{t('Пополнить остаток')}</span>
                   </button>
                   <button
                     onClick={() => openStockModal('subtract')}
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <TrendingDown className="w-5 h-5" />
-                    <span>Уменьшить остаток</span>
+                    <span>{t('Уменьшить остаток')}</span>
                   </button>
                 </div>
               )}
@@ -262,49 +268,49 @@ function ProductViewContent() {
           {userRole && ['admin', 'dealer'].includes(userRole) && (
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-6">
-                <h2 className="text-xl font-bold text-[#111]">Управление товаром</h2>
+                <h2 className="text-xl font-bold text-[#111]">{t('Управление товаром')}</h2>
                 <p className="text-sm text-gray-500">
-                  Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.
+                  {t('Любые изменения товара требуют подтверждения управляющего складом, а так же сохраняются в истории.')}
                 </p>
                 
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-[#111]">Данные</p>
+                  <p className="text-sm font-semibold text-[#111]">{t('Данные')}</p>
                   <button
                     onClick={() => router.push(`/admin/warehouse/product_edit?id=${productId}`)}
                     className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Edit className="w-4 h-4 text-[#D77E6C]" />
-                    <span className="text-sm">Изменить данные товара</span>
+                    <span className="text-sm">{t('Изменить данные товара')}</span>
                   </button>
                 </div>
                 
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-[#111]">История</p>
+                  <p className="text-sm font-semibold text-[#111]">{t('История')}</p>
                   <button
                     onClick={() => router.push(`/admin/warehouse/product_report?id=${productId}`)}
                     className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <FileText className="w-4 h-4 text-[#D77E6C]" />
-                    <span className="text-sm">Составить отчет по товару</span>
+                    <span className="text-sm">{t('Составить отчет по товару')}</span>
                   </button>
                   <button
                     onClick={() => router.push('/admin/warehouse/stock')}
                     className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <History className="w-4 h-4 text-[#D77E6C]" />
-                    <span className="text-sm">История движения на складе</span>
+                    <span className="text-sm">{t('История движения на складе')}</span>
                   </button>
                 </div>
                 
                 {userRole === 'admin' && (
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold text-[#111]">Удаление</p>
+                    <p className="text-sm font-semibold text-[#111]">{t('Удаление')}</p>
                     <button
                       onClick={handleDeleteProduct}
                       className="w-full flex items-center gap-3 px-4 py-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      <span className="text-sm">Удалить товар</span>
+                      <span className="text-sm">{t('Удалить товар')}</span>
                     </button>
                   </div>
                 )}
@@ -320,11 +326,12 @@ function ProductViewContent() {
           <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-[#111]">
-                {stockModalType === 'add' ? 'Пополнение остатка' : 'Списание товара'}
+                {stockModalType === 'add' ? t('Пополнение остатка') : t('Списание товара')}
               </h3>
               <button
                 onClick={() => setShowStockModal(false)}
                 className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                aria-label="Close"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -332,22 +339,22 @@ function ProductViewContent() {
 
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1">Товар</p>
+                <p className="text-sm text-gray-600 mb-1">{t('Товар')}</p>
                 <p className="font-semibold text-[#111]">{product?.name}</p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Текущий остаток: <span className="font-semibold text-[#D77E6C]">{product?.stock || 0} шт.</span>
+                  {t('Текущий остаток:')} <span className="font-semibold text-[#D77E6C]">{product?.stock || 0} {t('шт.')}</span>
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Количество для {stockModalType === 'add' ? 'пополнения' : 'списания'}
+                  {t('Количество для {action}').replace('{action}', t(stockModalType === 'add' ? 'пополнения' : 'списания'))}
                 </label>
                 <input
                   type="number"
                   value={stockAmount}
                   onChange={(e) => setStockAmount(e.target.value)}
-                  placeholder="Введите количество"
+                  placeholder={t('Введите количество')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-[#D77E6C] focus:outline-none transition-colors"
                   min="1"
                 />
@@ -356,12 +363,12 @@ function ProductViewContent() {
               {stockAmount && !isNaN(parseInt(stockAmount)) && parseInt(stockAmount) > 0 && (
                 <div className="p-3 bg-[#D77E6C]/10 rounded-lg">
                   <p className="text-sm text-[#111]">
-                    Новый остаток: {' '}
+                    {t('Новый остаток:')}{' '}
                     <span className="font-semibold">
                       {stockModalType === 'add' 
                         ? (product?.stock || 0) + parseInt(stockAmount)
                         : Math.max(0, (product?.stock || 0) - parseInt(stockAmount))
-                      } шт.
+                      } {t('шт.')}
                     </span>
                   </p>
                 </div>
@@ -373,7 +380,7 @@ function ProductViewContent() {
                 onClick={() => setShowStockModal(false)}
                 className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Отмена
+                {t('Отмена')}
               </button>
               <button
                 onClick={confirmStockUpdate}
@@ -384,7 +391,7 @@ function ProductViewContent() {
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                Подтвердить
+                {t('Подтвердить')}
               </button>
             </div>
           </div>

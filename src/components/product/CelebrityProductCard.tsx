@@ -1,14 +1,16 @@
+// src/components/product/CelebrityProductCard.tsx
 'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface CelebrityProductCardProps {
   id: number;
   name: string;
   price: number;
-  oldPrice?: number;              // для отображения скидки
+  oldPrice?: number;
   imageUrl: string;
   isHit?: boolean;
   isNew?: boolean;
@@ -16,7 +18,7 @@ interface CelebrityProductCardProps {
   className?: string;
   onAddToCart?: (id: number) => void;
   onLikeToggle?: (id: number, liked: boolean) => void;
-  onOpen?: (id: number) => void;  // клик по карточке / подробнее
+  onOpen?: (id: number) => void;
 }
 
 export default function CelebrityProductCard({
@@ -33,6 +35,7 @@ export default function CelebrityProductCard({
   onLikeToggle,
   onOpen,
 }: CelebrityProductCardProps) {
+  const { t } = useTranslate();
   const [liked, setLiked] = useState(false);
 
   const discount =
@@ -57,7 +60,8 @@ export default function CelebrityProductCard({
       <button
         onClick={handleLike}
         className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10"
-        aria-label="Добавить в избранное"
+        aria-label={t('Добавить в избранное')}
+        title={t('Добавить в избранное')}
       >
         <Image
           src={liked ? '/icons/heart_white.svg' : '/icons/heart_red.svg'}
@@ -72,17 +76,17 @@ export default function CelebrityProductCard({
       <div className="absolute left-2 top-2 sm:left-4 sm:top-4 z-10 flex gap-2">
         {isHit && (
           <span className="bg-[#D77E6C] text-white text-[10px] font-medium px-3 py-1 rounded-full">
-            Хит
+            {t('Хит')}
           </span>
         )}
         {isNew && (
           <span className="bg-black text-white text-[10px] font-medium px-3 py-1 rounded-full">
-            Новинка
+            {t('Новинка')}
           </span>
         )}
         {!inStock && (
           <span className="bg-gray-300 text-[#1C1C1C] text-[10px] font-medium px-3 py-1 rounded-full">
-            Нет в наличии
+            {t('Нет в наличии')}
           </span>
         )}
       </div>
@@ -91,6 +95,8 @@ export default function CelebrityProductCard({
       <button
         onClick={() => onOpen?.(id)}
         className="w-full aspect-square relative rounded-2xl overflow-hidden"
+        aria-label={t('Подробнее')}
+        title={t('Подробнее')}
       >
         <Image src={imageUrl} alt={name} fill className="object-cover" />
       </button>
@@ -139,14 +145,14 @@ export default function CelebrityProductCard({
                   : 'border-gray-300 text-gray-400 cursor-not-allowed'
               )}
             >
-              В корзину
+              {t('В корзину')}
             </button>
 
             <button
               onClick={() => onOpen?.(id)}
               className="shrink-0"
-              aria-label="Подробнее"
-              title="Подробнее"
+              aria-label={t('Подробнее')}
+              title={t('Подробнее')}
             >
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"

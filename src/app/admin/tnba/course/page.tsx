@@ -15,6 +15,7 @@ import {
   Eye,
   Layers,
 } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type LessonStatus = 'draft' | 'published';
 interface Lesson {
@@ -86,15 +87,11 @@ const LESSONS_BY_SLUG: Record<string, Lesson[]> = {
   ],
 };
 
-const badgeByStatus: Record<LessonStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  published: 'bg-green-100 text-green-700',
-};
-
 const STORAGE_KEY = 'tnba:selectedCourseSlug';
 const LESSON_EDIT_KEY = 'tnba:selectedLessonId';
 
 export default function AdminCoursePage() {
+  const { t } = useTranslate();
   const router = useRouter();
   const [slug, setSlug] = useState<string | null>(null);
 
@@ -122,18 +119,16 @@ export default function AdminCoursePage() {
   if (!course) {
     return (
       <div className="p-2 md:p-6">
-        <MoreHeaderAD title="Курс" 
-        showBackButton={true}
-        />
+        <MoreHeaderAD title={t('Курс')} showBackButton={true} />
         <div className="mt-6 bg-white border border-gray-100 rounded-2xl p-6">
-          <div className="text-gray-700">Курс не найден.</div>
+          <div className="text-gray-700">{t('Курс не найден.')}</div>
           <div className="mt-4 flex gap-2">
             <Link
               href="/admin/tnba"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
-              Назад к Академии
+              {t('Назад к Академии')}
             </Link>
           </div>
         </div>
@@ -153,7 +148,7 @@ export default function AdminCoursePage() {
     try {
       if (typeof window !== 'undefined' && slug) {
         window.sessionStorage.setItem(STORAGE_KEY, slug);
-        window.sessionStorage.removeItem(LESSON_EDIT_KEY); // создаём новый, без редактирования
+        window.sessionStorage.removeItem(LESSON_EDIT_KEY);
       }
     } catch {}
     router.push('/admin/tnba/create_cours/create_lesson');
@@ -171,8 +166,8 @@ export default function AdminCoursePage() {
   const togglePublish = () => {
     alert(
       course.status === 'published'
-        ? 'Курс снят с публикации (заглушка)'
-        : 'Курс опубликован (заглушка)'
+        ? t('Курс снят с публикации (заглушка)')
+        : t('Курс опубликован (заглушка)')
     );
   };
 
@@ -188,9 +183,7 @@ export default function AdminCoursePage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Курс" 
-      showBackButton={true}
-      />
+      <MoreHeaderAD title={t('Курс')} showBackButton={true} />
 
       {/* Шапка */}
       <div
@@ -201,14 +194,14 @@ export default function AdminCoursePage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-white/15 px-2.5 py-1 rounded-full text-xs font-medium mb-3">
               <BadgeCheck className="w-4 h-4" />
-              {course.category}
+              {t(course.category)}
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold leading-tight">{course.title}</h1>
-            <p className="mt-2 text-white/90 text-sm md:text-base">{course.description}</p>
+            <h1 className="text-2xl md:text-3xl font-bold leading-tight">{t(course.title)}</h1>
+            <p className="mt-2 text-white/90 text-sm md:text-base">{t(course.description)}</p>
             <div className="mt-4 flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span>{course.author}</span>
+                <span>{t(course.author)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -216,7 +209,9 @@ export default function AdminCoursePage() {
               </div>
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
-                <span>{course.lessonsCount} уроков</span>
+                <span>
+                  {t('{n} уроков').replace('{n}', String(course.lessonsCount))}
+                </span>
               </div>
             </div>
           </div>
@@ -227,7 +222,7 @@ export default function AdminCoursePage() {
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-gray-900 hover:bg-gray-100 font-medium"
             >
               <Pencil className="w-4 h-4" />
-              Редактировать курс
+              {t('Редактировать курс')}
             </button>
             <button
               onClick={togglePublish}
@@ -235,7 +230,7 @@ export default function AdminCoursePage() {
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
               <BadgeCheck className="w-4 h-4" />
-              {course.status === 'published' ? 'Снять с публикации' : 'Опубликовать курс'}
+              {course.status === 'published' ? t('Снять с публикации') : t('Опубликовать курс')}
             </button>
           </div>
         </div>
@@ -247,9 +242,11 @@ export default function AdminCoursePage() {
           <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100">
             <div className="flex items-center gap-2 text-gray-700 mb-1">
               <c.icon className="w-4 h-4 text-[#D77E6C]" />
-              <span className="text-xs font-medium">{c.label}</span>
+              <span className="text-xs font-medium">{t(c.label)}</span>
             </div>
-            <div className="text-xl font-semibold text-gray-900">{c.value}</div>
+            <div className="text-xl font-semibold text-gray-900">
+              {typeof c.value === 'string' ? t(c.value) : c.value}
+            </div>
           </div>
         ))}
       </div>
@@ -257,14 +254,14 @@ export default function AdminCoursePage() {
       {/* Уроки */}
       <div className="mt-6 bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Уроки курса</h2>
+          <h2 className="text-base font-semibold">{t('Уроки курса')}</h2>
           <button
             onClick={goAddLesson}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#D77E6C] hover:bg-[#C66B5A] text.white text-sm font-medium"
             style={{ color: '#fff' }}
           >
             <Plus className="w-4 h-4" />
-            Добавить урок
+            {t('Добавить урок')}
           </button>
         </div>
 
@@ -273,18 +270,18 @@ export default function AdminCoursePage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">#</th>
-                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">Название</th>
-                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">Длительность</th>
-                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">Статус</th>
-                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">Обновлён</th>
-                <th className="text-center py-3 px-5 text-xs font-medium text-gray-600">Действия</th>
+                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">{t('Название')}</th>
+                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">{t('Длительность')}</th>
+                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">{t('Статус')}</th>
+                <th className="text-left py-3 px-5 text-xs font-medium text-gray-600">{t('Обновлён')}</th>
+                <th className="text-center py-3 px-5 text-xs font-medium text-gray-600">{t('Действия')}</th>
               </tr>
             </thead>
             <tbody>
               {(LESSONS_BY_SLUG[course.slug] ?? []).length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-gray-500">
-                    В этом курсе пока нет уроков.
+                    {t('В этом курсе пока нет уроков.')}
                   </td>
                 </tr>
               ) : (
@@ -292,12 +289,16 @@ export default function AdminCoursePage() {
                   <tr key={l.id} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-5 font-mono text-sm text-gray-700">{l.order}</td>
                     <td className="py-3 px-5">
-                      <div className="font-medium text-gray-900">{l.title}</div>
+                      <div className="font-medium text-gray-900">{t(l.title)}</div>
                     </td>
-                    <td className="py-3 px-5 text-sm text-gray-700">{l.duration}</td>
+                    <td className="py-3 px-5 text-sm text-gray-700">{t(l.duration)}</td>
                     <td className="py-3 px-5">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${l.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {l.status === 'published' ? 'Опубликован' : 'Черновик'}
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          l.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {l.status === 'published' ? t('Опубликован') : t('Черновик')}
                       </span>
                     </td>
                     <td className="py-3 px-5 text-sm text-gray-600">{l.updatedAt}</td>
@@ -307,19 +308,19 @@ export default function AdminCoursePage() {
                           type="button"
                           onClick={() => editLesson(l.id)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium"
-                          title="Редактировать"
+                          title={t('Редактировать')}
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                          Редактировать
+                          {t('Редактировать')}
                         </button>
                         <button
                           type="button"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-xs font-medium"
-                          title="Открыть"
-                          onClick={() => alert('Открыть предпросмотр урока (заглушка)')}
+                          title={t('Открыть')}
+                          onClick={() => alert(t('Открыть предпросмотр урока (заглушка)'))}
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Открыть
+                          {t('Открыть')}
                         </button>
                       </div>
                     </td>

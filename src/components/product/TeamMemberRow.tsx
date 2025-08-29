@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export interface TeamMember {
   id: string;
@@ -24,6 +25,7 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
   onClick,
   className = '',
 }) => {
+  const { t } = useTranslate();
   const handleClick = () => onClick?.(member);
 
   const getInitials = (name: string): string =>
@@ -49,13 +51,15 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active':
-        return 'АКТИВЕН';
+        return t('АКТИВЕН');
       case 'blocked':
-        return 'БЛОК';
+        return t('БЛОК');
       default:
-        return 'НЕИЗВЕСТНО';
+        return t('НЕИЗВЕСТНО');
     }
   };
+
+  const commandsValue = (member.commands ?? 0);
 
   return (
     <tr
@@ -82,7 +86,7 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
               {member.name}
             </div>
             <div className="text-xs text-gray-500 truncate sm:hidden">
-              {member.profession || 'Не указано'}
+              {member.profession || t('Не указано')}
             </div>
           </div>
         </div>
@@ -90,7 +94,7 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
 
       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
         <span className="text-xs sm:text-sm text-gray-600">
-          {member.profession || 'Не указано'}
+          {member.profession || t('Не указано')}
         </span>
       </td>
 
@@ -107,11 +111,11 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="flex items-center">
           <span className="text-xs sm:text-sm font-medium text-gray-900">
-            {member.commands || 0}
+            {commandsValue.toLocaleString()}
           </span>
-          {(member.commands || 0) > 50 && (
+          {commandsValue > 50 && (
             <span className="ml-1 sm:ml-2 inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-              Топ
+              {t('Топ')}
             </span>
           )}
         </div>

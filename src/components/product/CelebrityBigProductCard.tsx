@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface CelebrityBigProductCardProps {
   id: number;
@@ -33,6 +34,7 @@ export default function CelebrityBigProductCard({
   onLikeToggle,
   onOpen,
 }: CelebrityBigProductCardProps) {
+  const { t } = useTranslate();
   const [liked, setLiked] = useState(false);
 
   const discount =
@@ -52,11 +54,13 @@ export default function CelebrityBigProductCard({
       <button
         onClick={handleLike}
         className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10"
-        aria-label="Добавить в избранное"
+        aria-label={t('Добавить в избранное')}
+        title={t('Добавить в избранное')}
       >
         <Image
           src={liked ? '/icons/heart_white.svg' : '/icons/heart_red.svg'}
-          alt="like"
+          alt=""
+          aria-hidden="true"
           width={28}
           height={28}
           className="hidden md:block"
@@ -67,7 +71,7 @@ export default function CelebrityBigProductCard({
       {tag && (
         <div className="absolute left-2 top-2 sm:left-4 sm:top-4 z-10">
           <span className="bg-[#1C1C1C] text-white text-[10px] font-medium px-3 py-1 rounded-full">
-            {tag}
+            {t(tag)}
           </span>
         </div>
       )}
@@ -118,7 +122,7 @@ export default function CelebrityBigProductCard({
             </div>
             {!inStock && (
               <div className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                Нет в наличии
+                {t('Нет в наличии')}
               </div>
             )}
           </div>
@@ -129,13 +133,14 @@ export default function CelebrityBigProductCard({
           <button
             onClick={() => onOpen?.(id)}
             className="inline-flex items-center gap-2 text-sm text-[#1C1C1C] hover:opacity-80"
-            aria-label="Подробнее"
-            title="Подробнее"
+            aria-label={t('Подробнее')}
+            title={t('Подробнее')}
           >
-            Подробнее
+            {t('Подробнее')}
             <Image
               src="/icons/buttom/DoubleIconArrowOrange.svg"
-              alt="arrow"
+              alt=""
+              aria-hidden="true"
               width={24}
               height={24}
             />
@@ -149,7 +154,7 @@ export default function CelebrityBigProductCard({
               inStock ? 'bg-[#D77E6C] text-white hover:opacity-90' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             )}
           >
-            В корзину
+            {t('В корзину')}
           </button>
         </div>
       </div>

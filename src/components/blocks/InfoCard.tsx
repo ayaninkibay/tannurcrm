@@ -3,6 +3,7 @@
 
 import React from 'react'
 import Image from 'next/image'
+import { useTranslate } from '@/hooks/useTranslate'
 
 interface InfoCardProps {
   imageSrc: string
@@ -19,15 +20,17 @@ export function InfoCard({
   date,
   count,
 }: InfoCardProps) {
+  const { t } = useTranslate()
+
   return (
     <div
       className={`
         relative
-        w-full                /* на малых экранах растягиваем во всю ширину контейнера */
-        max-w-xs              /* но не шире ~20rem (320px) */
-        sm:max-w-sm           /* >=640px — до ~24rem (384px) */
-        md:max-w-md           /* >=768px — до ~28rem (448px) */
-        aspect-[4/3]          /* фиксированное соотношение сторон 4:3 */
+        w-full
+        max-w-xs
+        sm:max-w-sm
+        md:max-w-md
+        aspect-[4/3]
         rounded-2xl
         overflow-hidden
         bg-gray-900
@@ -38,7 +41,7 @@ export function InfoCard({
       <div className="absolute inset-0">
         <Image
           src={imageSrc}
-          alt=""
+          alt={title || t('Изображение')}
           fill
           className="object-cover object-center filter brightness-110"
         />
@@ -50,8 +53,8 @@ export function InfoCard({
           relative z-10
           bg-black bg-opacity-60
           px-4 py-3
-          rounded-tl-xl       /* скругление только в левом верхнем углу */
-          sm:px-5 sm:py-4     /* чуть больше паддингов на больших экранах */
+          rounded-tl-xl
+          sm:px-5 sm:py-4
         `}
       >
         <h3 className="text-base sm:text-lg font-semibold leading-snug">

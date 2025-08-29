@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type CourseDraft = {
   id: string;
@@ -35,10 +36,12 @@ const LEVELS: CourseDraft['level'][] = ['Новичок', 'Средний', 'П�
 export default function CreateCoursPage() {
   const router = useRouter();
   const sp = useSearchParams();
-  const editingCourseId = (sp?.get('courseId') ?? '').trim(); // опционально — редактирование
+  const { t } = useTranslate();
+
+  const editingCourseId = (sp?.get('courseId') ?? '').trim();
 
   // ----- FORM STATE -----
-  const [id, setId] = useState<string>(''); // держим id, чтобы при редактировании не генерить новый
+  const [id, setId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [author, setAuthor] = useState('Tannur Cosmetics');
@@ -65,7 +68,7 @@ export default function CreateCoursPage() {
 
   useEffect(() => {
     if (!isEdit) {
-      setId(''); // новый курс
+      setId('');
       return;
     }
     try {
@@ -191,7 +194,10 @@ export default function CreateCoursPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={isEdit ? 'Редактировать курс' : 'Создать курс'} showBackButton={true} />
+      <MoreHeaderAD
+        title={isEdit ? t('Редактировать курс') : t('Создать курс')}
+        showBackButton={true}
+      />
 
       <form
         onSubmit={(e) => {
@@ -203,18 +209,18 @@ export default function CreateCoursPage() {
         {/* БАЗОВЫЕ ПОЛЯ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm text-gray-700">Название курса *</span>
+            <span className="text-sm text-gray-700">{t('Название курса *')}</span>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="Например, Знакомство с Tannur"
+              placeholder={t('Например, Знакомство с Tannur')}
             />
-            {errors.title && <div className="text-xs text-red-500 mt-1">{errors.title}</div>}
+            {errors.title && <div className="text-xs text-red-500 mt-1">{t(errors.title)}</div>}
           </label>
 
           <label className="block">
-            <span className="text-sm text-gray-700">Категория *</span>
+            <span className="text-sm text-gray-700">{t('Категория *')}</span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -222,26 +228,26 @@ export default function CreateCoursPage() {
             >
               {CATEGORY_OPTIONS.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {t(c)}
                 </option>
               ))}
             </select>
-            {errors.category && <div className="text-xs text-red-500 mt-1">{errors.category}</div>}
+            {errors.category && <div className="text-xs text-red-500 mt-1">{t(errors.category)}</div>}
           </label>
 
           <label className="block">
-            <span className="text-sm text-gray-700">Автор / Спикер</span>
+            <span className="text-sm text-gray-700">{t('Автор / Спикер')}</span>
             <input
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="Имя спикера"
+              placeholder={t('Имя спикера')}
             />
           </label>
 
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
-              <span className="text-sm text-gray-700">Уровень</span>
+              <span className="text-sm text-gray-700">{t('Уровень')}</span>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as CourseDraft['level'])}
@@ -249,73 +255,73 @@ export default function CreateCoursPage() {
               >
                 {LEVELS.map((l) => (
                   <option key={l} value={l}>
-                    {l}
+                    {t(l)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="block">
-              <span className="text-sm text-gray-700">Язык</span>
+              <span className="text-sm text-gray-700">{t('Язык')}</span>
               <input
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-                placeholder="ru, kz, en…"
+                placeholder={t('ru, kz, en…')}
               />
             </label>
           </div>
 
           <label className="block">
-            <span className="text-sm text-gray-700">Обложка (URL)</span>
+            <span className="text-sm text-gray-700">{t('Обложка (URL)')}</span>
             <input
               value={thumbnail}
               onChange={(e) => setThumbnail(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="/icons/IconEducationOrange.svg"
+              placeholder={t('/icons/IconEducationOrange.svg')}
             />
           </label>
 
           <label className="block">
-            <span className="text-sm text-gray-700">Общая длительность (мин)</span>
+            <span className="text-sm text-gray-700">{t('Общая длительность (мин)')}</span>
             <input
               type="number"
               min={0}
               value={totalMinutes}
               onChange={(e) => setTotalMinutes(e.target.value === '' ? '' : Number(e.target.value))}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="например, 120"
+              placeholder={t('например, 120')}
             />
           </label>
 
           <label className="block md:col-span-2">
-            <span className="text-sm text-gray-700">Краткое описание *</span>
+            <span className="text-sm text-gray-700">{t('Краткое описание *')}</span>
             <textarea
               value={shortDesc}
               onChange={(e) => setShortDesc(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               rows={3}
-              placeholder="1–2 предложения — используется в карточках/листах"
+              placeholder={t('1–2 предложения — используется в карточках/листах')}
             />
-            {errors.shortDesc && <div className="text-xs text-red-500 mt-1">{errors.shortDesc}</div>}
+            {errors.shortDesc && <div className="text-xs text-red-500 mt-1">{t(errors.shortDesc)}</div>}
           </label>
 
           <label className="block md:col-span-2">
-            <span className="text-sm text-gray-700">Полное описание *</span>
+            <span className="text-sm text-gray-700">{t('Полное описание *')}</span>
             <textarea
               value={fullDesc}
               onChange={(e) => setFullDesc(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
               rows={5}
-              placeholder="Детально: для страницы курса"
+              placeholder={t('Детально: для страницы курса')}
             />
-            {errors.fullDesc && <div className="text-xs text-red-500 mt-1">{errors.fullDesc}</div>}
+            {errors.fullDesc && <div className="text-xs text-red-500 mt-1">{t(errors.fullDesc)}</div>}
           </label>
         </div>
 
         {/* ТЕГИ */}
         <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">Теги</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Теги')}</div>
           <div className="flex gap-2">
             <input
               value={tagInput}
@@ -327,17 +333,17 @@ export default function CreateCoursPage() {
                 }
               }}
               className="w-full md:w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="например: skincare, продажи"
+              placeholder={t('например: skincare, продажи')}
             />
             <button type="button" onClick={addTag} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              Добавить
+              {t('Добавить')}
             </button>
           </div>
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {tags.map((t, i) => (
+              {tags.map((tTag, i) => (
                 <span key={i} className="inline-flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-full bg-gray-100">
-                  {t}
+                  {tTag}
                   <button type="button" onClick={() => removeTag(i)} className="text-gray-500 hover:text-gray-700">
                     ×
                   </button>
@@ -349,7 +355,7 @@ export default function CreateCoursPage() {
 
         {/* РЕЗУЛЬТАТЫ */}
         <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">Результаты обучения</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Результаты обучения')}</div>
           <div className="flex gap-2">
             <input
               value={outcomeInput}
@@ -361,10 +367,10 @@ export default function CreateCoursPage() {
                 }
               }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="Например: научится проводить консультацию…"
+              placeholder={t('Например: научится проводить консультацию…')}
             />
             <button type="button" onClick={addOutcome} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              Добавить пункт
+              {t('Добавить пункт')}
             </button>
           </div>
           {outcomes.length > 0 && (
@@ -377,7 +383,7 @@ export default function CreateCoursPage() {
                     onClick={() => removeOutcome(i)}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Удалить
+                    {t('Удалить')}
                   </button>
                 </li>
               ))}
@@ -387,7 +393,7 @@ export default function CreateCoursPage() {
 
         {/* ТРЕБОВАНИЯ */}
         <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">Требования</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Требования')}</div>
           <div className="flex gap-2">
             <input
               value={prereqInput}
@@ -399,10 +405,10 @@ export default function CreateCoursPage() {
                 }
               }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="Что нужно знать/иметь заранее"
+              placeholder={t('Что нужно знать/иметь заранее')}
             />
             <button type="button" onClick={addPrereq} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              Добавить пункт
+              {t('Добавить пункт')}
             </button>
           </div>
           {prereq.length > 0 && (
@@ -415,7 +421,7 @@ export default function CreateCoursPage() {
                     onClick={() => removePrereq(i)}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Удалить
+                    {t('Удалить')}
                   </button>
                 </li>
               ))}
@@ -425,7 +431,7 @@ export default function CreateCoursPage() {
 
         {/* СТРУКТУРА */}
         <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">Структура курса (модули)</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Структура курса (модули)')}</div>
           <div className="flex gap-2">
             <input
               value={syllabusInput}
@@ -437,10 +443,10 @@ export default function CreateCoursPage() {
                 }
               }}
               className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder="Название модуля/блока"
+              placeholder={t('Название модуля/блока')}
             />
             <button type="button" onClick={addSyllabus} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              Добавить пункт
+              {t('Добавить пункт')}
             </button>
           </div>
           {syllabus.length > 0 && (
@@ -453,7 +459,7 @@ export default function CreateCoursPage() {
                     onClick={() => removeSyllabus(i)}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Удалить
+                    {t('Удалить')}
                   </button>
                 </li>
               ))}
@@ -470,7 +476,7 @@ export default function CreateCoursPage() {
             onChange={(e) => setIsPublished(e.target.checked)}
           />
           <label htmlFor="publish" className="text-sm text-gray-700">
-            Опубликовать курс сразу
+            {t('Опубликовать курс сразу')}
           </label>
         </div>
 
@@ -481,23 +487,23 @@ export default function CreateCoursPage() {
             onClick={() => handleSave(false)}
             className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
           >
-            Сохранить черновик
+            {t('Сохранить черновик')}
           </button>
 
           <button
             type="submit"
             disabled={!isValid}
             className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium"
-            title={!isValid ? 'Заполните обязательные поля' : ''}
+            title={!isValid ? t('Заполните обязательные поля') : ''}
           >
-            {isEdit ? 'Сохранить и перейти к урокам' : 'Сохранить и перейти к урокам'}
+            {t('Сохранить и перейти к урокам')}
           </button>
 
           <Link
             href="/admin/tnba"
             className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
           >
-            Отмена
+            {t('Отмена')}
           </Link>
         </div>
       </form>

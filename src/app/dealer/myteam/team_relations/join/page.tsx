@@ -12,8 +12,10 @@ import { supabase } from '@/lib/supabase/client';
 import { teamPurchaseService } from '@/lib/team-purchase/TeamPurchaseService';
 import { teamPurchaseLifecycleService } from '@/lib/team-purchase/TeamPurchaseLifecycleService';
 import type { TeamPurchase, User } from '@/types';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export default function TeamPurchaseJoinPage() {
+  const { t } = useTranslate();
   const params = useParams();
   const router = useRouter();
   const inviteCode = params.code as string;
@@ -25,23 +27,23 @@ export default function TeamPurchaseJoinPage() {
   const [loading, setLoading] = useState(true);
   const [alreadyMember, setAlreadyMember] = useState(false);
 
+  const MAX_CONTRIBUTION = 500000; // для слайдера и подписи
+
   useEffect(() => {
     loadPurchaseAndUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteCode]);
 
   const loadPurchaseAndUser = async () => {
     try {
-      // Проверяем авторизацию
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        // Сохраняем код в localStorage и редиректим на вход
         localStorage.setItem('pendingInviteCode', inviteCode);
         router.push('/signin');
         return;
       }
 
-      // Загружаем данные пользователя
       const { data: userData } = await supabase
         .from('users')
         .select('*')
@@ -50,7 +52,6 @@ export default function TeamPurchaseJoinPage() {
 
       setCurrentUser(userData);
 
-      // Загружаем закупку по коду
       const { data: purchaseData } = await supabase
         .from('team_purchases')
         .select('*')
@@ -58,14 +59,13 @@ export default function TeamPurchaseJoinPage() {
         .single();
 
       if (!purchaseData) {
-        toast.error('Закупка не найдена');
+        toast.error(t('Закупка не найдена'));
         router.push('/dealer/team-purchases');
         return;
       }
 
       setPurchase(purchaseData);
 
-      // Проверяем, участвует ли уже
       const { data: member } = await supabase
         .from('team_purchase_members')
         .select('*')
@@ -79,7 +79,7 @@ export default function TeamPurchaseJoinPage() {
 
     } catch (error) {
       console.error('Error loading:', error);
-      toast.error('Ошибка загрузки');
+      toast.error(t('Ошибка загрузки'));
     } finally {
       setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function TeamPurchaseJoinPage() {
       }
     } catch (error: any) {
       console.error('Error joining:', error);
-      toast.error(error.message || 'Ошибка присоединения');
+      toast.error(error.message || t('Ошибка присоединения'));
     } finally {
       setIsJoining(false);
     }
@@ -126,13 +126,13 @@ export default function TeamPurchaseJoinPage() {
       <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#111] mb-2">Закупка не найдена</h2>
-          <p className="text-gray-500 mb-6">Проверьте правильность ссылки</p>
+          <h2 className="text-2xl font-bold text-[#111] mb-2">{t('Закупка не найдена')}</h2>
+          <p className="text-gray-500 mb-6">{t('Проверьте правильность ссылки')}</p>
           <button
             onClick={() => router.push('/dealer/team-purchases')}
             className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-colors"
           >
-            К закупкам
+            {t('К закупкам')}
           </button>
         </div>
       </div>
@@ -144,13 +144,13 @@ export default function TeamPurchaseJoinPage() {
       <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
         <div className="text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[#111] mb-2">Вы уже участник</h2>
-          <p className="text-gray-500 mb-6">Вы уже участвуете в этой закупке</p>
+          <h2 className="text-2xl font-bold text-[#111] mb-2">{t('Вы уже участник')}</h2>
+          <p className="text-gray-500 mb-6">{t('Вы уже участвуете в этой закупке')}</p>
           <button
             onClick={() => router.push(`/dealer/team-purchases/${purchase.id}`)}
             className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-colors"
           >
-            Перейти к закупке
+            {t('Перейти к закупке')}
           </button>
         </div>
       </div>
@@ -167,10 +167,10 @@ export default function TeamPurchaseJoinPage() {
             <Users className="w-10 h-10 text-[#D77E6C]" />
           </div>
           <h1 className="text-3xl font-bold text-[#111] mb-2">
-            Приглашение в командную закупку
+            {t('Приглашение в командную закупку')}
           </h1>
           <p className="text-gray-500">
-            Присоединитесь и получите максимальную выгоду
+            {t('Присоединитесь и получите максимальную выгоду')}
           </p>
         </div>
 
@@ -187,7 +187,7 @@ export default function TeamPurchaseJoinPage() {
             {/* Прогресс */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Прогресс сбора</span>
+                <span className="text-sm text-gray-600">{t('Прогресс сбора')}</span>
                 <span className="text-sm font-medium">
                   {formatPrice(purchase.collected_amount)} / {formatPrice(purchase.target_amount)}
                 </span>
@@ -199,7 +199,7 @@ export default function TeamPurchaseJoinPage() {
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Собрано {progress.toFixed(0)}% от цели
+                {t('Собрано {percent}% от цели').replace('{percent}', progress.toFixed(0))}
               </p>
             </div>
 
@@ -209,7 +209,7 @@ export default function TeamPurchaseJoinPage() {
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Target className="w-6 h-6 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Цель</p>
+                <p className="text-xs text-gray-500">{t('Цель')}</p>
                 <p className="font-semibold text-[#111]">{formatPrice(purchase.target_amount)}</p>
               </div>
               
@@ -217,7 +217,7 @@ export default function TeamPurchaseJoinPage() {
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Users className="w-6 h-6 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Мин. вклад</p>
+                <p className="text-xs text-gray-500">{t('Мин. вклад')}</p>
                 <p className="font-semibold text-[#111]">{formatPrice(purchase.min_contribution)}</p>
               </div>
               
@@ -225,9 +225,9 @@ export default function TeamPurchaseJoinPage() {
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <Clock className="w-6 h-6 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Дедлайн</p>
+                <p className="text-xs text-gray-500">{t('Дедлайн')}</p>
                 <p className="font-semibold text-[#111]">
-                  {purchase.deadline ? new Date(purchase.deadline).toLocaleDateString('ru-RU') : 'Не указан'}
+                  {purchase.deadline ? new Date(purchase.deadline).toLocaleDateString('ru-RU') : t('Не указан')}
                 </p>
               </div>
               
@@ -235,7 +235,7 @@ export default function TeamPurchaseJoinPage() {
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                   <TrendingUp className="w-6 h-6 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Экономия</p>
+                <p className="text-xs text-gray-500">{t('Экономия')}</p>
                 <p className="font-semibold text-green-600">~25%</p>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function TeamPurchaseJoinPage() {
             {/* Выбор вклада */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Ваш планируемый вклад
+                {t('Ваш планируемый вклад')}
               </label>
               
               <div className="grid grid-cols-3 gap-2 mb-4">
@@ -265,7 +265,7 @@ export default function TeamPurchaseJoinPage() {
               <input
                 type="range"
                 min={purchase.min_contribution}
-                max={500000}
+                max={MAX_CONTRIBUTION}
                 step={10000}
                 value={contribution}
                 onChange={(e) => setContribution(Number(e.target.value))}
@@ -273,9 +273,13 @@ export default function TeamPurchaseJoinPage() {
               />
               
               <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-500">Мин: {formatPrice(purchase.min_contribution)}</span>
+                <span className="text-sm text-gray-500">
+                  {t('Мин: {amount}').replace('{amount}', formatPrice(purchase.min_contribution))}
+                </span>
                 <span className="text-lg font-bold text-[#D77E6C]">{formatPrice(contribution)}</span>
-                <span className="text-sm text-gray-500">Макс: 500,000 ₸</span>
+                <span className="text-sm text-gray-500">
+                  {t('Макс: {amount}').replace('{amount}', formatPrice(MAX_CONTRIBUTION))}
+                </span>
               </div>
             </div>
           </div>
@@ -287,9 +291,9 @@ export default function TeamPurchaseJoinPage() {
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mb-3">
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <h3 className="font-semibold text-[#111] mb-1">Максимальная скидка</h3>
+            <h3 className="font-semibold text-[#111] mb-1">{t('Максимальная скидка')}</h3>
             <p className="text-sm text-gray-500">
-              Получите дилерскую цену с дополнительной скидкой до 25%
+              {t('Получите дилерскую цену с дополнительной скидкой до 25%')}
             </p>
           </div>
           
@@ -297,9 +301,9 @@ export default function TeamPurchaseJoinPage() {
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
               <Gift className="w-5 h-5 text-blue-600" />
             </div>
-            <h3 className="font-semibold text-[#111] mb-1">Бонусы за участие</h3>
+            <h3 className="font-semibold text-[#111] mb-1">{t('Бонусы за участие')}</h3>
             <p className="text-sm text-gray-500">
-              Получайте бонусы с личных покупок и покупок вашей команды
+              {t('Получайте бонусы с личных покупок и покупок вашей команды')}
             </p>
           </div>
           
@@ -307,9 +311,9 @@ export default function TeamPurchaseJoinPage() {
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
               <Shield className="w-5 h-5 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-[#111] mb-1">Гарантия безопасности</h3>
+            <h3 className="font-semibold text-[#111] mb-1">{t('Гарантия безопасности')}</h3>
             <p className="text-sm text-gray-500">
-              Все сделки защищены, возврат средств при отмене закупки
+              {t('Все сделки защищены, возврат средств при отмене закупки')}
             </p>
           </div>
         </div>
@@ -320,7 +324,7 @@ export default function TeamPurchaseJoinPage() {
             onClick={() => router.push('/dealer/team-purchases')}
             className="flex-1 py-4 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
           >
-            Отмена
+            {t('Отмена')}
           </button>
           <button
             onClick={handleJoin}
@@ -328,11 +332,11 @@ export default function TeamPurchaseJoinPage() {
             className="flex-1 py-4 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isJoining ? (
-              <>Присоединяемся...</>
+              <>{t('Присоединяемся...')}</>
             ) : (
               <>
                 <UserPlus className="w-5 h-5" />
-                Присоединиться с вкладом {formatPrice(contribution)}
+                {t('Присоединиться с вкладом {amount}').replace('{amount}', formatPrice(contribution))}
               </>
             )}
           </button>
@@ -343,9 +347,9 @@ export default function TeamPurchaseJoinPage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
               <div>
-                <p className="font-medium text-yellow-900">Закупка уже началась</p>
+                <p className="font-medium text-yellow-900">{t('Закупка уже началась')}</p>
                 <p className="text-sm text-yellow-700 mt-1">
-                  К сожалению, присоединиться можно только на этапе формирования
+                  {t('К сожалению, присоединиться можно только на этапе формирования')}
                 </p>
               </div>
             </div>

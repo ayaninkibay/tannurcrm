@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Package, ShoppingCart, CreditCard, 
-  CheckCircle, AlertCircle, Clock, TrendingUp,
-  Share2, UserPlus, Settings, X
+  CheckCircle, AlertCircle, Clock
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import type { TeamPurchaseView } from '@/types';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface TeamPurchaseFlowProps {
   purchase: TeamPurchaseView;
@@ -30,13 +29,13 @@ export default function TeamPurchaseFlow({
   onInvite,
   onLeave
 }: TeamPurchaseFlowProps) {
+  const { t } = useTranslate();
   const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
   
   const isOrganizer = purchase.initiator.id === currentUserId;
   const currentMember = purchase.members.find(m => m.user.id === currentUserId);
   const hasPaid = currentMember?.hasPaid || false;
 
-  // Определяем текущий шаг
   const getStep = () => {
     switch (purchase.purchase.status) {
       case 'forming': return 0;
@@ -51,32 +50,14 @@ export default function TeamPurchaseFlow({
   const currentStep = getStep();
 
   const steps = [
-    { 
-      title: 'Формирование', 
-      icon: Users,
-      description: 'Набор участников'
-    },
-    { 
-      title: 'Выбор товаров', 
-      icon: Package,
-      description: 'Участники выбирают товары'
-    },
-    { 
-      title: 'Оплата', 
-      icon: CreditCard,
-      description: 'Оплата заказов'
-    },
-    { 
-      title: 'Подтверждение', 
-      icon: CheckCircle,
-      description: 'Проверка менеджером'
-    },
-    { 
-      title: 'Завершено', 
-      icon: CheckCircle,
-      description: 'Заказ выполнен'
-    }
+    { title: t('Формирование'), icon: Users, description: t('Набор участников') },
+    { title: t('Выбор товаров'), icon: Package, description: t('Участники выбирают товары') },
+    { title: t('Оплата'), icon: CreditCard, description: t('Оплата заказов') },
+    { title: t('Подтверждение'), icon: CheckCircle, description: t('Проверка менеджером') },
+    { title: t('Завершено'), icon: CheckCircle, description: t('Заказ выполнен') }
   ];
+
+  const minStartSum = 300000;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -88,22 +69,24 @@ export default function TeamPurchaseFlow({
               {purchase.purchase.title}
             </h2>
             <p className="text-gray-500 mt-1">
-              Заказ #{purchase.purchase.id.slice(0, 8)}
+              {t('Заказ #{id}').replace('{id}', purchase.purchase.id.slice(0, 8))}
             </p>
           </div>
           
           {/* Статус */}
-          <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-            purchase.purchase.status === 'completed' ? 'bg-green-100 text-green-700' :
-            purchase.purchase.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-            'bg-blue-100 text-blue-700'
-          }`}>
-            {purchase.purchase.status === 'forming' && 'Формируется'}
-            {purchase.purchase.status === 'active' && 'Активна'}
-            {purchase.purchase.status === 'purchasing' && 'Идет оплата'}
-            {purchase.purchase.status === 'confirming' && 'Подтверждение'}
-            {purchase.purchase.status === 'completed' && 'Завершена'}
-            {purchase.purchase.status === 'cancelled' && 'Отменена'}
+          <div
+            className={`px-4 py-2 rounded-full text-sm font-medium ${
+              purchase.purchase.status === 'completed' ? 'bg-green-100 text-green-700' :
+              purchase.purchase.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+              'bg-blue-100 text-blue-700'
+            }`}
+          >
+            {purchase.purchase.status === 'forming' && t('Формируется')}
+            {purchase.purchase.status === 'active' && t('Активна')}
+            {purchase.purchase.status === 'purchasing' && t('Идет оплата')}
+            {purchase.purchase.status === 'confirming' && t('Подтверждение')}
+            {purchase.purchase.status === 'completed' && t('Завершена')}
+            {purchase.purchase.status === 'cancelled' && t('Отменена')}
           </div>
         </div>
 
@@ -146,7 +129,7 @@ export default function TeamPurchaseFlow({
         </div>
       </div>
 
-      {/* Контент в зависимости от статуса */}
+      {/* Контент по статусу */}
       <div className="p-6">
         {/* ФОРМИРОВАНИЕ */}
         {purchase.purchase.status === 'forming' && (
@@ -154,7 +137,7 @@ export default function TeamPurchaseFlow({
             {/* Прогресс сбора */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Целевая сумма</span>
+                <span className="text-sm text-gray-600">{t('Целевая сумма')}</span>
                 <span className="text-sm font-medium">
                   {formatPrice(purchase.purchase.collected_amount)} / {formatPrice(purchase.purchase.target_amount)}
                 </span>
@@ -165,9 +148,9 @@ export default function TeamPurchaseFlow({
                   style={{ width: `${purchase.progress}%` }}
                 />
               </div>
-              {purchase.purchase.collected_amount < 300000 && (
+              {purchase.purchase.collected_amount < minStartSum && (
                 <p className="text-xs text-orange-600 mt-2">
-                  Минимальная сумма для старта: 300,000 ₸
+                  {t('Минимальная сумма для старта: {sum} ₸').replace('{sum}', minStartSum.toLocaleString('ru-RU'))}
                 </p>
               )}
             </div>
@@ -175,7 +158,7 @@ export default function TeamPurchaseFlow({
             {/* Участники */}
             <div>
               <h3 className="font-semibold text-[#111] mb-3">
-                Участники ({purchase.totalMembers})
+                {t('Участники ({n})').replace('{n}', String(purchase.totalMembers))}
               </h3>
               <div className="space-y-2">
                 {purchase.members.map(member => (
@@ -189,10 +172,10 @@ export default function TeamPurchaseFlow({
                       <div>
                         <p className="font-medium text-[#111]">
                           {member.user.first_name} {member.user.last_name}
-                          {member.isOrganizer && ' (Организатор)'}
+                          {member.isOrganizer && <> {t('(Организатор)')}</>}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Планируемый вклад: {formatPrice(member.member.contribution_target)}
+                          {t('Планируемый вклад: {sum}').replace('{sum}', formatPrice(member.member.contribution_target))}
                         </p>
                       </div>
                     </div>
@@ -212,15 +195,15 @@ export default function TeamPurchaseFlow({
                     onClick={onInvite}
                     className="flex-1 py-3 border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                   >
-                    <UserPlus className="w-5 h-5" />
-                    Пригласить
+                    <Users className="w-5 h-5" />
+                    {t('Пригласить')}
                   </button>
                   <button
                     onClick={onStart}
                     disabled={!purchase.canStart}
                     className="flex-1 py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Начать закупку
+                    {t('Начать закупку')}
                   </button>
                 </>
               ) : (
@@ -229,13 +212,14 @@ export default function TeamPurchaseFlow({
                     onClick={onLeave}
                     className="flex-1 py-3 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors"
                   >
-                    Выйти из закупки
+                    {t('Выйти из закупки')}
                   </button>
                   <button
                     onClick={onInvite}
                     className="px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                    title={t('Пригласить')}
                   >
-                    <Share2 className="w-5 h-5" />
+                    <Users className="w-5 h-5" />
                   </button>
                 </>
               )}
@@ -250,12 +234,12 @@ export default function TeamPurchaseFlow({
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-900">Выберите товары</p>
+                  <p className="font-medium text-blue-900">{t('Выберите товары')}</p>
                   <p className="text-sm text-blue-700 mt-1">
-                    Ваш лимит: {formatPrice(currentMember?.member.contribution_target || 0)}
+                    {t('Ваш лимит: {sum}').replace('{sum}', formatPrice(currentMember?.member.contribution_target || 0))}
                   </p>
                   <p className="text-sm text-blue-700">
-                    В корзине: {formatPrice(currentMember?.member.cart_total || 0)}
+                    {t('В корзине: {sum}').replace('{sum}', formatPrice(currentMember?.member.cart_total || 0))}
                   </p>
                 </div>
               </div>
@@ -263,7 +247,7 @@ export default function TeamPurchaseFlow({
 
             {/* Статус участников */}
             <div>
-              <h3 className="font-semibold text-[#111] mb-3">Статус участников</h3>
+              <h3 className="font-semibold text-[#111] mb-3">{t('Статус участников')}</h3>
               <div className="space-y-2">
                 {purchase.members.map(member => (
                   <div key={member.member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -276,7 +260,7 @@ export default function TeamPurchaseFlow({
                           {member.user.first_name} {member.user.last_name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          В корзине: {formatPrice(member.member.cart_total)}
+                          {t('В корзине: {sum}').replace('{sum}', formatPrice(member.member.cart_total))}
                         </p>
                       </div>
                     </div>
@@ -296,7 +280,7 @@ export default function TeamPurchaseFlow({
               className="w-full py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] transition-colors flex items-center justify-center gap-2"
             >
               <ShoppingCart className="w-5 h-5" />
-              Перейти к выбору товаров
+              {t('Перейти к выбору товаров')}
             </button>
           </div>
         )}
@@ -307,7 +291,7 @@ export default function TeamPurchaseFlow({
             {/* Прогресс оплат */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Оплачено</span>
+                <span className="text-sm text-gray-600">{t('Оплачено')}</span>
                 <span className="text-sm font-medium">
                   {formatPrice(purchase.totalPaid)} / {formatPrice(purchase.purchase.target_amount)}
                 </span>
@@ -322,7 +306,7 @@ export default function TeamPurchaseFlow({
 
             {/* Статус оплат */}
             <div>
-              <h3 className="font-semibold text-[#111] mb-3">Статус оплат</h3>
+              <h3 className="font-semibold text-[#111] mb-3">{t('Статус оплат')}</h3>
               <div className="space-y-2">
                 {purchase.members.map(member => (
                   <div key={member.member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -337,19 +321,19 @@ export default function TeamPurchaseFlow({
                           {member.user.first_name} {member.user.last_name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          К оплате: {formatPrice(member.member.cart_total)}
+                          {t('К оплате: {sum}').replace('{sum}', formatPrice(member.member.cart_total))}
                         </p>
                       </div>
                     </div>
                     {member.hasPaid ? (
                       <div className="flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-green-500" />
-                        <span className="text-sm text-green-600">Оплачено</span>
+                        <span className="text-sm text-green-600">{t('Оплачено')}</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-orange-500" />
-                        <span className="text-sm text-orange-600">Ожидание</span>
+                        <span className="text-sm text-orange-600">{t('Ожидание')}</span>
                       </div>
                     )}
                   </div>
@@ -364,7 +348,7 @@ export default function TeamPurchaseFlow({
                 className="w-full py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] transition-colors flex items-center justify-center gap-2"
               >
                 <CreditCard className="w-5 h-5" />
-                Оплатить мой заказ
+                {t('Оплатить мой заказ')}
               </button>
             )}
 
@@ -373,7 +357,7 @@ export default function TeamPurchaseFlow({
                 onClick={onComplete}
                 className="w-full py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
               >
-                Отправить менеджеру на подтверждение
+                {t('Отправить менеджеру на подтверждение')}
               </button>
             )}
           </div>
@@ -386,9 +370,9 @@ export default function TeamPurchaseFlow({
               <div className="flex items-start gap-3">
                 <Clock className="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-900">Ожидание подтверждения</p>
+                  <p className="font-medium text-yellow-900">{t('Ожидание подтверждения')}</p>
                   <p className="text-sm text-yellow-700 mt-1">
-                    Менеджер проверяет и собирает ваш заказ
+                    {t('Менеджер проверяет и собирает ваш заказ')}
                   </p>
                 </div>
               </div>
@@ -397,15 +381,15 @@ export default function TeamPurchaseFlow({
             {/* Итоги */}
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Участников</span>
+                <span className="text-gray-600">{t('Участников')}</span>
                 <span className="font-medium">{purchase.totalMembers}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Общая сумма</span>
+                <span className="text-gray-600">{t('Общая сумма')}</span>
                 <span className="font-medium">{formatPrice(purchase.totalPaid)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Ваша экономия</span>
+                <span className="text-gray-600">{t('Ваша экономия')}</span>
                 <span className="font-medium text-green-600">~25%</span>
               </div>
             </div>
@@ -419,9 +403,9 @@ export default function TeamPurchaseFlow({
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-900">Закупка завершена!</p>
+                  <p className="font-medium text-green-900">{t('Закупка завершена!')}</p>
                   <p className="text-sm text-green-700 mt-1">
-                    Заказ готов к выдаче. Бонусы начислены.
+                    {t('Заказ готов к выдаче. Бонусы начислены.')}
                   </p>
                 </div>
               </div>
@@ -430,20 +414,20 @@ export default function TeamPurchaseFlow({
             {/* Итоговая статистика */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Участников</p>
+                <p className="text-sm text-gray-600 mb-1">{t('Участников')}</p>
                 <p className="text-2xl font-bold text-[#111]">{purchase.totalMembers}</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Общая сумма</p>
+                <p className="text-sm text-gray-600 mb-1">{t('Общая сумма')}</p>
                 <p className="text-2xl font-bold text-[#111]">{formatPrice(purchase.totalPaid)}</p>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Экономия</p>
+                <p className="text-sm text-gray-600 mb-1">{t('Экономия')}</p>
                 <p className="text-2xl font-bold text-green-600">~25%</p>
               </div>
               <div className="bg-[#D77E6C]/10 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">Бонусы</p>
-                <p className="text-2xl font-bold text-[#D77E6C]">Начислены</p>
+                <p className="text-sm text-gray-600 mb-1">{t('Бонусы')}</p>
+                <p className="text-2xl font-bold text-[#D77E6C]">{t('Начислены')}</p>
               </div>
             </div>
           </div>

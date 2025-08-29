@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { BookOpen, Clock, Play } from 'lucide-react';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type Lesson = { id: number; title: string; durationMin: number; locked?: boolean };
 type Course = { id: number; title: string; desc: string; totalMin: number; lessons: Lesson[]; poster?: string };
@@ -22,8 +23,8 @@ const COURSES: Record<number, Course> = {
       { id: 3, title: 'Базовые сценарии продаж', durationMin: 22 },
       { id: 4, title: 'Частые вопросы клиентов', durationMin: 16 },
       { id: 5, title: 'Итоговый мини-тест', durationMin: 10 },
-      { id: 6, title: 'Доп. материалы и разбор', durationMin: 15 },
-    ],
+      { id: 6, title: 'Доп. материалы и разбор', durationMin: 15 }
+    ]
   },
   2: {
     id: 2,
@@ -37,19 +38,20 @@ const COURSES: Record<number, Course> = {
       { id: 3, title: 'Рекламные связки', durationMin: 31 },
       { id: 4, title: 'Юнит-экономика', durationMin: 26 },
       { id: 5, title: 'План на 30 дней', durationMin: 21 },
-      { id: 6, title: 'Метрики и отчётность', durationMin: 19 },
-    ],
-  },
+      { id: 6, title: 'Метрики и отчётность', durationMin: 19 }
+    ]
+  }
 };
 
-function minToHuman(min: number) {
-  if (min < 60) return `${min} мин`;
+function minToHuman(min: number, t: (k: string) => string) {
+  if (min < 60) return `${min} ${t('мин')}`;
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return m ? `${h} ч ${m} мин` : `${h} часа`;
+  return m ? `${h} ${t('ч')} ${m} ${t('мин')}` : `${h} ${t('ч')}`;
 }
 
 export default function CoursePreviewPage() {
+  const { t } = useTranslate();
   const sp = useSearchParams();
   const idParam = sp?.get('id');
   const titleHint = (sp?.get('title') ?? '').toLowerCase();
@@ -67,17 +69,29 @@ export default function CoursePreviewPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderDE title="Курс" />
+      <MoreHeaderDE title={t('Курс')} />
 
-      {/* Коралловый заголовок (как на макете) */}
+      {/* Коралловый заголовок */}
       <div className="mt-4 bg-[#D77E6C] rounded-2xl p-6 md:p-8 text-white mb-6">
         <div className="max-w-2xl">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Развивайте навыки вместе с Tannur</h1>
-          <p className="text-white/90 text-sm md:text-base">Пройдите обучение и станьте экспертом в продажах косметики</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
+            {t('Развивайте навыки вместе с Tannur')}
+          </h1>
+          <p className="text-white/90 text-sm md:text-base">
+            {t('Пройдите обучение и станьте экспертом в продажах косметики')}
+          </p>
           <div className="flex flex-wrap gap-4 md:gap-6 mt-5">
-            <div className="flex items-center gap-2"><BookOpen className="w-5 h-5" /><span className="text-sm">24 курса</span></div>
-            <div className="flex items-center gap-2"><Clock className="w-5 h-5" /><span className="text-sm">120+ часов</span></div>
-            <div className="flex items-center gap-2"><span className="text-sm">Сертификаты</span></div>
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              <span className="text-sm">{t('24 курса')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              <span className="text-sm">{t('120+ часов')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{t('Сертификаты')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -87,15 +101,19 @@ export default function CoursePreviewPage() {
         <div className="flex items-start gap-4">
           {course.poster && (
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-              <img src={course.poster} alt={course.title} className="w-full h-full object-cover" />
+              <img src={course.poster} alt={t(course.title)} className="w-full h-full object-cover" />
             </div>
           )}
           <div className="flex-1">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{course.title}</h2>
-            <p className="mt-1 text-sm text-gray-600">{course.desc}</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{t(course.title)}</h2>
+            <p className="mt-1 text-sm text-gray-600">{t(course.desc)}</p>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" /> {course.lessons.length} уроков</span>
-              <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {minToHuman(course.totalMin)}</span>
+              <span className="flex items-center gap-1">
+                <BookOpen className="w-4 h-4" /> {course.lessons.length} {t('уроков')}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" /> {minToHuman(course.totalMin, t)}
+              </span>
             </div>
           </div>
         </div>
@@ -103,7 +121,7 @@ export default function CoursePreviewPage() {
 
       {/* 6 уроков на выбор */}
       <div className="mt-4 space-y-3">
-        {lessons.map(lesson => (
+        {lessons.map((lesson) => (
           <Link
             key={lesson.id}
             href={`/dealer/education/courses?id=${course.id}&lesson=${lesson.id}`}
@@ -114,10 +132,14 @@ export default function CoursePreviewPage() {
                 <Play className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-gray-500">Урок {lesson.id} из {course.lessons.length}</div>
-                <div className="text-base font-semibold text-gray-900 truncate">{lesson.title}</div>
+                <div className="text-sm text-gray-500">
+                  {t('Урок {n} из {total}')
+                    .replace('{n}', String(lesson.id))
+                    .replace('{total}', String(course.lessons.length))}
+                </div>
+                <div className="text-base font-semibold text-gray-900 truncate">{t(lesson.title)}</div>
               </div>
-              <div className="text-sm text-gray-600">{minToHuman(lesson.durationMin)}</div>
+              <div className="text-sm text-gray-600">{minToHuman(lesson.durationMin, t)}</div>
             </div>
           </Link>
         ))}
@@ -125,8 +147,11 @@ export default function CoursePreviewPage() {
 
       {/* Кнопка ко всем урокам курса */}
       <div className="mt-6">
-        <Link href={`/dealer/education/courses?id=${course.id}`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-[#D77E6C] hover:text-white rounded-lg text-sm font-medium transition">
-          Открыть страницу курса
+        <Link
+          href={`/dealer/education/courses?id=${course.id}`}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-[#D77E6C] hover:text-white rounded-lg text-sm font-medium transition"
+        >
+          {t('Открыть страницу курса')}
         </Link>
       </div>
     </div>

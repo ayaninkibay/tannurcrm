@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
 import { useUser } from '@/context/UserContext';
-import { useTranslate } from '@/hooks/useTranslate'; // Добавляем импорт
+import { useTranslate, type Lang } from '@/hooks/useTranslate';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 interface MoreHeaderDEProps {
@@ -16,25 +16,32 @@ interface MoreHeaderDEProps {
   showBackButton?: boolean;
 }
 
+type LanguageOption = {
+  code: Lang;
+  name: string;
+  flagSvg: string;
+  short: string;
+  className?: string;
+};
+
 // Данные языков с флагами
-const languages = [
+const languages: LanguageOption[] = [
   { code: 'ru', name: 'Русский', flagSvg: '/icons/ru.svg', short: 'RU', className: 'rounded-full' },
-  { code: 'cn', name: 'China', flagSvg: '/icons/ch.svg', short: 'CN' },
+  { code: 'cn', name: 'China',   flagSvg: '/icons/ch.svg', short: 'CN' },
   { code: 'kz', name: 'Қазақша', flagSvg: '/icons/kz.svg', short: 'KZ' },
 ];
 
 export default function MoreHeader({ title, showBackButton = false }: MoreHeaderDEProps) {
   const { profile, loading, logout } = useUser();
-  const { t, language, changeLanguage } = useTranslate(); // Добавляем хук перевода
+  const { t, language, changeLanguage } = useTranslate();
   const router = useRouter();
   const pathname = usePathname();
   const [name, setName] = useState<string>('Загрузка...');
   const [avatarUrl, setAvatarUrl] = useState<string>('/img/avatar-default.png');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
-  const [languageMenuOpen, setLanguageMenuOpen] = useState<boolean>(false); // Новое состояние для меню языков
+  const [languageMenuOpen, setLanguageMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
 
-  // Получаем текущий язык
   const currentLanguage = languages.find(lang => lang.code === language) || languages[0];
 
   useEffect(() => {
@@ -45,7 +52,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
   }, [profile, loading]);
 
   const handleProfile = () => router.push('/dealer/profile');
-  
+
   const handleSignOut = async () => {
     try {
       setMenuOpen(false);
@@ -57,13 +64,9 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
   const handleBack = () => {
     if (pathname === null) {
-      console.warn("Pathname is null, cannot determine back path.");
       router.back();
       return;
     }
-
-    const pathSegments = pathname.split('/').filter(Boolean);
-
     if (pathname.includes('/shop/')) {
       router.push('/dealer/shop');
     } else if (pathname.includes('/myteam/')) {
@@ -79,20 +82,19 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
     }
   };
 
-  // Обновленный список меню с переводами
+  // Иконки как в Sidebar (пути должны существовать в /public/icons)
   const menuItems = [
-    { label: t('Tannur Главная') || 'Tannur Главная', href: '/', icon: '/icons/company/tannurapp_1.svg' },
-    { label: t('Мой дэшборд') || 'Мой дэшборд', href: '/dealer/dashboard', icon: '/icons/sidebar/homegray.svg', activeIcon: '/icons/sidebar/homewhite.svg' },
-    { label: t('Моя команда') || 'Моя команда', href: '/dealer/myteam', icon: '/icons/sidebar/teamgray.svg', activeIcon: '/icons/sidebar/teamwhite.svg' },
-    { label: t('Мои финансы') || 'Мои финансы', href: '/dealer/stats', icon: '/icons/sidebar/statsgray.svg', activeIcon: '/icons/sidebar/statswhite.svg' },
-    { label: t('Tannur Store') || 'Tannur Store', href: '/dealer/shop', icon: '/icons/sidebar/storegray.svg', activeIcon: '/icons/sidebar/storewhite.svg' },
-    { label: t('Tannur BA') || 'Tannur BA', href: '/dealer/education', icon: '/icons/sidebar/tnbagray.svg', activeIcon: '/icons/sidebar/tnbawhite.svg' },
-    { label: t('Файлы') || 'Файлы', href: '/dealer/documents', icon: '/icons/sidebar/foldergray.svg', activeIcon: '/icons/sidebar/folderwhite.svg' },
+    { label: t('Tannur Главная') || 'Tannur Главная', href: '/',                 icon: '/icons/company/tannurapp_1.svg' },
+    { label: t('Мой дэшборд')    || 'Мой дэшборд',    href: '/dealer/dashboard', icon: '/icons/Icon home gray.png',   activeIcon: '/icons/Icon home white.png' },
+    { label: t('Моя команда')    || 'Моя команда',    href: '/dealer/myteam',    icon: '/icons/Icon share gray.png',  activeIcon: '/icons/Icon share white.png' },
+    { label: t('Мои финансы')    || 'Мои финансы',    href: '/dealer/stats',     icon: '/icons/IconStatsGray.svg',    activeIcon: '/icons/IconStatsOpacity.svg' },
+    { label: t('Tannur Store')   || 'Tannur Store',   href: '/dealer/shop',      icon: '/icons/Icon shop gray.png',   activeIcon: '/icons/Icon shop white.png' },
+    { label: t('Tannur BA')      || 'Tannur BA',      href: '/dealer/education', icon: '/icons/Icon course gray.png', activeIcon: '/icons/Icon course white.png' },
+    { label: t('Файлы')          || 'Файлы',          href: '/dealer/documents', icon: '/icons/Icon docs gray.png',   activeIcon: '/icons/Icon docs white.png' },
   ];
 
-  // Функция смены языка
-  const handleLanguageChange = (langCode: string) => {
-    changeLanguage(langCode);
+  const handleLanguageChange = (langCode: Lang) => {
+    changeLanguage(langCode);        // мгновенный ререндер клиентских компонентов
     setLanguageMenuOpen(false);
   };
 
@@ -104,18 +106,19 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
             <button
               onClick={handleBack}
               className="flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors group"
-              title="Назад"
+              title={t('Назад')}
+              aria-label={t('Назад')}
             >
               <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-[#D77E6C] transition-colors" />
             </button>
           )}
-          
+
           <div className="flex flex-col justify-center">
             <h1 className="text-xl md:text-3xl font-semibold text-[#111] leading-tight truncate max-w-[180px] md:max-w-full">
               {title}
             </h1>
             <p className="text-sm hidden md:block md:text-sm text-gray-400 leading-tight truncate max-w-[200px] md:max-w-full">
-              Tannur Cosmetics © 2025. All Rights Reserved.
+              {t('Tannur Cosmetics © 2025. All Rights Reserved.')}
             </p>
           </div>
         </div>
@@ -126,6 +129,8 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
             <button
               onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
               className="flex items-center gap-1 bg-white rounded-lg px-2 py-1.5 border border-gray-200 hover:bg-gray-50 transition-colors"
+              aria-haspopup="menu"
+              aria-expanded={languageMenuOpen}
             >
               <Image
                 src={currentLanguage.flagSvg}
@@ -133,6 +138,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                 width={20}
                 height={15}
                 className="object-contain rounded-2xl"
+                unoptimized
               />
               <span className="text-sm font-medium text-gray-700 hidden md:block">
                 {currentLanguage.short}
@@ -144,17 +150,16 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
             <AnimatePresence>
               {languageMenuOpen && (
                 <>
-                  {/* Невидимая подложка для закрытия меню */}
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setLanguageMenuOpen(false)}
                   />
-                  
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]"
+                    role="menu"
                   >
                     {languages.map((lang) => (
                       <button
@@ -163,6 +168,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                         className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
                           language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
                         }`}
+                        role="menuitem"
                       >
                         <Image
                           src={lang.flagSvg}
@@ -170,6 +176,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                           width={18}
                           height={13}
                           className="object-contain"
+                          unoptimized
                         />
                         <span className="font-medium">{lang.short}</span>
                         <span className="hidden md:block text-xs text-gray-500">{lang.name}</span>
@@ -187,10 +194,11 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
           >
             <Image
               src={avatarUrl}
-              alt="avatar"
+              alt={t('Аватар')}
               width={28}
               height={28}
               className="rounded-full"
+              unoptimized
             />
             <span className="hidden lg:block text-sm text-[#111] font-medium truncate max-w-[200px]">
               {name}
@@ -201,17 +209,19 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
               width={16}
               height={16}
               className="hidden lg:block"
+              unoptimized
             />
           </button>
 
           <button
             onClick={() => setMenuOpen(true)}
             className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
+            aria-label="Open menu"
           >
             <Lottie
               animationData={hamburgerAnimation}
-              loop={true}
-              autoplay={true}
+              loop
+              autoplay
               className="w-10 h-10"
             />
           </button>
@@ -219,12 +229,15 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
           <button
             onClick={handleSignOut}
             className="w-5 h-5 md:w-6 md:h-6 hidden lg:flex items-center justify-center"
+            aria-label={t('Выйти')}
+            title={t('Выйти')}
           >
             <Image
               src="/icons/buttom/IconSignOut.svg"
-              alt="Выйти"
+              alt={t('Выйти')}
               width={16}
               height={16}
+              unoptimized
             />
           </button>
         </div>
@@ -248,11 +261,13 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
               exit={{ x: '100%' }}
               transition={{ duration: 0.3 }}
               className="fixed top-0 right-0 h-full w-[160%] bg-gray-100 z-50 flex flex-col justify-between p-6 space-y-4 lg:hidden shadow-lg"
+              role="dialog"
+              aria-modal="true"
             >
               <div className="w-full">
                 <div className="w-full flex justify-between items-center mb-4">
-                  <Image src="/icons/company/tannur_black.svg" alt="Логотип" width={70} height={24} />
-                  <button onClick={() => setMenuOpen(false)} className="text-3xl">×</button>
+                  <Image src="/icons/company/tannur_black.svg" alt={t('Логотип')} width={70} height={24} unoptimized />
+                  <button onClick={() => setMenuOpen(false)} className="text-3xl" aria-label="Close">×</button>
                 </div>
                 <div className="w-full h-px bg-gray-300 mt-5 mb-10" />
 
@@ -271,9 +286,10 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                     >
                       <Image
                         src={isActive && activeIcon ? activeIcon : icon}
-                        alt={label}
+                        alt={typeof label === 'string' ? label : ''}
                         width={20}
                         height={20}
+                        unoptimized
                       />
                       <span className="text-base font-medium">{label}</span>
                     </button>
@@ -289,7 +305,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                   {/* Переключатель языка в мобильном меню */}
                   <div className="px-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Image src="/icons/buttom/settingsblack.svg" alt="Язык" width={20} height={20} />
+                      <Image src="/icons/buttom/settingsblack.svg" alt={t('Язык')} width={20} height={20} unoptimized />
                       <span className="text-black font-medium">{t('Язык') || 'Язык'}</span>
                     </div>
                     <div className="flex gap-1 ml-7">
@@ -298,8 +314,8 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                           key={lang.code}
                           onClick={() => handleLanguageChange(lang.code)}
                           className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                            language === lang.code 
-                              ? 'bg-[#D77E6C] text-white' 
+                            language === lang.code
+                              ? 'bg-[#D77E6C] text-white'
                               : 'bg-white text-gray-600 hover:bg-gray-50'
                           }`}
                         >
@@ -309,26 +325,27 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                             width={16}
                             height={12}
                             className="object-contain"
+                            unoptimized
                           />
                           <span>{lang.short}</span>
                         </button>
                       ))}
                     </div>
                   </div>
-                  
-                  <button 
-                    onClick={handleSignOut} 
+
+                  <button
+                    onClick={handleSignOut}
                     className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB]"
                   >
-                    <Image src="/icons/buttom/signout_black.svg" alt="Выйти" width={20} height={20} />
+                    <Image src="/icons/buttom/signout_black.svg" alt={t('Выйти')} width={20} height={20} unoptimized />
                     {t('Выйти') || 'Выйти'}
                   </button>
                 </div>
               </div>
 
               <div className="w-full text-[12px] text-gray-400 text-start mt-auto px-4">
-                Tannur Cosmetics (C) 2025.<br />
-                Created by <span className="text-red-400 cursor-pointer" onClick={() => setShowInqoInfo(true)}>Inqo Technologies</span>.
+                {t('Tannur Cosmetics (C) 2025.')}<br />
+                {t('Создано в')} <span className="text-red-400 cursor-pointer" onClick={() => setShowInqoInfo(true)}>Inqo Technologies</span>.
               </div>
             </motion.div>
           </>
@@ -350,14 +367,15 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.3 }}
+              onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-4 rounded-2xl text-center max-w-xs w-full">
-                  <Image src="/icons/inqo.svg" alt="Inqo Logo" width={48} height={48} className="mx-auto mb-4" />
-                  <h2 className="text-md font-semibold mb-2">
-                    Tannur CRM был разработан в<br />Inqo Technologies
-                  </h2>
-                  <p className="text-sm text-gray-500">www.inqo.tech</p>
-                </div>
+              <div className="p-4 rounded-2xl text-center max-w-xs w-full">
+                <Image src="/icons/inqo.svg" alt="Inqo Logo" width={48} height={48} className="mx-auto mb-4" unoptimized />
+                <h2 className="text-md font-semibold mb-2">
+                  {t('Tannur CRM был разработан в')}<br />Inqo Technologies
+                </h2>
+                <p className="text-sm text-gray-500">www.inqo.tech</p>
+              </div>
             </motion.div>
           </motion.div>
         )}

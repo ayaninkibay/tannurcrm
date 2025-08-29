@@ -1,12 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import MoreHeaderCE from '@/components/header/MoreHeaderCE';
-import ReferalLink from '@/components/blocks/ReferralLink';
-import SponsorCard from '@/components/blocks/SponsorCard';
 import { 
-  User, 
   Mail, 
   Phone, 
   MapPin, 
@@ -20,21 +17,23 @@ import {
   AlertCircle,
   ChevronRight,
   UserCheck,
-  ShoppingBag
+  ShoppingBag,
+  User
 } from 'lucide-react';
 
 // Импорты для работы с пользователем
 import { useUser } from '@/context/UserContext';
-import { userService } from '@/lib/user/UserService';
 import { useUserModule } from '@/lib/user/UserModule'; 
 import { Database } from '@/types/supabase';
 import { supabase } from '@/lib/supabase/client';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 type UserUpdateData = Database['public']['Tables']['users']['Update'];
 
 // Модальное окно смены пароля
 const PasswordModal = ({ isOpen, onClose }: any) => {
+  const { t } = useTranslate();
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
     newPassword: '',
@@ -50,11 +49,11 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
 
   const handleSubmit = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('Новые пароли не совпадают');
+      setError(t('Новые пароли не совпадают'));
       return;
     }
     if (passwordForm.newPassword.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов');
+      setError(t('Пароль должен содержать минимум 6 символов'));
       return;
     }
     
@@ -66,11 +65,11 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
       
       if (error) throw error;
       
-      alert('Пароль успешно изменен');
+      alert(t('Пароль успешно изменен'));
       onClose();
       setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
-      setError(error.message || 'Ошибка при смене пароля');
+    } catch (err: any) {
+      setError(err?.message || t('Ошибка при смене пароля'));
     } finally {
       setLoading(false);
     }
@@ -83,7 +82,7 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
         
         <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Изменить пароль</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('Изменить пароль')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
@@ -96,7 +95,7 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Текущий пароль
+                {t('Текущий пароль')}
               </label>
               <input
                 type="password"
@@ -104,13 +103,13 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
                 value={passwordForm.oldPassword}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Введите текущий пароль"
+                placeholder={t('Введите текущий пароль')}
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Новый пароль
+                {t('Новый пароль')}
               </label>
               <input
                 type="password"
@@ -118,13 +117,13 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
                 value={passwordForm.newPassword}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Минимум 6 символов"
+                placeholder={t('Минимум 6 символов')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Подтвердите новый пароль
+                {t('Подтвердите новый пароль')}
               </label>
               <input
                 type="password"
@@ -132,11 +131,11 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
                 value={passwordForm.confirmPassword}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Повторите новый пароль"
+                placeholder={t('Повторите новый пароль')}
               />
             </div>
 
-            {error && (
+            {!!error && (
               <div className="p-3 bg-red-50 rounded-xl border border-red-200">
                 <p className="text-sm text-red-600">{error}</p>
               </div>
@@ -150,14 +149,14 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
             className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-xl font-medium transition-colors"
             disabled={loading}
           >
-            Отмена
+            {t('Отмена')}
           </button>
           <button
             onClick={handleSubmit}
             className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
             disabled={loading || !passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
           >
-            {loading ? 'Сохранение...' : 'Изменить пароль'}
+            {loading ? t('Сохранение...') : t('Изменить пароль')}
           </button>
         </div>
       </div>
@@ -166,7 +165,9 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
 };
 
 // Модальное окно редактирования
-const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: any) => {
+const EditProfileModal = ({ isOpen, onClose, onSave, form, setForm }: any) => {
+  const { t } = useTranslate();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -178,7 +179,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: a
       <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
         
         <div className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Редактировать профиль</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('Редактировать профиль')}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
@@ -191,46 +192,46 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: a
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Имя
+                {t('Имя')}
               </label>
               <input
                 name="first_name"
                 value={form.first_name}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Введите имя"
+                placeholder={t('Введите имя')}
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Фамилия
+                {t('Фамилия')}
               </label>
               <input
                 name="last_name"
                 value={form.last_name}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Введите фамилию"
+                placeholder={t('Введите фамилию')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Телефон
+                {t('Телефон')}
               </label>
               <input
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="+7 (___) ___-__-__"
+                placeholder={t('+7 (___) ___-__-__')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                E-mail
+                {t('E-mail')}
               </label>
               <input
                 name="email"
@@ -238,33 +239,33 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: a
                 value={form.email}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="example@email.com"
+                placeholder={t('example@email.com')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Город
+                {t('Город')}
               </label>
               <input
                 name="region"
                 value={form.region}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="Введите город"
+                placeholder={t('Введите город')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Instagram
+                {t('Instagram')}
               </label>
               <input
                 name="instagram"
                 value={form.instagram}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#DC7C67] focus:ring-2 focus:ring-[#DC7C67]/20 transition-all"
-                placeholder="@username"
+                placeholder={t('@username')}
               />
             </div>
           </div>
@@ -275,13 +276,13 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: a
             onClick={onClose}
             className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-xl font-medium transition-colors"
           >
-            Отмена
+            {t('Отмена')}
           </button>
           <button
             onClick={onSave}
             className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all"
           >
-            Сохранить
+            {t('Сохранить')}
           </button>
         </div>
       </div>
@@ -290,13 +291,13 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSave, form, setForm }: a
 };
 
 export default function ProfilePage() {
+  const { t } = useTranslate();
   const { profile, loading: userContextLoading } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
   const {
     updateProfile,
     uploadUserAvatar,
-    isLoading: userModuleLoading,
-    error: userModuleError,
+    isLoading: userModuleLoading
   } = useUserModule();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -362,14 +363,14 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!userId) return;
-    
     try {
       await updateProfile(userId, form);
       setIsEditModalOpen(false);
-      alert("Данные успешно сохранены!");
+      alert(t('Данные успешно сохранены!'));
     } catch (error) {
       console.error("Ошибка при сохранении:", error);
-      alert(`Ошибка при сохранении: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      const msg = error instanceof Error ? error.message : t('Неизвестная ошибка');
+      alert(t('Ошибка при сохранении: {message}').replace('{message}', msg));
     }
   };
 
@@ -392,7 +393,7 @@ export default function ProfilePage() {
       <div className="flex justify-center items-center min-h-screen bg-[#F5F5F5]">
         <div className="bg-white rounded-2xl p-8 shadow-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DC7C67] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Загрузка профиля...</p>
+          <p className="mt-4 text-gray-600">{t('Загрузка профиля...')}</p>
         </div>
       </div>
     );
@@ -401,7 +402,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] p-2 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <MoreHeaderCE title="Мой профиль" />
+        <MoreHeaderCE title={t('Мой профиль')} />
 
         <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
           <div className="h-32 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 relative">
@@ -423,7 +424,7 @@ export default function ProfilePage() {
                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer">
                   <div className="text-white text-center">
                     <Camera className="w-8 h-8 mx-auto mb-1" />
-                    <span className="text-xs">Изменить</span>
+                    <span className="text-xs">{t('Изменить')}</span>
                   </div>
                   <input
                     type="file"
@@ -437,17 +438,22 @@ export default function ProfilePage() {
 
               <div className="flex-1 text-center sm:text-left">
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {profile?.first_name || 'Имя'} {profile?.last_name || 'Фамилия'}
+                  {profile?.first_name || t('Имя')} {profile?.last_name || t('Фамилия')}
                 </h1>
-                <p className="text-gray-500 mt-1">ID: <span className="font-mono font-semibold">{profile?.id?.slice(0, 8) || 'N/A'}</span></p>
+                <p className="text-gray-500 mt-1">
+                  {t('ID:')}{' '}
+                  <span className="font-mono font-semibold">
+                    {profile?.id?.slice(0, 8) || t('N/A')}
+                  </span>
+                </p>
                 <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    Активен
+                    {t('Активен')}
                   </span>
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
                     <ShoppingBag className="w-3 h-3" />
-                    Клиент
+                    {t('Клиент')}
                   </span>
                 </div>
               </div>
@@ -457,7 +463,7 @@ export default function ProfilePage() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors font-medium"
               >
                 <Edit2 className="w-4 h-4" />
-                Редактировать
+                {t('Редактировать')}
               </button>
             </div>
 
@@ -465,29 +471,34 @@ export default function ProfilePage() {
               <div className="bg-gray-50 rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <User className="w-4 h-4 text-[#DC7C67]" />
-                  Контактная информация
+                  {t('Контактная информация')}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{profile?.email || 'Не указан'}</span>
+                    <span className="text-sm text-gray-600">{profile?.email || t('Не указан')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{profile?.phone || 'Не указан'}</span>
+                    <span className="text-sm text-gray-600">{profile?.phone || t('Не указан')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{profile?.region || 'Не указан'}</span>
+                    <span className="text-sm text-gray-600">{profile?.region || t('Не указан')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Instagram className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{profile?.instagram || 'Не указан'}</span>
+                    <span className="text-sm text-gray-600">{profile?.instagram || t('Не указан')}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      Регистрация: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                      {t('Регистрация: {date}').replace(
+                        '{date}',
+                        profile?.created_at
+                          ? new Date(profile.created_at).toLocaleDateString()
+                          : t('N/A')
+                      )}
                     </span>
                   </div>
                 </div>
@@ -496,7 +507,7 @@ export default function ProfilePage() {
               <div className="bg-gray-50 rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-[#DC7C67]" />
-                  Безопасность
+                  {t('Безопасность')}
                 </h3>
                 <div className="space-y-3">
                   <button
@@ -505,7 +516,7 @@ export default function ProfilePage() {
                   >
                     <div className="flex items-center gap-3">
                       <Key className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-700">Изменить пароль</span>
+                      <span className="text-sm text-gray-700">{t('Изменить пароль')}</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
                   </button>
@@ -513,7 +524,7 @@ export default function ProfilePage() {
                   <button className="w-full flex items-center justify-between p-3 bg-white rounded-xl hover:shadow-md transition-all group">
                     <div className="flex items-center gap-3">
                       <UserCheck className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-700">Стать дилером</span>
+                      <span className="text-sm text-gray-700">{t('Стать дилером')}</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
                   </button>
@@ -522,7 +533,7 @@ export default function ProfilePage() {
                     <div className="flex gap-2">
                       <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div className="text-xs text-amber-700">
-                        Станьте дилером чтобы получить доступ к специальным ценам и бонусам
+                        {t('Станьте дилером чтобы получить доступ к специальным ценам и бонусам')}
                       </div>
                     </div>
                   </div>
@@ -535,7 +546,6 @@ export default function ProfilePage() {
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={handleCancelEdit}
-          profile={profile}
           onSave={handleSaveProfile}
           form={form}
           setForm={setForm}

@@ -1,33 +1,13 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
-
-type StockmanDraft = {
-  id: string;
-  fullName: string;
-  phone: string;
-  email: string;
-  warehouse?: string;
-  shift?: string;     // смена / график
-  notes?: string;
-
-  responsibilities: string[];
-  warehouses: string[]; // какие склады ведёт
-  isActive: boolean;
-
-  // права
-  canReceive: boolean;
-  canShip: boolean;
-  canAdjustStock: boolean;
-  canViewOrders: boolean;
-  canManageLocations: boolean;
-};
+import SponsorCard from '@/components/blocks/SponsorCard';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export default function CreateRockmakerPage() {
-  const router = useRouter();
+  const { t } = useTranslate();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -69,7 +49,7 @@ export default function CreateRockmakerPage() {
   function save(goBack: boolean) {
     if (!validate()) return;
 
-    const draft: StockmanDraft = {
+    const draft = {
       id: Date.now().toString(),
       fullName: fullName.trim(),
       phone: phone.trim(),
@@ -90,61 +70,119 @@ export default function CreateRockmakerPage() {
       localStorage.setItem(key, JSON.stringify(list));
     } catch {}
 
-    if (goBack) router.push('/admin/teamcontent');
+    if (goBack) window.location.href = '/admin/teamcontent';
   }
 
-  const isValid = useMemo(()=>fullName.trim() && phone.trim() && email.trim(), [fullName, phone, email]);
+  const isValid = !!(fullName.trim() && phone.trim() && email.trim());
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title="Создать складовщика" 
-      showBackButton={true}
+      <MoreHeaderAD
+        title={
+          <span>
+            <span className="text-gray-400">Tannur</span>
+            <span className="mx-1 text-[#111]">/</span>
+            <span className="text-[#111]">{t('Создать складовщика')}</span>
+          </span>
+        }
+        showBackButton={true}
       />
 
       <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm text-gray-700">ФИО *</span>
-            <input value={fullName} onChange={e=>setFullName(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="ФИО"/>
-            {errors.fullName && <div className="text-xs text-red-500 mt-1">{errors.fullName}</div>}
+            <span className="text-sm text-gray-700">{t('ФИО *')}</span>
+            <input
+              value={fullName}
+              onChange={e=>setFullName(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('ФИО')}
+            />
+            {errors.fullName && <div className="text-xs text-red-500 mt-1">{t(errors.fullName)}</div>}
           </label>
+
           <label className="block">
-            <span className="text-sm text-gray-700">Телефон *</span>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="+7 ..."/>
-            {errors.phone && <div className="text-xs text-red-500 mt-1">{errors.phone}</div>}
+            <span className="text-sm text-gray-700">{t('Телефон *')}</span>
+            <input
+              value={phone}
+              onChange={e=>setPhone(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('+7 ...')}
+            />
+            {errors.phone && <div className="text-xs text-red-500 mt-1">{t(errors.phone)}</div>}
           </label>
+
           <label className="block">
-            <span className="text-sm text-gray-700">E-mail *</span>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="mail@domain.kz"/>
-            {errors.email && <div className="text-xs text-red-500 mt-1">{errors.email}</div>}
+            <span className="text-sm text-gray-700">{t('E-mail *')}</span>
+            <input
+              type="email"
+              value={email}
+              onChange={e=>setEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('mail@domain.kz')}
+            />
+            {errors.email && <div className="text-xs text-red-500 mt-1">{t(errors.email)}</div>}
           </label>
+
           <label className="block">
-            <span className="text-sm text-gray-700">Основной склад</span>
-            <input value={warehouse} onChange={e=>setWarehouse(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Алматы / Склад №1"/>
+            <span className="text-sm text-gray-700">{t('Основной склад')}</span>
+            <input
+              value={warehouse}
+              onChange={e=>setWarehouse(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Алматы / Склад №1')}
+            />
           </label>
+
           <label className="block">
-            <span className="text-sm text-gray-700">График / смена</span>
-            <input value={shift} onChange={e=>setShift(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="5/2, 9:00–18:00"/>
+            <span className="text-sm text-gray-700">{t('График / смена')}</span>
+            <input
+              value={shift}
+              onChange={e=>setShift(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('5/2, 9:00–18:00')}
+            />
           </label>
+
           <label className="block md:col-span-2">
-            <span className="text-sm text-gray-700">Заметки</span>
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Особенности склада, пропуска и т.д."/>
+            <span className="text-sm text-gray-700">{t('Заметки')}</span>
+            <textarea
+              value={notes}
+              onChange={e=>setNotes(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Особенности склада, пропуска и т.д.')}
+            />
           </label>
         </div>
 
         {/* обязанности */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Обязанности</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Обязанности')}</div>
           <div className="flex gap-2">
-            <input value={respInput} onChange={e=>setRespInput(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setResponsibilities, respInput, ()=>setRespInput(''))}}} className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Приём/отгрузка, инвентаризация…"/>
-            <button type="button" onClick={()=>add(setResponsibilities, respInput, ()=>setRespInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Добавить пункт</button>
+            <input
+              value={respInput}
+              onChange={e=>setRespInput(e.target.value)}
+              onKeyDown={(e)=>{ if(e.key==='Enter'){ e.preventDefault(); add(setResponsibilities, respInput, ()=>setRespInput('')); } }}
+              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Приём/отгрузка, инвентаризация…')}
+            />
+            <button
+              type="button"
+              onClick={()=>add(setResponsibilities, respInput, ()=>setRespInput(''))}
+              className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+            >
+              {t('Добавить пункт')}
+            </button>
           </div>
           {!!responsibilities.length && (
             <ul className="mt-3 space-y-2">
               {responsibilities.map((o,i)=>(
                 <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-sm text-gray-800">{o}</span>
-                  <button type="button" onClick={()=>remove(setResponsibilities,i)} className="text-xs text-gray-500 hover:text-gray-700">Удалить</button>
+                  <button type="button" onClick={()=>remove(setResponsibilities,i)} className="text-xs text-gray-500 hover:text-gray-700">
+                    {t('Удалить')}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -153,10 +191,18 @@ export default function CreateRockmakerPage() {
 
         {/* дополнительные склады */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Дополнительные склады</div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Дополнительные склады')}</div>
           <div className="flex gap-2">
-            <input value={whInput} onChange={e=>setWhInput(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'){e.preventDefault();add(setWarehouses, whInput, ()=>setWhInput(''))}}} className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]" placeholder="Склад №2 / Астана…"/>
-            <button type="button" onClick={()=>add(setWarehouses, whInput, ()=>setWhInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">Добавить</button>
+            <input
+              value={whInput}
+              onChange={e=>setWhInput(e.target.value)}
+              onKeyDown={(e)=>{ if(e.key==='Enter'){ e.preventDefault(); add(setWarehouses, whInput, ()=>setWhInput('')); } }}
+              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
+              placeholder={t('Склад №2 / Астана…')}
+            />
+            <button type="button" onClick={()=>add(setWarehouses, whInput, ()=>setWhInput(''))} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
+              {t('Добавить')}
+            </button>
           </div>
           {!!warehouses.length && (
             <div className="flex flex-wrap gap-2 mt-3">
@@ -172,19 +218,25 @@ export default function CreateRockmakerPage() {
 
         {/* права */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canReceive} onChange={e=>setCanReceive(e.target.checked)} /> Приём товара</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canShip} onChange={e=>setCanShip(e.target.checked)} /> Отгрузка</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canAdjustStock} onChange={e=>setCanAdjustStock(e.target.checked)} /> Коррекция остатков</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canViewOrders} onChange={e=>setCanViewOrders(e.target.checked)} /> Просмотр заказов</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canManageLocations} onChange={e=>setCanManageLocations(e.target.checked)} /> Управление ячейками</label>
-          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={isActive} onChange={e=>setIsActive(e.target.checked)} /> Активен</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canReceive} onChange={e=>setCanReceive(e.target.checked)} /> {t('Приём товара')}</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canShip} onChange={e=>setCanShip(e.target.checked)} /> {t('Отгрузка')}</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canAdjustStock} onChange={e=>setCanAdjustStock(e.target.checked)} /> {t('Коррекция остатков')}</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canViewOrders} onChange={e=>setCanViewOrders(e.target.checked)} /> {t('Просмотр заказов')}</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={canManageLocations} onChange={e=>setCanManageLocations(e.target.checked)} /> {t('Управление ячейками')}</label>
+          <label className="inline-flex items-center gap-2 text-sm text-gray-800"><input type="checkbox" checked={isActive} onChange={e=>setIsActive(e.target.checked)} /> {t('Активен')}</label>
         </div>
 
         {/* действия */}
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={()=>save(false)} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">Сохранить черновик</button>
-          <button type="button" disabled={!isValid} onClick={()=>save(true)} className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium">Сохранить и выйти</button>
-          <Link href="/admin/teamcontent" className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">Отмена</Link>
+          <button type="button" onClick={()=>save(false)} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+            {t('Сохранить черновик')}
+          </button>
+          <button type="button" disabled={!isValid} onClick={()=>save(true)} className="px-4 py-2.5 bg-[#DC7C67] hover:bg-[#c96d59] disabled:opacity-60 text-white rounded-lg text-sm font-medium">
+            {t('Сохранить и выйти')}
+          </button>
+          <a href="/admin/teamcontent" className="ml-auto px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+            {t('Отмена')}
+          </a>
         </div>
       </div>
     </div>

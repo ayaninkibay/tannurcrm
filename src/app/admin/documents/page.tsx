@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import Footer from '@/components/Footer';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface FileItem {
   name: string;
@@ -19,6 +20,8 @@ interface FileCategory {
 }
 
 export default function DocumentsPage() {
+  const { t } = useTranslate();
+
   const [categories, setCategories] = useState<FileCategory[]>([
     {
       id: 'training',
@@ -30,7 +33,7 @@ export default function DocumentsPage() {
         { id: '3', name: 'Tannur_obuchenie.pdf', size: '3.2 MB' },
         { id: '4', name: 'Tannur_Almaty.pdf', size: '1.5 MB' },
         { id: '5', name: 'Tannur_znanie.pdf', size: '2.1 MB' },
-        { id: '6', name: 'Tannur_obuchenie.pdf', size: '1.9 MB' },
+        { id: '6', name: 'Tannur_obuchenie.pdf', size: '1.9 MB' }
       ]
     },
     {
@@ -40,7 +43,7 @@ export default function DocumentsPage() {
       files: [
         { id: '7', name: 'Tannur_Marketing_obuchenie.pdf', size: '4.2 MB' },
         { id: '8', name: 'Tannur_Marketing_obuchenie.pdf', size: '3.8 MB' },
-        { id: '9', name: 'Tannur_obuchenie.pdf', size: '2.9 MB' },
+        { id: '9', name: 'Tannur_obuchenie.pdf', size: '2.9 MB' }
       ]
     },
     {
@@ -51,7 +54,7 @@ export default function DocumentsPage() {
         { id: '10', name: 'Tannur_Marketing_obuchenie.pdf', size: '1.7 MB' },
         { id: '11', name: 'Tannur_Marketing_obuchenie.pdf', size: '2.3 MB' },
         { id: '12', name: 'Tannur_obuchenie.pdf', size: '1.4 MB' },
-        { id: '13', name: 'Tannur_Almaty.pdf', size: '3.1 MB' },
+        { id: '13', name: 'Tannur_Almaty.pdf', size: '3.1 MB' }
       ]
     }
   ]);
@@ -64,13 +67,13 @@ export default function DocumentsPage() {
 
     const newFiles: FileItem[] = Array.from(files).map((file, index) => ({
       id: `${Date.now()}-${index}`,
-      name: file.name,
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      name: file.name, // показываем через t() в рендере
+      size: `${(file.size / (1024 * 1024)).toFixed(1)} ${t('MB')}`
     }));
 
-    setCategories(prev => 
-      prev.map(category => 
-        category.id === categoryId 
+    setCategories(prev =>
+      prev.map(category =>
+        category.id === categoryId
           ? { ...category, files: [...category.files, ...newFiles] }
           : category
       )
@@ -117,18 +120,18 @@ export default function DocumentsPage() {
     >
       <input
         ref={(el) => {
-  fileInputRefs.current[categoryId] = el;
-}}
+          fileInputRefs.current[categoryId] = el;
+        }}
         type="file"
         multiple
         className="hidden"
         onChange={(e) => handleFileUpload(categoryId, e.target.files)}
         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.avi,.mov"
       />
-      
+
       <div className="flex flex-col items-center gap-2">
         <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
         </div>
@@ -142,9 +145,9 @@ export default function DocumentsPage() {
         {category.iconSrc && (
           <Image src={category.iconSrc} alt="icon" width={18} height={18} />
         )}
-        {category.title}
+        {t(category.title)}
       </h2>
-      
+
       <div className="flex flex-col gap-3">
         {category.files.map((file) => (
           <div
@@ -161,7 +164,7 @@ export default function DocumentsPage() {
               />
               <div className="min-w-0 flex-1">
                 <span className="text-xs sm:text-sm text-gray-800 truncate block">
-                  {file.name}
+                  {t(file.name)}
                 </span>
                 {file.size && (
                   <span className="text-xs text-gray-500">
@@ -170,20 +173,21 @@ export default function DocumentsPage() {
                 )}
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 ml-2">
-                            {/* Кнопка удаления */}
-              <button 
+              {/* Кнопка удаления */}
+              <button
                 onClick={() => handleDeleteFile(category.id, file.id)}
                 className="p-1 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+                aria-label="delete"
               >
-                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
-              
+
               {/* Кнопка скачивания */}
-              <button className="p-1 hover:bg-gray-300 rounded transition-colors">
+              <button className="p-1 hover:bg-gray-300 rounded transition-colors" aria-label="download">
                 <Image
                   src="/icons/Icon download.png"
                   alt="download"
@@ -191,12 +195,10 @@ export default function DocumentsPage() {
                   height={14}
                 />
               </button>
-              
-
             </div>
           </div>
         ))}
-        
+
         {/* Область для добавления файлов */}
         <FileUploadArea categoryId={category.id} />
       </div>
@@ -207,7 +209,7 @@ export default function DocumentsPage() {
     <div className="space-y-4 sm:space-y-8 p-2 md:p-6 relative">
       {/* Контент */}
       <div className="flex-1 flex flex-col gap-4 sm:gap-6">
-        <MoreHeaderAD title="Документы Tannur" />
+        <MoreHeaderAD title={t('Документы Tannur')} />
 
         {/* Блоки с файлами как grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -218,7 +220,7 @@ export default function DocumentsPage() {
           ))}
         </div>
       </div>
-      
+
     </div>
   );
 }

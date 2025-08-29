@@ -11,6 +11,7 @@ import { TEAM_PURCHASE_RULES } from '@/lib/team-purchase/BusinessRules';
 import { teamPurchaseCartService } from '@/lib/team-purchase/TeamPurchaseCartService';
 import TeamPurchaseCheckout from './TeamPurchaseCheckout';
 import type { Product, TeamPurchaseCart } from '@/types';
+import { useTranslate } from '@/hooks/useTranslate';
 
 // Локальный тип для корзины
 interface LocalCartItem {
@@ -34,6 +35,8 @@ export default function TeamPurchaseProductSelector({
   onClose,
   onCheckout
 }: TeamPurchaseProductSelectorProps) {
+  const { t } = useTranslate();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +74,7 @@ export default function TeamPurchaseProductSelector({
       setProducts(data || []);
     } catch (error) {
       console.error('Error loading products:', error);
-      toast.error('Ошибка загрузки товаров');
+      toast.error(t('Ошибка загрузки товаров'));
     } finally {
       setLoading(false);
     }
@@ -84,7 +87,7 @@ export default function TeamPurchaseProductSelector({
         .select('category')
         .eq('is_active', true);
 
-      if (error) throw error;
+    if (error) throw error;
 
       const uniqueCategories = [...new Set(data?.map(p => p.category).filter(Boolean))];
       setCategories(uniqueCategories);
@@ -139,7 +142,7 @@ export default function TeamPurchaseProductSelector({
         total: price * quantity
       };
       setLocalCart([...localCart, newItem]);
-      toast.success('Товар добавлен в корзину');
+      toast.success(t('Товар добавлен в корзину'));
     }
   };
 
@@ -162,19 +165,19 @@ export default function TeamPurchaseProductSelector({
   // Удаление из локальной корзины
   const removeFromCart = (productId: string) => {
     setLocalCart(prevCart => prevCart.filter(item => item.id !== productId));
-    toast.success('Товар удален из корзины');
+    toast.success(t('Товар удален из корзины'));
   };
 
   // Очистка корзины
   const clearCart = () => {
     setLocalCart([]);
-    toast.success('Корзина очищена');
+    toast.success(t('Корзина очищена'));
   };
 
   // Сохранение корзины в БД и переход к оплате
   const handleCheckout = async () => {
     if (!canCheckout) {
-      toast.error(`Минимальная сумма заказа ${formatPrice(MIN_PURCHASE)}`);
+      toast.error(t('Минимальная сумма заказа {amount}').replace('{amount}', formatPrice(MIN_PURCHASE)));
       return;
     }
 
@@ -211,12 +214,12 @@ export default function TeamPurchaseProductSelector({
       }
 
       setSavedCart(cartItems);
-      toast.success('Корзина сохранена!');
+      toast.success(t('Корзина сохранена!'));
       setShowCheckout(true);
 
     } catch (error) {
       console.error('Error saving cart:', error);
-      toast.error('Ошибка сохранения корзины');
+      toast.error(t('Ошибка сохранения корзины'));
     } finally {
       setIsSaving(false);
     }
@@ -258,9 +261,10 @@ export default function TeamPurchaseProductSelector({
             {/* Заголовок */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-[#111]">Выберите товары для закупки</h2>
+                <h2 className="text-2xl font-bold text-[#111]">{t('Выберите товары для закупки')}</h2>
                 <button
                   onClick={onClose}
+                  aria-label={t('Закрыть')}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5 text-gray-500" />
@@ -270,7 +274,7 @@ export default function TeamPurchaseProductSelector({
               {/* Индикатор минимальной суммы */}
               <div className="mt-4 bg-white rounded-lg p-4 border border-gray-200">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-600">Прогресс к минимальной сумме</span>
+                  <span className="text-sm text-gray-600">{t('Прогресс к минимальной сумме')}</span>
                   <span className="text-sm font-medium text-[#111]">
                     {formatPrice(cartTotal)} / {formatPrice(MIN_PURCHASE)}
                   </span>
@@ -287,12 +291,12 @@ export default function TeamPurchaseProductSelector({
                 </div>
                 {remainingToMin > 0 ? (
                   <p className="text-sm text-orange-600 mt-2">
-                    ⚠️ Добавьте товаров на {formatPrice(remainingToMin)} для оформления заказа
+                    ⚠️ {t('Добавьте товаров на {amount} для оформления заказа').replace('{amount}', formatPrice(remainingToMin))}
                   </p>
                 ) : (
                   <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                     <Check className="w-4 h-4" />
-                    Минимальная сумма достигнута! Можно оформлять заказ
+                    {t('Минимальная сумма достигнута! Можно оформлять заказ')}
                   </p>
                 )}
               </div>
@@ -309,7 +313,7 @@ export default function TeamPurchaseProductSelector({
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        placeholder="Поиск товаров..."
+                        placeholder={t('Поиск товаров...')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
@@ -321,7 +325,7 @@ export default function TeamPurchaseProductSelector({
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
                     >
-                      <option value="all">Все категории</option>
+                      <option value="all">{t('Все категории')}</option>
                       {categories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
@@ -361,7 +365,7 @@ export default function TeamPurchaseProductSelector({
                             </div>
                             {isInCart && (
                               <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                                В корзине
+                                {t('В корзине')}
                               </div>
                             )}
                           </div>
@@ -407,7 +411,7 @@ export default function TeamPurchaseProductSelector({
                                   onClick={() => removeFromCart(product.id)}
                                   className="text-red-600 hover:text-red-700 text-sm font-medium"
                                 >
-                                  Удалить
+                                  {t('Удалить')}
                                 </button>
                               </div>
                             ) : (
@@ -415,7 +419,7 @@ export default function TeamPurchaseProductSelector({
                                 onClick={() => addToCart(product)}
                                 className="w-full py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors"
                               >
-                                В корзину
+                                {t('В корзину')}
                               </button>
                             )}
                           </div>
@@ -431,14 +435,14 @@ export default function TeamPurchaseProductSelector({
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-[#111] flex items-center gap-2">
                     <ShoppingCart className="w-5 h-5" />
-                    Корзина ({localCart.length})
+                    {t('Корзина ({n})').replace('{n}', String(localCart.length))}
                   </h3>
                   {localCart.length > 0 && (
                     <button
                       onClick={clearCart}
                       className="text-sm text-red-600 hover:text-red-700"
                     >
-                      Очистить
+                      {t('Очистить')}
                     </button>
                   )}
                 </div>
@@ -448,7 +452,7 @@ export default function TeamPurchaseProductSelector({
                   {localCart.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <ShoppingCart className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p>Корзина пуста</p>
+                      <p>{t('Корзина пуста')}</p>
                     </div>
                   ) : (
                     localCart.map(item => (
@@ -492,7 +496,7 @@ export default function TeamPurchaseProductSelector({
                 {/* Итого и кнопка оплаты */}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-lg font-semibold text-[#111]">Итого:</span>
+                    <span className="text-lg font-semibold text-[#111]">{t('Итого:')}</span>
                     <span className="text-2xl font-bold text-[#D77E6C]">
                       {formatPrice(cartTotal)}
                     </span>
@@ -510,19 +514,19 @@ export default function TeamPurchaseProductSelector({
                     {isSaving ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                        Сохранение...
+                        {t('Сохранение...')}
                       </>
                     ) : (
                       <>
                         <CreditCard className="w-5 h-5" />
-                        Перейти к оплате
+                        {t('Перейти к оплате')}
                       </>
                     )}
                   </button>
 
                   {!canCheckout && (
                     <p className="text-xs text-center text-orange-600 mt-2">
-                      Добавьте товаров на {formatPrice(remainingToMin)}
+                      {t('Добавьте товаров на {amount}').replace('{amount}', formatPrice(remainingToMin))}
                     </p>
                   )}
                 </div>

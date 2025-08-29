@@ -4,23 +4,21 @@ import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { TeamMember } from '@/components/product/TeamMemberRow';
-import TannurButton from '@/components/Button'
+import TannurButton from '@/components/Button';
 
-
-// отдельные строки для каждого типа
-// вместо '@/components/team/...'
 import DealerRow from '@/components/reports/teamtannur/dealer';
 import CelebrityRow from '@/components/reports/teamtannur/celebrity';
 import EmployeeRow from '@/components/reports/teamtannur/employee';
+import { useTranslate } from '@/hooks/useTranslate';
 
 type TabId = 'dealers' | 'stars' | 'employees';
 
 export default function Team() {
+  const { t } = useTranslate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<TabId>('dealers');
 
-  // ======= ДАННЫЕ =======
-  // дилеры
+  // ======= ДАННЫЕ (моки выводим через t(...)) =======
   const dealers: TeamMember[] = [
     { id: 'KZ868970', name: 'Ани Иманбай',   profession: 'Доктор',   date: '22-02-2025', status: 'active',  commands: 8  },
     { id: 'KZ868971', name: 'Томирис Снок',  profession: 'Business', date: '22-02-2025', status: 'active',  commands: 23 },
@@ -28,15 +26,13 @@ export default function Team() {
     { id: 'KZ868973', name: 'Томирис Снок',  profession: 'Business', date: '22-02-2025', status: 'active',  commands: 84 },
   ];
 
-  // звезды
   const stars: TeamMember[] = [
     { id: 'KZ900001', name: 'Інжу Ануарбек', profession: 'Певица',     date: '05-01-2025', status: 'active', commands: 5  },
     { id: 'KZ900002', name: 'Самал Толеп',   profession: 'Актриса',    date: '10-01-2025', status: 'active', commands: 2  },
     { id: 'KZ900003', name: 'Ержан Бек',     profession: 'Блогер',     date: '12-01-2025', status: 'active', commands: 11 },
-    { id: 'HR0001', name: 'Айдос Нурсеитов', profession: 'HR',           date: '15-01-2025', status: 'active',  commands: 1 },
+    { id: 'HR0001',   name: 'Айдос Нурсеитов', profession: 'HR',       date: '15-01-2025', status: 'active', commands: 1  },
   ];
 
-  // сотрудники
   const employees: TeamMember[] = [
     { id: 'HR0001', name: 'Айдос Нурсеитов', profession: 'HR',           date: '15-01-2025', status: 'active',  commands: 1 },
     { id: 'FN0002', name: 'Асел Абдуллина',  profession: 'Финансист',    date: '18-01-2025', status: 'active',  commands: 1 },
@@ -44,14 +40,12 @@ export default function Team() {
     { id: 'MG0004', name: 'Жанар Садыкова',  profession: 'Менеджер',     date: '21-01-2025', status: 'active',  commands: 4 },
   ];
 
-  // карта заголовков
   const tabTitle: Record<TabId, string> = {
     dealers: 'Дилеры',
     stars: 'Звезды',
     employees: 'Сотрудники',
   };
 
-  // для карточек со статистикой — берём реальные количества
   const statsData = [
     {
       id: 'dealers' as const,
@@ -94,21 +88,32 @@ export default function Team() {
     }
   }, [selectedTab]);
 
-  // фильтрация поиска поверх выбранного набора
+  // фильтрация поиска (safe для undefined)
   const filteredMembers = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return currentData.filter((m) =>
-      (m.name && m.name.toLowerCase().includes(q)) ||
-      (m.profession && m.profession.toLowerCase().includes(q)) ||
-      (m.id && m.id.toLowerCase().includes(q))
-    );
+    return currentData.filter((m) => {
+      const name = (m.name ?? '').toLowerCase();
+      const prof = (m.profession ?? '').toLowerCase();
+      const id   = (m.id ?? '').toLowerCase();
+      return name.includes(q) || prof.includes(q) || id.includes(q);
+    });
   }, [currentData, searchQuery]);
+
+  // отображаемые данные — моки через t() (safe для undefined)
+  const displayedMembers = useMemo(
+    () =>
+      filteredMembers.map((m) => ({
+        ...m,
+        name: t(m.name ?? ''),
+        profession: t(m.profession ?? ''),
+      })),
+    [filteredMembers, t]
+  );
 
   const handleMemberClick = (member: TeamMember) => {
     console.log('Clicked member:', member);
   };
 
-  // карточка статистики
   const StatCard = ({
     data,
     isActive = false,
@@ -129,9 +134,9 @@ export default function Team() {
               isActive ? data.bgColor : 'bg-gray-100'
             }`}
           >
-            <Image src={data.icon} alt={data.title} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Image src={data.icon} alt={t(data.title)} width={16} height={16} className="w-3 h-3 sm:w-4 sm:h-4" />
           </div>
-          <span className="text-gray-600 text-xs sm:text-sm font-medium">{data.title}</span>
+          <span className="text-gray-600 text-xs sm:text-sm font-medium">{t(data.title)}</span>
         </div>
         <div
           className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center ${
@@ -144,49 +149,30 @@ export default function Team() {
 
       <div className="text-center">
         <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-4 bg-gray-50 rounded-full flex items-center justify-center">
-          <Image src={data.icon} alt={data.title} width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6 opacity-40" />
+          <Image src={data.icon} alt={t(data.title)} width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6 opacity-40" />
         </div>
         <div className="text-lg sm:text-2xl font-bold text-gray-900 mb-1">
           {data.count.toLocaleString()}{' '}
-          <span className="text-xs sm:text-sm font-normal text-gray-500">человек</span>
+          <span className="text-xs sm:text-sm font-normal text-gray-500">{t('человек')}</span>
         </div>
-        <div className="text-xs text-gray-400">{data.subtitle}</div>
+        <div className="text-xs text-gray-400">{t(data.subtitle)}</div>
       </div>
     </div>
-  );
-
-  const ActionButton = ({ action, index }: { action: string; index: number }) => (
-    <button
-      key={index}
-      className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors group"
-    >
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[#DC7C67] rounded-md flex items-center justify-center">
-          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </div>
-        <span className="text-xs sm:text-sm text-gray-700 font-medium">{action}</span>
-      </div>
-      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
   );
 
   return (
     <div className="w-full h-full">
       <header className="p-1 md:p-6">
-        <MoreHeaderAD title="Команда Tannur" />
+        <MoreHeaderAD title={t('Команда Tannur')} />
       </header>
 
       <div className="px-3 sm:px-6">
         {/* Верх: поиск + карточки статов + действия */}
         <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
-          {/* Поиск + стааты */}
+          {/* Поиск + статы */}
           <div className="lg:col-span-3 xl:col-span-2 space-y-3 sm:space-y-6">
             <div className="bg-white rounded-2xl p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Поиск пользователя</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">{t('Поиск пользователя')}</h3>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +181,7 @@ export default function Team() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Имя, номер, email"
+                  placeholder={t('Имя, номер, email')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 bg-gray-50 border-0 rounded-xl text-sm placeholder-gray-500 focus:ring-2 focus:ring-[#DC7C67] focus:bg-white transition-all"
@@ -211,55 +197,47 @@ export default function Team() {
           </div>
 
           {/* Действия */}
-{/* Right: User Actions */}
-<div className="lg:col-span-1 xl:col-span-1">
-  <div className=" h-full w-full sm:p-3">
-
-
-    <div className="space-y-2 sm:space-y-3 mt-3">
-      <TannurButton
-        text="Создать дилера"
-        href="/admin/teamcontent/create_dealer"
-        iconSrc="/icons/iconusersorange.svg"
-        variant="white"
-        arrow="black"
-      />
-
-      <TannurButton
-        text="Создать знаменитость"
-        href="/admin/teamcontent/create_star"
-        iconSrc="/icons/iconusersorange.svg"
-        variant="white"
-        arrow="black"
-      />
-
-      <TannurButton
-        text="Создать менеджера"
-        href="/admin/teamcontent/create_manager"
-        iconSrc="/icons/iconusersorange.svg"
-        variant="white"
-        arrow="black"
-      />
-
-      <TannurButton
-        text="Создать финансиста"
-        href="/admin/teamcontent/create_financier"
-        iconSrc="/icons/iconusersorange.svg"
-        variant="white"
-        arrow="black"
-      />
-
-      <TannurButton
-        text="Создать складовщика"
-        href="/admin/teamcontent/create_rockmaker"
-        iconSrc="/icons/iconusersorange.svg"
-        variant="white"
-        arrow="black"
-      />
-    </div>
-  </div>
-</div>
-
+          <div className="lg:col-span-1 xl:col-span-1">
+            <div className="h-full w-full sm:p-3">
+              <div className="space-y-2 sm:space-y-3 mt-3">
+                <TannurButton
+                  text={t('Создать дилера')}
+                  href="/admin/teamcontent/create_dealer"
+                  iconSrc="/icons/iconusersorange.svg"
+                  variant="white"
+                  arrow="black"
+                />
+                <TannurButton
+                  text={t('Создать знаменитость')}
+                  href="/admin/teamcontent/create_star"
+                  iconSrc="/icons/iconusersorange.svg"
+                  variant="white"
+                  arrow="black"
+                />
+                <TannurButton
+                  text={t('Создать менеджера')}
+                  href="/admin/teamcontent/create_manager"
+                  iconSrc="/icons/iconusersorange.svg"
+                  variant="white"
+                  arrow="black"
+                />
+                <TannurButton
+                  text={t('Создать финансиста')}
+                  href="/admin/teamcontent/create_financier"
+                  iconSrc="/icons/iconusersorange.svg"
+                  variant="white"
+                  arrow="black"
+                />
+                <TannurButton
+                  text={t('Создать складовщика')}
+                  href="/admin/teamcontent/create_rockmaker"
+                  iconSrc="/icons/iconusersorange.svg"
+                  variant="white"
+                  arrow="black"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Табличный блок */}
@@ -268,12 +246,12 @@ export default function Team() {
           <div className="p-4 sm:p-6 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                {tabTitle[selectedTab]} {filteredMembers.length} человек
+                {t(tabTitle[selectedTab])} {filteredMembers.length} {t('человек')}
               </h3>
               <div className="flex items-center gap-2">
-                <button className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                <button className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors" aria-label="filter">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707л-6.414 6.414a1 1 0 00-.293.707V17л-4 4v-6.586a1 1 0 00-.293-.707Л3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 </button>
               </div>
@@ -286,29 +264,29 @@ export default function Team() {
               <thead>
                 <tr>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Имя
+                    {t('Имя')}
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                    Профессия
+                    {t('Профессия')}
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Дата
+                    {t('Дата')}
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    ID
+                    {t('ID')}
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Команда
+                    {t('Команда')}
                   </th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
+                    {t('Статус')}
                   </th>
                 </tr>
               </thead>
 
               <tbody className="bg-white divide-y divide-gray-100">
-                {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member, i) => {
+                {displayedMembers.length > 0 ? (
+                  displayedMembers.map((member, i) => {
                     const key = `${member.id}-${i}`;
                     if (selectedTab === 'dealers')
                       return <DealerRow key={key} member={member} onClick={handleMemberClick} />;
@@ -325,6 +303,7 @@ export default function Team() {
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -333,8 +312,8 @@ export default function Team() {
                             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                           />
                         </svg>
-                        <p className="text-sm">Участники не найдены</p>
-                        <p className="text-xs text-gray-400 mt-1">Попробуйте изменить критерии поиска</p>
+                        <p className="text-sm">{t('Участники не найдены')}</p>
+                        <p className="text-xs text-gray-400 mt-1">{t('Попробуйте изменить критерии поиска')}</p>
                       </div>
                     </td>
                   </tr>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useTranslate } from '@/hooks/useTranslate';
 
 const celebrityNavItems = [
   {
@@ -28,7 +29,8 @@ const celebrityNavItems = [
 ];
 
 export default function SidebarCelebrity() {
- const pathname = usePathname() ?? '';
+  const { t } = useTranslate();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -85,11 +87,11 @@ export default function SidebarCelebrity() {
           rounded-xl flex items-center justify-center transition-all
           ${pathname.startsWith('/celebrity') ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
         `}
-        title="Dashboard Селебрити"
+        title={t('Dashboard Селебрити')}
       >
         <Image
           src="/icons/company/tannur_black.svg"
-          alt="Tannur"
+          alt={t('Tannur')}
           width={70}
           height={70}
         />
@@ -131,14 +133,14 @@ export default function SidebarCelebrity() {
                   rounded-xl flex items-center justify-center
                   transition-all hover:bg-[#00000011]
                 "
-                title={item.label}
+                title={t(item.label)}
               >
                 {loadingIndex === idx ? (
                   <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
                 ) : (
                   <Image
                     src={isActive ? item.iconGray : item.icon}
-                    alt={item.label}
+                    alt={t(item.label)}
                     width={24}
                     height={24}
                     style={{

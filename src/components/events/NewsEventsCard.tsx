@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface NewsEvent {
   id: string;
@@ -56,6 +57,7 @@ export default function NewsEventsCard({
   events = defaultEvents,
   linkUrl = '/dealer/dashboard/events'
 }: NewsEventsCardProps) {
+  const { t } = useTranslate();
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden">
@@ -63,29 +65,31 @@ export default function NewsEventsCard({
       <div className="relative px-6 py-5 bg-gradient-to-r from-[#DC7C67] to-[#C86B56]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white mb-1">{title}</h2>
-            <p className="text-white/80 text-sm">Будьте в курсе всех событий</p>
+            <h2 className="text-xl font-bold text-white mb-1">{t(title)}</h2>
+            <p className="text-white/80 text-sm">{t('Будьте в курсе всех событий')}</p>
           </div>
           <Link 
             href={linkUrl}
             className="group bg-white/10 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-white/20 hover:scale-105 border border-white/20"
+            aria-label={t('Все события')}
+            title={t('Все события')}
           >
             <span className="flex items-center gap-2">
-              Все события
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {t('Все события')}
+              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </span>
           </Link>
         </div>
         {/* Decorative circles */}
-        <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full"></div>
-        <div className="absolute -bottom-2 -right-8 w-8 h-8 bg-white/5 rounded-full"></div>
+        <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full" />
+        <div className="absolute -bottom-2 -right-8 w-8 h-8 bg-white/5 rounded-full" />
       </div>
 
       {/* Events List */}
       <div className="p-6 space-y-4">
-        {events.map((event, index) => (
+        {events.map((event) => (
           <div 
             key={event.id} 
             className="group relative bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer"
@@ -93,7 +97,7 @@ export default function NewsEventsCard({
             {/* Hot indicator */}
             {event.isHot && (
               <div className="absolute -top-2 -right-2 bg-[#DC7C67] text-white px-2 py-1 rounded-full text-xs font-medium shadow-sm">
-                🔥 Горячее
+                <span aria-hidden="true">🔥</span> {t('Горячее')}
               </div>
             )}
             
@@ -115,9 +119,9 @@ export default function NewsEventsCard({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-gray-900 text-base leading-snug group-hover:text-[#DC7C67] transition-colors line-clamp-2">
-                    {event.title}
+                    {t(event.title)}
                   </h3>
-                  <svg className="w-5 h-5 text-gray-400 ml-2 flex-shrink-0 group-hover:text-[#DC7C67] group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-gray-400 ml-2 flex-shrink-0 group-hover:text-[#DC7C67] group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -125,9 +129,9 @@ export default function NewsEventsCard({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
-                      {event.category}
+                      {event.category ? t(event.category) : null}
                     </span>
-                    <span className="text-sm text-gray-500">{event.date}</span>
+                    <span className="text-sm text-gray-500">{event.date ? t(event.date) : null}</span>
                   </div>
                 </div>
               </div>
@@ -140,11 +144,11 @@ export default function NewsEventsCard({
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Всего событий: <span className="font-semibold text-[#DC7C67]">{events.length}</span>
+            {t('Всего событий: {n}').replace('{n}', String(events.length))}
           </p>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-[#DC7C67] rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-500">Обновлено только что</span>
+            <div className="w-2 h-2 bg-[#DC7C67] rounded-full animate-pulse" />
+            <span className="text-xs text-gray-500">{t('Обновлено только что')}</span>
           </div>
         </div>
       </div>

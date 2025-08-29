@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
 const tabs = [
   'Главная',
@@ -18,6 +19,7 @@ interface MobileTabMenuProps {
 
 export default function MobileTabMenu({ activeTab, setActiveTab }: MobileTabMenuProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslate();
 
   return (
     <div className="relative block md:hidden ml-2">
@@ -25,8 +27,10 @@ export default function MobileTabMenu({ activeTab, setActiveTab }: MobileTabMenu
       <button
         onClick={() => setOpen(!open)}
         className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow"
+        aria-label={t('Меню')}
+        title={t('Меню')}
       >
-        <Image src="/icons/hamburger.svg" alt="menu" width={20} height={20} />
+        <Image src="/icons/hamburger.svg" alt={t('Меню')} width={20} height={20} />
       </button>
 
       {/* Выпадающее меню */}
@@ -36,14 +40,14 @@ export default function MobileTabMenu({ activeTab, setActiveTab }: MobileTabMenu
             <button
               key={tab}
               onClick={() => {
-                setActiveTab(tab);
+                setActiveTab(tab); // сохраняем ключ (RU), отображаем переводом
                 setOpen(false);
               }}
               className={`w-full text-left px-4 py-3 text-sm font-medium hover:bg-gray-100 transition-colors ${
-                activeTab === tab ? 'bg-gray-100 text-black' : 'text-gray-800'
+                activeTab === tab ? 'bg-gray-100 text:black' : 'text-gray-800'
               }`}
             >
-              {tab}
+              {t(tab)}
             </button>
           ))}
         </div>

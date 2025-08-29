@@ -1,8 +1,10 @@
+// src/components/product/DealerProductCard.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface DealerProductCardProps {
   product: any;
@@ -15,6 +17,7 @@ export default function DealerProductCard({
   showClientPrice,
   className
 }: DealerProductCardProps) {
+  const { t } = useTranslate();
   const [imgSrc, setImgSrc] = useState<string>('');
   const router = useRouter();
 
@@ -24,14 +27,14 @@ export default function DealerProductCard({
 
   const getImageUrl = (imageUrl?: string | null) => {
     if (!imageUrl) return '/img/product1.jpg';
-    if (imageUrl.startsWith('http')) return imageUrl;
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) return imageUrl;
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
   };
 
-  // Инициализируем изображение при первом рендере
-  if (!imgSrc) {
-    setImgSrc(getImageUrl(product.image_url));
-  }
+  // Инициализируем / обновляем изображение корректно
+  useEffect(() => {
+    setImgSrc(getImageUrl(product?.image_url));
+  }, [product?.image_url]);
 
   const handleImageError = () => {
     setImgSrc('/img/product1.jpg');
@@ -43,7 +46,7 @@ export default function DealerProductCard({
       <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden bg-white">
         <Image
           src={imgSrc}
-          alt={product.name || 'Товар'}
+          alt={product?.name || t('Товар')}
           fill
           className="object-cover"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -51,10 +54,10 @@ export default function DealerProductCard({
         />
 
         {/* Флагман бейдж */}
-        {product.flagman && (
+        {product?.flagman && (
           <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2">
             <span className="bg-[#D77E6C] text-white text-[8px] sm:text-[10px] font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
-              Хит продаж
+              {t('Хит продаж')}
             </span>
           </div>
         )}
@@ -63,35 +66,36 @@ export default function DealerProductCard({
       {/* Информация о товаре */}
       <div className="p-2 sm:p-3 pt-3 sm:pt-4">
         <h3 className="text-xs sm:text-sm font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] leading-tight">
-          {product.name || 'Без названия'}
+          {product?.name || t('Без названия')}
         </h3>
 
         <div className="flex items-end justify-between gap-2 sm:gap-3">
           <div className="flex flex-col gap-1 sm:gap-2 flex-1 min-w-0">
-            {/* Дилерская цена - убираем текст */}
+            {/* Дилерская цена */}
             <div>
               <p className="text-sm sm:text-base font-bold text-[#1C1C1C] truncate">
-                {(product.price_dealer || 0).toLocaleString('ru-RU')}₸
+                {(product?.price_dealer || 0).toLocaleString('ru-RU')}₸
               </p>
             </div>
 
             {/* Розничная цена */}
             {showClientPrice && (
               <div>
-                <p className="text-xs text-[#8C8C8C] mb-0.5">Розничная</p>
+                <p className="text-xs text-[#8C8C8C] mb-0.5">{t('Розничная')}</p>
                 <p className="text-xs sm:text-sm font-semibold text-[#D77E6C] truncate">
-                  {(product.price || 0).toLocaleString('ru-RU')}₸
+                  {(product?.price || 0).toLocaleString('ru-RU')}₸
                 </p>
               </div>
             )}
           </div>
 
-          {/* Кнопка просмотра - используем вашу иконку */}
+          {/* Кнопка просмотра */}
           <div className="shrink-0">
-            <button 
-              onClick={handleArrowClick} 
+            <button
+              onClick={handleArrowClick}
               className="hover:scale-105 transition-transform duration-200"
-              aria-label="View Product"
+              aria-label={t('Подробнее')}
+              title={t('Подробнее')}
             >
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"

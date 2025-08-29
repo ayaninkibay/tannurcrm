@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
 interface SponsorCardProps {
   variant?: 'dark' | 'light' | 'gray';
@@ -24,6 +25,7 @@ export default function SponsorCard({
     is_confirmed: true
   }
 }: SponsorCardProps) {
+  const { t } = useTranslate();
   const isDark = variant === 'dark';
   const bgGradient = isDark 
     ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-black' 
@@ -34,7 +36,7 @@ export default function SponsorCard({
 
   return (
     <div className="w-full">
-      <p className="text-sm font-medium text-gray-900 mb-3">Мой спонсор</p>
+      <p className="text-sm font-medium text-gray-900 mb-3">{t('Мой спонсор')}</p>
 
       <div className={`relative ${bgGradient} rounded-xl p-5 overflow-hidden duration-300`}>
         {/* Background Pattern */}
@@ -77,6 +79,7 @@ export default function SponsorCard({
             
             <div className="flex-1">
               <div className={`flex items-center gap-2 mb-1 ${textColor}`}>
+                {/* Имя НЕ переводим */}
                 <span className="text-sm font-semibold">{sponsor.name}</span>
                 {sponsor.is_confirmed && (
                   <Image 
@@ -96,7 +99,8 @@ export default function SponsorCard({
                   height={12}
                   className="text-yellow-500"
                 />
-                <span className="text-xs font-medium">{sponsor.status}</span>
+                {/* Статус переводим как ключ */}
+                <span className="text-xs font-medium">{t(sponsor.status)}</span>
               </div>
             </div>
           </div>
@@ -113,18 +117,20 @@ export default function SponsorCard({
               <span className="font-medium">{sponsor.phone}</span>
             </div>
             
-            <button className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 ${
-              isDark 
-                ? 'bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-sm' 
-                : 'bg-gray-900/10 hover:bg-gray-900/20 border border-gray-300 text-gray-900'
-            }`}>
+            <button
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 ${
+                isDark 
+                  ? 'bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-sm' 
+                  : 'bg-gray-900/10 hover:bg-gray-900/20 border border-gray-300 text-gray-900'
+              }`}
+            >
               <Image
                 src="/icons/userblack.svg"
                 alt="profile"
                 width={12}
                 height={12}
               />
-              <span>Профиль</span>
+              <span>{t('Профиль')}</span>
             </button>
           </div>
 
@@ -133,10 +139,10 @@ export default function SponsorCard({
             <div className="flex justify-between text-xs">
               <div className={`flex items-center gap-1 ${secondaryTextColor}`}>
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Активен сейчас</span>
+                <span>{t('Активен сейчас')}</span>
               </div>
               <div className={`${secondaryTextColor}`}>
-                <span>Рефералов: </span>
+                <span>{t('Рефералов:')}</span>{' '}
                 <span className={`font-semibold ${textColor}`}>47</span>
               </div>
             </div>

@@ -14,17 +14,16 @@ import {
   X
 } from 'lucide-react'
 
-// Импортируем нужные сервисы и типы
 import { useUser } from '@/context/UserContext'
 import { useTeamPurchaseModule } from '@/lib/team-purchase/TeamPurchaseModule'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
+import { useTranslate } from '@/hooks/useTranslate'
 
 interface TeamPurchaseListProps {
   maxItems?: number
   showCreateButton?: boolean
 }
 
-// Фейковые аватары с градиентами в фирменных цветах
 const AVATAR_GRADIENTS = [
   { from: '#D77E6C', to: '#E89380', initial: 'A' },
   { from: '#E89380', to: '#F0A090', initial: 'M' },
@@ -32,35 +31,31 @@ const AVATAR_GRADIENTS = [
   { from: '#B85948', to: '#C66B5A', initial: 'K' }
 ]
 
-// Компонент попапа
+// Попап с таблицей бонусов
 const BonusTablePopup = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const { t } = useTranslate()
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
-      {/* Modal Content */}
       <div className="relative bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
             <Trophy className="w-6 h-6 text-[#D77E6C]" />
-            Таблица бонусов
+            {t('Таблица бонусов')}
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        
-        {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           <BonusTableBlock />
         </div>
@@ -69,7 +64,6 @@ const BonusTablePopup = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   )
 }
 
-// Шиммер для полного блока
 const FullBlockShimmer = () => (
   <div className="bg-white rounded-3xl p-6 animate-pulse shadow-lg">
     <div className="flex items-center justify-between mb-6">
@@ -83,7 +77,6 @@ const FullBlockShimmer = () => (
         ))}
       </div>
     </div>
-    
     <div className="flex gap-4 mb-6">
       <div className="flex-1 bg-gray-100 rounded-2xl p-4">
         <div className="h-8 bg-gray-200 rounded w-12 mb-1"></div>
@@ -94,7 +87,6 @@ const FullBlockShimmer = () => (
         <div className="h-4 bg-gray-200 rounded w-24"></div>
       </div>
     </div>
-    
     <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-4">
       <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
       <div className="h-2 bg-gray-200 rounded-full"></div>
@@ -109,6 +101,7 @@ export default function TeamPurchaseList({
   const router = useRouter()
   const { profile: currentUser } = useUser()
   const [showBonusPopup, setShowBonusPopup] = useState(false)
+  const { t } = useTranslate()
   
   const teamPurchase = useTeamPurchaseModule(currentUser)
 
@@ -153,7 +146,6 @@ export default function TeamPurchaseList({
     totalCollected: teamPurchase.purchases.reduce((sum, p) => sum + (p.collected_amount || 0), 0)
   }
 
-  // Берем только одну активную закупку
   const activePurchase = teamPurchase.purchases
     .filter(p => p.status === 'active' || p.status === 'forming')
     .sort((a, b) => {
@@ -172,34 +164,33 @@ export default function TeamPurchaseList({
   return (
     <>
       <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
-        {/* Заголовок с аватарами и кнопкой бонусов */}
+        {/* Заголовок */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              Командные закупки
+              {t('Командные закупки')}
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">Выгодные условия для команды</p>
+            <p className="text-sm text-gray-500 mt-0.5">{t('Выгодные условия для команды')}</p>
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Кнопка открытия таблицы бонусов */}
+            {/* Кнопка таблицы бонусов */}
             <button
               onClick={() => setShowBonusPopup(true)}
               className="p-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] hover:from-[#C66B5A] hover:to-[#D77E6C] text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg group"
-              title="Таблица бонусов"
+              title={t('Таблица бонусов')}
+              aria-label={t('Таблица бонусов')}
             >
               <Trophy className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
             </button>
-            
-            {/* Аватары участников */}
+            {/* Аватары */}
             <div className="flex -space-x-3">
               {AVATAR_GRADIENTS.map((avatar, i) => (
                 <div
                   key={i}
                   className="w-10 h-10 rounded-full ring-3 ring-white flex items-center justify-center text-white font-semibold text-sm shadow-sm"
-                  style={{
-                    background: `linear-gradient(135deg, ${avatar.from}, ${avatar.to})`
-                  }}
+                  style={{ background: `linear-gradient(135deg, ${avatar.from}, ${avatar.to})` }}
+                  aria-hidden="true"
                 >
                   {avatar.initial}
                 </div>
@@ -208,13 +199,13 @@ export default function TeamPurchaseList({
           </div>
         </div>
 
-        {/* Статистика карточки */}
+        {/* Статистика */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-gradient-to-br from-[#D77E6C]/10 via-[#D77E6C]/5 to-white rounded-2xl p-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#D77E6C]/20 to-transparent rounded-full -translate-y-8 translate-x-8"></div>
             <div className="relative">
               <div className="text-3xl font-bold text-[#D77E6C]">{stats.active}</div>
-              <div className="text-sm text-[#D77E6C]/70 font-medium">активных</div>
+              <div className="text-sm text-[#D77E6C]/70 font-medium">{t('активных')}</div>
             </div>
           </div>
           
@@ -222,20 +213,20 @@ export default function TeamPurchaseList({
             <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#E89380]/20 to-transparent rounded-full -translate-y-8 translate-x-8"></div>
             <div className="relative">
               <div className="text-3xl font-bold text-[#D77E6C]">{formatPrice(stats.totalCollected)}</div>
-              <div className="text-sm text-[#D77E6C]/70 font-medium">тенге собрано</div>
+              <div className="text-sm text-[#D77E6C]/70 font-medium">{t('тенге собрано')}</div>
             </div>
           </div>
         </div>
 
-        {/* Активная закупка */}
+        {/* Активная закупка / пустое состояние */}
         {activePurchase ? (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-500">Текущая закупка</span>
+              <span className="text-sm font-medium text-gray-500">{t('Текущая закупка')}</span>
               {daysLeft !== null && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
                   <Clock className="w-3.5 h-3.5" />
-                  Осталось {daysLeft} дней
+                  {t('Осталось {n} дней').replace('{n}', String(daysLeft))}
                 </span>
               )}
             </div>
@@ -254,7 +245,7 @@ export default function TeamPurchaseList({
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between items-baseline mb-1.5">
-                      <span className="text-sm text-gray-500">Прогресс</span>
+                      <span className="text-sm text-gray-500">{t('Прогресс')}</span>
                       <span className="text-2xl font-bold text-[#D77E6C]">
                         {Math.round(progress)}%
                       </span>
@@ -266,6 +257,10 @@ export default function TeamPurchaseList({
                           width: `${progress}%`,
                           background: 'linear-gradient(90deg, #D77E6C 0%, #E89380 100%)'
                         }}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(progress)}
+                        role="progressbar"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
                       </div>
@@ -274,10 +269,10 @@ export default function TeamPurchaseList({
                   
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">
-                      Собрано: <span className="font-semibold text-gray-900">{formatPrice(activePurchase.collected_amount)} ₸</span>
+                      {t('Собрано:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.collected_amount)} ₸</span>
                     </span>
                     <span className="text-gray-600">
-                      Цель: <span className="font-semibold text-gray-900">{formatPrice(activePurchase.target_amount)} ₸</span>
+                      {t('Цель:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.target_amount)} ₸</span>
                     </span>
                   </div>
                 </div>
@@ -291,8 +286,8 @@ export default function TeamPurchaseList({
               <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
                 <ShoppingCart className="w-8 h-8 text-gray-500" />
               </div>
-              <p className="text-gray-600 font-medium">Нет активных закупок</p>
-              <p className="text-sm text-gray-500 mt-1">Создайте первую командную закупку</p>
+              <p className="text-gray-600 font-medium">{t('Нет активных закупок')}</p>
+              <p className="text-sm text-gray-500 mt-1">{t('Создайте первую командную закупку')}</p>
             </div>
           </div>
         )}
@@ -304,14 +299,14 @@ export default function TeamPurchaseList({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-gray-900 to-gray-800 hover:from-gray-800 hover:to-gray-700 text-white rounded-2xl font-medium transition-all duration-200 shadow-md hover:shadow-lg group"
           >
             <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            Создать закупку
+            {t('Создать закупку')}
           </button>
           
           <button
             onClick={handleViewAll}
             className="px-5 py-3.5 bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 text-gray-900 rounded-2xl font-medium transition-all duration-200 group flex items-center gap-2"
           >
-            Все
+            {t('Все')}
             {stats.total > 0 && (
               <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-full text-xs font-semibold">
                 {stats.total}

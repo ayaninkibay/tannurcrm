@@ -1,3 +1,4 @@
+// page.tsx (обновлённый)
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -14,11 +15,14 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
 export default function HomePage() {
+  const { t } = useTranslate();
   const { profile, logout } = useUser();
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
+  const year = new Date().getFullYear();
   
   // Оптимизированное состояние мыши только для десктопа
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -26,7 +30,7 @@ export default function HomePage() {
   const [showFactory, setShowFactory] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigationTarget, setNavigationTarget] = useState('');
-  const [loadingSteps, setLoadingSteps] = useState([]);
+  const [loadingSteps, setLoadingSteps] = useState<Array<{text: string; icon: React.ReactNode; duration: number}>>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -90,46 +94,45 @@ export default function HomePage() {
   }, [mousePosition, isMobile, shouldReduceMotion]);
 
   // Конфигурация шагов загрузки для разных разделов
-  const getLoadingSteps = useCallback((target) => {
+  const getLoadingSteps = useCallback((target: 'profile' | 'admin' | 'dealer' | 'celebrity') => {
     if (target === 'profile') {
       return [
-        { text: 'Загрузка профиля', icon: <User className="w-4 h-4" />, duration: 200 },
-        { text: 'Готово!', icon: <CheckCircle className="w-4 h-4" />, duration: 100 }
+        { text: t('Загрузка профиля'), icon: <User className="w-4 h-4" />, duration: 200 },
+        { text: t('Готово!'), icon: <CheckCircle className="w-4 h-4" />, duration: 100 }
       ];
     }
 
     const baseSteps = [
-      { text: 'Проверка авторизации', icon: <Lock className="w-4 h-4" />, duration: isMobile ? 200 : 400 },
-      { text: 'Загрузка модулей', icon: <Cpu className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
-      { text: 'Подключение к базе данных', icon: <Database className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
-      { text: 'Синхронизация данных', icon: <Server className="w-4 h-4" />, duration: isMobile ? 350 : 700 }
+      { text: t('Проверка авторизации'), icon: <Lock className="w-4 h-4" />, duration: isMobile ? 200 : 400 },
+      { text: t('Загрузка модулей'), icon: <Cpu className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
+      { text: t('Подключение к базе данных'), icon: <Database className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
+      { text: t('Синхронизация данных'), icon: <Server className="w-4 h-4" />, duration: isMobile ? 350 : 700 }
     ];
 
-    const specificSteps = {
+    const specificSteps: Record<string, Array<{text: string; icon: React.ReactNode; duration: number}>> = {
       admin: [
-        { text: 'Загрузка админ-панели', icon: <Shield className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
-        { text: 'Инициализация системы управления', icon: <Settings className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
-        { text: 'Готово! Переход в панель администратора', icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
+        { text: t('Загрузка админ-панели'), icon: <Shield className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
+        { text: t('Инициализация системы управления'), icon: <Settings className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
+        { text: t('Готово! Переход в панель администратора'), icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
       ],
       dealer: [
-        { text: 'Загрузка CRM дилеров', icon: <Briefcase className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
-        { text: 'Подготовка аналитики продаж', icon: <BarChart3 className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
-        { text: 'Готово! Открываем CRM дилера', icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
+        { text: t('Загрузка CRM дилеров'), icon: <Briefcase className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
+        { text: t('Подготовка аналитики продаж'), icon: <BarChart3 className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
+        { text: t('Готово! Открываем CRM дилера'), icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
       ],
       celebrity: [
-        { text: 'Загрузка CRM амбассадоров', icon: <Star className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
-        { text: 'Подготовка личного кабинета', icon: <Crown className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
-        { text: 'Готово! Открываем кабинет амбассадора', icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
+        { text: t('Загрузка CRM амбассадоров'), icon: <Star className="w-4 h-4" />, duration: isMobile ? 250 : 500 },
+        { text: t('Подготовка личного кабинета'), icon: <Crown className="w-4 h-4" />, duration: isMobile ? 300 : 600 },
+        { text: t('Готово! Открываем кабинет амбассадора'), icon: <CheckCircle className="w-4 h-4" />, duration: isMobile ? 200 : 400 }
       ]
     };
 
     return [...baseSteps, ...(specificSteps[target] || [])];
-  }, [isMobile]);
+  }, [isMobile, t]);
 
   // Анимация шагов загрузки
   useEffect(() => {
     if (isNavigating && loadingSteps.length > 0) {
-      // СРАЗУ начинаем загрузку страницы
       router.push(navigationTarget);
       
       let stepIndex = 0;
@@ -140,9 +143,6 @@ export default function HomePage() {
             stepIndex++;
             runStep();
           }, loadingSteps[stepIndex].duration);
-        } else {
-          // После завершения всех шагов можно скрыть лоадер, но страница уже загружается
-          // НЕ сбрасываем состояние - пусть загрузка остается видимой до перехода
         }
       };
       runStep();
@@ -164,26 +164,26 @@ export default function HomePage() {
   useEffect(() => {
     if (isMobile || shouldReduceMotion) return;
 
-    let timeoutId;
-    const handleMouseMove = (e) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleMouseMove = (e: MouseEvent) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         setMousePosition({
-          x: (e.clientX / window.innerWidth - 0.5) * 10, // Уменьшен коэффициент
+          x: (e.clientX / window.innerWidth - 0.5) * 10,
           y: (e.clientY / window.innerHeight - 0.5) * 10
         });
-      }, 16); // 60fps throttling
+      }, 16);
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('mousemove', handleMouseMove as any, { passive: true } as any);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', handleMouseMove as any);
       clearTimeout(timeoutId);
     };
   }, [isMobile, shouldReduceMotion]);
 
   // Функция навигации с анимацией загрузки
-  const navigateWithLoading = useCallback((path, type) => {
+  const navigateWithLoading = useCallback((path: string, type: 'profile' | 'admin' | 'dealer' | 'celebrity') => {
     setNavigationTarget(path);
     setLoadingSteps(getLoadingSteps(type));
     setIsNavigating(true);
@@ -193,8 +193,8 @@ export default function HomePage() {
   const getActionButtons = useMemo(() => {
     if (!profile) {
       return [{
-        text: 'Войти в CRM',
-        subtext: 'Начните работу с системой',
+        text: t('Войти в CRM'),
+        subtext: t('Начните работу с системой'),
         action: () => router.push('/signin'),
         icon: <LogIn className="w-5 h-5" />,
         primary: true
@@ -205,81 +205,81 @@ export default function HomePage() {
       case 'admin':
         return [
           {
-            text: 'Панель управления',
-            subtext: 'Полный контроль системы',
+            text: t('Панель управления'),
+            subtext: t('Полный контроль системы'),
             action: () => navigateWithLoading('/admin/dashboard', 'admin'),
             icon: <Shield className="w-5 h-5" />,
             primary: true
           },
           {
-            text: 'CRM Дилеров',
+            text: t('CRM Дилеров'),
             action: () => navigateWithLoading('/dealer/dashboard', 'dealer'),
             icon: <BarChart3 className="w-5 h-5" />
           },
           {
-            text: 'CRM Селебрити',
+            text: t('CRM Селебрити'),
             action: () => navigateWithLoading('/celebrity/dashboard', 'celebrity'),
             icon: <Star className="w-5 h-5" />
           }
         ];
       case 'dealer':
         return [{
-          text: 'Войти в CRM',
-          subtext: 'Управление продажами',
+          text: t('Войти в CRM'),
+          subtext: t('Управление продажами'),
           action: () => navigateWithLoading('/dealer/dashboard', 'dealer'),
           icon: <BarChart3 className="w-5 h-5" />,
           primary: true
         }];
       case 'celebrity':
         return [{
-          text: 'Войти в CRM',
-          subtext: 'Личный кабинет амбассадора',
+          text: t('Войти в CRM'),
+          subtext: t('Личный кабинет амбассадора'),
           action: () => navigateWithLoading('/celebrity/dashboard', 'celebrity'),
           icon: <Star className="w-5 h-5" />,
           primary: true
         }];
       default:
         return [{
-          text: 'Войти в систему',
-          subtext: 'Начните работу',
+          text: t('Войти в систему'),
+          subtext: t('Начните работу с системой'),
           action: () => router.push('/signin'),
           icon: <User className="w-5 h-5" />,
           primary: true
         }];
     }
-  }, [profile, navigateWithLoading, router]);
+  }, [profile, navigateWithLoading, router, t]);
 
   const actionButtons = getActionButtons;
 
-  const getRoleInfo = useCallback((role) => {
-    const roleMap = {
+  const getRoleInfo = useCallback((role?: string) => {
+    const roleMap: Record<string, {label: string; icon: React.ReactNode; color: string; description: string}> = {
       admin: {
-        label: 'Администратор',
+        label: t('Администратор'),
         icon: <Shield className="w-4 h-4" />,
         color: 'from-purple-500 to-purple-700',
-        description: 'Полный доступ к системе'
+        description: t('Полный доступ к системе')
       },
       dealer: {
-        label: 'Дилер',
+        label: t('Дилер'),
         icon: <Briefcase className="w-4 h-4" />,
         color: 'from-blue-500 to-blue-700',
-        description: 'Партнёр по продажам'
+        description: t('Партнёр по продажам')
       },
       celebrity: {
-        label: 'Амбассадор',
+        label: t('Амбассадор'),
         icon: <Crown className="w-4 h-4" />,
         color: 'from-yellow-500 to-orange-600',
-        description: 'Лицо бренда Tannur'
+        description: t('Лицо бренда Tannur')
       }
     };
     
-    return roleMap[role] || {
-      label: 'Пользователь',
+    return roleMap[role ?? ''] || {
+      label: t('Пользователь'),
       icon: <User className="w-4 h-4" />,
       color: 'from-gray-500 to-gray-700',
-      description: 'Базовый доступ'
+      description: t('Базовый доступ')
     };
-  }, []);
+  }, [t]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -291,13 +291,13 @@ export default function HomePage() {
   }, [logout, router]);
 
   const handleProfileClick = useCallback(() => {
-    const pathMap = {
+    const pathMap: Record<string, string> = {
       admin: '/admin/profile',
       dealer: '/dealer/profile',
       celebrity: '/celebrity/profile'
     };
     
-    const path = pathMap[profile?.role];
+    const path = pathMap[profile?.role ?? ''];
     if (path) {
       navigateWithLoading(path, 'profile');
     } else {
@@ -338,7 +338,6 @@ export default function HomePage() {
               <div className="relative mb-8">
                 <div className="flex justify-center">
                   <div className="relative">
-                    {/* Упрощенная анимация для мобильных */}
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ 
@@ -407,9 +406,7 @@ export default function HomePage() {
                         step.icon
                       )}
                     </div>
-                    <span className={`text-sm font-medium ${
-                      index === currentStep ? 'animate-pulse' : ''
-                    }`}>
+                    <span className={`text-sm font-medium ${index === currentStep ? 'animate-pulse' : ''}`}>
                       {step.text}
                     </span>
                   </motion.div>
@@ -431,7 +428,7 @@ export default function HomePage() {
                 transition={{ delay: 0.5 }}
                 className="text-center text-sm text-gray-500 mt-4"
               >
-                Подготавливаем всё необходимое для вашей работы...
+                {t('Подготавливаем всё необходимое для вашей работы...')}
               </motion.p>
             </div>
           </motion.div>
@@ -513,7 +510,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-[#D77E6C]/5 border border-[#D77E6C]/20 px-4 py-2 rounded-full mb-6"
             >
               <div className="w-2 h-2 bg-[#D77E6C] rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-700">Лидер индустрии красоты с 2024 года</span>
+              <span className="text-sm font-medium text-gray-700">{t('Лидер индустрии красоты с 2024 года')}</span>
             </motion.div>
 
             {/* Заголовок */}
@@ -523,7 +520,7 @@ export default function HomePage() {
               className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
             >
               <span className="text-gray-900">
-                Добро пожаловать в
+                {t('Добро пожаловать в')}
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#D77E6C] to-[#C56D5C] bg-clip-text text-transparent">
@@ -537,7 +534,7 @@ export default function HomePage() {
               transition={{ delay: 0.3 }}
               className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto"
             >
-              Управляйте бизнесом эффективно с современной CRM-системой
+              {t('Управляйте бизнесом эффективно с современной CRM-системой')}
             </motion.p>
 
             {/* Профиль пользователя если авторизован */}
@@ -588,19 +585,19 @@ export default function HomePage() {
                     <div className="w-8 h-8 rounded-lg bg-[#D77E6C]/10 flex items-center justify-center">
                       <Zap className="w-4 h-4 text-[#D77E6C]" />
                     </div>
-                    <p className="text-sm text-gray-700">Автоматизированные процессы</p>
+                    <p className="text-sm text-gray-700">{t('Автоматизированные процессы')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#D77E6C]/10 flex items-center justify-center">
                       <Target className="w-4 h-4 text-[#D77E6C]" />
                     </div>
-                    <p className="text-sm text-gray-700">Умная аналитика и отчётность</p>
+                    <p className="text-sm text-gray-700">{t('Умная аналитика и отчётность')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#D77E6C]/10 flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-[#D77E6C]" />
                     </div>
-                    <p className="text-sm text-gray-700">Прямые продажи внутри системы</p>
+                    <p className="text-sm text-gray-700">{t('Прямые продажи внутри системы')}</p>
                   </div>
                 </div>
               </motion.div>
@@ -664,7 +661,7 @@ export default function HomePage() {
                 >
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-[#D77E6C]" />
-                    <span className="font-medium text-gray-700">Виртуальная экскурсия по заводу</span>
+                    <span className="font-medium text-gray-700">{t('Виртуальная экскурсия по заводу')}</span>
                   </div>
                   {showFactory ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
                 </motion.button>
@@ -690,9 +687,9 @@ export default function HomePage() {
                           </div>
                         </div>
                         
-                        <h4 className="font-semibold text-gray-900 mb-2">Современное производство</h4>
+                        <h4 className="font-semibold text-gray-900 mb-2">{t('Современное производство')}</h4>
                         <p className="text-gray-600 text-sm mb-4">
-                          Наш завод оснащен новейшим оборудованием. Площадь производственных помещений составляет более 10,000 м².
+                          {t('Наш завод оснащен новейшим оборудованием. Площадь производственных помещений составляет более 10,000 м².')}
                         </p>
                         
                         <motion.button 
@@ -700,7 +697,7 @@ export default function HomePage() {
                           className="flex items-center gap-2 bg-[#D77E6C] text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-[#C56D5C] transition"
                         >
                           <Video className="w-4 h-4" />
-                          Смотреть видео-тур
+                          {t('Смотреть видео-тур')}
                         </motion.button>
                       </div>
                     </motion.div>
@@ -717,7 +714,7 @@ export default function HomePage() {
                 >
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-[#D77E6C]" />
-                    <span className="font-medium text-gray-700">Документы и сертификаты</span>
+                    <span className="font-medium text-gray-700">{t('Документы и сертификаты')}</span>
                   </div>
                   {showDocuments ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
                 </motion.button>
@@ -734,10 +731,10 @@ export default function HomePage() {
                       <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-2xl p-6">
                         <div className="grid grid-cols-2 gap-4">
                           {[
-                            { title: 'ISO 9001:2015', type: 'Сертификат' },
-                            { title: 'Halal Certificate', type: 'Сертификат' },
-                            { title: 'Договор поставки', type: 'Документ' },
-                            { title: 'Маркетинг план', type: 'PDF' },
+                            { title: t('ISO 9001:2015'), type: t('Сертификат') },
+                            { title: t('Halal Certificate'), type: t('Сертификат') },
+                            { title: t('Договор поставки'), type: t('Документ') },
+                            { title: t('Маркетинг план'), type: t('PDF') },
                           ].map((doc, idx) => (
                             <motion.div 
                               key={idx} 
@@ -768,7 +765,7 @@ export default function HomePage() {
           transition={{ delay: 1 }}
           className="relative z-10 text-center py-6 mt-12 text-sm text-gray-500"
         >
-          <p>© 2025 Tannur Cosmetics. Все права защищены.</p>
+          <p>{t('© {year} Tannur Cosmetics. Все права защищены.').replace('{year}', String(year))}</p>
         </motion.footer>
       </div>
     </>

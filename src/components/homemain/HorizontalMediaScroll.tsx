@@ -2,12 +2,14 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { useTranslate } from '@/hooks/useTranslate';
 
-// Массив данных для карточек
+// Массив данных для карточек (MOCK)
+// ВАЖНО: имена людей не переводим; текстовые поля покажем через t(...) при рендере
 const staticCards = [
   { 
     src: '/img/product1.jpg', 
-    fallbackSrc: 'https://picsum.photos/280/320?random=1', // Временный fallback
+    fallbackSrc: 'https://picsum.photos/280/320?random=1',
     title: '35 000 000 тг', 
     subtitle: 'Оборот команды', 
     person: 'Айдар Каримов', 
@@ -92,24 +94,29 @@ const staticCards = [
     subtitle: 'Только за август', 
     person: 'Санжар Утебаев', 
     role: 'Цифровой эксперт'
-  },
+  }
 ];
 
 const duplicatedCards = [...staticCards, ...staticCards, ...staticCards];
 
-// Компонент карточки с обработкой ошибок изображений
+// Карточка с обработкой ошибок изображений
 interface CardProps {
   card: typeof staticCards[0];
   index: number;
 }
 
 const Card: React.FC<CardProps> = ({ card, index }) => {
+  const { t } = useTranslate();
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(card.src);
 
   const handleImageError = () => {
-    console.error(`Ошибка загрузки изображения: ${card.src}`);
     setImageError(true);
+    if (card.fallbackSrc && currentSrc !== card.fallbackSrc) {
+      setImageError(false);
+      setCurrentSrc(card.fallbackSrc);
+    }
   };
 
   const handleImageLoad = () => {
@@ -121,19 +128,20 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
       key={`${index}-${card.person}`}
       className="relative w-[280px] h-[320px] flex-shrink-0 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 group"
       style={{ userSelect: 'none' }}
+      aria-label={`${card.person}: ${t(card.title)}`}
     >
-      {/* Показываем изображение только если нет ошибки */}
+      {/* Показываем изображение только если нет окончательной ошибки */}
       {!imageError ? (
         <>
           {/* Skeleton loader пока изображение загружается */}
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gray-300 animate-pulse flex items-center justify-center">
-              <div className="text-gray-500 text-sm">Загрузка...</div>
+              <div className="text-gray-500 text-sm">{t('Загрузка...')}</div>
             </div>
           )}
           
           <Image
-            src={card.src}
+            src={currentSrc}
             alt={card.person}
             fill
             sizes="(max-width: 768px) 100vw, 280px"
@@ -144,8 +152,7 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
             priority={index < 4}
             onError={handleImageError}
             onLoad={handleImageLoad}
-            // Добавляем unoptimized для проблемных случаев
-            unoptimized={process.env.NODE_ENV === 'development'}
+            unoptimized={currentSrc.startsWith('http')}
           />
         </>
       ) : (
@@ -153,7 +160,7 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center">
           <div className="text-center text-white">
             <div className="text-4xl mb-2">🖼️</div>
-            <div className="text-xs opacity-75">Изображение недоступно</div>
+            <div className="text-xs opacity-75">{t('Изображение недоступно')}</div>
             <div className="text-xs opacity-50 mt-1">{card.src}</div>
           </div>
         </div>
@@ -165,17 +172,19 @@ const Card: React.FC<CardProps> = ({ card, index }) => {
       {/* Информация о карточке */}
       <div className="absolute bottom-0 left-0 right-0 p-4 text-white pointer-events-none">
         <div className="inline-block bg-[#D77E6C] text-white px-2 py-1 rounded-md text-xs font-medium mb-2">
-          Tannur Cosmetics
+          {t('Tannur Cosmetics')}
         </div>
 
         <div className="space-y-1">
+          {/* Имя НЕ переводим */}
           <h3 className="font-bold text-lg leading-tight">{card.person}</h3>
-          <p className="text-sm opacity-90">{card.role}</p>
+          {/* Должность/роль переводим */}
+          <p className="text-sm opacity-90">{t(card.role)}</p>
         </div>
 
         <div className="mt-2 pt-2 border-t border-white/20">
-          <p className="font-semibold text-sm">{card.title}</p>
-          <p className="text-xs opacity-80">{card.subtitle}</p>
+          <p className="font-semibold text-sm">{t(card.title)}</p>
+          <p className="text-xs opacity-80">{t(card.subtitle)}</p>
         </div>
       </div>
     </div>
@@ -195,17 +204,13 @@ export default function HorizontalMediaScroll() {
   const lastTimeRef = useRef<number>(0);
   const currentPositionRef = useRef<number>(0);
 
-  // Debug: проверяем доступность изображений
+  // Debug preload (видимо только для разработки)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('🔍 Проверка доступности изображений:');
-      staticCards.forEach((card, index) => {
-        const img = new window.Image();
-        img.onload = () => console.log(`✅ ${card.src} - загружено`);
-        img.onerror = () => console.error(`❌ ${card.src} - ошибка загрузки`);
-        img.src = card.src;
-      });
-    }
+    if (process.env.NODE_ENV !== 'development' || typeof window === 'undefined') return;
+    staticCards.forEach((card) => {
+      const img = new window.Image();
+      img.src = card.src;
+    });
   }, []);
 
   useEffect(() => {
@@ -327,12 +332,7 @@ export default function HorizontalMediaScroll() {
 
       <div
         ref={scrollRef}
-        className="h-full overflow-x-hidden py-8 px-8 cursor-grab"
-        style={{ 
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch'
-        } as React.CSSProperties}
+        className="h-full overflow-x-hidden py-8 px-8 cursor-grab [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
@@ -352,12 +352,6 @@ export default function HorizontalMediaScroll() {
           ))}
         </div>
       </div>
-
-      <style jsx global>{`
-        div::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }

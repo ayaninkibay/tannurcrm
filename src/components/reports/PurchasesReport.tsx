@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ShoppingBag, Download, Calendar } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 
 export type Period = "all" | "last6" | "thisYear" | "prevYear";
 
@@ -60,71 +61,73 @@ interface PurchasesReportProps {
 }
 
 const periodOptions = [
-  { value: "all", label: "За всё время" },
-  { value: "last6", label: "6 месяцев" },
+  { value: "all",      label: "За всё время" },
+  { value: "last6",    label: "6 месяцев" },
   { value: "thisYear", label: "Текущий год" },
   { value: "prevYear", label: "Прошлый год" },
 ];
 
-// Мобильная карточка покупки
-const MobilePurchaseCard: React.FC<{ purchase: Purchase }> = ({ purchase }) => (
-  <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
-    <div className="flex items-start justify-between mb-3">
-      <div className="flex items-center gap-3">
-        <img
-          src={purchase.avatar}
-          alt={purchase.name}
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        <div>
-          <p className="font-medium text-sm">{purchase.name}</p>
-          <p className="text-xs text-gray-500">{purchase.product}</p>
+const MobilePurchaseCard: React.FC<{ purchase: Purchase }> = ({ purchase }) => {
+  const { t } = useTranslate();
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <img
+            src={purchase.avatar}
+            alt={purchase.name} // имена людей не переводим
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <div>
+            <p className="font-medium text-sm">{purchase.name}</p>
+            <p className="text-xs text-gray-500">{purchase.product}</p>
+          </div>
         </div>
+        {purchase.status === 'Оплачен' ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs font-medium text-green-700">{t('Оплачен')}</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
+            <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
+            </svg>
+            <span className="text-xs font-medium text-red-700">{t('Возврат')}</span>
+          </div>
+        )}
       </div>
-      {purchase.status === 'Оплачен' ? (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs font-medium text-green-700">Оплачен</span>
-        </div>
-      ) : (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg">
-          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
-          </svg>
-          <span className="text-xs font-medium text-red-700">Возврат</span>
-        </div>
-      )}
-    </div>
-    
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs">
-        <span className="text-gray-500">ID</span>
-        <span className="font-mono">{purchase.id}</span>
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-gray-500">Дата</span>
-        <span>{purchase.date}</span>
-      </div>
-      <div className="flex justify-between items-center pt-2 border-t">
-        <span className="text-xs text-gray-500">Сумма</span>
-        <span className="font-semibold text-base">{purchase.amount}</span>
-      </div>
-    </div>
-  </div>
-);
 
-export default function PurchasesReport({ 
-  period = "all", 
-  onPeriodChange = () => {} 
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">{t('ID')}</span>
+          <span className="font-mono">{purchase.id}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">{t('Дата')}</span>
+          <span>{purchase.date}</span>
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t">
+          <span className="text-xs text-gray-500">{t('Сумма')}</span>
+          <span className="font-semibold text-base">{purchase.amount}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function PurchasesReport({
+  period = "all",
+  onPeriodChange = () => {}
 }: PurchasesReportProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState(period);
-  
+  const { t } = useTranslate();
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>(period);
+
   const handlePeriodChange = (newPeriod: Period) => {
     setSelectedPeriod(newPeriod);
     onPeriodChange(newPeriod);
   };
 
-  // Расчет общей суммы
   const totalAmount = samplePurchases
     .filter(p => p.status === 'Оплачен')
     .reduce((sum, p) => sum + parseInt(p.amount.replace(/[^\d]/g, '')), 0);
@@ -139,29 +142,29 @@ export default function PurchasesReport({
               <ShoppingBag className="w-5 h-5" style={{ color: '#D77E6C' }} />
             </div>
             <h3 className="text-xl md:text-2xl font-medium text-gray-900">
-              Отчет по покупкам
+              {t('Отчет по покупкам')}
             </h3>
           </div>
           <p className="text-gray-600 text-sm">
-            История покупок и возвратов
+            {t('История покупок и возвратов')}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">Общая сумма</p>
+            <p className="text-xs text-gray-500 mb-1">{t('Общая сумма')}</p>
             <p className="text-lg md:text-xl font-bold" style={{ color: '#D77E6C' }}>
               {totalAmount.toLocaleString('ru-KZ')}₸
             </p>
           </div>
-          <button 
+          <button
             className="flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl transition-colors"
             style={{ backgroundColor: '#D77E6C' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#C66B5A'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D77E6C'}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C66B5A')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#D77E6C')}
           >
             <Download className="w-4 h-4" />
-            <span className="text-sm font-medium">Скачать</span>
+            <span className="text-sm font-medium">{t('Скачать')}</span>
           </button>
         </div>
       </div>
@@ -179,45 +182,45 @@ export default function PurchasesReport({
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Мобильная версия - карточки */}
+      {/* Мобильная версия */}
       <div className="md:hidden">
         {samplePurchases.map((purchase, idx) => (
           <MobilePurchaseCard key={idx} purchase={purchase} />
         ))}
       </div>
 
-      {/* Десктопная версия - таблица */}
+      {/* Десктопная версия */}
       <div className="hidden md:block overflow-hidden rounded-xl bg-white border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
                 <th className="text-left py-3 px-6 font-medium text-gray-700 text-sm">
-                  Клиент
+                  {t('Клиент')}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  Товар
+                  {t('Товар')}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    Дата
+                    {t('Дата')}
                   </div>
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  ID
+                  {t('ID')}
                 </th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  Сумма
+                  {t('Сумма')}
                 </th>
                 <th className="text-center py-3 px-6 font-medium text-gray-700 text-sm">
-                  Статус
+                  {t('Статус')}
                 </th>
               </tr>
             </thead>
@@ -261,16 +264,16 @@ export default function PurchasesReport({
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                           <span className="text-sm font-medium text-green-700">
-                            Оплачен
+                            {t('Оплачен')}
                           </span>
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
-                          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
+                          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                             <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
                           </svg>
                           <span className="text-sm font-medium text-red-700">
-                            Возврат
+                            {t('Возврат')}
                           </span>
                         </div>
                       )}
@@ -285,20 +288,23 @@ export default function PurchasesReport({
 
       {/* Пагинация */}
       <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-        <p className="text-center sm:text-left">Показано {samplePurchases.length} записей</p>
+        <p className="text-center sm:text-left">
+          {t('Показано {n} записей').replace('{n}', String(samplePurchases.length))}
+        </p>
         <div className="flex gap-1">
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Prev">
             ←
           </button>
-          <button 
+          <button
             className="px-3 py-1.5 rounded-lg text-white"
             style={{ backgroundColor: '#D77E6C' }}
+            aria-current="page"
           >
             1
           </button>
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">2</button>
           <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">3</button>
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Next">
             →
           </button>
         </div>

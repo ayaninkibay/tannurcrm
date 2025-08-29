@@ -1,23 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import PickupAddressBlock from '@/components/product/HidderElements/PickupAddressBlock'
 import PickupDeliverBlock from '@/components/product/HidderElements/PickupDeliverBlock'
 import SortProductBlock from '@/components/product/HidderElements/SortProductsBlock'
 import DealerProductCard from '@/components/product/DealerProductCard'
 import DealerBigProductCard from '@/components/product/DealerBigProductCard'
-import Lottie from 'lottie-react';
+import Lottie from 'lottie-react'
 import retailAnimation from '@/components/lotties/Retail.json'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'react-hot-toast'
 import { Database } from '@/types/supabase'
+import { useTranslate } from '@/hooks/useTranslate' // ← i18n
 
 // Определяем тип для продукта
 type ProductRow = Database['public']['Tables']['products']['Row']
 
 export default function ShopPage() {
+  const { t } = useTranslate() // ← i18n
   const [showClientPrices, setShowClientPrices] = useState(false)
   const [products, setProducts] = useState<ProductRow[]>([])
   const [bigProduct, setBigProduct] = useState<ProductRow | null>(null)
@@ -50,7 +51,7 @@ export default function ShopPage() {
         .select('*')
         .neq('id', '538dd152-4d6f-471e-8cf1-dcdf6ba564ec')
         .eq('is_active', true)
-        .limit(8) // Вернул ваш оригинальный лимит
+        .limit(8)
         .order('created_at', { ascending: false })
 
       if (productsError) throw productsError
@@ -58,7 +59,7 @@ export default function ShopPage() {
       setProducts(productsData || [])
     } catch (error) {
       console.error('Error fetching products:', error)
-      toast.error('Ошибка загрузки товаров')
+      toast.error(t('Ошибка загрузки товаров')) // ← i18n
     } finally {
       setLoading(false)
     }
@@ -74,7 +75,7 @@ export default function ShopPage() {
 
   return (
     <div className="flex flex-col gap-6 p-2 md:p-6 bg-[#F5F5F5] min-h-screen">
-      <MoreHeaderDE title="Магазин Tannur" />
+      <MoreHeaderDE title={t('Магазин Tannur')} /> {/* ← i18n */}
 
       {/* Верхний блок: Дилерский магазин */}
       <section className="bg-white rounded-2xl w-full p-6">
@@ -84,7 +85,9 @@ export default function ShopPage() {
               <div className="w-10 h-10 md:w-15 md:h-15">
                 <Lottie animationData={retailAnimation} loop autoplay />
               </div>
-              <h2 className="text-lg md:text-lg font-semibold text-[#1C1C1C]">Дилерский магазин</h2>
+              <h2 className="text-lg md:text-lg font-semibold text-[#1C1C1C]">
+                {t('Дилерский магазин')}{/* ← i18n */}
+              </h2>
             </div>
           </div>
 
@@ -141,7 +144,7 @@ export default function ShopPage() {
             onClick={fetchProducts}
             className="px-8 py-3 bg-[#D77E6C] text-white font-medium rounded-xl hover:bg-[#C66B5A] transition-colors"
           >
-            Загрузить еще товары
+            {t('Загрузить еще товары')}{/* ← i18n */}
           </button>
         </section>
       )}
