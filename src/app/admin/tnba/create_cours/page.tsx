@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -33,7 +33,8 @@ const CATEGORY_OPTIONS = [
 
 const LEVELS: CourseDraft['level'][] = ['Новичок', 'Средний', 'Продвинутый'];
 
-export default function CreateCoursPage() {
+// Separate component that uses useSearchParams
+function CreateCourseForm() {
   const router = useRouter();
   const sp = useSearchParams();
   const { t } = useTranslate();
@@ -193,7 +194,7 @@ export default function CreateCoursPage() {
   );
 
   return (
-    <div className="p-2 md:p-6">
+    <>
       <MoreHeaderAD
         title={isEdit ? t('Редактировать курс') : t('Создать курс')}
         showBackButton={true}
@@ -507,6 +508,36 @@ export default function CreateCoursPage() {
           </Link>
         </div>
       </form>
+    </>
+  );
+}
+
+// Loading component for Suspense
+function CreateCourseLoading() {
+  return (
+    <div className="p-2 md:p-6">
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div class="h-10 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function CreateCoursPage() {
+  return (
+    <div className="p-2 md:p-6">
+      <Suspense fallback={<CreateCourseLoading />}>
+        <CreateCourseForm />
+      </Suspense>
     </div>
   );
 }

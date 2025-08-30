@@ -1,3 +1,4 @@
+// DealerBigProductCard.tsx
 'use client';
 
 import { useState } from 'react';
@@ -30,7 +31,12 @@ export default function DealerBigProductCard({
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
   };
 
-  const [imgSrc, setImgSrc] = useState<string>(getImageUrl(product?.image_url));
+  // Убеждаемся, что imgSrc всегда имеет значение
+  const [imgSrc, setImgSrc] = useState<string>(() => {
+    const url = getImageUrl(product?.image_url);
+    return url || '/img/productBig.jpg';
+  });
+  
   const handleImgError = () => setImgSrc('/img/productBig.jpg');
 
   return (
@@ -38,8 +44,8 @@ export default function DealerBigProductCard({
       {/* Блок с картинкой */}
       <div className="w-full aspect-[11/5] relative rounded-2xl overflow-hidden">
         <Image
-          src={imgSrc}
-          alt={product?.name || t('Товар')}
+          src={imgSrc || '/img/productBig.jpg'} // Fallback на случай если imgSrc пустой
+          alt={product?.name || 'Товар'}
           fill
           priority
           loading="eager"
@@ -52,7 +58,7 @@ export default function DealerBigProductCard({
       <div className="p-3 pt-6">
         <div className="flex justify-between items-start -mb-1 gap-2">
           <h3 className="text-base font-bold text-[#1C1C1C] line-clamp-2 min-h-[3rem]">
-            {product?.name || t('Без названия')}
+            {product?.name || 'Без названия'}
           </h3>
 
           {product?.flagman && (
@@ -81,7 +87,7 @@ export default function DealerBigProductCard({
           </div>
 
           <div className="shrink-0 self-end">
-            <button onClick={handleArrowClick} aria-label={t('Открыть товар')} title={t('Открыть товар')}>
+            <button onClick={handleArrowClick} aria-label={'Открыть товар'} title={'Открыть товар'}>
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"
                 alt=""

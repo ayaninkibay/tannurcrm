@@ -1,4 +1,5 @@
-// src/components/product/DealerProductCard.tsx
+
+// DealerProductCard.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -18,7 +19,6 @@ export default function DealerProductCard({
   className
 }: DealerProductCardProps) {
   const { t } = useTranslate();
-  const [imgSrc, setImgSrc] = useState<string>('');
   const router = useRouter();
 
   const handleArrowClick = () => {
@@ -31,9 +31,16 @@ export default function DealerProductCard({
     return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/products/${imageUrl}`;
   };
 
+  // Инициализируем с дефолтным значением
+  const [imgSrc, setImgSrc] = useState<string>(() => {
+    const url = getImageUrl(product?.image_url);
+    return url || '/img/product1.jpg';
+  });
+
   // Инициализируем / обновляем изображение корректно
   useEffect(() => {
-    setImgSrc(getImageUrl(product?.image_url));
+    const url = getImageUrl(product?.image_url);
+    setImgSrc(url || '/img/product1.jpg');
   }, [product?.image_url]);
 
   const handleImageError = () => {
@@ -45,8 +52,8 @@ export default function DealerProductCard({
       {/* Контейнер изображения */}
       <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden bg-white">
         <Image
-          src={imgSrc}
-          alt={product?.name || t('Товар')}
+          src={imgSrc || '/img/product1.jpg'} // Fallback на случай если imgSrc пустой
+          alt={product?.name || 'Товар'}
           fill
           className="object-cover"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -66,7 +73,7 @@ export default function DealerProductCard({
       {/* Информация о товаре */}
       <div className="p-2 sm:p-3 pt-3 sm:pt-4">
         <h3 className="text-xs sm:text-sm font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] leading-tight">
-          {product?.name || t('Без названия')}
+          {product?.name || 'Без названия'}
         </h3>
 
         <div className="flex items-end justify-between gap-2 sm:gap-3">
@@ -94,8 +101,8 @@ export default function DealerProductCard({
             <button
               onClick={handleArrowClick}
               className="hover:scale-105 transition-transform duration-200"
-              aria-label={t('Подробнее')}
-              title={t('Подробнее')}
+              aria-label={'Подробнее'}
+              title={'Подробнее'}
             >
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"
