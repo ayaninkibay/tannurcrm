@@ -13,8 +13,12 @@ import {
   Cell,
   CartesianGrid,
 } from 'recharts';
-import { TrendingUp, Calendar, ChevronDown, CalendarRange } from 'lucide-react';
-import { useTranslate } from '@/hooks/useTranslate';
+import { TrendingUp, Calendar, ChevronDown, CalendarRange, Loader2 } from 'lucide-react';
+
+// Hooks - эмуляция, если нет реального
+const useTranslate = () => ({
+  t: (key: string) => key
+});
 
 export type MonthValue = {
   date: Date;
@@ -24,26 +28,31 @@ export type MonthValue = {
 export type TurnoverChartProps = {
   title?: string;
   subtitle?: string;
-  data: MonthValue[];
+  data?: MonthValue[];
   colorBar?: string;
   colorLine?: string;
   lineOffset?: number;
   showPeriodSelector?: boolean;
   showStats?: boolean;
+  userId?: string;
+  dataType?: 'personal' | 'team';
+  apiEndpoint?: string;
 };
 
 type PeriodType = 'all' | 'last6' | 'thisYear' | 'prevYear' | 'custom';
 
 export const TurnoverChart: React.FC<TurnoverChartProps> = ({
-  // дефолт — русские ключи; отображение через t(...) ниже
   title = 'Товарооборот',
   subtitle = 'Динамика продаж за период',
-  data,
+  data: propData,
   colorBar = '#FFE5E1',
   colorLine = '#D77E6C',
   lineOffset = 300000,
   showPeriodSelector = true,
   showStats = true,
+  userId,
+  dataType = 'personal',
+  apiEndpoint = '/api/dealer/turnover'
 }) => {
   const { t } = useTranslate();
 
@@ -57,16 +66,172 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
     end: ''
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Состояния для загрузки данных
+  const [data, setData] = useState<MonthValue[]>(propData || []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { setIsClient(true); }, []);
 
-  // Пункты периода (моки) — показываем через t(...)
+  // Загрузка данных напрямую из Supabase
+  useEffect(() => {
+    // Если данные переданы через props, используем их
+    if (propData && propData.length > 0) {
+      console.log('Using prop data:', propData);
+      setData(propData);
+      return;
+    }
+
+    // Загружаем данные напрямую из базы
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Импортируем Supabase клиент
+        const { supabase } = await import('@/lib/supabase/client');
+        
+        // Получаем текущего пользователя
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        const targetUserId = userId || user?.id;
+        
+        if (!targetUserId) {
+          throw new Error('Пользователь не авторизован');
+        }
+
+        console.log('Loading data for user:', targetUserId, 'type:', dataType);
+
+        let processedData: MonthValue[] = [];
+
+        if (dataType === 'personal') {
+          // Загружаем личные заказы - ТОЛЬКО из таблицы orders
+          const { data: orders, error } = await supabase
+            .from('orders')
+            .select('id, created_at, total_amount, payment_status')
+            .eq('user_id', targetUserId)
+            .eq('payment_status', 'paid')
+            .order('created_at', { ascending: true });
+
+          if (error) {
+            console.error('Error loading orders:', error);
+            throw error;
+          }
+
+          console.log('Loaded orders:', orders?.length || 0);
+          console.log('Orders data:', orders);
+
+          if (orders && orders.length > 0) {
+            // Группируем по месяцам
+            const monthlyData: { [key: string]: number } = {};
+            
+            orders.forEach(order => {
+              const date = new Date(order.created_at);
+              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              
+              // Используем только total_amount из таблицы orders
+              const orderTotal = order.total_amount || 0;
+              
+              console.log(`Order ${order.id}: date=${order.created_at}, total=${orderTotal}`);
+              
+              if (orderTotal > 0) {
+                if (!monthlyData[monthKey]) {
+                  monthlyData[monthKey] = 0;
+                }
+                monthlyData[monthKey] += orderTotal;
+              }
+            });
+
+            console.log('Monthly data:', monthlyData);
+
+            // Преобразуем в массив MonthValue
+            processedData = Object.entries(monthlyData)
+              .map(([monthKey, value]) => {
+                const [year, month] = monthKey.split('-');
+                return {
+                  date: new Date(parseInt(year), parseInt(month) - 1, 1),
+                  value: value
+                };
+              })
+              .sort((a, b) => a.date.getTime() - b.date.getTime());
+          }
+          
+        } else if (dataType === 'team') {
+          // Загружаем командные закупки
+          const { data: purchases, error } = await supabase
+            .from('team_purchases')
+            .select('id, completed_at, paid_amount, status')
+            .eq('initiator_id', targetUserId)
+            .eq('status', 'completed')
+            .not('completed_at', 'is', null)
+            .order('completed_at', { ascending: true });
+
+          if (error) {
+            console.error('Error loading team purchases:', error);
+            throw error;
+          }
+
+          console.log('Team purchases found:', purchases?.length || 0);
+
+          if (purchases && purchases.length > 0) {
+            const monthlyData: { [key: string]: number } = {};
+            
+            purchases.forEach(purchase => {
+              if (purchase.completed_at && purchase.paid_amount) {
+                const date = new Date(purchase.completed_at);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyData[monthKey]) {
+                  monthlyData[monthKey] = 0;
+                }
+                monthlyData[monthKey] += purchase.paid_amount;
+              }
+            });
+
+            processedData = Object.entries(monthlyData)
+              .map(([monthKey, value]) => {
+                const [year, month] = monthKey.split('-');
+                return {
+                  date: new Date(parseInt(year), parseInt(month) - 1, 1),
+                  value: value
+                };
+              })
+              .sort((a, b) => a.date.getTime() - b.date.getTime());
+          }
+        }
+
+        console.log('Processed data:', processedData);
+        setData(processedData);
+        
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [propData, userId, dataType]);
+
+  // Логирование для отладки
+  useEffect(() => {
+    console.log('Current data state:', {
+      dataLength: data?.length,
+      firstItem: data?.[0],
+      loading,
+      error
+    });
+  }, [data, loading, error]);
+
+  // Пункты периода
   const periodOptions = useMemo(() => ([
-    { value: 'all' as PeriodType,      label: t('За всё время') },
-    { value: 'last6' as PeriodType,    label: t('6 месяцев') },
+    { value: 'all' as PeriodType, label: t('За всё время') },
+    { value: 'last6' as PeriodType, label: t('6 месяцев') },
     { value: 'thisYear' as PeriodType, label: t('Текущий год') },
     { value: 'prevYear' as PeriodType, label: t('Прошлый год') },
-    { value: 'custom' as PeriodType,   label: t('Выбрать период') },
+    { value: 'custom' as PeriodType, label: t('Выбрать период') },
   ]), [t]);
 
   // Закрытие dropdown при клике вне
@@ -117,7 +282,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
 
   const graphData = useMemo(() => {
     return filtered.map(d => ({
-      month: d.date.toLocaleString('ru', { month: 'short' }), // формат даты оставляем
+      month: d.date.toLocaleString('ru', { month: 'short', year: '2-digit' }),
       value: d.value,
       lineValue: d.value + lineOffset,
     }));
@@ -180,7 +345,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
         </div>
 
         {/* Селектор периода */}
-        {showPeriodSelector && (
+        {showPeriodSelector && !loading && (
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -276,48 +441,31 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
       )}
 
       {/* Статистика */}
-      {showStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">{t('Общий доход')}</p>
-            {isClient && (
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {total.toLocaleString('ru-RU')} ₸
-              </p>
-            )}
-          </div>
-          <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">{t('Средний чек')}</p>
-            {isClient && (
-              <p className="text-xl md:text-2xl font-bold text-gray-900">
-                {graphData.length > 0
-                  ? Math.round(total / graphData.length).toLocaleString('ru-RU')
-                  : 0} ₸
-              </p>
-            )}
-          </div>
-          <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">{t('Прирост')}</p>
-            {isClient && (
-              <p
-                className={`text-xl md:text-2xl font-bold ${
-                  Number(growthRate) > 0
-                    ? 'text-green-600'
-                    : Number(growthRate) < 0
-                    ? 'text-red-600'
-                    : 'text-gray-900'
-                }`}
-              >
-                {Number(growthRate) > 0 ? '+' : ''}{growthRate}%
-              </p>
-            )}
-          </div>
+      {showStats && !loading && graphData.length > 0 && (
+        <div className="bg-gray-50 rounded-xl px-4 py-3 mb-6">
+          <p className="text-xs text-gray-500 mb-1">{t('Итого за период')}</p>
+          {isClient && (
+            <p className="text-lg font-bold text-gray-900">
+              {total.toLocaleString('ru-RU')} ₸
+            </p>
+          )}
         </div>
       )}
 
-      {/* График */}
+      {/* График с состояниями загрузки */}
       <div className={`${showStats ? 'h-[250px] md:h-[300px]' : 'h-[300px] md:h-[350px]'} w-full relative bg-gray-50/50 rounded-xl p-4`}>
-        {graphData.length > 0 ? (
+        {loading ? (
+          <div className="h-full flex flex-col items-center justify-center text-gray-500">
+            <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#D77E6C]" />
+            <p className="text-sm">{t('Загрузка данных...')}</p>
+          </div>
+        ) : error ? (
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="text-red-500 mb-2">⚠️</div>
+            <p className="text-sm text-gray-600">{t('Ошибка загрузки данных')}</p>
+            <p className="text-xs text-gray-400 mt-1">{error}</p>
+          </div>
+        ) : graphData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={graphData}
@@ -376,13 +524,15 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-gray-500">
-            {t('Нет данных для отображения')}
+          <div className="h-full flex flex-col items-center justify-center text-gray-500">
+            <div className="mb-2 text-3xl">📊</div>
+            <p className="text-sm">{t('Нет данных для отображения')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Данные появятся после первых продаж')}</p>
           </div>
         )}
 
         {/* Линия тренда */}
-        {graphData.length > 0 && (
+        {!loading && !error && graphData.length > 1 && (
           <ResponsiveContainer
             width="100%"
             height="100%"
@@ -406,36 +556,81 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
       </div>
 
       {/* Легенда */}
-      <div className="flex flex-wrap items-center gap-6 mt-4 text-xs text-gray-500">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded" style={{ backgroundColor: colorBar }}></div>
-          <span>{t('Доход за месяц')}</span>
+      {!loading && graphData.length > 0 && (
+        <div className="flex flex-wrap items-center gap-6 mt-4 text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded" style={{ backgroundColor: colorBar }}></div>
+            <span>{t('Доход за месяц')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-0.5"
+              style={{
+                backgroundImage: `repeating-linear-gradient(to right, ${colorLine} 0, ${colorLine} 4px, transparent 4px, transparent 8px)`
+              }}
+            />
+            <span>{t('Линия тренда')}</span>
+          </div>
+          <div className="ml-auto flex items-center gap-1 text-gray-400">
+            <Calendar className="w-3 h-3" />
+            <span>
+              {t('Период:')} {getPeriodLabel()}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-0.5"
-            style={{
-              backgroundImage: `repeating-linear-gradient(to right, ${colorLine} 0, ${colorLine} 4px, transparent 4px, transparent 8px)`
-            }}
-          />
-          <span>{t('Линия тренда')}</span>
-        </div>
-        <div className="ml-auto flex items-center gap-1 text-gray-400">
-          <Calendar className="w-3 h-3" />
-          <span>
-            {t('Период: {label}').replace('{label}', getPeriodLabel())}
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
 
-// Варианты экспорта
-export const TurnoverChartWithStats: React.FC<Omit<TurnoverChartProps, 'showStats'>> = (props) => (
-  <TurnoverChart {...props} showStats={true} />
-);
+// Демо компонент для тестирования
+export default function TurnoverChartDemo() {
+  const [selectedUserId, setSelectedUserId] = useState<string>('33542896-acc2-41a6-ade3-1b6fb45e4e96');
+  
+  // Эти ID из вашего скриншота
+  const userIds = [
+    '33542896-acc2-41a6-ade3-1b6fb45e4e96',
+    '54d376a4-7ad5-404f-b30f-fac955e70007'
+  ];
 
-export const TurnoverChartCompact: React.FC<Omit<TurnoverChartProps, 'showStats'>> = (props) => (
-  <TurnoverChart {...props} showStats={false} />
-);
+  return (
+    <div className="min-h-screen bg-gray-100 p-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="bg-white rounded-lg p-4 shadow">
+          <h2 className="text-lg font-semibold mb-4">Выберите пользователя:</h2>
+          <select 
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="w-full p-2 border rounded"
+          >
+            {userIds.map(id => (
+              <option key={id} value={id}>{id}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid gap-8">
+          <TurnoverChart 
+            title="Личный товарооборот"
+            subtitle="Ваши личные продажи"
+            userId={selectedUserId}
+            dataType="personal"
+            showStats={true}
+            colorBar="#FFE5E1"
+            colorLine="#D77E6C"
+          />
+          
+          <TurnoverChart 
+            title="Командный товарооборот"
+            subtitle="Продажи вашей команды"
+            userId={selectedUserId}
+            dataType="team"
+            showStats={true}
+            colorBar="#E1F0FF"
+            colorLine="#6C9BD7"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

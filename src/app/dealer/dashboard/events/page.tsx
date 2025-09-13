@@ -1,331 +1,394 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTranslate } from '@/hooks/useTranslate';
-import MoreHeaderDE from '@/components/header/MoreHeaderDE';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import { useUser } from '@/context/UserContext';
+import { 
+  Calendar, 
+  Gift, 
+  Target, 
+  Clock, 
+  ChevronRight, 
+  Plus, 
+  Search,
+  Filter,
+  Sparkles,
+  AlertCircle,
+  Archive,
+  Eye
+} from 'lucide-react';
+import type { Event } from '@/types/custom.types';
 
-type Item = {
-  id: string;
-  title: string;
-  description: string;
-  badge?: string;
-  date?: string;
-  icon?: string; // файл в /public/icons
-  hot?: boolean;
-};
+export default function EventsPage() {
+  const router = useRouter();
+  const { profile } = useUser();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'upcoming' | 'past'>('all');
 
-type Filter = 'all' | 'events' | 'news';
-type ViewMode = 'grid' | 'list';
+  // Загрузка событий из БД
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
-export default function EventsAndNewsPage() {
-  const { t } = useTranslate();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [view, setView] = useState<ViewMode>('list');
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // МОКИ
-  const events: Item[] = [
-    {
-      id: 'e1',
-      title: 'События на август',
-      description:
-        'Если купишь 10 кушонов 3-в-1, получишь скидку 10% на все товары. Акция действует при единовременной покупке.',
-      badge: 'Акция',
-      date: '1–31 августа',
-      icon: 'Icon cover 2.png',
-      hot: true,
-    },
-    {
-      id: 'e2',
-      title: 'Командная закупка недели',
-      description:
-        'Собери команду из 5 человек и получи дополнительную скидку 5% к текущим акциям.',
-      badge: 'Команда',
-      date: 'На этой неделе',
-      icon: 'Icon cover 3.png',
-    },
-    {
-      id: 'e3',
-      title: 'TNBA — интенсив по продажам',
-      description: 'Практический воркшоп по скриптам и апселлам. Места ограничены.',
-      badge: 'Обучение',
-      date: '24 августа',
-      icon: 'Icon cover 4.png',
-    },
-  ];
+      // Загружаем напрямую из таблицы events
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', 'published')
+        .order('priority', { ascending: false })
+        .order('start_date', { ascending: false });
 
-  const news: Item[] = [
-    {
-      id: 'n1',
-      title: 'Открылся новый филиал в Алматы',
-      description: 'Новый пункт выдачи и консультаций на Абая 25. Ждём вас ежедневно.',
-      badge: 'Филиал',
-      date: 'Сегодня',
-      icon: 'Icon cover 1.png',
-      hot: true,
-    },
-    {
-      id: 'n2',
-      title: 'Живая встреча Tannur Community',
-      description: 'Нетворкинг, разбор кейсов и живые демо. Регистрация открыта.',
-      badge: 'Событие',
-      date: 'Через 3 дня',
-      icon: 'Icon cover 4.png',
-    },
-    {
-      id: 'n3',
-      title: 'TNBA — новый спикер',
-      description: 'Анонс приглашённого эксперта. Следите за расписанием.',
-      badge: 'Обучение',
-      date: 'На этой неделе',
-      icon: 'Icon cover 3.png',
-    },
-  ];
+      if (fetchError) throw fetchError;
 
-  const stats = useMemo(
-    () => ({
-      events: events.length,
-      news: news.length,
-      total: events.length + news.length,
-    }),
-    [events, news]
-  );
+      // Вычисляем статусы и дни на клиенте
+      const today = new Date().toISOString().split('T')[0];
+      const eventsWithStatus = (data || []).map(event => {
+        const startDate = event.start_date;
+        const endDate = event.end_date;
+        
+        let eventStatus: 'active' | 'upcoming' | 'past';
+        let days_until: number | undefined;
+        let days_remaining: number | undefined;
+        
+        if (startDate > today) {
+          eventStatus = 'upcoming';
+          days_until = Math.ceil((new Date(startDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24));
+        } else if (today >= startDate && today <= endDate) {
+          eventStatus = 'active';
+          days_remaining = Math.ceil((new Date(endDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24));
+        } else {
+          eventStatus = 'past';
+        }
+        
+        return {
+          ...event,
+          event_status: eventStatus,
+          days_until,
+          days_remaining
+        };
+      });
 
-  const SectionCard: React.FC<{ item: Item; kind: 'event' | 'news' }> = ({ item, kind }) => {
-    const badgeColor =
-      kind === 'event'
-        ? 'bg-[#FDEAE5] text-[#C86B56]'
-        : 'bg-[#EAF2FF] text-[#3366CC]';
+      setEvents(eventsWithStatus);
+    } catch (err: any) {
+      console.error('Error loading events:', err);
+      setError('Не удалось загрузить события');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const href =
-      kind === 'event'
-        ? `/dealer/dashboard/events/event/${item.id}`
-        : `/dealer/dashboard/events/news/${item.id}`;
+  // Фильтрация событий
+  const filteredEvents = events.filter(event => {
+    // Поиск по тексту
+    const matchesSearch = !searchQuery || 
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Фильтр по статусу
+    let matchesStatus = true;
+    if (filterStatus !== 'all') {
+      matchesStatus = event.event_status === filterStatus;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Группировка событий по статусу
+  const activeEvents = filteredEvents.filter(e => e.event_status === 'active');
+  const upcomingEvents = filteredEvents.filter(e => e.event_status === 'upcoming');
+  const pastEvents = filteredEvents.filter(e => e.event_status === 'past');
+
+  // Компонент карточки события
+  const EventCard: React.FC<{ event: Event }> = ({ event }) => {
+    const getStatusBadge = () => {
+      switch (event.event_status) {
+        case 'active':
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Активно {event.days_remaining && `(${event.days_remaining} дн.)`}
+            </span>
+          );
+        case 'upcoming':
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+              Скоро {event.days_until && `(через ${event.days_until} дн.)`}
+            </span>
+          );
+        case 'past':
+          return (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+              Завершено
+            </span>
+          );
+        default:
+          return null;
+      }
+    };
 
     return (
       <Link
-        href={href}
-        className={`relative rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:shadow-md ${
-          view === 'list' ? 'flex items-start gap-4 w-full' : 'block'
-        }`}
+        href={`/dealer/dashboard/events/event/${event.id}`}
+        className="block bg-white rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden group"
       >
-        {item.hot && (
-          <div className="absolute -top-2 -right-2 rounded-full bg-[#DC7C67] px-2 py-1 text-xs font-medium text-white shadow-sm">
-            🔥 {t('Горячее')}
+        {/* Изображение */}
+        {event.image_url && (
+          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
+            <img 
+              src={event.image_url} 
+              alt={event.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            {event.badge_icon && (
+              <div 
+                className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-lg bg-white/90 backdrop-blur-sm"
+                style={{ color: event.badge_color || '#DC7C67' }}
+              >
+                {event.badge_icon}
+              </div>
+            )}
+            {event.is_featured && (
+              <div className="absolute top-3 left-3 px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Горячее
+              </div>
+            )}
           </div>
         )}
 
-        <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-          {item.icon ? (
-            <Image
-              src={`/icons/${item.icon}`}
-              alt={item.title}
-              width={24}
-              height={24}
-              className="w-6 h-6 object-cover"
-            />
-          ) : (
-            <div className="w-6 h-6" />
-          )}
-        </div>
-
-        <div className={`min-w-0 ${view === 'list' ? '' : 'mt-3'}`}>
-          <div className="flex items-center gap-2 mb-1">
-            {item.badge && (
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${badgeColor}`}>
-                {t(item.badge)}
-              </span>
-            )}
-            {item.date && <span className="text-xs text-gray-500">{t(item.date)}</span>}
+        <div className="p-5">
+          {/* Статус и дата */}
+          <div className="flex items-center justify-between mb-3">
+            {getStatusBadge()}
+            <div className="flex items-center text-xs text-gray-500">
+              <Calendar className="w-3 h-3 mr-1" />
+              {new Date(event.start_date).toLocaleDateString('ru-RU', { 
+                day: 'numeric',
+                month: 'short'
+              })}
+            </div>
           </div>
-          <h3 className="font-semibold text-gray-900 leading-snug mb-1">{t(item.title)}</h3>
-          <p className="text-sm text-gray-600">{t(item.description)}</p>
+
+          {/* Заголовок */}
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#DC7C67] transition-colors">
+            {event.title}
+          </h3>
+
+          {/* Описание */}
+          {event.short_description && (
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+              {event.short_description}
+            </p>
+          )}
+
+          {/* Цели и награды (превью) */}
+          <div className="space-y-2 mb-3">
+            {event.goals && event.goals.length > 0 && (
+              <div className="flex items-start gap-2">
+                <Target className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-gray-600 line-clamp-1">
+                  {event.goals[0]}
+                  {event.goals.length > 1 && ` +${event.goals.length - 1}`}
+                </p>
+              </div>
+            )}
+            {event.rewards && event.rewards.length > 0 && (
+              <div className="flex items-start gap-2">
+                <Gift className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-gray-600 line-clamp-1">
+                  {event.rewards[0]}
+                  {event.rewards.length > 1 && ` +${event.rewards.length - 1}`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Теги */}
+          {event.tags && event.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {event.tags.slice(0, 3).map((tag, index) => (
+                <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Кнопка подробнее */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <span className="text-sm font-medium text-[#DC7C67] group-hover:text-[#B95F4A] transition-colors flex items-center gap-1">
+              Подробнее
+              <ChevronRight className="w-4 h-4" />
+            </span>
+          </div>
         </div>
       </Link>
     );
   };
 
-  const FilterTabs = () => (
-    <div className="flex items-center gap-2 bg-white/20 rounded-xl p-1">
-      {(['all', 'events', 'news'] as Filter[]).map((f) => (
-        <button
-          key={f}
-          onClick={() => setFilter(f)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            filter === f ? 'bg-white text-[#C2543F] shadow-sm' : 'text-white/90 hover:bg-white/10'
-          }`}
-        >
-          {f === 'all' ? t('Все') : f === 'events' ? t('События') : t('Новости')}
-        </button>
-      ))}
-    </div>
-  );
+  // Компонент группы событий
+  const EventGroup: React.FC<{ 
+    title: string; 
+    events: Event[]; 
+    icon: React.ReactNode;
+    color: string;
+  }> = ({ title, events, icon, color }) => {
+    if (events.length === 0) return null;
 
-  const ViewSwitch = () => (
-    <div className="flex items-center gap-2 bg-white/20 rounded-xl p-1">
-      {(['list', 'grid'] as ViewMode[]).map((v) => (
-        <button
-          key={v}
-          onClick={() => setView(v)}
-          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-            view === v ? 'bg-white text-[#C2543F] shadow-sm' : 'text-white/90 hover:bg-white/10'
-          }`}
-        >
-          {v === 'list' ? t('Список') : t('Сетка')}
-        </button>
-      ))}
-    </div>
-  );
+    return (
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <div className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center`}>
+            {icon}
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {title}
+          </h2>
+          <span className="text-sm text-gray-500">
+            ({events.length})
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {events.map(event => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white p-2">
-      {/* ✅ ВЕРХНИЙ ХЕДЕР */}
-      <MoreHeaderDE title={t('Товар')} showBackButton={true} />
-
-      {/* Заголовок страницы */}
-      <div className="sticky top-0 z-10 px-4 sm:px-6 lg:px-10 pt-4">
-        <div className="border border-[#E7C6BF]/60 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] rounded-2xl shadow-sm">
-          <div className="w-full px-5 sm:px-6 lg:px-8 py-5">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="text-white">
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/dealer/dashboard"
-                    className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 border border-white/25 hover:bg-white/25 transition-colors"
-                    aria-label={t('Назад')}
-                    title={t('Назад')}
-                  >
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Link>
-                  <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                    {t('События и новости')}
-                  </h1>
-                </div>
-                <p className="text-white/80 text-sm mt-1">
-                  {t('Все активности и обновления Tannur в одном месте')}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg text-xs bg-white/15 border border-white/20">
-                    {t('Всего: {n}').replace('{n}', String(stats.total))}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg text-xs bg-white/15 border border-white/20">
-                    {t('События: {n}').replace('{n}', String(stats.events))}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg text-xs bg-white/15 border border-white/20">
-                    {t('Новости: {n}').replace('{n}', String(stats.news))}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 self-stretch lg:self-auto">
-                <FilterTabs />
-                <ViewSwitch />
-              </div>
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white">
+      {/* Шапка страницы */}
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] shadow-sm">
+        <div className="px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex items-center justify-between">
+            <div className="text-white">
+              <h1 className="text-2xl font-semibold">События и акции</h1>
+              <p className="text-white/80 text-sm mt-0.5">Узнайте о текущих и предстоящих мероприятиях</p>
             </div>
+            
+            {/* Кнопка создания для админа */}
+            {profile?.role === 'admin' && (
+              <Link
+                href="/admin/events/create"
+                className="px-4 py-2 bg-white text-[#C86B56] rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Создать событие
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Контент */}
-      <div className="w-full px-4 sm:px-6 lg:px-10 py-6">
-        {filter === 'all' ? (
-          <div className="space-y-6">
-            {/* События */}
-            <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-[#FFF7F5]">
-                <h2 className="text-lg font-semibold text-[#B95F4A]">{t('События')}</h2>
-                <p className="text-sm text-gray-500">{t('Актуальные предложения и активности')}</p>
+      {/* Фильтры и поиск */}
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Поиск */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск событий..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#DC7C67] focus:border-transparent outline-none transition-all"
+                />
               </div>
+            </div>
 
-              <div
-                className={`p-5 ${
-                  view === 'grid'
-                    ? 'grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4'
-                    : 'space-y-4'
-                }`}
-              >
-                {events.map((ev) => (
-                  <SectionCard key={ev.id} item={ev} kind="event" />
+            {/* Фильтр по статусу */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <div className="flex gap-2">
+                {[
+                  { value: 'all', label: 'Все' },
+                  { value: 'active', label: 'Активные' },
+                  { value: 'upcoming', label: 'Предстоящие' },
+                  { value: 'past', label: 'Прошедшие' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setFilterStatus(option.value as any)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      filterStatus === option.value
+                        ? 'bg-[#DC7C67] text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-600 flex items-center justify-between">
-                <span>{t('Всего событий: {n}').replace('{n}', String(stats.events))}</span>
-                <Link href="/dealer/dashboard" className="text-[#C86B56] hover:underline">
-                  {t('Назад к дэшборду')}
-                </Link>
-              </div>
-            </section>
-
-            {/* Новости */}
-            <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 bg-[#FFF2F0]">
-                <h2 className="text-lg font-semibold text-[#B95F4A]">{t('Новости')}</h2>
-                <p className="text-sm text-gray-500">{t('Анонсы, открытия и важные обновления')}</p>
-              </div>
-
-              <div
-                className={`p-5 ${
-                  view === 'grid'
-                    ? 'grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4'
-                    : 'space-y-4'
-                }`}
-              >
-                {news.map((n) => (
-                  <SectionCard key={n.id} item={n} kind="news" />
-                ))}
-              </div>
-
-              <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-600 flex items-center justify-between">
-                <span>{t('Всего новостей: {n}').replace('{n}', String(stats.news))}</span>
-                <span>{t('Обновлено только что')}</span>
-              </div>
-            </section>
+        {/* Контент */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC7C67]"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            {error}
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет событий</h3>
+            <p className="text-gray-500">
+              {searchQuery ? 'По вашему запросу ничего не найдено' : 'События появятся здесь позже'}
+            </p>
           </div>
         ) : (
-          <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 bg-[#FFF7F5] flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-[#B95F4A]">
-                  {filter === 'events' ? t('События') : t('Новости')}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {filter === 'events'
-                    ? t('Актуальные предложения и активности')
-                    : t('Анонсы, открытия и важные обновления')}
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-sm text-gray-500">
-                <span className="px-2.5 py-1 rounded-lg bg-gray-100">
-                  {filter === 'events'
-                    ? t('Всего событий: {n}').replace('{n}', String(stats.events))
-                    : t('Всего новостей: {n}').replace('{n}', String(stats.news))}
-                </span>
-              </div>
-            </div>
+          <>
+            {/* Активные события */}
+            {activeEvents.length > 0 && (
+              <EventGroup
+                title="Активные события"
+                events={activeEvents}
+                icon={<Sparkles className="w-4 h-4 text-green-600" />}
+                color="bg-green-100"
+              />
+            )}
 
-            <div
-              className={`p-5 ${
-                view === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }`}
-            >
-              {(filter === 'events' ? events : news).map((it) => (
-                <SectionCard key={it.id} item={it} kind={filter === 'events' ? 'event' : 'news'} />
-              ))}
-            </div>
+            {/* Предстоящие события */}
+            {upcomingEvents.length > 0 && (
+              <EventGroup
+                title="Предстоящие события"
+                events={upcomingEvents}
+                icon={<Clock className="w-4 h-4 text-yellow-600" />}
+                color="bg-yellow-100"
+              />
+            )}
 
-            <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 text-sm text-gray-600 flex items-center justify-between">
-              <button onClick={() => setFilter('all')} className="text-[#C86B56] hover:underline">
-                {t('Показать всё')}
-              </button>
-              <span>{t('Обновлено только что')}</span>
-            </div>
-          </section>
+            {/* Прошедшие события */}
+            {pastEvents.length > 0 && (
+              <EventGroup
+                title="Прошедшие события"
+                events={pastEvents}
+                icon={<Archive className="w-4 h-4 text-gray-600" />}
+                color="bg-gray-100"
+              />
+            )}
+          </>
         )}
       </div>
     </div>

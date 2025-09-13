@@ -8,8 +8,6 @@ export const TEAM_PURCHASE_RULES = {
   finance: {
     MIN_PERSONAL_PURCHASE: 300000,      // Минимальная сумма покупки на человека
     DEFAULT_MIN_CONTRIBUTION: 10000,    // Минимальный вклад участника по умолчанию (не используется)
-    DISCOUNT_PERCENT: 25,               // Процент скидки
-    BONUS_THRESHOLD_1: 500000,          // Порог для серебряного уровня
     BONUS_THRESHOLD_2: 1000000,         // Порог для золотого уровня  
     BONUS_THRESHOLD_3: 3000000,         // Порог для платинового уровня
   },

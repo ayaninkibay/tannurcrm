@@ -1,359 +1,199 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import Rive from '@rive-app/react-canvas';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
-const DirectStateMachineTest = () => {
-  const riveRef = useRef(null);
-  const [logs, setLogs] = useState([]);
-  const [stateMachine, setStateMachine] = useState(null);
-  const [inputs, setInputs] = useState({});
-
-  const addLog = (message) => {
-    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-  };
-
-  // Пытаемся получить доступ к State Machine через ref
-  useEffect(() => {
-    const attempts = [];
-    
-    const tryGetStateMachine = () => {
-      if (!riveRef.current) return;
-      
-      try {
-        // Способ 1: через rive property
-        if (riveRef.current.rive) {
-          const rive = riveRef.current.rive;
-          addLog('Найден rive instance через .rive');
-          
-          // Пытаемся получить State Machine
-          if (rive.stateMachineInputs) {
-            try {
-              const smInputs = rive.stateMachineInputs('Login Machine');
-              if (smInputs) {
-                setStateMachine(rive);
-                setInputs(smInputs);
-                addLog(`State Machine найден! Входы: ${Object.keys(smInputs).join(', ')}`);
-                return;
-              }
-            } catch (e) {
-              addLog(`Ошибка получения SM: ${e.message}`);
-            }
-          }
-        }
-        
-        // Способ 2: поиск по всем свойствам ref
-        const refProps = Object.getOwnPropertyNames(riveRef.current);
-        addLog(`Свойства ref: ${refProps.join(', ')}`);
-        
-        // Ищем объекты с методами Rive
-        for (const prop of refProps) {
-          const obj = riveRef.current[prop];
-          if (obj && typeof obj === 'object' && obj.stateMachineInputs) {
-            addLog(`Найден Rive через ${prop}`);
-            try {
-              const smInputs = obj.stateMachineInputs('Login Machine');
-              if (smInputs) {
-                setStateMachine(obj);
-                setInputs(smInputs);
-                addLog(`State Machine найден через ${prop}! Входы: ${Object.keys(smInputs).join(', ')}`);
-                return;
-              }
-            } catch (e) {
-              addLog(`SM через ${prop} неудачно: ${e.message}`);
-            }
-          }
-        }
-        
-        addLog('State Machine не найден через ref');
-        
-      } catch (error) {
-        addLog(`Общая ошибка: ${error.message}`);
-      }
-    };
-
-    // Пробуем несколько раз с задержками
-    const intervals = [1000, 2000, 3000, 5000];
-    intervals.forEach(delay => {
-      setTimeout(tryGetStateMachine, delay);
-    });
-
-    return () => intervals.forEach(id => clearTimeout(id));
-  }, []);
-
-  // Альтернативный способ - через canvas и события
-  useEffect(() => {
-    const tryCanvasAccess = () => {
-      if (!riveRef.current) return;
-
-      // Ищем canvas элемент внутри компонента
-      const canvasElements = riveRef.current.querySelectorAll('canvas');
-      addLog(`Найдено canvas элементов: ${canvasElements.length}`);
-      
-      if (canvasElements.length > 0) {
-        const canvas = canvasElements[0];
-        addLog(`Canvas размер: ${canvas.width}x${canvas.height}`);
-        
-        // Пытаемся найти связанные с canvas данные
-        for (const prop in canvas) {
-          if (prop.includes('rive') || prop.includes('state')) {
-            addLog(`Canvas свойство: ${prop}`);
-          }
-        }
-      }
-    };
-
-    // Пробуем через MutationObserver следить за изменениями DOM
-    const observer = new MutationObserver(() => {
-      tryCanvasAccess();
-    });
-
-    if (riveRef.current) {
-      observer.observe(riveRef.current, { 
-        childList: true, 
-        subtree: true, 
-        attributes: true 
-      });
-      tryCanvasAccess();
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  // Попробуем через глобальные объекты
-  useEffect(() => {
-    const checkGlobals = () => {
-      // Проверяем window на наличие Rive объектов
-      const globals = Object.keys(window).filter(key => 
-        key.toLowerCase().includes('rive')
-      );
-      addLog(`Глобальные Rive объекты: ${globals.join(', ') || 'не найдены'}`);
-      
-      // Проверяем наличие Rive в модулях
-      if (window.__RIVE_INSTANCES__) {
-        addLog('Найден __RIVE_INSTANCES__');
-      }
-    };
-
-    setTimeout(checkGlobals, 1000);
-  }, []);
-
-  // Исправленное создание instance
-  useEffect(() => {
-    const createRiveInstance = async () => {
-      try {
-        addLog('Исправляем импорт WASM...');
-        
-        // Правильный импорт
-        const { Rive } = await import('@rive-app/canvas');
-        
-        // Загружаем файл
-        const response = await fetch('/assets/animated_login_character.riv');
-        const arrayBuffer = await response.arrayBuffer();
-        
-        // Создаем временный canvas
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 400;
-        tempCanvas.height = 300;
-        
-        // Создаем Rive instance
-        const rive = new Rive({
-          buffer: arrayBuffer,
-          canvas: tempCanvas,
-          autoplay: true,
-          stateMachines: ['Login Machine'],
-          onLoad: () => {
-            addLog('Исправленный Rive instance создан');
-            
-            // Получаем State Machine
-            try {
-              if (rive.stateMachineInputs) {
-                const smInputs = rive.stateMachineInputs('Login Machine');
-                if (smInputs) {
-                  // Получаем правильные имена входов
-                  const inputNames = {};
-                  for (let i = 0; i < Object.keys(smInputs).length; i++) {
-                    const input = smInputs[i];
-                    if (input && input.name) {
-                      inputNames[input.name] = input;
-                      addLog(`Вход ${i}: ${input.name} (тип: ${input.type || 'неизвестно'})`);
-                    } else {
-                      inputNames[`input_${i}`] = input;
-                      addLog(`Вход ${i}: без имени`);
-                    }
-                  }
-                  
-                  setStateMachine(rive);
-                  setInputs(inputNames);
-                  addLog(`SM найден! Входы: ${Object.keys(inputNames).join(', ')}`);
-                } else {
-                  addLog('stateMachineInputs вернул null');
-                }
-              } else {
-                addLog('Метод stateMachineInputs недоступен');
-              }
-            } catch (e) {
-              addLog(`SM ошибка: ${e.message}`);
-            }
-          },
-          onLoadError: (error) => {
-            addLog(`Исправленная загрузка ошибка: ${error}`);
-          }
-        });
-        
-      } catch (error) {
-        addLog(`Исправленное создание ошибка: ${error.message}`);
-      }
-    };
-
-    setTimeout(createRiveInstance, 3000);
-  }, []);
-
-  // Тестирование входов
-  const testInput = (inputName) => {
-    if (!inputs[inputName]) {
-      addLog(`Вход ${inputName} недоступен`);
-      return;
-    }
-    
+export default function TestDebugPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const input = inputs[inputName];
+      // Загружаем ВСЕ записи из team_purchase_orders
+      const { data: allOrders } = await supabase
+        .from('team_purchase_orders')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (inputName === 'numLook') {
-        input.value = 50;
-        addLog(`${inputName} установлен в 50`);
-      } else if (inputName.includes('trig')) {
-        input.fire();
-        addLog(`${inputName} активирован`);
-      } else {
-        input.value = !input.value;
-        addLog(`${inputName} переключен в ${input.value}`);
-      }
+      // Группируем по team_purchase_id
+      const byPurchase: Record<string, any> = {};
+      
+      allOrders?.forEach(order => {
+        const purchaseId = order.team_purchase_id;
+        
+        if (!byPurchase[purchaseId]) {
+          byPurchase[purchaseId] = {
+            orders: [],
+            totalSum: 0,
+            byUser: {},
+            byMember: {}
+          };
+        }
+        
+        byPurchase[purchaseId].orders.push(order);
+        byPurchase[purchaseId].totalSum += order.order_amount || 0;
+        
+        // Группируем по user_id
+        if (!byPurchase[purchaseId].byUser[order.user_id]) {
+          byPurchase[purchaseId].byUser[order.user_id] = {
+            orders: [],
+            sum: 0
+          };
+        }
+        byPurchase[purchaseId].byUser[order.user_id].orders.push(order);
+        byPurchase[purchaseId].byUser[order.user_id].sum += order.order_amount || 0;
+        
+        // Группируем по member_id
+        if (!byPurchase[purchaseId].byMember[order.member_id]) {
+          byPurchase[purchaseId].byMember[order.member_id] = {
+            orders: [],
+            sum: 0
+          };
+        }
+        byPurchase[purchaseId].byMember[order.member_id].orders.push(order);
+        byPurchase[purchaseId].byMember[order.member_id].sum += order.order_amount || 0;
+      });
+      
+      // Загружаем данные из team_purchases для сравнения
+      const { data: purchases } = await supabase
+        .from('team_purchases')
+        .select('id, title, collected_amount, paid_amount');
+      
+      // Добавляем информацию о закупках
+      Object.keys(byPurchase).forEach(purchaseId => {
+        const purchase = purchases?.find(p => p.id === purchaseId);
+        byPurchase[purchaseId].purchaseInfo = purchase;
+        byPurchase[purchaseId].hasError = purchase?.collected_amount !== byPurchase[purchaseId].totalSum;
+      });
+      
+      setData(byPurchase);
     } catch (error) {
-      addLog(`Ошибка ${inputName}: ${error.message}`);
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
   };
-
+  
+  useEffect(() => {
+    loadData();
+  }, []);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+  
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>State Machine через прямой импорт</h1>
-      
-      {/* Rive компонент */}
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Rive анимация</h3>
-        <div style={{ 
-          width: '400px', 
-          height: '300px', 
-          border: '1px solid #ccc', 
-          margin: '0 auto' 
-        }}>
-          <Rive 
-            ref={riveRef}
-            src="/assets/animated_login_character.riv"
-            stateMachines="Login Machine"
-            style={{ width: '100%', height: '100%' }}
-          />
-        </div>
-      </div>
-
-      {/* Статус */}
-      <div style={{ marginBottom: '20px', padding: '10px', background: '#f0f0f0' }}>
-        <h3>Статус</h3>
-        <p>State Machine: {stateMachine ? 'Найден' : 'Не найден'}</p>
-        <p>Входы: {Object.keys(inputs).join(', ') || 'Нет'}</p>
-      </div>
-
-      {/* Кнопки тестирования */}
-      {Object.keys(inputs).length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Управление</h3>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {Object.keys(inputs).map(inputName => (
-              <button 
-                key={inputName}
-                onClick={() => testInput(inputName)}
-                style={{ padding: '10px', cursor: 'pointer' }}
-              >
-                {inputName}
-              </button>
-            ))}
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">ВСЕ данные из team_purchase_orders</h1>
+        
+        {Object.entries(data || {}).map(([purchaseId, purchaseData]: [string, any]) => (
+          <div key={purchaseId} className={`mb-8 border-2 rounded-lg p-4 ${
+            purchaseData.hasError ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
+          }`}>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold">
+                {purchaseData.purchaseInfo?.title || 'Закупка без названия'}
+              </h2>
+              <div className="text-sm text-gray-600">team_purchase_id: {purchaseId}</div>
+            </div>
+            
+            {/* Сравнение сумм */}
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-3 bg-blue-100 rounded">
+                <div className="text-sm">Всего заказов в team_purchase_orders:</div>
+                <div className="text-2xl font-bold">{purchaseData.orders.length}</div>
+              </div>
+              <div className="p-3 bg-green-100 rounded">
+                <div className="text-sm">Реальная сумма (team_purchase_orders):</div>
+                <div className="text-2xl font-bold">{purchaseData.totalSum.toLocaleString('ru-RU')} ₸</div>
+              </div>
+              <div className={`p-3 rounded ${purchaseData.hasError ? 'bg-red-100' : 'bg-gray-100'}`}>
+                <div className="text-sm">В team_purchases (collected_amount):</div>
+                <div className="text-2xl font-bold">
+                  {purchaseData.purchaseInfo?.collected_amount?.toLocaleString('ru-RU') || 0} ₸
+                </div>
+              </div>
+            </div>
+            
+            {purchaseData.hasError && (
+              <div className="p-3 bg-red-200 rounded mb-4">
+                <strong>⚠️ ОШИБКА!</strong> Разница: {
+                  Math.abs(purchaseData.purchaseInfo?.collected_amount - purchaseData.totalSum).toLocaleString('ru-RU')
+                } ₸
+              </div>
+            )}
+            
+            {/* Группировка по USER_ID */}
+            <div className="mb-4">
+              <h3 className="font-bold mb-2">По user_id:</h3>
+              <div className="space-y-2">
+                {Object.entries(purchaseData.byUser).map(([userId, userData]: [string, any]) => (
+                  <div key={userId} className="p-2 bg-gray-100 rounded flex justify-between">
+                    <div>
+                      <span className="font-mono text-sm">user_id: {userId}</span>
+                      <span className="ml-2 text-sm">({userData.orders.length} заказов)</span>
+                    </div>
+                    <span className="font-bold">{userData.sum.toLocaleString('ru-RU')} ₸</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Группировка по MEMBER_ID */}
+            <div className="mb-4">
+              <h3 className="font-bold mb-2">По member_id:</h3>
+              <div className="space-y-2">
+                {Object.entries(purchaseData.byMember).map(([memberId, memberData]: [string, any]) => (
+                  <div key={memberId} className="p-2 bg-gray-100 rounded flex justify-between">
+                    <div>
+                      <span className="font-mono text-sm">member_id: {memberId.slice(0, 20)}...</span>
+                      <span className="ml-2 text-sm">({memberData.orders.length} заказов)</span>
+                    </div>
+                    <span className="font-bold">{memberData.sum.toLocaleString('ru-RU')} ₸</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Все заказы детально */}
+            <details>
+              <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                Показать все {purchaseData.orders.length} заказов детально
+              </summary>
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-200">
+                    <tr>
+                      <th className="p-2 text-left">order_id</th>
+                      <th className="p-2 text-left">member_id</th>
+                      <th className="p-2 text-left">user_id</th>
+                      <th className="p-2 text-right">Сумма</th>
+                      <th className="p-2 text-left">Дата</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseData.orders.map((order: any) => (
+                      <tr key={order.id} className="border-b">
+                        <td className="p-2 font-mono text-xs">{order.order_id.slice(0, 15)}...</td>
+                        <td className="p-2 font-mono text-xs">{order.member_id.slice(0, 15)}...</td>
+                        <td className="p-2 font-mono text-xs">{order.user_id.slice(0, 15)}...</td>
+                        <td className="p-2 text-right font-bold">{order.order_amount.toLocaleString('ru-RU')} ₸</td>
+                        <td className="p-2 text-xs">{new Date(order.created_at).toLocaleString('ru-RU')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
-        </div>
-      )}
-
-      {/* Интерактивные поля */}
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Интерактивный тест</h3>
-        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column', maxWidth: '300px' }}>
-          <input
-            type="text"
-            placeholder="Username"
-            onChange={(e) => {
-              if (inputs.numLook) {
-                inputs.numLook.value = Math.min(e.target.value.length * 10, 100);
-                addLog(`numLook установлен в ${inputs.numLook.value}`);
-              }
-            }}
-            onFocus={() => {
-              if (inputs.isChecking) {
-                inputs.isChecking.value = true;
-                addLog('isChecking включен');
-              }
-            }}
-            onBlur={() => {
-              if (inputs.isChecking) {
-                inputs.isChecking.value = false;
-                addLog('isChecking выключен');
-              }
-            }}
-            style={{ padding: '10px', border: '1px solid #ccc' }}
-          />
-          
-          <input
-            type="password"
-            placeholder="Password"
-            onFocus={() => {
-              if (inputs.isHandsUp) {
-                inputs.isHandsUp.value = true;
-                addLog('isHandsUp включен');
-              }
-            }}
-            onBlur={() => {
-              if (inputs.isHandsUp) {
-                inputs.isHandsUp.value = false;
-                addLog('isHandsUp выключен');
-              }
-            }}
-            style={{ padding: '10px', border: '1px solid #ccc' }}
-          />
-        </div>
-      </div>
-
-      {/* Логи */}
-      <div>
-        <h3>Логи</h3>
-        <div style={{ 
-          height: '300px', 
-          overflow: 'auto', 
-          background: '#f5f5f5', 
-          padding: '10px',
-          fontFamily: 'monospace',
-          fontSize: '12px',
-          border: '1px solid #ccc'
-        }}>
-          {logs.map((log, index) => (
-            <div key={index}>{log}</div>
-          ))}
-        </div>
-        <button 
-          onClick={() => setLogs([])} 
-          style={{ marginTop: '10px', padding: '5px 10px' }}
-        >
-          Очистить
-        </button>
+        ))}
       </div>
     </div>
   );
-};
-
-export default DirectStateMachineTest;
+}

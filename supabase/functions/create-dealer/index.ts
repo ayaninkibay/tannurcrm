@@ -1,81 +1,161 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Получаем service_role_key из переменных окружения
-// Убедитесь, что вы добавили его в Supabase CLI:
-// supabase secrets set --env-file .env.local
-// где .env.local содержит SUPABASE_SERVICE_ROLE_KEY=ВАШ_SERVICE_ROLE_KEY
+// CORS заголовки
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing Supabase URL or Service Role Key in environment variables.')
-}
-
 serve(async (req) => {
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 })
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
-  const { email, password } = await req.json()
-
-  // 1. Создаем клиент Supabase с service_role_key для вызова функций с повышенными правами
-  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
-
-  // 2. Проверяем роль пользователя, который ВЫЗЫВАЕТ эту Edge Function (дилер или админ)
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response('Unauthorized: Missing Authorization header', { status: 401 })
-  }
-  const token = authHeader.replace('Bearer ', '')
-
-  // Проверяем токен, чтобы получить роль вызывающего пользователя
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-  if (authError || !user) {
-    console.error('Auth Error:', authError?.message || 'User not found')
-    return new Response('Unauthorized: Invalid or expired token', { status: 401 })
-  }
-
-  // Получаем claims из JWT
-  const userClaims = user.app_metadata.claims
-  const callerRole = userClaims?.user_role // Ваша кастомная роль из JWT
-
-  // 3. Проверяем, имеет ли вызывающий право создавать дилера
-  if (callerRole !== 'admin' && callerRole !== 'dealer') {
-    return new Response('Forbidden: Only admins or dealers can create new dealers', { status: 403 })
-  }
-
-  // 4. Вызываем PostgreSQL функцию для создания нового пользователя с ролью 'dealer'
   try {
-    const { data, error } = await supabaseAdmin.rpc('create_new_app_user', {
-      new_email: email,
-      new_password: password,
-      new_role: 'dealer' // <-- Здесь мы жестко задаем, что создается именно дилер
-    })
+    // Получаем все данные из формы - ДОБАВЛЕНЫ НЕДОСТАЮЩИЕ ПОЛЯ!
+    const { 
+      email, 
+      password, 
+      first_name, 
+      last_name, 
+      phone, 
+      iin,
+      region,
+      instagram,
+      profession,
+      parent_id 
+    } = await req.json()
 
-    if (error) {
-      console.error('Error calling create_new_app_user:', error.message)
-      return new Response(JSON.stringify({ error: error.message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500,
+    if (!email || !password) {
+      return new Response(JSON.stringify({ error: 'Email and password are required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
       })
     }
 
-    return new Response(JSON.stringify({ user_id: data }), {
-      headers: { 'Content-Type': 'application/json' },
+    console.log('Creating dealer with data:', { 
+      email, 
+      first_name, 
+      last_name, 
+      phone, 
+      iin: iin ? iin.slice(0, 3) + '***' + iin.slice(-2) : null,
+      region,
+      instagram,
+      profession,
+      parent_id 
+    })
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // Проверяем права вызывающего пользователя
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), { 
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Проверяем роль
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !userProfile || !['admin', 'dealer'].includes(userProfile.role)) {
+      return new Response(JSON.stringify({ error: 'Insufficient permissions' }), { 
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('Creating user with Admin API...')
+
+    // Создаем пользователя с metadata - ДОБАВЛЕНЫ ВСЕ ПОЛЯ!
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      password: password,
+      email_confirm: true,
+      user_metadata: {
+        role: 'dealer',
+        first_name: first_name,
+        last_name: last_name,
+        phone: phone,
+        iin: iin,
+        region: region,
+        instagram: instagram,
+        profession: profession
+      }
+    })
+
+    if (createError) {
+      console.error('Error creating user:', createError)
+      return new Response(JSON.stringify({ error: createError.message }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    console.log('User created. Updating profile with full data...')
+
+    // Обновляем запись с полными данными - ТЕПЕРЬ ПЕРЕМЕННЫЕ ОПРЕДЕЛЕНЫ!
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({
+        role: 'dealer',
+        first_name: first_name || null,
+        last_name: last_name || null,
+        phone: phone || null,
+        iin: iin ? parseInt(iin) : null,
+        region: region || null,
+        instagram: instagram || null,
+        profession: profession || null,
+        avatar_url: null,  // Принудительно устанавливаем null
+        status: 'inactive',
+        parent_id: parent_id || null,
+        is_confirmed: false
+      })
+      .eq('id', newUser.user!.id)
+
+    if (updateError) {
+      console.error('Error updating profile:', updateError)
+      return new Response(JSON.stringify({ error: 'Failed to update user profile: ' + updateError.message }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+
+    console.log('Dealer created successfully:', newUser.user!.id)
+
+    return new Response(JSON.stringify({ 
+      user_id: newUser.user!.id,
+      success: true,
+      message: 'Dealer created successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
+
   } catch (e) {
-    console.error('Unexpected error:', e.message)
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      headers: { 'Content-Type': 'application/json' },
+    console.error('Unexpected error:', e)
+    return new Response(JSON.stringify({ error: 'Internal server error: ' + e.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
   }

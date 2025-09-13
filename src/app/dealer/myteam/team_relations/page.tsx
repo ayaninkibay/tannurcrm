@@ -2,21 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   Users, Package, TrendingUp, Clock, Target, Plus, Minus,
   UserPlus, CheckCircle, AlertCircle, Gift, Trophy, ShoppingCart,
   MoreVertical, Calendar, X, Share2, Copy, Crown, Star,
   CreditCard, Truck, Settings, ChevronRight, LogOut, UserX,
-  Play, Mail
+  Play, Mail, FileCheck, DollarSign, Bell
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import { useTranslate } from '@/hooks/useTranslate'; // ← перевод
+import { useTranslate } from '@/hooks/useTranslate';
 // Компоненты
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import TeamPurchaseProductSelector from '@/components/team-purchase/TeamPurchaseProductSelector';
 import TeamPurchaseManagement from '@/components/team-purchase/TeamPurchaseManagement';
 import BonusIndicator from '@/components/team-purchase/BonusIndicator';
+import TeamPurchaseInviteModal from '@/components/team-purchase/TeamPurchaseInviteModal';
+import TeamPurchaseInvitations from '@/components/team-purchase/TeamPurchaseInvitations';
 
 // Контекст и сервисы
 import { useUser } from '@/context/UserContext';
@@ -29,16 +31,23 @@ import type { TeamPurchase, TeamPurchaseView } from '@/types';
 
 export default function TeamPurchasePage() {
   const router = useRouter();
-  const { t } = useTranslate(); // ←
+  const { t } = useTranslate();
   const { profile: currentUser, loading: userLoading } = useUser();
-  
-  const [activeTab, setActiveTab] = useState<'active' | 'forming' | 'completed' | 'invitations'>('active');
+
+  // Состояния
+  const [activeTab, setActiveTab] = useState<'forming' | 'active' | 'confirming' | 'completed'>('forming');
   const [selectedPurchase, setSelectedPurchase] = useState<TeamPurchaseView | null>(null);
   const [showManagement, setShowManagement] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   
+  // Данные для модалки приглашений
+  const [invitePurchaseId, setInvitePurchaseId] = useState('');
+  const [invitePurchaseTitle, setInvitePurchaseTitle] = useState('');
+  const [invitePurchaseCode, setInvitePurchaseCode] = useState('');
+
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
@@ -85,51 +94,6 @@ export default function TeamPurchasePage() {
     }
   };
 
-  const handleStartActive = async (purchaseId: string) => {
-    try {
-      const result = await teamPurchaseLifecycleService.startActivePurchase(purchaseId);
-      if (result.success) {
-        toast.success(result.message);
-        await teamPurchase.loadPurchases();
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      toast.error(t('Ошибка активации'));
-    }
-  };
-
-  const handleLeavePurchase = async (purchaseId: string) => {
-    if (confirm(t('Вы уверены, что хотите выйти из закупки?'))) {
-      try {
-        const result = await teamPurchaseLifecycleService.leavePurchase(purchaseId, currentUser?.id || '');
-        if (result.success) {
-          toast.success(result.message);
-          setSelectedPurchase(null);
-          await teamPurchase.loadPurchases();
-        } else {
-          toast.error(result.message);
-        }
-      } catch (error) {
-        toast.error(t('Ошибка выхода'));
-      }
-    }
-  };
-
-  const handleAcceptInvite = async (purchaseId: string, inviteCode: string) => {
-    try {
-      const result = await teamPurchaseLifecycleService.joinByInviteCode(inviteCode, currentUser?.id || '');
-      if (result.success) {
-        toast.success(result.message);
-        await teamPurchase.loadPurchases();
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      toast.error(t('Ошибка принятия приглашения'));
-    }
-  };
-
   const handleCopyInviteLink = async (purchaseId: string) => {
     const link = await teamPurchase.getInviteLink(purchaseId);
     setInviteLink(link);
@@ -137,29 +101,19 @@ export default function TeamPurchasePage() {
     toast.success(t('Ссылка скопирована'));
   };
 
-  const handleCheckout = async () => {
-    if (!teamPurchase.currentPurchase || !currentUser) return;
-
-    const validation = await teamPurchaseLifecycleService.validateCheckout(
-      teamPurchase.currentPurchase.purchase.id,
-      currentUser.id
-    );
-
-    if (!validation.canCheckout) {
-      toast.error(validation.message);
-      return;
-    }
-
-    await teamPurchase.checkoutCart();
-    setShowProductSelector(false);
-    toast.success(t('Заказ оформлен! Переход к оплате...'));
+  const handleOpenInviteModal = (purchase: TeamPurchase) => {
+    setInvitePurchaseId(purchase.id);
+    setInvitePurchaseTitle(purchase.title);
+    setInvitePurchaseCode(purchase.invite_code);
+    setShowInviteModal(true);
   };
 
+  // Фильтрация закупок
   const filteredPurchases = teamPurchase.purchases.filter(p => {
-    if (activeTab === 'active') return p.status === 'active';
     if (activeTab === 'forming') return p.status === 'forming';
-    if (activeTab === 'completed') return ['completed', 'cancelled'].includes(p.status);
-    if (activeTab === 'invitations') return false;
+    if (activeTab === 'active') return p.status === 'active';
+    if (activeTab === 'confirming') return p.status === 'confirming';
+    if (activeTab === 'completed') return p.status === 'completed' || p.status === 'cancelled';
     return false;
   });
 
@@ -174,11 +128,12 @@ export default function TeamPurchasePage() {
     return Math.min(100, (current / target) * 100);
   };
 
+  // Статистика
   const stats = {
-    active: teamPurchase.purchases.filter(p => p.status === 'active').length,
     forming: teamPurchase.purchases.filter(p => p.status === 'forming').length,
-    completed: teamPurchase.purchases.filter(p => p.status === 'completed').length,
-    invitations: 0
+    active: teamPurchase.purchases.filter(p => p.status === 'active').length,
+    confirming: teamPurchase.purchases.filter(p => p.status === 'confirming').length,
+    completed: teamPurchase.purchases.filter(p => p.status === 'completed').length
   };
 
   if (userLoading || teamPurchase.loading) {
@@ -192,23 +147,21 @@ export default function TeamPurchasePage() {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-[#F6F6F6] p-5 ">
+    <div className="min-h-screen bg-[#F6F6F6] p-5">
       <MoreHeaderDE title={t('Командные закупки')} showBackButton={true} />
-      
+
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         
+        {/* Блок приглашений для дилеров */}
+        {currentUser?.role === 'dealer' && (
+          <TeamPurchaseInvitations 
+            userId={currentUser.id} 
+            onAccept={() => teamPurchase.loadPurchases()}
+          />
+        )}
+
         {/* Статистика */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Package className="w-5 h-5 text-green-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.active}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('Активных')}</div>
-          </div>
-
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-yellow-100 rounded-lg">
@@ -221,6 +174,26 @@ export default function TeamPurchasePage() {
 
           <div className="bg-white rounded-xl p-4 border border-gray-200">
             <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Package className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-2xl font-bold text-[#111]">{stats.active}</span>
+            </div>
+            <div className="text-sm text-gray-500">{t('Активных')}</div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-2xl font-bold text-[#111]">{stats.confirming}</span>
+            </div>
+            <div className="text-sm text-gray-500">{t('На проверке')}</div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 border border-gray-200">
+            <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gray-100 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-gray-600" />
               </div>
@@ -228,31 +201,11 @@ export default function TeamPurchasePage() {
             </div>
             <div className="text-sm text-gray-500">{t('Завершено')}</div>
           </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Mail className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.invitations}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('Приглашений')}</div>
-          </div>
         </div>
 
         {/* Вкладки */}
         <div className="bg-white rounded-xl border border-gray-200 p-1 mb-6">
           <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'active'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('Активные')}
-            </button>
             <button
               onClick={() => setActiveTab('forming')}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
@@ -261,7 +214,27 @@ export default function TeamPurchasePage() {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {t('Сбор')}
+              {t('Сбор')} {stats.forming > 0 && `(${stats.forming})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('active')}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'active'
+                  ? 'bg-[#D77E6C] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {t('Активные')} {stats.active > 0 && `(${stats.active})`}
+            </button>
+            <button
+              onClick={() => setActiveTab('confirming')}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'confirming'
+                  ? 'bg-[#D77E6C] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {t('На проверке')} {stats.confirming > 0 && `(${stats.confirming})`}
             </button>
             <button
               onClick={() => setActiveTab('completed')}
@@ -271,22 +244,7 @@ export default function TeamPurchasePage() {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {t('Завершенные')}
-            </button>
-            <button
-              onClick={() => setActiveTab('invitations')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all relative ${
-                activeTab === 'invitations'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('Приглашения')}
-              {stats.invitations > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {stats.invitations}
-                </span>
-              )}
+              {t('Завершенные')} {stats.completed > 0 && `(${stats.completed})`}
             </button>
           </div>
         </div>
@@ -295,11 +253,7 @@ export default function TeamPurchasePage() {
         <div className="space-y-4">
           {filteredPurchases.map(purchase => {
             const isOrganizer = purchase.initiator_id === currentUser?.id;
-            let cartTotal = 0;
-            if (selectedPurchase && selectedPurchase.purchase.id === purchase.id) {
-              const member = selectedPurchase.members?.find(m => m.user.id === currentUser?.id);
-              cartTotal = member?.member.cart_total || 0;
-            }
+            const isFinanceOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'finance';
             
             return (
               <div key={purchase.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -317,25 +271,31 @@ export default function TeamPurchasePage() {
                         <span className={`text-sm font-medium ${
                           purchase.status === 'active' ? 'text-green-600' :
                           purchase.status === 'forming' ? 'text-yellow-600' :
+                          purchase.status === 'confirming' ? 'text-blue-600' :
                           purchase.status === 'completed' ? 'text-gray-600' :
                           'text-red-600'
                         }`}>
                           {purchase.status === 'forming' && t('⏳ Сбор участников')}
-                          {purchase.status === 'active' && t('✅ Активна')}
+                          {purchase.status === 'active' && t('✅ Активна - идут покупки')}
+                          {purchase.status === 'confirming' && t('🔍 На проверке')}
                           {purchase.status === 'completed' && t('🏁 Завершена')}
                           {purchase.status === 'cancelled' && t('❌ Отменена')}
                         </span>
                       </div>
                     </div>
-                    
-                    {/* Действия */}
+
+                    {/* Действия для разных статусов */}
                     <div className="flex gap-2">
+                      {/* FORMING - управление, приглашение и старт */}
                       {purchase.status === 'forming' && isOrganizer && (
                         <>
                           <button
-                            onClick={() => {
-                              setSelectedPurchase(purchase as any);
-                              setShowManagement(true);
+                            onClick={async () => {
+                              await teamPurchase.loadPurchaseDetails(purchase.id);
+                              if (teamPurchase.currentPurchase) {
+                                setSelectedPurchase(teamPurchase.currentPurchase);
+                                setShowManagement(true);
+                              }
                             }}
                             className="p-2 hover:bg-gray-100 rounded-lg"
                             title={t('Управление')}
@@ -343,7 +303,23 @@ export default function TeamPurchasePage() {
                             <Settings className="w-5 h-5 text-gray-600" />
                           </button>
                           <button
-                            onClick={() => handleStartActive(purchase.id)}
+                            onClick={() => handleOpenInviteModal(purchase)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                            title={t('Пригласить дилеров')}
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            {t('Пригласить')}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const result = await teamPurchaseLifecycleService.startActivePurchase(purchase.id);
+                              if (result.success) {
+                                toast.success(result.message);
+                                await teamPurchase.loadPurchases();
+                              } else {
+                                toast.error(result.message);
+                              }
+                            }}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
                           >
                             <Play className="w-4 h-4" />
@@ -351,70 +327,127 @@ export default function TeamPurchasePage() {
                           </button>
                         </>
                       )}
-                      
+
+                      {/* ACTIVE - управление, приглашение и переход к проверке */}
                       {purchase.status === 'active' && (
                         <>
                           {isOrganizer && (
-                            <button
-                              onClick={() => {
-                                setSelectedPurchase(purchase as any);
-                                setShowManagement(true);
-                              }}
-                              className="p-2 hover:bg-gray-100 rounded-lg"
-                              title={t('Управление')}
-                            >
-                              <Settings className="w-5 h-5 text-gray-600" />
-                            </button>
+                            <>
+                              <button
+                                onClick={async () => {
+                                  await teamPurchase.loadPurchaseDetails(purchase.id);
+                                  if (teamPurchase.currentPurchase) {
+                                    setSelectedPurchase(teamPurchase.currentPurchase);
+                                    setShowManagement(true);
+                                  }
+                                }}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                                title={t('Управление')}
+                              >
+                                <Settings className="w-5 h-5 text-gray-600" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenInviteModal(purchase)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                                title={t('Пригласить еще дилеров')}
+                              >
+                                <UserPlus className="w-4 h-4 text-gray-600" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const result = await teamPurchaseLifecycleService.moveToConfirming(purchase.id);
+                                  if (result.success) {
+                                    toast.success(result.message);
+                                    if (result.stats) {
+                                      toast(`Оплатили: ${result.stats.paidMembers}/${result.stats.totalMembers}. Сумма: ${result.stats.totalAmount.toLocaleString('ru-RU')} ₸`, {
+                                        icon: '📊',
+                                        duration: 5000
+                                      });
+                                    }
+                                    await teamPurchase.loadPurchases();
+                                  } else {
+                                    toast.error(result.message);
+                                  }
+                                }}
+                                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2"
+                                title={t('Все сделали заказы? Передать на проверку')}
+                              >
+                                <FileCheck className="w-4 h-4" />
+                                {t('На проверку')}
+                              </button>
+                            </>
                           )}
-                          {!isOrganizer && (
+                        </>
+                      )}
+
+                      {/* CONFIRMING - только финансист может завершить */}
+                      {purchase.status === 'confirming' && (
+                        <>
+                          {(isOrganizer || isFinanceOrAdmin) && (
                             <button
-                              onClick={() => handleLeavePurchase(purchase.id)}
-                              className="p-2 hover:bg-red-50 rounded-lg"
-                              title={t('Выйти')}
+                              onClick={async () => {
+                                if (confirm(t('Подтвердить завершение закупки?'))) {
+                                  const result = await teamPurchaseLifecycleService.completeAfterVerification(
+                                    purchase.id,
+                                    currentUser?.id || ''
+                                  );
+                                  if (result.success) {
+                                    toast.success(result.message);
+                                    await teamPurchase.loadPurchases();
+                                  } else {
+                                    toast.error(result.message);
+                                  }
+                                }
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
                             >
-                              <LogOut className="w-5 h-5 text-red-600" />
+                              <Trophy className="w-4 h-4" />
+                              {t('Завершить проверку')}
                             </button>
                           )}
                         </>
                       )}
-                      
-                      {activeTab === 'invitations' && (
+
+                      {/* Копирование ссылки доступно всегда для forming и active */}
+                      {['forming', 'active'].includes(purchase.status) && (
                         <button
-                          onClick={() => handleAcceptInvite(purchase.id, purchase.invite_code)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          onClick={() => handleCopyInviteLink(purchase.id)}
+                          className="p-2 hover:bg-gray-100 rounded-lg"
+                          title={t('Скопировать ссылку')}
                         >
-                          {t('Принять')}
+                          <Share2 className="w-5 h-5 text-gray-600" />
                         </button>
                       )}
-                      
-                      <button
-                        onClick={() => handleCopyInviteLink(purchase.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg"
-                        title={t('Скопировать ссылку')}
-                      >
-                        <Share2 className="w-5 h-5 text-gray-600" />
-                      </button>
                     </div>
                   </div>
 
-                  {/* Прогресс плана */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">{t('План сбора')}</span>
-                      <span className="text-sm font-medium">
-                        {formatPrice(purchase.collected_amount)} / {formatPrice(purchase.target_amount)}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-[#D77E6C] to-[#E89380] transition-all"
-                        style={{ width: `${calculateProgress(purchase.collected_amount, purchase.target_amount)}%` }}
-                      />
-                    </div>
+                {/* Прогресс плана */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">{t('Собрано')}</span>
+                    <span className="text-sm font-medium">
+                      {formatPrice(purchase.collected_amount || 0)} / {formatPrice(purchase.target_amount)}
+                    </span>
                   </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#D77E6C] to-[#E89380] transition-all"
+                      style={{ width: `${calculateProgress(purchase.collected_amount || 0, purchase.target_amount)}%` }}
+                    />
+                  </div>
+                </div>
 
-                  {/* Кнопки действий */}
+                  {/* Дедлайн если есть */}
+                  {purchase.deadline && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <Calendar className="w-4 h-4" />
+                      <span>{t('Дедлайн:')} {formatDate(purchase.deadline)}</span>
+                    </div>
+                  )}
+
+                  {/* Кнопки действий внизу карточки */}
                   <div className="flex gap-3 mt-4">
+                    {/* В активной фазе - можно покупать */}
                     {purchase.status === 'active' && (
                       <button
                         onClick={() => handleOpenPurchase(purchase.id, true)}
@@ -425,12 +458,40 @@ export default function TeamPurchasePage() {
                       </button>
                     )}
                     
+                    {/* В фазе формирования - можно присоединиться */}
                     {purchase.status === 'forming' && !isOrganizer && (
+                      <button
+                        onClick={async () => {
+                          const contribution = prompt(t('Планируемая сумма покупки (₸):'), '50000');
+                          if (contribution) {
+                            await teamPurchase.joinPurchase(
+                              purchase.invite_code, 
+                              Number(contribution)
+                            );
+                          }
+                        }}
+                        className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <UserPlus className="w-5 h-5" />
+                        {t('Присоединиться')}
+                      </button>
+                    )}
+
+                    {/* На проверке - только информация */}
+                    {purchase.status === 'confirming' && (
+                      <div className="flex-1 py-3 bg-blue-100 text-blue-700 rounded-xl font-medium flex items-center justify-center gap-2">
+                        <Clock className="w-5 h-5" />
+                        {t('Ожидает проверки финансистом')}
+                      </div>
+                    )}
+
+                    {/* Завершена - можно посмотреть отчет */}
+                    {purchase.status === 'completed' && (
                       <button
                         onClick={() => handleOpenPurchase(purchase.id)}
                         className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50"
                       >
-                        {t('Подробнее')}
+                        {t('Посмотреть отчет')}
                       </button>
                     )}
                   </div>
@@ -443,15 +504,13 @@ export default function TeamPurchasePage() {
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-[#111] mb-2">
-                {activeTab === 'active' && t('Нет активных закупок')}
                 {activeTab === 'forming' && t('Нет закупок на сборе')}
+                {activeTab === 'active' && t('Нет активных закупок')}
+                {activeTab === 'confirming' && t('Нет закупок на проверке')}
                 {activeTab === 'completed' && t('Нет завершенных закупок')}
-                {activeTab === 'invitations' && t('Нет приглашений')}
               </h3>
               <p className="text-gray-500">
-                {activeTab === 'invitations' 
-                  ? t('Вы не получали приглашений в закупки')
-                  : t('Создайте новую закупку или дождитесь приглашения')}
+                {t('Создайте новую закупку или дождитесь приглашения')}
               </p>
             </div>
           )}
@@ -459,7 +518,7 @@ export default function TeamPurchasePage() {
 
         {/* Кнопка создания */}
         <div className="mt-6">
-          <button 
+          <button
             onClick={() => setShowCreateModal(true)}
             className="w-full py-4 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
           >
@@ -541,16 +600,13 @@ export default function TeamPurchasePage() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">{t('Как это работает:')}</p>
+                    <p className="font-medium mb-1">{t('Новый процесс закупок:')}</p>
                     <ul className="space-y-1 text-xs">
-                      <li>{t('• Закупка создается со статусом "Сбор участников"')}</li>
-                      <li>{t('• Вы можете пригласить других дилеров по ссылке')}</li>
-                      <li>{t('• Когда все готовы - нажмите "Начать" для активации')}</li>
-                      <li>
-                        {t('• Минимальная сумма заказа на человека: {amount}')
-                          .replace('{amount}', `${TEAM_PURCHASE_RULES.finance.MIN_PERSONAL_PURCHASE.toLocaleString('ru-RU')} ₸`)}
-                      </li>
-                      <li>{t('• Чем больше сумма - тем выше бонусы!')}</li>
+                      <li>{t('1️⃣ Создание - приглашайте участников')}</li>
+                      <li>{t('2️⃣ Начать - активация без проверок')}</li>
+                      <li>{t('3️⃣ Активная фаза - все покупают')}</li>
+                      <li>{t('4️⃣ На проверку - когда все готовы')}</li>
+                      <li>{t('5️⃣ Завершение - финансист проверяет')}</li>
                     </ul>
                   </div>
                 </div>
@@ -643,6 +699,25 @@ export default function TeamPurchasePage() {
             if (!result.success) {
               throw new Error(result.message);
             }
+          }}
+        />
+      )}
+
+      {/* Модалка массового приглашения */}
+      {showInviteModal && invitePurchaseId && (
+        <TeamPurchaseInviteModal
+          purchaseId={invitePurchaseId}
+          purchaseTitle={invitePurchaseTitle}
+          currentUserId={currentUser?.id || ''}
+          inviteCode={invitePurchaseCode}
+          onClose={() => {
+            setShowInviteModal(false);
+            setInvitePurchaseId('');
+            setInvitePurchaseTitle('');
+            setInvitePurchaseCode('');
+          }}
+          onInvited={() => {
+            teamPurchase.loadPurchases();
           }}
         />
       )}

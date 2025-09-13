@@ -129,13 +129,7 @@ export default function TeamPurchaseCard({
               {purchase.participants.length}
             </p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-1">{t('Экономия')}</p>
-            <p className="text-sm font-semibold text-green-600 flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              25%
-            </p>
-          </div>
+
           <div>
             <p className="text-xs text-gray-500 mb-1">{t('Мин. вклад')}</p>
             <p className="text-sm font-semibold text-[#111]">

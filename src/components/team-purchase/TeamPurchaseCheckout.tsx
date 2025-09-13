@@ -38,8 +38,8 @@ export default function TeamPurchaseCheckout({
 
   // Расчет сумм
   const subtotal = cart.reduce((sum, item) => sum + (item.total || 0), 0);
-  const discount = subtotal * 0.25; // 25% скидка
-  const total = subtotal - discount;
+
+  const total = subtotal;
 
   useEffect(() => {
     loadUserInfo();
@@ -157,7 +157,7 @@ export default function TeamPurchaseCheckout({
       
       // Через 2 секунды переходим на страницу team_relations
       setTimeout(() => {
-        router.push('/dealer/team_relations');
+        router.push('/dealer/myteam');
       }, 2000);
 
     } catch (error: any) {
@@ -169,59 +169,35 @@ export default function TeamPurchaseCheckout({
   };
 
   // Функция обновления прогресса командной закупки
-  const updateTeamPurchaseProgress = async (purchaseId: string) => {
-    try {
-      // Получаем все заказы этой закупки
-      const { data: orders, error: ordersError } = await supabase
-        .from('team_purchase_orders')
-        .select('order_amount')
-        .eq('team_purchase_id', purchaseId);
+const updateTeamPurchaseProgress = async (purchaseId: string) => {
+  try {
+    // УДАЛИТЕ весь блок с прямым UPDATE team_purchases
+    // Триггер сам все посчитает правильно!
+    
+    // Оставьте только проверку статуса если нужно
+    const { data: teamPurchase } = await supabase
+      .from('team_purchases')
+      .select('target_amount, collected_amount, status')
+      .eq('id', purchaseId)
+      .single();
 
-      if (ordersError) {
-        console.error('Error fetching team orders:', ordersError);
-        return;
-      }
-
-      // Считаем общую сумму
-      const totalAmount = orders?.reduce((sum, order) => 
-        sum + (order.order_amount || 0), 0
-      ) || 0;
-
-      // Обновляем collected_amount и paid_amount
-      const { error: updateError } = await supabase
+    // Меняем статус только если нужно
+    if (teamPurchase && 
+        teamPurchase.status === 'active' && 
+        teamPurchase.collected_amount >= teamPurchase.target_amount) {
+      
+      await supabase
         .from('team_purchases')
-        .update({
-          collected_amount: totalAmount,
-          paid_amount: totalAmount,
+        .update({ 
+          status: 'active',  // Используйте правильный статус
           updated_at: new Date().toISOString()
         })
         .eq('id', purchaseId);
-
-      if (updateError) {
-        console.error('Error updating team purchase amounts:', updateError);
-      }
-
-      // Проверяем статус закупки
-      const { data: teamPurchase } = await supabase
-        .from('team_purchases')
-        .select('target_amount, collected_amount')
-        .eq('id', purchaseId)
-        .single();
-
-      if (teamPurchase && teamPurchase.collected_amount >= teamPurchase.target_amount) {
-        await supabase
-          .from('team_purchases')
-          .update({ 
-            status: 'ready',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', purchaseId)
-          .eq('status', 'active');
-      }
-    } catch (error) {
-      console.error('Error updating team purchase progress:', error);
     }
-  };
+  } catch (error) {
+    console.error('Error checking team purchase progress:', error);
+  }
+};
 
   // Экран успеха
   if (isSuccess) {
@@ -324,13 +300,7 @@ export default function TeamPurchaseCheckout({
                 <span className="text-gray-600">{t('Сумма товаров:')}</span>
                 <span className="font-medium">{formatPrice(subtotal)}</span>
               </div>
-              <div className="flex justify-between items-center text-green-600">
-                <span className="flex items-center gap-2">
-                  <Gift className="w-4 h-4" />
-                  {t('Скидка 25%:')}
-                </span>
-                <span className="font-medium">-{formatPrice(discount)}</span>
-              </div>
+
               {bonusInfo && bonusInfo.bonusAmount > 0 && (
                 <div className="flex justify-between items-center text-blue-600">
                   <span className="flex items-center gap-2">

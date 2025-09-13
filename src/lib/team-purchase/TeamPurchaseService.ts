@@ -9,7 +9,7 @@ import type {
 
 class TeamPurchaseService {
   /**
-   * Получить все командные закупки
+   * Получить все командные закупки (суммы уже правильные в БД!)
    */
   async getAllPurchases(
     filter?: {
@@ -18,6 +18,7 @@ class TeamPurchaseService {
       userId?: string;
     }
   ): Promise<TeamPurchase[]> {
+    // Просто читаем данные - триггеры уже обновили суммы!
     let query = supabase
       .from('team_purchases')
       .select('*')
@@ -32,16 +33,17 @@ class TeamPurchaseService {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
+
+    // Больше не нужно считать - суммы уже правильные!
     return data || [];
   }
 
   /**
-   * Получить закупки пользователя
-   * ОБНОВЛЕННЫЙ МЕТОД - заменяем старый на этот
+   * Получить закупки пользователя (суммы из БД)
    */
   async getUserPurchases(userId: string): Promise<TeamPurchase[]> {
     try {
-      // Простой запрос без сложной фильтрации
+      // Получаем участия пользователя
       const { data: memberRecords } = await supabase
         .from('team_purchase_members')
         .select('team_purchase_id, status')
@@ -51,7 +53,7 @@ class TeamPurchaseService {
         return [];
       }
 
-      // Фильтруем на клиенте
+      // Фильтруем активные участия
       const activeMemberships = memberRecords.filter(
         m => m.status !== 'left' && m.status !== 'removed'
       );
@@ -62,7 +64,7 @@ class TeamPurchaseService {
 
       const purchaseIds = activeMemberships.map(m => m.team_purchase_id);
 
-      // Получаем закупки
+      // Получаем закупки - суммы уже правильные!
       const { data: purchases, error } = await supabase
         .from('team_purchases')
         .select('*')
@@ -74,6 +76,7 @@ class TeamPurchaseService {
         return [];
       }
 
+      // Возвращаем как есть - триггеры обеспечивают правильные суммы
       return purchases || [];
     } catch (error) {
       console.error('Error in getUserPurchases:', error);
@@ -82,10 +85,29 @@ class TeamPurchaseService {
   }
 
   /**
+   * Получить актуальную сумму закупки (для совместимости)
+   */
+  async getTeamPurchaseTotal(purchaseId: string): Promise<number> {
+    // Просто читаем из БД - триггеры уже обновили
+    const { data, error } = await supabase
+      .from('team_purchases')
+      .select('paid_amount')
+      .eq('id', purchaseId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching total:', error);
+      return 0;
+    }
+
+    return data?.paid_amount || 0;
+  }
+
+  /**
    * Получить детальную информацию о закупке
    */
   async getPurchaseDetails(purchaseId: string): Promise<TeamPurchaseView> {
-    // Получаем закупку
+    // Получаем закупку - суммы уже правильные благодаря триггерам!
     const { data: purchase, error: purchaseError } = await supabase
       .from('team_purchases')
       .select('*')
@@ -94,6 +116,8 @@ class TeamPurchaseService {
 
     if (purchaseError) throw new Error(purchaseError.message);
 
+    // Больше не нужно пересчитывать суммы - используем из БД!
+
     // Получаем организатора
     const { data: initiator } = await supabase
       .from('users')
@@ -101,7 +125,7 @@ class TeamPurchaseService {
       .eq('id', purchase.initiator_id)
       .single();
 
-    // Получаем всех участников и фильтруем на клиенте
+    // Получаем всех участников
     const { data: allMembers } = await supabase
       .from('team_purchase_members')
       .select(`
@@ -130,22 +154,21 @@ class TeamPurchaseService {
         .eq('user_id', member.user_id)
         .eq('status', 'active');
 
-      // Получаем заказ если есть
-      const { data: order } = await supabase
+      // Получаем заказ участника если есть
+      const { data: orders } = await supabase
         .from('team_purchase_orders')
-        .select(`
-          *,
-          order:orders(*)
-        `)
+        .select('*')
         .eq('team_purchase_id', purchaseId)
-        .eq('user_id', member.user_id)
-        .single();
+        .eq('member_id', member.id)
+        .eq('payment_status', 'paid');
+
+      const order = orders && orders.length > 0 ? orders[0] : null;
 
       memberViews.push({
         member,
         user: member.user,
         cartItems: cartItems || [],
-        order: order?.order,
+        order,
         isOrganizer: member.role === 'organizer',
         hasPaid: member.status === 'purchased'
       });
@@ -153,8 +176,10 @@ class TeamPurchaseService {
 
     // Расчет дополнительных данных
     const totalMembers = memberViews.length;
-    const totalPaid = purchase.paid_amount || 0;
-    const progress = Math.min(100, (totalPaid / purchase.target_amount) * 100);
+    const totalPaid = purchase.paid_amount; // Используем из БД!
+    const progress = purchase.target_amount > 0 
+      ? Math.min(100, (totalPaid / purchase.target_amount) * 100)
+      : 0;
     
     // Дней до дедлайна
     let daysLeft = 0;
@@ -168,7 +193,7 @@ class TeamPurchaseService {
     // Проверки возможности действий
     const canStart = 
       purchase.status === 'forming' && 
-      purchase.collected_amount >= 300000 &&
+      purchase.collected_amount >= 300000 && // Используем из БД!
       totalMembers >= 2;
 
     const canComplete = 
@@ -176,7 +201,7 @@ class TeamPurchaseService {
       totalPaid >= purchase.target_amount;
 
     return {
-      purchase,
+      purchase, // Используем как есть из БД
       initiator: initiator!,
       members: memberViews,
       totalMembers,
@@ -230,7 +255,7 @@ class TeamPurchaseService {
 
     // Получаем заработанные бонусы
     const { data: bonuses } = await supabase
-      .from('bonus_payots')
+      .from('bonus_payouts')
       .select('amount')
       .eq('user_id', userId)
       .eq('type', 'team_difference');

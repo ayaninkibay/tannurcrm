@@ -1,278 +1,483 @@
 'use client';
 
-import Image from 'next/image';
+import React, { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { use } from 'react';
-import { useTranslate } from '@/hooks/useTranslate';
-import { getEvent, listEvents } from '@/app/dealer/dashboard/events/_data';
-import MoreHeaderDE from '@/components/header/MoreHeaderDE';
+import { supabase } from '@/lib/supabase/client';
+import { useUser } from '@/context/UserContext';
+import { 
+  Calendar, 
+  Gift, 
+  Target, 
+  Clock, 
+  ArrowLeft,
+  Edit,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  Share2,
+  Sparkles,
+  Tag,
+  Archive
+} from 'lucide-react';
+import type { Event } from '@/types/custom.types';
 
-export default function EventDetailsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
+// Для Next.js 15 params теперь Promise
+export default function EventDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
 }) {
-  const { t } = useTranslate();
+  const router = useRouter();
+  const { profile } = useUser();
+  
+  // В Next.js 15 используем use() для распаковки Promise
+  const { id: eventId } = use(params);
+  
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Next 15: params — Promise; распаковываем
-  const { id } = use(params);
-  const item = getEvent(id);
+  // Загрузка события
+  useEffect(() => {
+    if (eventId) {
+      loadEvent();
+    }
+  }, [eventId]);
 
-  if (!item) {
+  const loadEvent = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Loading event with ID:', eventId);
+
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (fetchError) {
+        console.error('Supabase error:', fetchError);
+        throw fetchError;
+      }
+      
+      console.log('Event data loaded:', data);
+      
+      // Вычисляем статус и дни
+      if (data) {
+        const today = new Date().toISOString().split('T')[0];
+        const startDate = data.start_date;
+        const endDate = data.end_date;
+        
+        if (startDate > today) {
+          data.event_status = 'upcoming';
+          data.days_until = Math.ceil((new Date(startDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24));
+        } else if (today >= startDate && today <= endDate) {
+          data.event_status = 'active';
+          data.days_remaining = Math.ceil((new Date(endDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24));
+        } else {
+          data.event_status = 'past';
+        }
+      }
+
+      setEvent(data);
+    } catch (err: any) {
+      console.error('Error loading event:', err);
+      setError('Не удалось загрузить событие');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Удаление события (для админа)
+  const handleDelete = async () => {
+    if (!event || !confirm('Вы уверены, что хотите удалить это событие?')) return;
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', event.id);
+
+      if (deleteError) throw deleteError;
+
+      router.push('/dealer/dashboard/events');
+    } catch (err: any) {
+      console.error('Error deleting event:', err);
+      alert('Не удалось удалить событие');
+    }
+  };
+
+  // Архивирование события
+  const handleArchive = async () => {
+    if (!event) return;
+
+    try {
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ status: 'archived' })
+        .eq('id', event.id);
+
+      if (updateError) throw updateError;
+
+      await loadEvent();
+    } catch (err: any) {
+      console.error('Error archiving event:', err);
+      alert('Не удалось архивировать событие');
+    }
+  };
+
+  // Копирование ссылки
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Получение информации о статусе
+  const getStatusInfo = () => {
+    if (!event) return null;
+
+    switch (event.event_status) {
+      case 'active':
+        return {
+          label: 'Активно',
+          description: event.days_remaining ? `Осталось ${event.days_remaining} дней` : 'Активно',
+          color: 'bg-green-100 text-green-800',
+          icon: <CheckCircle className="w-4 h-4" />
+        };
+      case 'upcoming':
+        return {
+          label: 'Предстоящее',
+          description: event.days_until ? `Начнется через ${event.days_until} дней` : 'Скоро',
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: <Clock className="w-4 h-4" />
+        };
+      case 'past':
+        return {
+          label: 'Завершено',
+          description: 'Событие завершено',
+          color: 'bg-gray-100 text-gray-600',
+          icon: <Archive className="w-4 h-4" />
+        };
+      default:
+        return null;
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+
+  if (loading) {
     return (
-      <div className="p-6">
-        <Link href="/dealer/dashboard/events" className="text-[#C86B56] hover:underline">
-          {t('Назад к событиям и новостям')}
-        </Link>
-        <p className="mt-4 text-gray-600">{t('Событие не найдено')}</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC7C67]"></div>
       </div>
     );
   }
 
-  const related = listEvents().filter((e) => e.id !== id).slice(0, 2);
+  if (error || !event) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Ошибка</h2>
+          <p className="text-gray-600 mb-4">{error || 'Событие не найдено'}</p>
+          <p className="text-sm text-gray-500 mb-4">ID: {eventId}</p>
+          <Link
+            href="/dealer/dashboard/events"
+            className="px-4 py-2 bg-[#DC7C67] text-white rounded-lg hover:bg-[#C86B56] transition-colors inline-block"
+          >
+            Вернуться к событиям
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white p-2">
-      {/* ✅ Хедер приложения */}
-      <MoreHeaderDE title={t('Событие')} showBackButton={true} />
-
-      {/* Градиентный заголовок во всю ширину */}
-      <div className="px-4 sm:px-6 lg:px-8 xl:px-10 pt-4">
-        <div className="border border-[#E7C6BF]/60 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] rounded-2xl shadow-sm">
-          <div className="px-5 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white">
+      {/* Шапка с навигацией */}
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] shadow-sm">
+        <div className="px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link
                 href="/dealer/dashboard/events"
                 className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 border border-white/25 hover:bg-white/25 transition-colors"
-                aria-label={t('Назад')}
-                title={t('Назад')}
               >
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ArrowLeft className="w-4 h-4 text-white" />
               </Link>
-              <h1 className="text-white text-xl md:text-2xl font-semibold">{t('Событие')}</h1>
+              <div className="text-white">
+                <h1 className="text-2xl font-semibold">Событие</h1>
+                <p className="text-white/80 text-sm mt-0.5">{event.title}</p>
+              </div>
             </div>
-            {item.date && (
-              <span className="px-3 py-1 rounded-lg text-xs bg-white/15 border border-white/20 text-white/90">
-                {t(item.date)}
-              </span>
+
+            {/* Действия для админа */}
+            {profile?.role === 'admin' && (
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/admin/events/edit/${event.id}`}
+                  className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <Edit className="w-4 h-4" />
+                  Редактировать
+                </Link>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-500/20 text-white rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2 text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Удалить
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Контент: на всю ширину, без max-w ограничений */}
-      <article className="px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
-        {/* Обложка тянется от края до края контентной области */}
-        {item.cover && (
-          <div className="relative w-full h-56 md:h-80 rounded-2xl overflow-hidden border border-gray-200 mb-6">
-            <Image src={item.cover} alt={item.title} fill className="object-cover" />
-          </div>
-        )}
-
-        {/* Метаданные */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {item.badge && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#FDEAE5] text-[#C86B56]">
-              {t(item.badge)}
-            </span>
-          )}
-          {item.date && <span className="text-xs text-gray-500">{t(item.date)}</span>}
-          <span className="text-xs text-gray-500">· {t('Организатор')} — Tannur</span>
-          <span className="text-xs text-gray-500">· {t('Уровень')} — {t('для всех')}</span>
+      {/* Баннер */}
+      {event.banner_url && (
+        <div className="relative h-64 md:h-96 overflow-hidden">
+          <img 
+            src={event.banner_url} 
+            alt={event.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
+      )}
 
-        <h2 className="text-2xl md:text-3xl font-semibold text-[#111] mb-3">{t(item.title)}</h2>
-        <p className="text-gray-700 text-base leading-relaxed mb-6">{t(item.description)}</p>
+      {/* Контент */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Основной контент */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Заголовок и статус */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex items-start gap-4 mb-4">
+                {event.badge_icon && (
+                  <div 
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-3xl shadow-sm"
+                    style={{ backgroundColor: event.badge_color || '#DC7C67' }}
+                  >
+                    {event.badge_icon}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {event.title}
+                  </h1>
+                  {statusInfo && (
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
+                      {statusInfo.icon}
+                      <span>{statusInfo.label}</span>
+                      <span className="text-xs opacity-75">• {statusInfo.description}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-        {/* Двухколоночная сетка */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          {/* Левая часть */}
-          <div className="lg:col-span-8">
-            {/* Зачем участвовать */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 mb-6">
-              <h3 className="text-lg font-semibold text-[#111] mb-2">{t('Зачем участвовать')}</h3>
-              <ul className="grid sm:grid-cols-2 gap-2 text-gray-800 text-[15px]">
-                <li>• {t('Дополнительная скидка и закрытые предложения')}</li>
-                <li>• {t('Рост личных продаж и активности команды')}</li>
-                <li>• {t('Новые скрипты/инструменты для апселла')}</li>
-                <li>• {t('Нетворкинг и обмен практикой')}</li>
-              </ul>
+              {/* Описание */}
+              {event.description && (
+                <div className="prose max-w-none">
+                  <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
+                </div>
+              )}
             </div>
 
-            {/* Программа */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 mb-6">
-              <h3 className="text-lg font-semibold text-[#111] mb-3">{t('Программа')}</h3>
-              <ol className="relative ml-3">
-                {[
-                  { time: '10:00', text: t('Регистрация и приветствие') },
-                  { time: '10:20', text: t('Кейс: как собрать командную закупку за 48 часов') },
-                  { time: '11:00', text: t('Практика: апселл и допродажи') },
-                  { time: '11:40', text: t('Вопросы, ответы, разбор сделок') },
-                ].map((row, i) => (
-                  <li key={i} className="pl-6 pb-3">
-                    <span className="absolute left-0 top-0 mt-1 w-3 h-3 rounded-full bg-[#DC7C67]" />
-                    <div className="text-xs text-gray-500">{row.time}</div>
-                    <div className="text-sm text-gray-800">{row.text}</div>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            {/* Цели */}
+            {event.goals && event.goals.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-500" />
+                  Цели события
+                </h2>
+                <div className="space-y-3">
+                  {event.goals.map((goal, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <span className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </span>
+                      <p className="text-gray-700 pt-1">{goal}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* Условия — если есть в моках */}
-            {item.terms && item.terms.length > 0 && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 mb-6">
-                <h3 className="text-lg font-semibold text-[#111] mb-2">{t('Условия участия')}</h3>
-                <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                  {item.terms.map((rule, i) => (
-                    <li key={i}>{t(rule)}</li>
+            {/* Награды */}
+            {event.rewards && event.rewards.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-green-500" />
+                  Награды
+                </h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {event.rewards.map((reward, index) => (
+                    <div key={index} className="flex items-start gap-3 p-4 bg-green-50 rounded-xl">
+                      <span className="text-2xl">🎁</span>
+                      <p className="text-gray-700">{reward}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Условия */}
+            {event.conditions && event.conditions.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-500" />
+                  Условия участия
+                </h2>
+                <ul className="space-y-3">
+                  {event.conditions.map((condition, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <span className="text-yellow-500 mt-0.5">⚠️</span>
+                      <p className="text-gray-700">{condition}</p>
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Иллюстрация внутри контента */}
-            <div className="relative w-full h-60 rounded-2xl overflow-hidden border border-gray-200 my-6">
-              <Image
-                src="/images/event-inside.jpg"
-                alt={t('Иллюстрация события')}
-                fill
-                className="object-cover"
-              />
-            </div>
-
-            {/* Шаги участия */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-              <h3 className="text-lg font-semibold text-[#111] mb-3">{t('Как участвовать')}</h3>
-              <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                <div className="rounded-xl border border-gray-100 p-4">
-                  <div className="text-[#B95F4A] font-semibold mb-1">1</div>
-                  <p className="text-gray-700">{t('Ознакомьтесь с условиями акции')}</p>
-                </div>
-                <div className="rounded-xl border border-gray-100 p-4">
-                  <div className="text-[#B95F4A] font-semibold mb-1">2</div>
-                  <p className="text-gray-700">{t('Соберите нужное количество заказов/товаров')}</p>
-                </div>
-                <div className="rounded-xl border border-gray-100 p-4">
-                  <div className="text-[#B95F4A] font-semibold mb-1">3</div>
-                  <p className="text-gray-700">{t('Подтвердите участие на странице командной закупки')}</p>
+            {/* Галерея */}
+            {event.gallery && event.gallery.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="text-xl font-semibold mb-4">Галерея</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {event.gallery.map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Галерея ${index + 1}`}
+                      className="rounded-xl w-full h-48 object-cover"
+                    />
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Правая часть (сайдбар) */}
-          <aside className="lg:col-span-4 space-y-4">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-              <h3 className="text-base font-semibold text-[#111] mb-3">{t('Краткая информация')}</h3>
-              <div className="space-y-2 text-sm text-gray-700">
-                {item.date && (
-                  <p>
-                    <span className="font-medium">{t('Период')}:</span> {t(item.date)}
-                  </p>
-                )}
-                <p>
-                  <span className="font-medium">{t('Формат')}:</span> {t('оффлайн/онлайн')}
-                </p>
-                <p>
-                  <span className="font-medium">{t('Уровень')}:</span> {t('начальный — продвинутый')}
-                </p>
-              </div>
-              <button className="mt-4 w-full px-4 py-2 rounded-xl bg-[#DC7C67] text-white hover:bg-[#C86B56] transition-colors">
-                {t('Принять участие')}
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 h-40 flex items-center justify-center text-gray-400 text-sm">
-                {t('Локация/карта появится здесь')}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-[#111] mb-3">{t('Фото с прошлых активностей')}</h3>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="relative w-full h-20 rounded-lg overflow-hidden bg-gray-100">
-                  <Image src="/images/event-1.jpg" alt="img1" fill className="object-cover" />
+          {/* Боковая панель */}
+          <div className="space-y-6">
+            {/* Информация о событии */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold mb-4">Информация</h3>
+              
+              <div className="space-y-4">
+                {/* Период */}
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Период</p>
+                    <p className="text-gray-900">
+                      {new Date(event.start_date).toLocaleDateString('ru-RU', { 
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })} — {new Date(event.end_date).toLocaleDateString('ru-RU', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div className="relative w-full h-20 rounded-lg overflow-hidden bg-gray-100">
-                  <Image src="/images/event-2.jpg" alt="img2" fill className="object-cover" />
-                </div>
-                <div className="relative w-full h-20 rounded-lg overflow-hidden bg-gray-100">
-                  <Image src="/images/event-3.jpg" alt="img3" fill className="object-cover" />
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
 
-        {/* Похожие события */}
-        {related.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-[#111]">{t('Похожие события')}</h3>
-              <Link href="/dealer/dashboard/events" className="text-[#C86B56] text-sm hover:underline">
-                {t('Ко всем событиям')}
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {related.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/dealer/dashboard/events/event/${r.id}`}
-                  className="rounded-2xl border border-gray-100 bg-white p-4 hover:shadow-md transition-shadow"
-                >
+                {/* Приоритет */}
+                {event.priority && event.priority > 0 && (
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                      {r.icon ? (
-                        <Image src={`/icons/${r.icon}`} alt={r.title} width={20} height={20} />
-                      ) : null}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        {r.badge && (
-                          <span className="px-2 py-0.5 rounded bg-[#FDEAE5] text-[#C86B56]">{t(r.badge)}</span>
-                        )}
-                        {r.date && <span>{t(r.date)}</span>}
-                      </div>
-                      <p className="mt-1 font-medium text-[#111] line-clamp-2">{t(r.title)}</p>
-                      <p className="text-sm text-gray-600 line-clamp-2">{t(r.description)}</p>
+                    <Sparkles className="w-5 h-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500">Приоритет</p>
+                      <p className="text-gray-900">{event.priority}</p>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+                )}
 
-        {/* Действия */}
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 rounded-lg bg-[#FDEAE5] text-[#C86B56] text-xs font-medium">#tannur</span>
-            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium">#event</span>
-            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium">#акция</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dealer/dashboard/events"
-              className="px-4 py-2 rounded-xl bg-[#DC7C67] text-white hover:bg-[#C86B56] transition-colors"
-            >
-              {t('К списку событий')}
-            </Link>
-            <button
-              onClick={() => {
-                if (typeof navigator !== 'undefined' && 'clipboard' in navigator) {
-                  navigator.clipboard.writeText(window.location.href);
-                }
-              }}
-              className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-            >
-              {t('Скопировать ссылку')}
-            </button>
+                {/* Избранное */}
+                {event.is_featured && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl">
+                    <Sparkles className="w-5 h-5 text-red-500" />
+                    <p className="text-sm font-medium text-red-700">Горячее событие</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Действия */}
+              <div className="mt-6 space-y-3">
+                <button
+                  onClick={handleShare}
+                  className="w-full px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      Ссылка скопирована
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      Поделиться
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Теги */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Tag className="w-5 h-5" />
+                  Теги
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map((tag, index) => (
+                    <span 
+                      key={index} 
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Админские действия */}
+            {profile?.role === 'admin' && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold mb-4">Управление</h3>
+                <div className="space-y-3">
+                  {event.status !== 'archived' && (
+                    <button
+                      onClick={handleArchive}
+                      className="w-full px-4 py-2 border border-yellow-200 text-yellow-700 rounded-xl hover:bg-yellow-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Archive className="w-4 h-4" />
+                      Архивировать
+                    </button>
+                  )}
+                  <Link
+                    href={`/admin/events/duplicate/${event.id}`}
+                    className="w-full px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 inline-block text-center"
+                  >
+                    Создать копию
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </article>
+      </div>
     </div>
   );
 }

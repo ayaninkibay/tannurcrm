@@ -47,7 +47,7 @@ export interface Order {
   id: string;
   created_at: string;
   total_amount: number;
-  user_id: string;  // Массив ID пользователей-участников
+  user_id: string;  
   paid_at?: string;
   status: OrderStatus;
   order_number: string;
@@ -602,4 +602,78 @@ export interface TeamPurchaseStats {
   totalSaved: number;
   totalEarned: number;
   teamSize: number;
+}
+
+
+// ========================================
+// СОБЫТИЯ (EVENTS)
+// ========================================
+
+export interface Event {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  
+  // Основная информация
+  title: string;
+  description?: string;
+  short_description?: string;
+  
+  // Медиа
+  image_url?: string;
+  banner_url?: string;
+  gallery?: string[];
+  
+  // Период
+  start_date: string;
+  end_date: string;
+  
+  // Статус
+  status: 'draft' | 'published' | 'archived';
+  
+  // Содержание
+  goals?: string[];
+  rewards?: string[];
+  conditions?: string[];
+  
+  // Визуал
+  badge_color?: string;
+  badge_icon?: string;
+  
+  // Сортировка
+  priority?: number;
+  is_featured?: boolean;
+  
+  // Другое
+  tags?: string[];
+  created_by?: string;
+  
+  // Вычисляемые поля (из функции)
+  event_status?: 'upcoming' | 'active' | 'past';
+  days_until?: number;
+  days_remaining?: number;
+}
+
+export interface CreateEventInput {
+  title: string;
+  description?: string;
+  short_description?: string;
+  image_url?: string;
+  banner_url?: string;
+  gallery?: string[];
+  start_date: string;
+  end_date: string;
+  goals?: string[];
+  rewards?: string[];
+  conditions?: string[];
+  badge_color?: string;
+  badge_icon?: string;
+  priority?: number;
+  is_featured?: boolean;
+  tags?: string[];
+  status?: 'draft' | 'published';
+}
+
+export interface UpdateEventInput extends Partial<CreateEventInput> {
+  id: string;
 }

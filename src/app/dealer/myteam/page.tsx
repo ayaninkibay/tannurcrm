@@ -1,83 +1,38 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useUser } from '@/context/UserContext'
 import { useTranslate } from '@/hooks/useTranslate'
 import MoreHeaderDE from '@/components/header/MoreHeaderDE'
-import TeamCard from '@/components/blocks/TeamCard'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
 import BonusCard from '@/components/blocks/BonusCard'
-import AddDealerCard from '@/components/blocks/AddDealerCard'
-import TeamTree from '@/components/team/TeamTree'
-import { TreeService, type TeamMember } from '@/lib/tree/TreeService'
 import TeamPurchaseList from '@/components/team/TeamPurchaseList'
+import { 
+  TreeModule, 
+  TeamCardModule,
+  useTeamStats,
+  type TeamMember 
+} from '@/lib/team'
 import { Play, Trophy, Users, Sparkles, ChevronRight } from 'lucide-react'
 
 export default function TeamPage() {
   const { t } = useTranslate()
   const { profile: user } = useUser()
   
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [teamStats, setTeamStats] = useState({
-    totalMembers: 0,
-    totalTurnover: 0,
-    goal: 9800000,
-    remaining: 9800000
-  })
   const [bonusTableOpen, setBonusTableOpen] = useState(false)
   
-  const [statsLoading, setStatsLoading] = useState(true)
-  const [treeLoading, setTreeLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (user?.id) {
-      loadTeamData()
-    } else {
-      setStatsLoading(false)
-      setTreeLoading(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
-
-  const loadTeamData = async () => {
-    if (!user?.id) return
-
-    try {
-      setError(null)
-      setStatsLoading(true)
-      const stats = await TreeService.getTeamStats(user.id)
-      setTeamStats(stats)
-      setStatsLoading(false)
-
-      setTreeLoading(true)
-      const membersResponse = await TreeService.getMyTeam(user.id)
-      const safeMembers = Array.isArray(membersResponse) ? membersResponse : []
-      setTeamMembers(safeMembers)
-      setTreeLoading(false)
-      
-    } catch (err) {
-      console.error('Error loading team data:', err)
-      setError('Не удалось загрузить данные команды')
-      setTeamMembers([])
-      setStatsLoading(false)
-      setTreeLoading(false)
-    }
-  }
+  // Используем хук для получения статистики
+  const { stats: teamStats, loading: statsLoading } = useTeamStats(user?.id)
 
   const handleSelectMember = (member: TeamMember) => {
-    // Action handled
+    console.log('Выбран участник:', member)
+    // Здесь можно открыть модальное окно с деталями участника
   }
 
   const handleEditMember = (member: TeamMember) => {
-    // Action handled
+    console.log('Редактирование участника:', member)
+    // Здесь можно открыть форму редактирования
   }
-
-  const handleAddDealer = () => {
-    loadTeamData()
-  }
-
-  const safeTeamMembers = Array.isArray(teamMembers) ? teamMembers : []
 
   return (
     <div className="flex flex-col min-h-screen p-2 sm:p-4 md:p-6 bg-[#F5F5F5]">
@@ -91,7 +46,7 @@ export default function TeamPage() {
           
           {/* Левая колонка - TeamPurchaseList */}
           <div className="lg:col-span-5 xl:col-span-4">
-            <TeamPurchaseList userId="current-user-id" />
+            <TeamPurchaseList userId={user?.id || 'current-user-id'} />
           </div>
 
           {/* Правая колонка - TeamCard и BonusCard */}
@@ -100,16 +55,13 @@ export default function TeamPage() {
             {/* Карточки в сетке */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               
-              {/* TeamCard */}
-              <div>
-                <TeamCard
-                  title={t('Моя команда')}
-                  count={statsLoading ? 0 : teamStats.totalMembers}
-                  goal={100}
-                  showButton={false}
-                  variant="white"
-                />
-              </div>
+              {/* TeamCard через модуль */}
+              <TeamCardModule
+                userId={user?.id}
+                title={t('Моя команда')}
+                variant="white"
+                showButton={true}
+              />
 
               {/* BonusCard */}
               <div>
@@ -199,47 +151,14 @@ export default function TeamPage() {
 
         </section>
 
-        {/* Дерево команды */}
-        <section className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 min-h-[400px] sm:min_h-[500px]">
+        {/* Дерево команды через модуль */}
+        <section className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 min-h-[400px] sm:min-h-[500px]">
           <div className="flex-1 min-h-[300px] sm:min-h-[400px]">
-            {error ? (
-              <div className="flex items-center justify-center h-full p-4">
-                <div className="text-center">
-                  <p className="text-red-600 mb-4 text-sm sm:text-base">{t('Не удалось загрузить данные команды')}</p>
-                  <button
-                    onClick={loadTeamData}
-                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {t('Повторить попытку')}
-                  </button>
-                </div>
-              </div>
-            ) : !treeLoading && safeTeamMembers.length === 0 ? (
-              <div className="flex items-center justify-center h-full p-4">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-[#DC7C67]/10 to-[#E89380]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="w-8 h-8 text-[#DC7C67]" />
-                  </div>
-                  <p className="text-gray-600 mb-4 text-sm sm:text-base">{t('У вас пока нет членов команды')}</p>
-                  <button
-                    onClick={handleAddDealer}
-                    className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl hover:shadow-lg transition-all duration-300 text-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    {t('Пригласить первого партнёра')}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="h-full">
-                <TeamTree
-                  members={safeTeamMembers}
-                  currentUserId={user?.id}
-                  onSelectMember={handleSelectMember}
-                  onEditMember={handleEditMember}
-                  isLoading={treeLoading}
-                />
-              </div>
-            )}
+            <TreeModule
+              userId={user?.id}
+              currentUserId={user?.id}
+              mode="user"
+            />
           </div>
         </section>
 
