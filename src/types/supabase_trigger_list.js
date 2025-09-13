@@ -11,7 +11,7 @@
     "schema": "public",
     "table_name": "cart_items",
     "trigger_name": "update_cart_on_item_change",
-    "events": "DELETE, INSERT, UPDATE",
+    "events": "INSERT, DELETE, UPDATE",
     "timing": "AFTER",
     "definition": "EXECUTE FUNCTION update_cart_timestamp()"
   },
@@ -54,6 +54,22 @@
     "events": "UPDATE",
     "timing": "BEFORE",
     "definition": "EXECUTE FUNCTION update_updated_at_column()"
+  },
+  {
+    "schema": "public",
+    "table_name": "team_purchase_orders",
+    "trigger_name": "update_member_contribution_trigger",
+    "events": "UPDATE, INSERT, DELETE",
+    "timing": "AFTER",
+    "definition": "EXECUTE FUNCTION update_member_contribution()"
+  },
+  {
+    "schema": "public",
+    "table_name": "team_purchase_orders",
+    "trigger_name": "update_team_purchase_after_order",
+    "events": "UPDATE, INSERT, DELETE",
+    "timing": "AFTER",
+    "definition": "EXECUTE FUNCTION update_team_purchase_totals()"
   },
   {
     "schema": "public",

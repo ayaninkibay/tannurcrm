@@ -138,7 +138,6 @@ export default function TeamPurchaseCheckout({
         .from('team_purchase_members')
         .update({
           status: 'purchased',
-          contribution_actual: total
         })
         .eq('team_purchase_id', purchaseId)
         .eq('user_id', userId);
