@@ -65,3 +65,39 @@ export const ROUTES = {
     FORGOT_PASSWORD: '/forgot-password'
   }
 } as const;
+
+
+// ========================================
+// КОНСТАНТЫ ДЛЯ АКАДЕМИИ
+// ========================================
+
+export const COURSE_CATEGORIES = [
+  'Знакомство с Tannur',
+  'Продукты',
+  'Маркетинг',
+  'Продажи',
+  'Лидерство',
+  'Мотивация',
+  'Финансы',
+  'Личностный рост'
+] as const;
+
+export const COURSE_LANGUAGES = [
+  { value: 'ru', label: 'Русский' },
+  { value: 'kz', label: 'Қазақша' },
+  { value: 'en', label: 'English' }
+] as const;
+
+export const COURSE_DIFFICULTY_LEVELS = [
+  { value: 'beginner', label: 'Начальный' },
+  { value: 'intermediate', label: 'Средний' },
+  { value: 'advanced', label: 'Продвинутый' }
+] as const;
+
+export const ACADEMY_CONSTANTS = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  ACCEPTED_IMAGE_TYPES: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  ACCEPTED_VIDEO_TYPES: ['video/mp4', 'video/webm', 'video/ogg'],
+  DEFAULT_COURSE_COVER: '/images/default-course.jpg',
+  DEFAULT_LESSON_THUMBNAIL: '/images/default-lesson.jpg'
+} as const;

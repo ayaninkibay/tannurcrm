@@ -53,7 +53,8 @@ export default function EducationContent() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderDE title={t('Академия TNBA')} />
+      <MoreHeaderDE title={t('Академия TNBA')} 
+      />
 
       {/* Hero Section */}
       <div className="mt-6 bg-gradient-to-r from-[#D77E6C] to-[#E09080] rounded-2xl p-6 md:p-8 text-white mb-8">

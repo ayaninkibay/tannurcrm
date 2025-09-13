@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import React, { useEffect, useMemo, useState, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -38,6 +38,7 @@ function CreateCourseForm() {
   const router = useRouter();
   const sp = useSearchParams();
   const { t } = useTranslate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editingCourseId = (sp?.get('courseId') ?? '').trim();
 
@@ -49,6 +50,8 @@ function CreateCourseForm() {
   const [level, setLevel] = useState<CourseDraft['level']>('Новичок');
   const [language, setLanguage] = useState('ru');
   const [thumbnail, setThumbnail] = useState('/icons/IconEducationOrange.svg');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [shortDesc, setShortDesc] = useState('');
   const [fullDesc, setFullDesc] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -85,6 +88,7 @@ function CreateCourseForm() {
       setLevel(found.level);
       setLanguage(found.language);
       setThumbnail(found.thumbnail);
+      setThumbnailPreview(found.thumbnail);
       setShortDesc(found.shortDesc);
       setFullDesc(found.fullDesc);
       setTags(found.tags ?? []);
@@ -95,6 +99,53 @@ function CreateCourseForm() {
       setIsPublished(!!found.isPublished);
     } catch {}
   }, [isEdit, editingCourseId]);
+
+  // ----- FILE UPLOAD HANDLER -----
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, thumbnail: 'Пожалуйста, выберите изображение (JPEG, PNG, GIF, SVG, WebP)' }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setErrors(prev => ({ ...prev, thumbnail: 'Размер файла не должен превышать 5MB' }));
+      return;
+    }
+
+    // Clear error
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.thumbnail;
+      return newErrors;
+    });
+
+    setThumbnailFile(file);
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setThumbnailPreview(result);
+      setThumbnail(result); // Store as base64 for localStorage
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setThumbnailFile(null);
+    setThumbnailPreview('');
+    setThumbnail('/icons/IconEducationOrange.svg');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // ----- HELPERS -----
   function addTag() {
@@ -237,63 +288,83 @@ function CreateCourseForm() {
           </label>
 
           <label className="block">
-            <span className="text-sm text-gray-700">{t('Автор / Спикер')}</span>
+            <span className="text-sm text-gray-700">{t('Язык')}</span>
             <input
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('Имя спикера')}
+              placeholder={t('ru, kz, en…')}
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-4">
-            <label className="block">
-              <span className="text-sm text-gray-700">{t('Уровень')}</span>
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as CourseDraft['level'])}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              >
-                {LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {t(l)}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {/* IMAGE UPLOAD FIELD */}
+          <div className="block">
+            <span className="text-sm text-gray-700">{t('Обложка')}</span>
+            
+            <div className="mt-1 flex items-start gap-4">
+              {/* Upload button and info */}
+              <div className="flex-1">
+                {/* File Input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/svg+xml,image/webp"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="thumbnail-upload"
+                />
+                
+                <label
+                  htmlFor="thumbnail-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors text-sm"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  {thumbnailPreview ? t('Изменить изображение') : t('Загрузить изображение')}
+                </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-700">{t('Язык')}</span>
-              <input
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-                placeholder={t('ru, kz, en…')}
-              />
-            </label>
+                <div className="mt-2 text-xs text-gray-500">
+                  {t('Максимальный размер: 5MB. Форматы: JPEG, PNG, GIF, SVG, WebP')}
+                </div>
+                
+                {errors.thumbnail && (
+                  <div className="text-xs text-red-500 mt-1">{t(errors.thumbnail)}</div>
+                )}
+              </div>
+
+              {/* Preview */}
+              {thumbnailPreview && (
+                <div className="relative inline-block">
+                  <div className="relative w-48 h-28 rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={thumbnailPreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs shadow-md"
+                      title={t('Удалить изображение')}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-
-          <label className="block">
-            <span className="text-sm text-gray-700">{t('Обложка (URL)')}</span>
-            <input
-              value={thumbnail}
-              onChange={(e) => setThumbnail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('/icons/IconEducationOrange.svg')}
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm text-gray-700">{t('Общая длительность (мин)')}</span>
-            <input
-              type="number"
-              min={0}
-              value={totalMinutes}
-              onChange={(e) => setTotalMinutes(e.target.value === '' ? '' : Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('например, 120')}
-            />
-          </label>
 
           <label className="block md:col-span-2">
             <span className="text-sm text-gray-700">{t('Краткое описание *')}</span>
@@ -318,154 +389,6 @@ function CreateCourseForm() {
             />
             {errors.fullDesc && <div className="text-xs text-red-500 mt-1">{t(errors.fullDesc)}</div>}
           </label>
-        </div>
-
-        {/* ТЕГИ */}
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Теги')}</div>
-          <div className="flex gap-2">
-            <input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addTag();
-                }
-              }}
-              className="w-full md:w-1/2 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('например: skincare, продажи')}
-            />
-            <button type="button" onClick={addTag} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              {t('Добавить')}
-            </button>
-          </div>
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {tags.map((tTag, i) => (
-                <span key={i} className="inline-flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-full bg-gray-100">
-                  {tTag}
-                  <button type="button" onClick={() => removeTag(i)} className="text-gray-500 hover:text-gray-700">
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* РЕЗУЛЬТАТЫ */}
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Результаты обучения')}</div>
-          <div className="flex gap-2">
-            <input
-              value={outcomeInput}
-              onChange={(e) => setOutcomeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addOutcome();
-                }
-              }}
-              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('Например: научится проводить консультацию…')}
-            />
-            <button type="button" onClick={addOutcome} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              {t('Добавить пункт')}
-            </button>
-          </div>
-          {outcomes.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {outcomes.map((o, i) => (
-                <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-sm text-gray-800">{o}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeOutcome(i)}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    {t('Удалить')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* ТРЕБОВАНИЯ */}
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Требования')}</div>
-          <div className="flex gap-2">
-            <input
-              value={prereqInput}
-              onChange={(e) => setPrereqInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addPrereq();
-                }
-              }}
-              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('Что нужно знать/иметь заранее')}
-            />
-            <button type="button" onClick={addPrereq} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              {t('Добавить пункт')}
-            </button>
-          </div>
-          {prereq.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {prereq.map((p, i) => (
-                <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-sm text-gray-800">{p}</span>
-                  <button
-                    type="button"
-                    onClick={() => removePrereq(i)}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    {t('Удалить')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* СТРУКТУРА */}
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-gray-900 mb-2">{t('Структура курса (модули)')}</div>
-          <div className="flex gap-2">
-            <input
-              value={syllabusInput}
-              onChange={(e) => setSyllabusInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addSyllabus();
-                }
-              }}
-              className="w-full md:w-2/3 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#DC7C67]"
-              placeholder={t('Название модуля/блока')}
-            />
-            <button type="button" onClick={addSyllabus} className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50">
-              {t('Добавить пункт')}
-            </button>
-          </div>
-          {syllabus.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {syllabus.map((s, i) => (
-                <li key={i} className="flex items-start justify-between gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-sm text-gray-800">{s}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeSyllabus(i)}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    {t('Удалить')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {/* ПУБЛИКАЦИЯ */}
@@ -523,7 +446,6 @@ function CreateCourseLoading() {
             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             <div className="h-10 bg-gray-200 rounded"></div>
             <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div class="h-10 bg-gray-200 rounded"></div>
           </div>
         </div>
       </div>
@@ -532,7 +454,7 @@ function CreateCourseLoading() {
 }
 
 // Main component with Suspense wrapper
-export default function CreateCoursPage() {
+export default function CreateCoursePage() {
   return (
     <div className="p-2 md:p-6">
       <Suspense fallback={<CreateCourseLoading />}>

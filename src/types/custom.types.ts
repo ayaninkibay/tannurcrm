@@ -677,3 +677,138 @@ export interface CreateEventInput {
 export interface UpdateEventInput extends Partial<CreateEventInput> {
   id: string;
 }
+
+
+// ========================================
+// АКАДЕМИЯ / КУРСЫ
+// ========================================
+
+export interface Course {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  
+  // Основная информация
+  title: string;
+  category: string;
+  language: string;
+  short_description?: string;
+  full_description?: string;
+  
+  // Медиа
+  cover_image?: string;
+  
+  // Статус и мета
+  is_published: boolean;
+  author_id?: string;
+  
+  // Дополнительные поля
+  duration_hours?: number;
+  lessons_count?: number;
+  difficulty_level?: string;
+  slug?: string;
+  tags?: string[];
+  views_count?: number;
+  order_index?: number;
+  
+  // Связанные данные (через JOIN)
+  author?: User;
+}
+
+export interface CourseLesson {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  
+  // Связь с курсом
+  course_id: string;
+  
+  // Основная информация
+  title: string;
+  description?: string;
+  content?: string;
+  
+  // Медиа
+  video_url?: string;
+  thumbnail_url?: string;
+  attachments?: string[];
+  
+  // Структура
+  module_name?: string;
+  order_index: number;
+  
+  // Параметры
+  duration_minutes?: number;
+  is_preview: boolean;
+  is_published: boolean;
+  
+  // Дополнительно
+  homework?: string;
+  quiz_data?: any;
+  
+  // Связанные данные (через JOIN)
+  course?: Course;
+}
+
+// ========================================
+// ТИПЫ ДЛЯ ФОРМ АКАДЕМИИ
+// ========================================
+
+export interface CreateCourseInput {
+  title: string;
+  category: string;
+  language?: string;
+  shortDescription?: string;
+  fullDescription?: string;
+  coverImage?: File | string | null;
+  isPublished?: boolean;
+  difficultyLevel?: string;
+  tags?: string[];
+}
+
+export interface UpdateCourseInput extends Partial<CreateCourseInput> {
+  id?: string;
+}
+
+export interface CreateLessonInput {
+  courseId: string;
+  title: string;
+  description?: string;
+  content?: string;
+  videoUrl?: string;
+  thumbnail?: File | string | null;
+  moduleName?: string;
+  orderIndex?: number;
+  durationMinutes?: number;
+  isPreview?: boolean;
+  isPublished?: boolean;
+  homework?: string;
+  quizData?: any;
+  attachments?: string[];
+}
+
+export interface UpdateLessonInput extends Partial<Omit<CreateLessonInput, 'courseId'>> {
+  id?: string;
+}
+
+// ========================================
+// ФИЛЬТРЫ И ПАРАМЕТРЫ
+// ========================================
+
+export interface CourseFilters {
+  category?: string;
+  language?: string;
+  difficultyLevel?: string;
+  isPublished?: boolean;
+  authorId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface LessonFilters {
+  courseId?: string;
+  moduleNme?: string;
+  isPublished?: boolean;
+  isPreview?: boolean;
+}

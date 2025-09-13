@@ -69,7 +69,9 @@ export default function CoursePreviewPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderDE title={t('Курс')} />
+      <MoreHeaderDE title={t('Курс')} 
+      showBackButton={true}
+      />
 
       {/* Коралловый заголовок */}
       <div className="mt-4 bg-[#D77E6C] rounded-2xl p-6 md:p-8 text-white mb-6">

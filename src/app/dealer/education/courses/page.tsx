@@ -82,7 +82,9 @@ export default function CoursePage() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderDE title={t('Курс')} />
+      <MoreHeaderDE title={t('Курс')} 
+      showBackButton={true}
+      />
 
       <div className="mt-4 rounded-2xl p-6 md:p-8 text-white bg-[#D77E6C]">
         <h1 className="text-2xl md:text-3xl font-bold mb-1">
