@@ -6,10 +6,12 @@ import type {
   CreateCourseInput,
   UpdateCourseInput,
   CreateLessonInput,
-  UpdateLessonInput
+  UpdateLessonInput,
+  StudentProgress,
+  StudentProgressInput
 } from '@/types/custom.types';
 
-// Явно определяем типы из базы данных
+// Типы из базы данных
 type DbCourse = Database['public']['Tables']['courses']['Row'];
 type DbCourseInsert = Database['public']['Tables']['courses']['Insert'];
 type DbCourseUpdate = Database['public']['Tables']['courses']['Update'];
@@ -19,18 +21,46 @@ type DbCourseLessonInsert = Database['public']['Tables']['course_lessons']['Inse
 type DbCourseLessonUpdate = Database['public']['Tables']['course_lessons']['Update'];
 
 // Расширенные типы с relations
-interface Course extends DbCourse {
+export interface Course extends DbCourse {
   author?: any;
+  lessons?: CourseLesson[];
+  progress?: CourseProgress;
 }
 
-interface CourseLesson extends DbCourseLesson {
+export interface CourseLesson extends DbCourseLesson {
   course?: any;
+  progress?: LessonProgress;
+}
+
+export interface CourseProgress {
+  totalLessons: number;
+  completedLessons: number;
+  progressPercentage: number;
+  totalWatchTime: number;
+}
+
+export interface LessonProgress {
+  isCompleted: boolean;
+  watchTime: number;
+  completedAt?: string;
+  quizScore?: number;
 }
 
 class AcademyService {
   // ========================================
   // РАБОТА С КУРСАМИ
   // ========================================
+
+  /**
+   * Получить все курсы (алиас для совместимости)
+   */
+  async getCourses(filters?: {
+    isPublished?: boolean;
+    category?: string;
+    authorId?: string;
+  }): Promise<Course[]> {
+    return this.getAllCourses(filters);
+  }
 
   /**
    * Получить все курсы
@@ -81,7 +111,6 @@ class AcademyService {
    */
   async getCourse(identifier: string): Promise<Course | null> {
     try {
-      // Проверяем, UUID это или slug
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
       
       let query = supabase
@@ -106,19 +135,34 @@ class AcademyService {
       const { data, error } = await query.single();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
+        if (error.code === 'PGRST116') return null;
         throw error;
       }
 
       // Увеличиваем счетчик просмотров
       if (data) {
-        // ИСПРАВЛЕНИЕ: добавляем 'as any' для RPC функции
         await supabase.rpc('increment_course_views' as any, { course_id: data.id });
       }
 
       return data as Course;
     } catch (error) {
       console.error('Error fetching course:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получить курс с уроками
+   */
+  async getCourseWithLessons(courseId: string): Promise<Course | null> {
+    try {
+      const course = await this.getCourse(courseId);
+      if (!course) return null;
+
+      const lessons = await this.getCourseLessons(courseId);
+      return { ...course, lessons };
+    } catch (error) {
+      console.error('Error fetching course with lessons:', error);
       throw error;
     }
   }
@@ -131,7 +175,6 @@ class AcademyService {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Не авторизован');
 
-      // Загружаем обложку если есть
       let coverImageUrl: string | null = null;
       if (input.coverImage instanceof File) {
         coverImageUrl = await this.uploadCourseImage(input.coverImage, 'covers');
@@ -152,7 +195,6 @@ class AcademyService {
         tags: input.tags || []
       };
 
-      // ИСПРАВЛЕНИЕ: добавляем приведение типа
       const { data, error } = await supabase
         .from('courses')
         .insert(insertData as DbCourseInsert)
@@ -174,7 +216,6 @@ class AcademyService {
     try {
       const updateData: DbCourseUpdate = {};
 
-      // Копируем только переданные поля
       if (input.title !== undefined) updateData.title = input.title;
       if (input.category !== undefined) updateData.category = input.category;
       if (input.language !== undefined) updateData.language = input.language;
@@ -184,7 +225,6 @@ class AcademyService {
       if (input.difficultyLevel !== undefined) updateData.difficulty_level = input.difficultyLevel;
       if (input.tags !== undefined) updateData.tags = input.tags;
 
-      // Загружаем новую обложку если есть
       if (input.coverImage instanceof File) {
         updateData.cover_image = await this.uploadCourseImage(input.coverImage, 'covers');
       } else if (input.coverImage === null) {
@@ -193,7 +233,6 @@ class AcademyService {
         updateData.cover_image = input.coverImage;
       }
 
-      // ИСПРАВЛЕНИЕ: добавляем приведение типа
       const { data, error } = await supabase
         .from('courses')
         .update(updateData as DbCourseUpdate)
@@ -231,6 +270,13 @@ class AcademyService {
   // ========================================
 
   /**
+   * Получить все уроки курса (алиас для совместимости)
+   */
+  async getLessons(courseId: string): Promise<CourseLesson[]> {
+    return this.getCourseLessons(courseId);
+  }
+
+  /**
    * Получить все уроки курса
    */
   async getCourseLessons(courseId: string): Promise<CourseLesson[]> {
@@ -239,6 +285,7 @@ class AcademyService {
         .from('course_lessons')
         .select('*')
         .eq('course_id', courseId)
+        .order('module_name', { ascending: true })
         .order('order_index', { ascending: true });
 
       if (error) throw error;
@@ -285,7 +332,6 @@ class AcademyService {
    */
   async createLesson(input: CreateLessonInput): Promise<CourseLesson> {
     try {
-      // Получаем максимальный order_index для курса
       const { data: maxOrderData } = await supabase
         .from('course_lessons')
         .select('order_index')
@@ -296,7 +342,6 @@ class AcademyService {
 
       const nextOrderIndex = maxOrderData ? (maxOrderData as any).order_index + 1 : 0;
 
-      // Загружаем превью если есть
       let thumbnailUrl: string | null = null;
       if (input.thumbnail instanceof File) {
         thumbnailUrl = await this.uploadCourseImage(input.thumbnail, 'lessons');
@@ -321,7 +366,6 @@ class AcademyService {
         attachments: input.attachments || []
       };
 
-      // ИСПРАВЛЕНИЕ: добавляем приведение типа
       const { data, error } = await supabase
         .from('course_lessons')
         .insert(insertData as DbCourseLessonInsert)
@@ -343,7 +387,6 @@ class AcademyService {
     try {
       const updateData: DbCourseLessonUpdate = {};
 
-      // Копируем только переданные поля
       if (input.title !== undefined) updateData.title = input.title;
       if (input.description !== undefined) updateData.description = input.description;
       if (input.content !== undefined) updateData.content = input.content;
@@ -357,7 +400,6 @@ class AcademyService {
       if (input.quizData !== undefined) updateData.quiz_data = input.quizData;
       if (input.attachments !== undefined) updateData.attachments = input.attachments;
 
-      // Загружаем новое превью если есть
       if (input.thumbnail instanceof File) {
         updateData.thumbnail_url = await this.uploadCourseImage(input.thumbnail, 'lessons');
       } else if (input.thumbnail === null) {
@@ -366,7 +408,6 @@ class AcademyService {
         updateData.thumbnail_url = input.thumbnail;
       }
 
-      // ИСПРАВЛЕНИЕ: добавляем приведение типа
       const { data, error } = await supabase
         .from('course_lessons')
         .update(updateData as DbCourseLessonUpdate)
@@ -404,7 +445,6 @@ class AcademyService {
    */
   async reorderLessons(courseId: string, lessonIds: string[]): Promise<void> {
     try {
-      // ИСПРАВЛЕНИЕ: добавляем приведение типа в update
       const updates = lessonIds.map((id, index) => 
         supabase
           .from('course_lessons')
@@ -418,6 +458,184 @@ class AcademyService {
       console.error('Error reordering lessons:', error);
       throw error;
     }
+  }
+
+  // ========================================
+  // РАБОТА С ПРОГРЕССОМ
+  // ========================================
+
+  /**
+   * Получить прогресс курса для пользователя
+   */
+  async getCourseProgress(userId: string, courseId: string): Promise<CourseProgress> {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_course_progress' as any, {
+          p_user_id: userId,
+          p_course_id: courseId
+        });
+
+      if (error) throw error;
+
+      return (data as CourseProgress) || {
+        totalLessons: 0,
+        completedLessons: 0,
+        progressPercentage: 0,
+        totalWatchTime: 0
+      };
+    } catch (error) {
+      console.error('Error fetching course progress:', error);
+      return {
+        totalLessons: 0,
+        completedLessons: 0,
+        progressPercentage: 0,
+        totalWatchTime: 0
+      };
+    }
+  }
+
+  /**
+   * Обновить прогресс урока
+   */
+  async updateLessonProgress(input: StudentProgressInput): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('student_progress')
+        .upsert({
+          user_id: input.userId,
+          course_id: input.courseId,
+          lesson_id: input.lessonId,
+          is_completed: input.isCompleted || false,
+          watch_time: input.watchTime || 0,
+          quiz_score: input.quizScore || null,
+          completed_at: input.isCompleted ? new Date().toISOString() : null,
+          last_accessed: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,lesson_id'
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating lesson progress:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Отметить урок как завершенный
+   */
+  async markLessonComplete(userId: string, lessonId: string): Promise<void> {
+    try {
+      const lesson = await this.getLesson(lessonId);
+      if (!lesson) throw new Error('Урок не найден');
+
+      await this.updateLessonProgress({
+        userId,
+        courseId: lesson.course_id,
+        lessonId,
+        isCompleted: true
+      });
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // МЕТОДЫ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ (Алиасы для совместимости)
+  // ========================================
+
+  /**
+   * Загрузить обложку курса
+   */
+  async uploadCourseCover(courseId: string, file: File): Promise<string | null> {
+    try {
+      const url = await this.uploadCourseImage(file, 'covers');
+      
+      // Обновляем курс с новой обложкой
+      await supabase
+        .from('courses')
+        .update({ cover_image: url })
+        .eq('id', courseId);
+      
+      return url;
+    } catch (error) {
+      console.error('Error uploading course cover:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Загрузить видео урока
+   */
+  async uploadLessonVideo(lessonId: string, file: File): Promise<string | null> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `videos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+      
+      // Обновляем урок с новым видео
+      await supabase
+        .from('course_lessons')
+        .update({ video_url: data.publicUrl })
+        .eq('id', lessonId);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading lesson video:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Загрузить материал урока
+   */
+  async uploadLessonMaterial(lessonId: string, file: File): Promise<string | null> {
+    try {
+      const url = await this.uploadAttachment(file);
+      
+      // Получаем текущие вложения урока
+      const { data: lesson } = await supabase
+        .from('course_lessons')
+        .select('attachments')
+        .eq('id', lessonId)
+        .single();
+      
+      if (lesson) {
+        const attachments = lesson.attachments || [];
+        attachments.push(url);
+        
+        // Обновляем урок с новым вложением
+        await supabase
+          .from('course_lessons')
+          .update({ attachments })
+          .eq('id', lessonId);
+      }
+      
+      return url;
+    } catch (error) {
+      console.error('Error uploading lesson material:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Обновить прогресс студента (алиас)
+   */
+  async updateStudentProgress(input: StudentProgressInput): Promise<void> {
+    return this.updateLessonProgress(input);
   }
 
   // ========================================
@@ -453,11 +671,38 @@ class AcademyService {
   }
 
   /**
+   * Загрузить файл материала
+   */
+  async uploadAttachment(file: File): Promise<string> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `attachments/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading attachment:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Удалить изображение
    */
   async deleteImage(imageUrl: string): Promise<void> {
     try {
-      // Извлекаем путь из URL
       const url = new URL(imageUrl);
       const path = url.pathname.split('/').slice(-2).join('/');
 
@@ -468,7 +713,6 @@ class AcademyService {
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting image:', error);
-      // Не выбрасываем ошибку, т.к. удаление изображения не критично
     }
   }
 
@@ -516,6 +760,49 @@ class AcademyService {
       return [];
     }
   }
+
+  /**
+   * Получить популярные курсы
+   */
+  async getPopularCourses(limit: number = 6): Promise<Course[]> {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('is_published', true)
+        .order('views_count', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return (data as Course[]) || [];
+    } catch (error) {
+      console.error('Error fetching popular courses:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Получить рекомендованные курсы
+   */
+  async getRecommendedCourses(userId: string, limit: number = 4): Promise<Course[]> {
+    try {
+      // В будущем здесь будет логика рекомендаций на основе прогресса пользователя
+      // Пока возвращаем новые курсы
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return (data as Course[]) || [];
+    } catch (error) {
+      console.error('Error fetching recommended courses:', error);
+      return [];
+    }
+  }
 }
 
+// Экспортируем singleton экземпляр
 export const academyService = new AcademyService();

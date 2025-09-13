@@ -95,17 +95,41 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Правая часть: профиль */}
-          <div className="xl:col-span-1 p-4 max-w-full overflow-auto space-y-6 bg-white rounded-2xl">
-            <UserProfileCard />
+          <div className="xl:col-span-1">
+  
             <TannurButton
+              href="dashboard/create_event"
+              text={t('Создать событие')}
+              iconSrc="/icons/userblack.svg"
+              arrow="black"
+              variant="white"
+            />
+            <div className="mt-4"></div>
+                 <TannurButton
               href="/profile"
               text={t('Моя страница')}
-              iconSrc="/icons/IconGroupBlack.png"
+              iconSrc="/icons/userblack.svg"
               arrow="black"
-              variant="gray"
+              variant="white"
             />
-            <ReferalLink variant="orange" />
-            <SponsorCard variant="gray" />
+            <div className="mt-4"></div>
+                 <TannurButton
+              href="/profile"
+              text={t('Моя страница')}
+              iconSrc="/icons/userblack.svg"
+              arrow="black"
+              variant="white"
+            />
+            <div className="mt-4"></div>
+                 <TannurButton
+              href="/profile"
+              text={t('Моя страница')}
+              iconSrc="/icons/userblack.svg"
+              arrow="black"
+              variant="white"
+            />
+           
+
           </div>
         </section>
 

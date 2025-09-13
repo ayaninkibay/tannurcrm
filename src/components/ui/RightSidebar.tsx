@@ -39,7 +39,7 @@ export default function RightSidebar() {
       {/* История */}
       <div className="w-full">
         <div className="space-y-2">
-          <Link href="/admin/warehouse/product_view" className="block w-full">
+          <Link href="/admin/warehouse/stock" className="block w-full">
             <button className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition">
               <span className="flex items-center gap-2 text-[#111] font-medium">
                 <Image src="/icons/IconProfileOrange.png" alt="icon" width={16} height={16} />

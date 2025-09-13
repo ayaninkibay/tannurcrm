@@ -1,4 +1,3 @@
-// src/app/admin/warehouse/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,10 +16,12 @@ import {
   DollarSign,
   BarChart3,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Eye
 } from 'lucide-react';
 
 import { useProductModule } from '@/lib/product/ProductModule';
+import { useGiftModule } from '@/lib/gift/useGiftModule';
 import Distrib, { DistribItem } from '@/components/reports/warehouse/distrib';
 import Presents, { GiftItem } from '@/components/reports/warehouse/presents';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -40,16 +41,35 @@ export default function WareHouse() {
     listProducts 
   } = useProductModule();
 
+  const {
+    gifts,
+    stats: giftStats,
+    loading: giftsLoading,
+    loadGifts,
+    loadStats
+  } = useGiftModule();
+
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalStock: 0,
     totalValue: 0
   });
 
+  // Загружаем все данные при инициализации
   useEffect(() => {
     loadProducts();
+    loadGifts();
+    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Перезагружаем подарки при переключении на вкладку gifts
+  useEffect(() => {
+    if (activeTab === 'gifts') {
+      loadGifts();
+      loadStats();
+    }
+  }, [activeTab, loadGifts, loadStats]);
 
   useEffect(() => {
     if (products.length > 0) {
@@ -95,16 +115,19 @@ export default function WareHouse() {
     return imageUrl;
   };
 
-  // МОКИ (с переводом ключей/значений)
+  // МОКИ для дистрибьюторов (остаются как есть)
   const distribItems: DistribItem[] = [
     { name: t('ИП Манна Мир'), qty: 153, total: '1 238 984 ₸', region: t('Алматы, Аксай 123') },
     { name: t('ТОО Жанна'),    qty: 43,  total: '538 984 ₸',   region: t('Алматы, Жандосова 2') },
   ];
 
-  const giftItems: GiftItem[] = [
-    { name: t('Акмаржан Лейс'), qty: 2, total: '43 984 ₸', note: t('Stories') },
-    { name: t('Инжу Ануарбек'), qty: 1, total: '12 984 ₸', note: t('Рекламные ролики') },
-  ];
+  // Конвертируем реальные подарки в формат для компонента Presents
+  const giftItems: GiftItem[] = gifts.map(gift => ({
+    name: gift.recipient_name,
+    qty: gift.gift_items.reduce((sum, item) => sum + item.quantity, 0),
+    total: formatPrice(gift.total_amount),
+    note: gift.reason
+  }));
 
   const tabsData = [
     {
@@ -124,9 +147,9 @@ export default function WareHouse() {
       id: 'distributors' as const,
       icon: Users,
       title: t('Дистрибьюторы'),
-      count: 312,
+      count: 312, // Пока остается статичным
       unit: t('товаров'),
-      sum: '2 598 899 ₸',
+      sum: '2 598 899 ₸', // Пока остается статичным
       sumLabel: t('На реализации'),
       color: '#7C9D6C',
       bgColor: 'bg-green-50',
@@ -137,10 +160,10 @@ export default function WareHouse() {
       id: 'gifts' as const,
       icon: Gift,
       title: t('Подарочный фонд'),
-      count: 456,
-      unit: t('единиц'),
-      sum: '3 274 865 ₸',
-      sumLabel: t('Резерв подарков'),
+      count: giftStats.totalGifts,
+      unit: t('подарков'),
+      sum: formatPrice(giftStats.totalAmount),
+      sumLabel: t('Общая стоимость'),
       color: '#9C7C6C',
       bgColor: 'bg-purple-50',
       borderColor: 'border-purple-600',
@@ -261,6 +284,17 @@ export default function WareHouse() {
                     </span>
                   )}
 
+                  {activeTab === 'gifts' && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                        {t('Ожидает выдачи: {n}').replace('{n}', String(giftStats.pendingGifts))}
+                      </span>
+                      <span className="text-sm text-gray-600 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg">
+                        {t('Выдано: {n}').replace('{n}', String(giftStats.issuedGifts))}
+                      </span>
+                    </div>
+                  )}
+
                   {activeTab !== 'warehouse' && (
                     <button
                       onClick={() => {
@@ -343,7 +377,72 @@ export default function WareHouse() {
               )}
 
               {activeTab === 'gifts' && (
-                <Presents items={giftItems} />
+                <>
+                  {giftsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent"></div>
+                    </div>
+                  ) : gifts.length > 0 ? (
+                    <div className="space-y-3">
+                      {gifts.map((gift) => (
+                        <div 
+                          key={gift.id} 
+                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
+                          onClick={() => router.push(`/admin/warehouse/gifts/${gift.id}`)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                              <Gift className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{gift.recipient_name}</h3>
+                              <p className="text-sm text-gray-600">
+                                {gift.gift_items.reduce((sum, item) => sum + item.quantity, 0)} {t('позиций')}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="font-semibold text-gray-900">
+                                {formatPrice(gift.total_amount)}
+                              </div>
+                              <div className={`text-xs px-2 py-1 rounded-full ${
+                                gift.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                gift.status === 'issued' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {gift.status === 'pending' ? t('Ожидает') :
+                                 gift.status === 'issued' ? t('Выдан') : t('Отменен')}
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/admin/warehouse/gifts/${gift.id}`);
+                              }}
+                              className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-4">{t('Подарки не найдены')}</p>
+                      <button
+                        onClick={() => router.push('/admin/warehouse/create_gift')}
+                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
+                      >
+                        {t('Создать первый подарок')}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

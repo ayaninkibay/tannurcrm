@@ -1,12 +1,12 @@
 'use client';
 
 import { AcademyProvider } from '@/lib/academy/AcademyModule';
-import AllCoursesContent from './AllCoursesContent';
+import CourseCategoryContent from './CourseCategoryContent';
 
-export default function AllCoursesPage() {
+export default function CourseCategoryPage() {
   return (
     <AcademyProvider>
-      <AllCoursesContent />
+      <CourseCategoryContent />
     </AcademyProvider>
   );
 }

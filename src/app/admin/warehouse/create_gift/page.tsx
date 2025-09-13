@@ -1,10 +1,10 @@
-// src/app/admin/warehouse/create_gift/page.tsx
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useProductModule } from '@/lib/product/ProductModule';
+import { useGiftModule } from '@/lib/gift/useGiftModule';
 import {
   Gift, User, ShieldCheck, Save, X, Plus, Trash2,
   ShoppingBag, DollarSign, Box, ClipboardList, Users as UsersIcon
@@ -20,6 +20,7 @@ type GiftItem = {
 
 type GiftForm = {
   recipient: string;
+  recipientInfo: string;
   reason: string;
   responsible: string;
   comment?: string;
@@ -28,7 +29,7 @@ type GiftForm = {
 
 const RESPONSIBLES = [
   'Склад — Администратор',
-  'Склад — Менеджер',
+  'Склад — Менеджер', 
   'Маркетинг — Ответственный',
   'Офис — Диспетчер'
 ];
@@ -37,10 +38,12 @@ export default function CreateGiftPage() {
   const { t } = useTranslate();
   const router = useRouter();
 
-  const { products, listProducts, isLoading } = useProductModule();
+  const { products, listProducts, isLoading: productsLoading } = useProductModule();
+  const { createGift, loading: giftLoading } = useGiftModule();
 
   const [form, setForm] = useState<GiftForm>({
     recipient: '',
+    recipientInfo: '',
     reason: '',
     responsible: '',
     comment: '',
@@ -48,28 +51,41 @@ export default function CreateGiftPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    listProducts({ limit: 100, orderBy: 'created_at', order: 'desc' }).catch(() => {});
+    console.log('Component mounted, loading products...');
+    listProducts({ limit: 100, orderBy: 'created_at', order: 'desc' }).catch((err) => {
+      console.error('Error loading products:', err);
+    });
   }, [listProducts]);
 
   const isValid = useMemo(() => {
-    return (
+    const valid = (
       form.recipient.trim().length > 1 &&
       form.reason.trim().length > 2 &&
       form.responsible.trim().length > 1 &&
       form.items.length > 0 &&
       form.items.every((i) => i.qty > 0 && i.productId)
     );
+    console.log('Form validation:', {
+      recipient: form.recipient.trim().length > 1,
+      reason: form.reason.trim().length > 2,
+      responsible: form.responsible.trim().length > 1,
+      hasItems: form.items.length > 0,
+      itemsValid: form.items.every((i) => i.qty > 0 && i.productId),
+      overall: valid
+    });
+    return valid;
   }, [form]);
 
   const setField = <K extends keyof GiftForm>(key: K, value: GiftForm[K]) => {
+    console.log('Setting field:', key, value);
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key as string]: '' }));
   };
 
   const addItem = () => {
+    console.log('Adding new item to form');
     setForm((prev) => ({
       ...prev,
       items: [...prev.items, { productId: '', name: '', price: 0, qty: 1 }]
@@ -77,6 +93,7 @@ export default function CreateGiftPage() {
   };
 
   const removeItem = (idx: number) => {
+    console.log('Removing item at index:', idx);
     setForm((prev) => ({
       ...prev,
       items: prev.items.filter((_, i) => i !== idx)
@@ -84,6 +101,7 @@ export default function CreateGiftPage() {
   };
 
   const changeItem = (idx: number, patch: Partial<GiftItem>) => {
+    console.log('Changing item at index:', idx, patch);
     setForm((prev) => {
       const next = [...prev.items];
       next[idx] = { ...next[idx], ...patch };
@@ -92,43 +110,95 @@ export default function CreateGiftPage() {
   };
 
   const handleProductChange = (idx: number, productId: string) => {
+    console.log('Product changed at index:', idx, 'productId:', productId);
     const p = products.find((x) => x.id === productId);
+    console.log('Found product:', p);
     changeItem(idx, {
       productId,
       name: p?.name || '',
-      price: (p?.price_dealer ?? p?.price ?? 0),
+      price: (p?.price || 0), // Используем розничную цену для подарков
     });
   };
 
   const total = useMemo(
-    () => form.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0),
+    () => {
+      const calculated = form.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
+      console.log('Total calculated:', calculated);
+      return calculated;
+    },
     [form.items]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('=== НАЧАЛО ОТПРАВКИ ФОРМЫ ===');
+    console.log('Form data:', form);
+    console.log('isValid:', isValid);
+    console.log('Products loaded:', products.length);
 
     const nextErrors: Record<string, string> = {};
-    if (!form.recipient || form.recipient.trim().length < 2) nextErrors.recipient = 'Укажите, кому выдаём подарок';
-    if (!form.reason || form.reason.trim().length < 3) nextErrors.reason = 'Опишите, за что и зачем';
-    if (!form.responsible) nextErrors.responsible = 'Выберите ответственного';
-    if (form.items.length === 0) nextErrors.items = 'Добавьте хотя бы одну позицию';
-    if (form.items.some((i) => !i.productId || i.qty <= 0)) nextErrors.items = 'Проверьте позиции (товар и количество)';
+    if (!form.recipient || form.recipient.trim().length < 2) {
+      nextErrors.recipient = 'Укажите, кому выдаём подарок';
+    }
+    if (!form.reason || form.reason.trim().length < 3) {
+      nextErrors.reason = 'Опишите, за что и зачем';
+    }
+    if (!form.responsible) {
+      nextErrors.responsible = 'Выберите ответственного';
+    }
+    if (form.items.length === 0) {
+      nextErrors.items = 'Добавьте хотя бы одну позицию';
+    }
+    if (form.items.some((i) => !i.productId || i.qty <= 0)) {
+      nextErrors.items = 'Проверьте позиции (товар и количество)';
+    }
 
+    console.log('Validation errors:', nextErrors);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      console.log('Form validation failed, stopping submission');
+      return;
+    }
+
+    console.log('Form validation passed, preparing data for createGift...');
+
+    const giftData = {
+      recipient_name: form.recipient,
+      recipient_info: form.recipientInfo || undefined,
+      reason: form.reason,
+      responsible: form.responsible,
+      comment: form.comment || undefined,
+      items: form.items.map(item => ({
+        product_id: item.productId,
+        quantity: item.qty,
+        price: item.price
+      }))
+    };
+
+    console.log('Gift data to send:', giftData);
 
     try {
-      setSubmitting(true);
-      // TODO: create gift request
-      await new Promise((r) => setTimeout(r, 700));
+      console.log('Calling createGift function...');
+      await createGift(giftData);
+
+      console.log('Gift creation successful, redirecting...');
       router.push('/admin/warehouse?tab=gifts');
     } catch (err) {
-      console.error(err);
-      alert(t('Не удалось сохранить. Попробуйте ещё раз.'));
-    } finally {
-      setSubmitting(false);
+      console.error('Error in handleSubmit:', err);
+      // Ошибка уже показана в useGiftModule через toast
     }
+  };
+
+  const debugForm = () => {
+    console.log('=== DEBUG FORM STATE ===');
+    console.log('form:', form);
+    console.log('isValid:', isValid);
+    console.log('errors:', errors);
+    console.log('total:', total);
+    console.log('products:', products.length);
+    console.log('productsLoading:', productsLoading);
+    console.log('giftLoading:', giftLoading);
   };
 
   return (
@@ -157,19 +227,27 @@ export default function CreateGiftPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={debugForm}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                Debug
+              </button>
+              <button
+                type="button"
                 onClick={() => router.back()}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
+                disabled={giftLoading}
               >
                 <X className="w-4 h-4" />
                 {t('Отмена')}
               </button>
               <button
                 type="submit"
-                disabled={!isValid || submitting}
+                disabled={!isValid || giftLoading}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
-                {submitting ? t('Сохранение…') : t('Сохранить')}
+                {giftLoading ? t('Сохранение…') : t('Сохранить')}
               </button>
             </div>
           </div>
@@ -190,7 +268,7 @@ export default function CreateGiftPage() {
                     <label className="block text-sm text-gray-600 mb-1">{t('Кому выдаём *')}</label>
                     <input
                       className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${errors.recipient ? 'border-red-400' : 'border-gray-200'}`}
-                      placeholder={t('Имя/ник, компания или профиль')}
+                      placeholder={t('Имя/ник получателя')}
                       value={form.recipient}
                       onChange={(e) => setField('recipient', e.target.value)}
                     />
@@ -211,6 +289,16 @@ export default function CreateGiftPage() {
                     </select>
                     {errors.responsible && <p className="mt-1 text-xs text-red-500">{t(errors.responsible)}</p>}
                   </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm text-gray-600 mb-1">{t('Дополнительная информация о получателе')}</label>
+                  <input
+                    className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200"
+                    placeholder={t('Компания, профиль в соцсетях, контакты и т.д.')}
+                    value={form.recipientInfo}
+                    onChange={(e) => setField('recipientInfo', e.target.value)}
+                  />
                 </div>
 
                 <div className="mt-4">
@@ -235,7 +323,7 @@ export default function CreateGiftPage() {
                 </div>
               </div>
 
-              {/* Список позиций */}
+              {/* Позиции подарка */}
               <div className="border border-gray-100 rounded-2xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -269,9 +357,9 @@ export default function CreateGiftPage() {
                             className="w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] border-gray-200"
                             value={it.productId}
                             onChange={(e) => handleProductChange(idx, e.target.value)}
-                            disabled={isLoading}
+                            disabled={productsLoading}
                           >
-                            <option value="">{isLoading ? t('Загрузка…') : t('Выберите товар')}</option>
+                            <option value="">{productsLoading ? t('Загрузка…') : t('Выберите товар')}</option>
                             {products.map((p) => (
                               <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
@@ -368,17 +456,18 @@ export default function CreateGiftPage() {
                     type="button"
                     onClick={() => router.back()}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50"
+                    disabled={giftLoading}
                   >
                     <X className="w-4 h-4" />
                     {t('Отмена')}
                   </button>
                   <button
                     type="submit"
-                    disabled={!isValid || submitting}
+                    disabled={!isValid || giftLoading}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
                   >
                     <Save className="w-4 h-4" />
-                    {submitting ? t('Сохранение…') : t('Сохранить')}
+                    {giftLoading ? t('Сохранение…') : t('Сохранить')}
                   </button>
                 </div>
               </div>

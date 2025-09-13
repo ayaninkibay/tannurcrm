@@ -57,7 +57,7 @@ export default function DashboardPage() {
   dataType="personal"
 />
             </div>
-            <div className="min-h-[400px] overflow-hidden flex flex-col">
+            <div className="max-h-[600px] overflow-hidden flex flex-col">
               <NewsEventsCard />
             </div>
           </div>

@@ -5,19 +5,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
+import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { 
   Calendar, 
   Gift, 
   Target, 
   Clock, 
   ChevronRight, 
-  Plus, 
   Search,
   Filter,
   Sparkles,
   AlertCircle,
-  Archive,
-  Eye
+  Archive
 } from 'lucide-react';
 import type { Event } from '@/types/custom.types';
 
@@ -268,32 +267,14 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white">
-      {/* Шапка страницы */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] shadow-sm">
-        <div className="px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <div className="text-white">
-              <h1 className="text-2xl font-semibold">События и акции</h1>
-              <p className="text-white/80 text-sm mt-0.5">Узнайте о текущих и предстоящих мероприятиях</p>
-            </div>
-            
-            {/* Кнопка создания для админа */}
-            {profile?.role === 'admin' && (
-              <Link
-                href="/admin/events/create"
-                className="px-4 py-2 bg-white text-[#C86B56] rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2 text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                Создать событие
-              </Link>
-            )}
-          </div>
-        </div>
+    <div className="w-full min-h-screen  to-white">
+      {/* Упрощенный заголовок страницы */}
+      <div className="flex justify-between items-center p-4">
+        <MoreHeaderDE title="События и Новости" />
       </div>
 
       {/* Фильтры и поиск */}
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-4 sm:px-6 lg:px-8 pb-6">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Поиск */}

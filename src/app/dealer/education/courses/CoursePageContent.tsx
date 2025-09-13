@@ -218,13 +218,13 @@ export default function CoursePage() {
                   <h3 className="text-base font-semibold text-gray-900 mb-3">{t('Материалы урока')}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {currentLesson.attachments.map((attachment, i) => (
-                      <a       
+                      <a
                         key={i}
                         href={attachment}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200 hover:shadow-sm transition-shadow"
-                      >   
+                      >
                         <span className="text-sm text-gray-800 truncate">
                           {t('Материал')} {i + 1}
                         </span>
