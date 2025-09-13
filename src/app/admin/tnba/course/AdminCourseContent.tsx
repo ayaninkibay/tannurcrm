@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -18,7 +18,8 @@ import {
   Layers,
 } from 'lucide-react';
 
-export default function AdminCoursePage() {
+// Вынесем основную логику в отдельный компонент
+function CoursePageContent() {
   const { t } = useTranslate();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -260,5 +261,23 @@ export default function AdminCoursePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Главный компонент с Suspense
+export default function AdminCoursePage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="p-2 md:p-6">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-32 mb-6"></div>
+            <div className="h-64 bg-gray-100 rounded-2xl"></div>
+          </div>
+        </div>
+      }
+    >
+      <CoursePageContent />
+    </Suspense>
   );
 }
