@@ -140,37 +140,123 @@ const SubscriptionDetailPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Update subscription payment status
-      const { error: paymentError } = await supabase
-        .from('subscription_payments')
-        .update({ 
-          status: 'paid',
-          approved_by: user?.id
-        })
-        .eq('id', subscription.id);
-
-      if (paymentError) throw paymentError;
-
-      // Update user role to dealer
-      const { error: userError } = await supabase
+      // ВАЖНО: Сначала обновляем пользователя с явным указанием всех полей
+      console.log('Updating user status for ID:', subscription.user_id);
+      
+      // Шаг 1: Обновляем статус пользователя напрямую
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .update({ 
           role: 'dealer',
           is_confirmed: true,
-          status: 'active'
+          status: 'active' // Убедитесь что именно 'active'
         })
-        .eq('id', subscription.user_id);
+        .eq('id', subscription.user_id)
+        .select()
+        .single();
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error('Error updating user:', userError);
+        throw new Error(`Ошибка обновления пользователя: ${userError.message}`);
+      }
+      
+      console.log('User updated successfully:', userData);
 
-      // TODO: Send notification to user about approval
+      // Шаг 2: Обновляем статус платежа
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('subscription_payments')
+        .update({ 
+          status: 'paid',
+          approved_by: user?.id,
+          paid_at: subscription.paid_at || new Date().toISOString()
+        })
+        .eq('id', subscription.id)
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error('Error updating payment:', paymentError);
+        
+        // Откатываем изменения пользователя
+        await supabase
+          .from('users')
+          .update({ 
+            role: 'user',
+            is_confirmed: false,
+            status: 'inactive'
+          })
+          .eq('id', subscription.user_id);
+          
+        throw new Error(`Ошибка обновления платежа: ${paymentError.message}`);
+      }
+      
+      console.log('Payment updated successfully:', paymentData);
+
+      // Шаг 3: Создаем бонус для спонсора если есть
+      if (subscription.parent_id && subscription.sponsor_bonus && subscription.sponsor_bonus > 0) {
+        const { error: bonusError } = await supabase
+          .from('bonus_payots')
+          .insert({
+            user_id: subscription.parent_id,
+            amount: subscription.sponsor_bonus,
+            type: 'referral',
+            status: 'assembled',
+            note: `Бонус за привлечение дилера ${subscription.user?.first_name} ${subscription.user?.last_name}`,
+            reference_user_id: subscription.user_id,
+            calculation_base: subscription.amount
+          });
+        
+        if (bonusError) {
+          console.error('Error creating sponsor bonus:', bonusError);
+          // Не прерываем процесс, но логируем ошибку
+        }
+
+        // Обновляем товарооборот спонсора
+        const { data: parentData } = await supabase
+          .from('users')
+          .select('personal_turnover')
+          .eq('id', subscription.parent_id)
+          .single();
+        
+        if (parentData) {
+          const newTurnover = (parentData.personal_turnover || 0) + subscription.amount;
+          
+          const { error: turnoverError } = await supabase
+            .from('users')
+            .update({
+              personal_turnover: newTurnover
+            })
+            .eq('id', subscription.parent_id);
+          
+          if (turnoverError) {
+            console.error('Error updating sponsor turnover:', turnoverError);
+          }
+        }
+      }
+
+      // Шаг 4: Проверяем, что обновление прошло успешно
+      const { data: checkUser, error: checkError } = await supabase
+        .from('users')
+        .select('status, role, is_confirmed')
+        .eq('id', subscription.user_id)
+        .single();
+      
+      if (checkError) {
+        console.error('Error checking user after update:', checkError);
+      } else {
+        console.log('User status after update:', checkUser);
+        
+        if (checkUser.status !== 'active') {
+          console.warn('Warning: User status is not active after update:', checkUser.status);
+        }
+      }
 
       alert('Подписка успешно одобрена! Аккаунт дилера активирован.');
       router.push('/admin/finance');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving subscription:', error);
-      alert('Ошибка при одобрении подписки');
+      alert(`Ошибка при одобрении подписки: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
       setIsProcessing(false);
       setShowConfirmModal(false);
@@ -188,7 +274,7 @@ const SubscriptionDetailPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Update subscription payment status
+      // Обновляем только статус платежа
       const { error } = await supabase
         .from('subscription_payments')
         .update({ 
@@ -200,17 +286,25 @@ const SubscriptionDetailPage = () => {
 
       if (error) throw error;
 
-      // TODO: Send notification to user about rejection
+      // Убеждаемся, что пользователь остается неактивным
+      await supabase
+        .from('users')
+        .update({ 
+          status: 'inactive',
+          is_confirmed: false
+        })
+        .eq('id', subscription.user_id);
 
       alert('Подписка отклонена');
       router.push('/admin/finance');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting subscription:', error);
-      alert('Ошибка при отклонении подписки');
+      alert(`Ошибка при отклонении подписки: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
       setIsProcessing(false);
       setShowConfirmModal(false);
+      setRejectReason('');
     }
   };
 
@@ -604,7 +698,8 @@ const SubscriptionDetailPage = () => {
                   setShowConfirmModal(false);
                   setRejectReason('');
                 }}
-                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                disabled={isProcessing}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 Отмена
               </button>

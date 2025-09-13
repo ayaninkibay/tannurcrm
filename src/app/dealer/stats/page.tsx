@@ -66,11 +66,9 @@ export default function StatsContent() {
 
         {/* Правая колонка - График */}
         <div className="col-span-8 md:col-span-4 xl:col-span-5 bg-white p-2 rounded-2xl">
-          <TurnoverChart
-            data={rawData}
-            colorBar="#E9D7D6"
-            colorLine="#DB6A56"
-            lineOffset={300000}
+          <TurnoverChart 
+            title="Личный товарооборот"
+            dataType="personal"
           />
         </div>
       </section>

@@ -1,75 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Crown, Download, Calendar } from "lucide-react";
 import { useTranslate } from "@/hooks/useTranslate";
+import { useReportModule } from "@/lib/reports/ReportModule";
+import { useUser } from "@/context/UserContext";
+import type { SubscriptionPaymentReport } from "@/lib/reports/ReportService";
 
-/**
- * Период для отчета
- */
 export type Period = "all" | "last6" | "thisYear" | "prevYear";
-
-/**
- * Структура одной записи отчёта по подпискам
- */
-interface Subscription {
-  avatar: string;
-  name: string;
-  profession: string;
-  date: string;
-  id: string;
-  amount: string;
-  status: "Зачислен" | "Отменен";
-}
-
-// Пример данных (моки): строки показываем через t(...), ключи оставляем русскими
-const sampleSubscriptions: Subscription[] = [
-  {
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ayan",
-    name: "Аян Инкибай",
-    profession: "Доктор",
-    date: "22-02-2025",
-    id: "KZ84970",
-    amount: "25 000₸",
-    status: "Зачислен",
-  },
-  {
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tomiris",
-    name: "Томирис Смак",
-    profession: "Бизнес",
-    date: "22-02-2025",
-    id: "KZ84971",
-    amount: "30 000₸",
-    status: "Зачислен",
-  },
-  {
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Asel",
-    name: "Асель Жаныбек",
-    profession: "Дизайнер",
-    date: "21-02-2025",
-    id: "KZ84972",
-    amount: "15 000₸",
-    status: "Отменен",
-  },
-  {
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Dauren",
-    name: "Даурен Кайрат",
-    profession: "Разработчик",
-    date: "20-02-2025",
-    id: "KZ84973",
-    amount: "45 000₸",
-    status: "Зачислен",
-  },
-  {
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Madina",
-    name: "Мадина Ержан",
-    profession: "Маркетинг",
-    date: "19-02-2025",
-    id: "KZ84974",
-    amount: "20 000₸",
-    status: "Зачислен",
-  },
-];
 
 interface Props {
   period?: Period;
@@ -84,26 +22,30 @@ const periodOptions = [
 ];
 
 // Мобильная карточка подписки
-const MobileSubscriptionCard: React.FC<{ sub: Subscription; index: number }> = ({ sub }) => {
+const MobileSubscriptionCard: React.FC<{ sub: SubscriptionPaymentReport; index: number }> = ({ sub }) => {
   const { t } = useTranslate();
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 mb-3">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <img
-              src={sub.avatar}
-              alt={sub.name}
-              className="w-10 h-10 rounded-full object-cover"
-            />
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-sm font-medium">
+                {sub.parent_info?.first_name?.[0] || sub.parent_info?.email?.[0] || '?'}
+              </span>
+            </div>
             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
           <div>
-            <p className="font-medium text-sm">{sub.name}</p>
-            <p className="text-xs text-gray-500">{t(sub.profession)}</p>
+            <p className="font-medium text-sm">
+              {sub.parent_info?.first_name && sub.parent_info?.last_name 
+                ? `${sub.parent_info.first_name} ${sub.parent_info.last_name}`
+                : sub.parent_info?.email || 'Неизвестно'}
+            </p>
+            <p className="text-xs text-gray-500">{sub.method || 'Карта'}</p>
           </div>
         </div>
-        {sub.status === "Зачислен" ? (
+        {sub.status === "paid" ? (
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-lg">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-xs font-medium text-green-700">{t("Зачислен")}</span>
@@ -121,15 +63,15 @@ const MobileSubscriptionCard: React.FC<{ sub: Subscription; index: number }> = (
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
           <span className="text-gray-500">{t("ID")}</span>
-          <span className="font-mono">{sub.id}</span>
+          <span className="font-mono">{sub.id.slice(0, 8)}</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-gray-500">{t("Дата")}</span>
-          <span>{sub.date}</span>
+          <span>{new Date(sub.paid_at).toLocaleDateString('ru-KZ')}</span>
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
           <span className="text-xs text-gray-500">{t("Сумма")}</span>
-          <span className="font-semibold text-base">{sub.amount}</span>
+          <span className="font-semibold text-base">{sub.amount?.toLocaleString('ru-KZ')}₸</span>
         </div>
       </div>
     </div>
@@ -141,17 +83,29 @@ const SubscriptionsReport: React.FC<Props> = ({
   onPeriodChange = () => {} 
 }) => {
   const { t } = useTranslate();
+  const { profile } = useUser();
+  const reportModule = useReportModule();
   const [selectedPeriod, setSelectedPeriod] = useState(period);
   
+  // Загружаем данные при монтировании
+  useEffect(() => {
+    if (profile?.id) {
+      reportModule.loadSubscriptionPaymentsReport(profile.id);
+    }
+  }, [profile?.id]);
+
   const handlePeriodChange = (newPeriod: Period) => {
     setSelectedPeriod(newPeriod);
     onPeriodChange(newPeriod);
   };
 
+  // Фильтруем данные по периоду
+  const filteredData = reportModule.getFilteredData(reportModule.subscriptionPayments);
+
   // Расчет общей суммы
-  const totalAmount = sampleSubscriptions
-    .filter(sub => sub.status === "Зачислен")
-    .reduce((sum, sub) => sum + parseInt(sub.amount.replace(/[^\d]/g, '')), 0);
+  const totalAmount = filteredData
+    .filter(sub => sub.status === "paid")
+    .reduce((sum, sub) => sum + (sub.amount || 0), 0);
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl border border-gray-100 p-4 md:p-6">
@@ -179,6 +133,7 @@ const SubscriptionsReport: React.FC<Props> = ({
             </p>
           </div>
           <button 
+            onClick={reportModule.exportSubscriptionPayments}
             className="flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl transition-colors"
             style={{ backgroundColor: '#D77E6C' }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#C66B5A'}
@@ -209,132 +164,156 @@ const SubscriptionsReport: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* Загрузка */}
+      {reportModule.loading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D77E6C]"></div>
+        </div>
+      )}
+
+      {/* Нет данных */}
+      {!reportModule.loading && filteredData.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">{t("Нет данных для отображения")}</p>
+        </div>
+      )}
+
       {/* Мобильная версия - карточки */}
-      <div className="md:hidden">
-        {sampleSubscriptions.map((sub, idx) => (
-          <MobileSubscriptionCard key={idx} sub={sub} index={idx} />
-        ))}
-      </div>
+      {!reportModule.loading && filteredData.length > 0 && (
+        <div className="md:hidden">
+          {filteredData.map((sub, idx) => (
+            <MobileSubscriptionCard key={sub.id} sub={sub} index={idx} />
+          ))}
+        </div>
+      )}
 
       {/* Десктопная версия - таблица */}
-      <div className="hidden md:block overflow-hidden rounded-xl bg-white border border-gray-100">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="text-left py-3 px-6 font-medium text-gray-700 text-sm">
-                  {t("Клиент")}
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  {t("Профессия")}
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {t("Дата")}
-                  </div>
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  {t("ID")}
-                </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
-                  {t("Сумма")}
-                </th>
-                <th className="text-center py-3 px-6 font-medium text-gray-700 text-sm">
-                  {t("Статус")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sampleSubscriptions.map((sub, idx) => (
-                <tr
-                  key={idx}
-                  className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img
-                          src={sub.avatar}
-                          alt={sub.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{sub.name}</p>
-                        <p className="text-xs text-gray-500">{t("Активный клиент")}</p>
-                      </div>
+      {!reportModule.loading && filteredData.length > 0 && (
+        <div className="hidden md:block overflow-hidden rounded-xl bg-white border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="text-left py-3 px-6 font-medium text-gray-700 text-sm">
+                    {t("Спонсор")}
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    {t("Метод")}
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {t("Дата")}
                     </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
-                      {t(sub.profession)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600">
-                    {sub.date}
-                  </td>
-                  <td className="py-4 px-4">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                      {sub.id}
-                    </code>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="font-semibold text-gray-900">
-                      {sub.amount}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex justify-center">
-                      {sub.status === "Зачислен" ? (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-medium text-green-700">
-                            {t("Зачислен")}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
-                          <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
-                          </svg>
-                          <span className="text-sm font-medium text-red-700">
-                            {t("Отменен")}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    {t("ID")}
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    {t("Сумма")}
+                  </th>
+                  <th className="text-center py-3 px-6 font-medium text-gray-700 text-sm">
+                    {t("Статус")}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredData.map((sub) => (
+                  <tr
+                    key={sub.id}
+                    className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-sm font-medium">
+                              {sub.parent_info?.first_name?.[0] || sub.parent_info?.email?.[0] || '?'}
+                            </span>
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {sub.parent_info?.first_name && sub.parent_info?.last_name 
+                              ? `${sub.parent_info.first_name} ${sub.parent_info.last_name}`
+                              : sub.parent_info?.email || 'Неизвестно'}
+                          </p>
+                          <p className="text-xs text-gray-500">{t("Активный спонсор")}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                        {t(sub.method || 'Карта')}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-gray-600">
+                      {new Date(sub.paid_at).toLocaleDateString('ru-KZ')}
+                    </td>
+                    <td className="py-4 px-4">
+                      <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
+                        {sub.id.slice(0, 8)}
+                      </code>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className="font-semibold text-gray-900">
+                        {sub.amount?.toLocaleString('ru-KZ')}₸
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center">
+                        {sub.status === "paid" ? (
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm font-medium text-green-700">
+                              {t("Зачислен")}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
+                            <svg className="w-3 h-3 text-red-500" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.7 4.7a.75.75 0 0 1 1.06 0L8 6.94l2.24-2.24a.75.75 0 1 1 1.06 1.06L9.06 8l2.24 2.24a.75.75 0 1 1-1.06 1.06L8 9.06l-2.24 2.24a.75.75 0 0 1-1.06-1.06L6.94 8 4.7 5.76a.75.75 0 0 1 0-1.06z"/>
+                            </svg>
+                            <span className="text-sm font-medium text-red-700">
+                              {t("Отменен")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Пагинация */}
-      <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-        <p className="text-center sm:text-left">
-          {t("Показано {n} записей").replace("{n}", String(sampleSubscriptions.length))}
-        </p>
-        <div className="flex gap-1">
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            ←
-          </button>
-          <button 
-            className="px-3 py-1.5 rounded-lg text-white"
-            style={{ backgroundColor: '#D77E6C' }}
-          >
-            1
-          </button>
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">2</button>
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">3</button>
-          <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            →
-          </button>
+      {!reportModule.loading && filteredData.length > 0 && (
+        <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+          <p className="text-center sm:text-left">
+            {t("Показано {n} записей").replace("{n}", String(filteredData.length))}
+          </p>
+          <div className="flex gap-1">
+            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              ←
+            </button>
+            <button 
+              className="px-3 py-1.5 rounded-lg text-white"
+              style={{ backgroundColor: '#D77E6C' }}
+            >
+              1
+            </button>
+            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">2</button>
+            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">3</button>
+            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+              →
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

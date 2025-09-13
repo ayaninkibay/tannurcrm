@@ -77,18 +77,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       const cachedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE)
       const lastUpdate = localStorage.getItem(STORAGE_KEYS.LAST_UPDATE)
       
-      if (cachedProfile && lastUpdate) {
+      if (cachedProfile) {
         const profileData = JSON.parse(cachedProfile)
-        const updateTime = parseInt(lastUpdate)
+        const updateTime = lastUpdate ? parseInt(lastUpdate) : 0
         const now = Date.now()
         
-        // Используем кэш если он свежий (меньше 15 минут)
-        if (now - updateTime < 15 * 60 * 1000) {
-          globalProfileCache = profileData
-          setProfile(profileData)
-          console.log('Profile loaded from cache:', profileData.email)
-          return true
-        }
+        // Используем кэш независимо от времени, если профиль есть
+        globalProfileCache = profileData
+        setProfile(profileData)
+        console.log('Profile loaded from cache:', profileData.email)
+        
+        // Возвращаем true если кэш свежий, false если устаревший (но все равно используем)
+        return now - updateTime < 15 * 60 * 1000
       }
     } catch (error) {
       console.error('Error loading profile from localStorage:', error)
@@ -96,7 +96,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     return false
   }, [])
 
-  // Основная функция загрузки профиля
+  // Основная функция загрузки профиля - ПЕРЕПИСАНА
   const loadUser = useCallback(async (forceRefresh = false, source = 'manual') => {
     if (loadingRef.current && !forceRefresh) return
     if (!mountedRef.current) return
@@ -112,20 +112,33 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Пробуем загрузить из localStorage при инициализации
-      if (!forceRefresh && !isInitialized && loadFromStorage()) {
+      if (!forceRefresh && !isInitialized) {
+        const isFreshCache = loadFromStorage()
         updateLoadingState(false)
         isInitialized = true
-        return
+        
+        // Если кэш свежий, не делаем запрос к БД
+        if (isFreshCache && globalProfileCache) {
+          console.log('Fresh cache found, skipping DB load')
+          return
+        }
+        // Если кэш устаревший, продолжаем загрузку в фоне
+        if (globalProfileCache) {
+          console.log('Stale cache found, will refresh in background')
+          // НЕ показываем загрузку, используем старые данные
+          updateLoadingState(false)
+        }
       }
 
-      updateLoadingState(true)
-
-      // ИСПРАВЛЕНО: убираем таймауты для auth операций
+      // Получаем сессию
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
       if (sessionError) {
         console.error('Session error:', sessionError)
-        updateProfileState(null)
+        // Если есть кэш - используем его
+        if (!globalProfileCache) {
+          updateProfileState(null)
+        }
         updateLoadingState(false)
         return
       }
@@ -149,34 +162,38 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem(STORAGE_KEYS.LAST_UPDATE)
       }
 
-      // Загружаем профиль из базы данных с таймаутом только для DB запроса
-      const dbPromise = supabase
+      // ВАЖНО: Делаем запрос к БД БЕЗ await и БЕЗ блокировки UI
+      supabase
         .from('users')
         .select('*')
         .eq('id', session.user.id)
         .single()
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database timeout')), 10000)
-      )
-
-      const { data, error } = await Promise.race([
-        dbPromise,
-        timeoutPromise
-      ]) as any
-
-      if (!error && data) {
-        console.log('Profile loaded successfully:', data.email, data.role)
-        updateProfileState(data)
-      } else {
-        console.error('Error loading profile from database:', error)
-        updateProfileState(null)
-      }
+        .then(({ data, error }) => {
+          if (!mountedRef.current) return
+          
+          if (!error && data) {
+            console.log('Profile loaded successfully from DB:', data.email, data.role)
+            updateProfileState(data)
+          } else {
+            console.error('Error loading profile from database:', error)
+            // Если есть ошибка, но есть кэш - оставляем кэш
+            if (!globalProfileCache) {
+              updateProfileState(null)
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Failed to load profile:', error)
+          // При ошибке оставляем текущее состояние
+        })
 
       isInitialized = true
     } catch (error) {
       console.error('Error in loadUser:', error)
-      updateProfileState(null)
+      // При любой ошибке - если есть кэш, используем его
+      if (!globalProfileCache) {
+        updateProfileState(null)
+      }
     } finally {
       updateLoadingState(false)
       loadingRef.current = false
@@ -218,7 +235,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     await loadUser(true, 'refresh')
   }, [loadUser])
 
-  // Инициализация и подписка на auth events (только один раз глобально)
+  // Инициализация и подписка на auth events
   useEffect(() => {
     mountedRef.current = true
 
@@ -250,7 +267,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             case 'SIGNED_IN':
               if (session?.user) {
                 console.log('User signed in, loading profile...')
-                // ИСПРАВЛЕНО: не перезагружаем профиль если он уже есть и для того же пользователя
                 if (!globalProfileCache || globalProfileCache.id !== session.user.id) {
                   await loadUser(true, 'signin')
                 } else {
@@ -323,7 +339,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   // Cleanup при размонтировании последнего экземпляра
   useEffect(() => {
     return () => {
-      // Если это последний экземпляр, очищаем глобальную подписку
       if (authSubscription) {
         authSubscription.data.subscription.unsubscribe()
         authSubscription = null
