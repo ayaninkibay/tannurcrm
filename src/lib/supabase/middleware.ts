@@ -7,27 +7,24 @@ import type { Database } from '@/types/supabase'
 export async function middleware(request: NextRequest) {
   console.log('⏱ middleware start →', request.nextUrl.pathname)
 
-  const response = NextResponse.next()
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          const cookieNames = request.cookies.getAll()
-          console.log('middleware.cookies.getAll →', cookieNames.length, 'cookies')
-          return cookieNames
+          return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          console.log('middleware.cookies.setAll →', cookiesToSet.length, 'cookies to set')
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, {
-              ...options,
-              // Обеспечиваем правильные настройки безопасности
-              httpOnly: options?.httpOnly ?? false,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax'
-            })
+            request.cookies.set({ name, value, ...options })
+            response.cookies.set({ name, value, ...options })
           })
         },
       },
@@ -35,20 +32,33 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    // Проверяем сессию с таймаутом
-    const sessionPromise = supabase.auth.getUser()
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Auth timeout')), 3000)
-    )
-
-    const { data: { user }, error: authError } = await Promise.race([
-      sessionPromise,
-      timeoutPromise
-    ]) as any
-
-    if (authError && authError.message !== 'Auth timeout') {
-      console.log('middleware → auth error:', authError.message)
+    // ВАЖНО: Используем getSession вместо getUser для обновления токена
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    // Если есть сессия, обновляем токен если необходимо
+    if (session) {
+      const expiresAt = session.expires_at
+      if (expiresAt) {
+        const now = Math.floor(Date.now() / 1000)
+        const timeUntilExpiry = expiresAt - now
+        
+        // Обновляем токен если он истекает менее чем через 10 минут
+        if (timeUntilExpiry < 600) {
+          console.log('Token expiring soon in middleware, refreshing...')
+          const { data: { session: newSession }, error: refreshError } = 
+            await supabase.auth.refreshSession()
+          
+          if (refreshError) {
+            console.error('Failed to refresh session in middleware:', refreshError)
+          } else {
+            console.log('Session refreshed successfully in middleware')
+          }
+        }
+      }
     }
+
+    // Получаем пользователя после возможного обновления сессии
+    const { data: { user } } = await supabase.auth.getUser()
 
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
                            request.nextUrl.pathname.startsWith('/admin') ||
@@ -84,13 +94,12 @@ export async function middleware(request: NextRequest) {
   } catch (error) {
     console.error('middleware → error:', error)
     
-    // В случае ошибки, пропускаем запрос но логируем проблему
+    // В случае ошибки, проверяем защищенные маршруты
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
                            request.nextUrl.pathname.startsWith('/admin') ||
                            request.nextUrl.pathname.startsWith('/celebrity')
     
     if (isProtectedRoute) {
-      // При ошибке авторизации на защищенной странице, перенаправляем на signin
       console.log('middleware → redirecting to /signin (auth error)')
       const url = request.nextUrl.clone()
       url.pathname = '/signin'
@@ -103,10 +112,14 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/dealer/:path*',
-    '/admin/:path*', 
-    '/celebrity/:path*',
-    '/signin',
-    '/signup'
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     * - api routes that don't need auth
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ]
 }
