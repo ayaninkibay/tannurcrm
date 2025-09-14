@@ -163,7 +163,7 @@ export default function TeamPurchaseList({
 
   return (
     <>
-      <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
+      <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-shadow duration-300 flex flex-col">
         {/* Заголовок */}
         <div className="flex items-center justify-between mb-4">
           <div>

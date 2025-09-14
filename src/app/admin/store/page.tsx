@@ -291,7 +291,7 @@ const OrdersManagementPage = () => {
   };
 
   return (
-    <div className="flex p-2 md:p-4 lg:p-6">
+    <div className="flex ">
       <div className="grid w-full h-full">
         <MoreHeaderAD title={t('Управление заказами')} />
 

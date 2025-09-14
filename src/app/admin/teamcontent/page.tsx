@@ -162,11 +162,11 @@ export default function Team() {
 
   return (
     <div className="w-full h-full">
-      <header className="p-1 md:p-6">
+      <header className="w-full mb-4">
         <MoreHeaderAD title={t('Команда Tannur')} />
       </header>
 
-      <div className="px-3 sm:px-6">
+      <div className="w-full">
         {/* Верх: поиск + карточки статов + действия */}
         <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
           {/* Поиск + статы */}

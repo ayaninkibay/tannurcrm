@@ -262,7 +262,7 @@ const FinanceTransactionsPage = () => {
   };
 
   return (
-    <div className="w-full h-full p-2 md:p-4 lg:p-6">
+    <div className="w-full h-full">
       <MoreHeaderAD title={t('Финансовый отдел Tannur')} />
       <div className="space-y-4 md:space-y-6 lg:space-y-8 mt-4 md:mt-6">
         

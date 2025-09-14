@@ -108,9 +108,6 @@ export default function NewsEventsCard({
     });
   };
 
-  // Создаем пустые слоты для заполнения места
-  const emptySlots = maxItems - events.length;
-  const placeholders = Array.from({ length: Math.max(0, emptySlots) }, (_, i) => i);
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col">
@@ -252,22 +249,7 @@ export default function NewsEventsCard({
                     </Link>
                   );
                 })}
-                
-                {/* Добавляем пустые placeholder'ы если событий мало */}
-                {placeholders.map((index) => (
-                  <div 
-                    key={`placeholder-${index}`} 
-                    className="relative bg-gray-50 rounded-xl p-4 border border-gray-100 opacity-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gray-100 animate-pulse" />
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-100 rounded w-3/4 mb-2 animate-pulse" />
-                        <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+
               </>
             )}
           </div>

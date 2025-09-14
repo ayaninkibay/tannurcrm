@@ -295,12 +295,14 @@ export const TreeModule: React.FC<TreeModuleProps> = ({
 
 /**
  * Компонент-обертка для карточки команды
+ * ОБНОВЛЕНО: добавлена поддержка showBonusTable
  */
 interface TeamCardModuleProps {
   userId?: string;
   title?: string;
   variant?: 'color' | 'white';
   showButton?: boolean;
+  showBonusTable?: boolean; // НОВЫЙ ПРОП!
   className?: string;
 }
 
@@ -309,6 +311,7 @@ export const TeamCardModule: React.FC<TeamCardModuleProps> = ({
   title = 'Моя команда',
   variant = 'white',
   showButton = true,
+  showBonusTable = false, // По умолчанию false
   className
 }) => {
   const { stats, loading } = useTeamStats(userId);
@@ -320,6 +323,7 @@ export const TeamCardModule: React.FC<TeamCardModuleProps> = ({
         count={loading ? 0 : stats.totalMembers}
         goal={loading ? 10 : stats.goal}  // Используем динамическую цель из статистики
         showButton={showButton}
+        showBonusTable={showBonusTable} // ПЕРЕДАЕМ НОВЫЙ ПРОП!
         variant={variant}
       />
     </div>

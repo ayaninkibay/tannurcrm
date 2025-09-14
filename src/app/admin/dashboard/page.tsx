@@ -18,7 +18,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex">
-      <div className="w-full mx-auto p-1 md:p-6 space-y-6 sm:space-y-8">
+      <div className="w-full mx-auto space-y-6 sm:space-y-8">
         {/* Шапка */}
         <header className="mb-6">
           <MoreHeaderAD title={t('Админ панель')} />

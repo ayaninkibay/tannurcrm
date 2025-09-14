@@ -1,32 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 import { useTranslate } from '@/hooks/useTranslate';
 
 interface ReferralLinkProps {
   referralCode?: string;
-  variant?: 'orange' | 'gray';
 }
 
-export default function ReferralLink({
-  referralCode,
-  variant = 'orange'
-}: ReferralLinkProps) {
+export default function ReferralLink({ referralCode }: ReferralLinkProps) {
   const { t } = useTranslate();
   const { profile, loading: loadingProfile } = useUser();
   const [copied, setCopied] = useState(false);
 
   const code = referralCode || profile?.referral_code || 'USER2024';
   const fullLink = `https://tannur.app/${code}`;
-  const isOrange = variant === 'orange';
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(fullLink);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 3000);
     } catch (err) {
       console.error('Ошибка копирования ссылки:', err);
       const textArea = document.createElement('textarea');
@@ -36,21 +30,20 @@ export default function ReferralLink({
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 3000);
     }
   };
 
   if (loadingProfile && !referralCode) {
     return (
       <div className="w-full">
-        <div className="h-4 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded mb-3 animate-pulse" />
-        <div className="bg-gray-100 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-4 h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-            <div className="h-3 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-          </div>
-          <div className="bg-white rounded-lg p-3">
-            <div className="h-4 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+        <div className="relative bg-white border border-gray-100 rounded-xl overflow-hidden">
+          {/* Top Brand Line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#DC7C67]"></div>
+          
+          <div className="p-5 pt-6">
+            <div className="h-4 w-32 bg-gray-100 rounded mb-3 animate-pulse" />
+            <div className="h-11 bg-gray-50 rounded-lg animate-pulse" />
           </div>
         </div>
       </div>
@@ -59,83 +52,123 @@ export default function ReferralLink({
 
   return (
     <div className="w-full">
-      <p className="text-sm font-medium text-gray-900 mb-3">{t('Реферальная ссылка')}</p>
-
-      <div className={`rounded-xl p-4 relative overflow-hidden ${isOrange ? 'bg-[#DC7C67]' : 'bg-gray-100'}`}>
-        {/* Subtle background decoration */}
-        <div className="absolute top-0 right-0 w-16 h-16 opacity-5">
-          <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
-            <circle cx="50" cy="30" r="8" />
-            <circle cx="70" cy="50" r="6" />
-            <circle cx="30" cy="60" r="4" />
-          </svg>
-        </div>
-
-        <div className="relative z-10">
-          {/* Header */}
-          <div className={`flex items-center gap-2 mb-3 ${isOrange ? 'text-white' : 'text-gray-700'}`}>
-            <div className={`p-1.5 rounded-lg ${isOrange ? 'bg-white/10' : 'bg-gray-200'}`}>
-              <Image
-                src={isOrange ? '/icons/buttom/share_white.svg' : '/icons/buttom/share_black.svg'}
-                alt={t('Поделиться')}
-                width={14}
-                height={14}
-              />
+      <div className="relative bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-gray-200 transition-all duration-200">
+        {/* Top Brand Line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#DC7C67] to-[#E89480]"></div>
+        
+        <div className="p-5 pt-6">
+          {/* Header Section */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-0.5">
+                {t('Реферальная ссылка')}
+              </h3>
+              <p className="text-xs text-gray-500 mb-2">
+                {t('Пригласите друзей в команду')}
+              </p>
             </div>
-            <span className="text-sm font-medium">{t('Ссылка для приглашения')}</span>
+            
+            {/* Team Icon */}
+            <div className="p-1.5 bg-gray-50 rounded-lg">
+              <svg 
+                className="w-4 h-4 text-gray-400" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={1.5} 
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" 
+                />
+              </svg>
+            </div>
           </div>
 
           {/* Link Container */}
-          <div className={`bg-white rounded-lg p-3 ${isOrange ? 'shadow-sm' : 'border border-gray-200'}`}>
-            <div className="flex items-center justify-between gap-2">
+          <div className="relative bg-gray-50 rounded-lg p-3 group">
+            <div className="flex items-center justify-between gap-3">
+              {/* Link Display */}
               <div className="flex-1 min-w-0">
-                <span className="text-sm">
-                  <span className="text-gray-400">tannur.app/</span>
-                  <span className="font-semibold text-[#DC7C67]">
-                    {code}
-                  </span>
-                </span>
+                <div className="flex items-center gap-2.5">
+                  {/* Link Icon */}
+                  <div className="flex-shrink-0">
+                    <svg 
+                      className="w-3.5 h-3.5 text-gray-400" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" 
+                      />
+                    </svg>
+                  </div>
+
+                  {/* URL */}
+                  <div className="flex items-baseline gap-0.5 text-sm font-medium">
+                    <span className="text-gray-500">tannur.app/</span>
+                    <span className="text-[#DC7C67] font-semibold">{code}</span>
+                  </div>
+                </div>
               </div>
 
+              {/* Copy Button */}
               <button
                 onClick={handleCopy}
-                className={`p-2 rounded-lg transition-all hover:scale-110 ${
-                  copied ? 'bg-green-50 text-green-600' : 'hover:bg-gray-50'
-                }`}
-                title={t('Копировать ссылку')}
+                className={`
+                  relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg
+                  text-xs font-medium transition-all duration-200 active:scale-95
+                  ${copied 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  }
+                `}
               >
-                {copied ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <div className="relative">
+                  {/* Copy Icon */}
+                  <svg 
+                    className={`w-3.5 h-3.5 transition-all duration-200 ${
+                      copied ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
+                    }`}
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" 
+                    />
                   </svg>
-                ) : (
-                  <Image
-                    src="/icons/buttom/copy_black.svg"
-                    alt={t('Копировать')}
-                    width={16}
-                    height={16}
-                  />
-                )}
+
+                  {/* Check Icon */}
+                  <svg 
+                    className={`w-3.5 h-3.5 absolute inset-0 transition-all duration-200 ${
+                      copied ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+                    }`}
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2.5} 
+                      d="M5 13l4 4L19 7" 
+                    />
+                  </svg>
+                </div>
+                <span className="whitespace-nowrap">
+                  {copied ? t('Готово') : t('Копировать')}
+                </span>
               </button>
             </div>
-          </div>
-
-          {/* Success Message */}
-          {copied && (
-            <div className={`flex items-center gap-1.5 text-xs mt-2 transition-opacity duration-200 ${isOrange ? 'text-white/90' : 'text-gray-600'}`}>
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-              {t('Ссылка скопирована!')}
-            </div>
-          )}
-
-          {/* Simple stats */}
-          <div className={`mt-4 pt-3 flex justify-between text-xs border-t ${isOrange ? 'border-white/20 text-white/90' : 'border-gray-200 text-gray-600'}`}>
-            <span>
-              {t('Переходов: {n}').replace('{n}', '24')}
-            </span>
-            <span>
-              {t('Активных: {n}').replace('{n}', '8')}
-            </span>
           </div>
         </div>
       </div>

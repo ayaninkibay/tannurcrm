@@ -21,7 +21,7 @@ export default function DealerStatsPage() {
   );
 
   return (
-    <div className="space-y-8 p-1 lg:p-6">
+    <div className="space-y-8">
       {/* Заголовок */}
       <header>
         <MoreHeader title={t('Отчеты')} />

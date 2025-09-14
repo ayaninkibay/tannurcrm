@@ -173,7 +173,7 @@ export default function WareHouse() {
 
   if (error) {
     return (
-      <main className="p-2 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <main className=" bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <MoreHeaderAD title={t('Склад Tannur')} />
         <div className="flex items-center justify-center h-96">
           <div className="text-center bg-white p-8 rounded-2xl">
@@ -191,7 +191,7 @@ export default function WareHouse() {
   }
 
   return (
-    <main className="p-2 md:p-4 min-h-screen">
+    <main className="min-h-screen">
       <MoreHeaderAD title={t('Склад Tannur')} />
 
       <div className="flex flex-col lg:flex-row gap-6">

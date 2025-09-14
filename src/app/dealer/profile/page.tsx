@@ -13,9 +13,7 @@ import {
   Instagram, 
   Calendar,
   Award,
-  TrendingUp,
   Users,
-  ShoppingBag,
   Edit2,
   Camera,
   X,
@@ -23,10 +21,10 @@ import {
   Shield,
   Key,
   AlertCircle,
-  Copy,
-  ExternalLink,
   Star,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  Trash2
 } from 'lucide-react';
 
 // Импорты для работы с пользователем
@@ -37,9 +35,173 @@ import { Database } from '@/types/supabase';
 import { supabase } from '@/lib/supabase/client';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
-type UserUpdateData = Database['public']['Tables']['users']['Update'];
 
-// Модальное окно смены пароля
+// Модальное окно изменения аватара
+const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>(currentAvatar || '/icons/avatar-placeholder.png');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { uploadUserAvatar } = useUserModule();
+
+  // Сброс при закрытии
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedFile(null);
+      setPreview(currentAvatar || '/icons/avatar-placeholder.png');
+      setError('');
+    }
+  }, [isOpen, currentAvatar]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Проверка размера файла (например, макс 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Размер файла не должен превышать 5MB');
+        return;
+      }
+      
+      // Проверка типа файла
+      if (!file.type.startsWith('image/')) {
+        setError('Пожалуйста, выберите изображение');
+        return;
+      }
+
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
+      setError('');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedFile || !userId) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      await uploadUserAvatar(userId, selectedFile);
+      onSuccess(preview);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Ошибка при загрузке фото');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = () => {
+    setSelectedFile(null);
+    setPreview('/icons/avatar-placeholder.png');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white">
+          <h2 className="text-xl font-bold">Изменить фото профиля</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Preview */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-2xl overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
+                <Image
+                  src={preview}
+                  alt="avatar preview"
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {selectedFile && (
+                <button
+                  onClick={handleRemove}
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                  title="Удалить"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Upload button */}
+            <label className="mt-6 cursor-pointer">
+              <div className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                <Upload className="w-5 h-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">
+                  {selectedFile ? 'Выбрать другое фото' : 'Выбрать фото'}
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+            </label>
+
+            {/* Info text */}
+            <p className="mt-4 text-xs text-gray-500 text-center">
+              Рекомендуемый размер: 500x500px<br />
+              Максимальный размер файла: 5MB
+            </p>
+
+            {/* Error message */}
+            {error && (
+              <div className="mt-4 w-full p-3 bg-red-50 rounded-xl border border-red-200">
+                <p className="text-sm text-red-600 text-center">{error}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 bg-gray-50 border-t">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-xl font-medium transition-colors"
+            disabled={loading}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            disabled={!selectedFile || loading}
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Сохранение...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Сохранить фото
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Модальное окно смены пароля (без изменений)
 const PasswordModal = ({ isOpen, onClose }: any) => {
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
@@ -174,7 +336,7 @@ const PasswordModal = ({ isOpen, onClose }: any) => {
   );
 };
 
-// Модальное окно редактирования
+// Модальное окно редактирования (без изменений)
 const EditProfileModal = ({ isOpen, onClose, profile, onSave }: any) => {
   const [form, setForm] = useState({
     first_name: profile?.first_name || '',
@@ -315,13 +477,13 @@ export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const {
     updateProfile,
-    uploadUserAvatar,
     isLoading: userModuleLoading,
     error: userModuleError,
   } = useUserModule();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
   
   const overallLoading = userContextLoading || userModuleLoading;
@@ -348,20 +510,9 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
-  // Обработчик изменения фото
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && userId) {
-      setPhotoPreview(URL.createObjectURL(file));
-      try {
-        await uploadUserAvatar(userId, file);
-      } catch (error) {
-        console.error("Ошибка при загрузке фото:", error);
-        if (profile?.avatar_url) {
-          setPhotoPreview(profile.avatar_url);
-        }
-      }
-    }
+  // Обработчик успешной загрузки аватара
+  const handleAvatarSuccess = (newAvatarUrl: string) => {
+    setPhotoPreview(newAvatarUrl);
   };
 
   // Обработчик сохранения профиля
@@ -390,7 +541,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#F5F5F5] p-2 md:p-6">
       <div className="space-y-6">
-        <MoreHeaderDE title="Мой профиль" />
+        <MoreHeaderDE title="Мой профиль" showBackButton={true}  />
 
         {/* Основная карточка профиля */}
         <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
@@ -413,18 +564,15 @@ export default function ProfilePage() {
                     className="w-full h-full rounded-xl object-cover"
                   />
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer">
+                <button
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer"
+                >
                   <div className="text-white text-center">
                     <Camera className="w-8 h-8 mx-auto mb-1" />
                     <span className="text-xs">Изменить</span>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
-                </label>
+                </button>
               </div>
 
               {/* Имя и статус */}
@@ -455,8 +603,6 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Убрали статистику - сразу переходим к контактной информации */}
-            
             {/* Контактная информация */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
               <div className="bg-gray-50 rounded-2xl p-6">
@@ -541,6 +687,15 @@ export default function ProfilePage() {
             <SponsorCard variant="gray" />
           </div>
         </div>
+
+        {/* Модальное окно изменения аватара */}
+        <AvatarModal
+          isOpen={isAvatarModalOpen}
+          onClose={() => setIsAvatarModalOpen(false)}
+          currentAvatar={photoPreview}
+          userId={userId}
+          onSuccess={handleAvatarSuccess}
+        />
 
         {/* Модальное окно редактирования */}
         <EditProfileModal

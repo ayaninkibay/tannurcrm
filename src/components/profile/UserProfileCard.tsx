@@ -2,39 +2,58 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useTranslate } from '@/hooks/useTranslate';
+import { Briefcase, MapPin, Phone, Crown, Star, Shield, Package, ChevronRight } from 'lucide-react';
 
-export default function UserProfileCard() {
+interface UserProfileCardProps {
+  href?: string;
+}
+
+export default function UserProfileCard({ href = '/dealer/profile' }: UserProfileCardProps) {
   const { profile, loading } = useUser();
   const { t } = useTranslate();
+  const router = useRouter();
+
+  // Функция для получения данных роли
+  const getRoleData = (role: string | null) => {
+    switch(role) {
+      case 'admin':
+        return {
+          name: t('Администратор'),
+          icon: Shield
+        };
+      case 'dealer':
+        return {
+          name: t('Дилер'),
+          icon: Package
+        };
+      case 'celebrity':
+        return {
+          name: t('Селебрити'),
+          icon: Star
+        };
+      default:
+        return {
+          name: t('Пользователь'),
+          icon: null
+        };
+    }
+  };
+
+  const handleClick = () => {
+    router.push(href);
+  };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-6 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse" />
-          <div className="w-6 h-6 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-full animate-pulse" />
-        </div>
-        
-        <div className="flex gap-4 items-start">
-          <div className="w-20 h-20 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-xl animate-pulse shrink-0" />
-          <div className="flex-1 space-y-3">
-            <div className="h-5 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-24 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-            <div className="h-3 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-            <div className="h-3 w-28 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-          </div>
-        </div>
-
-        <div className="mt-6 pt-4 border-t border-gray-100">
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="text-center space-y-2">
-                <div className="h-5 w-8 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse mx-auto" />
-                <div className="h-3 w-12 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse mx-auto" />
-              </div>
-            ))}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-5 w-32 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
           </div>
         </div>
       </div>
@@ -43,83 +62,115 @@ export default function UserProfileCard() {
 
   if (!profile) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-center h-32">
-          <p className="text-gray-500">{t('Профиль не найден')}</p>
+      <div className="bg-white rounded-2xl p-6 border border-gray-100">
+        <div className="flex items-center justify-center h-20">
+          <p className="text-gray-400 text-sm">{t('Профиль не найден')}</p>
         </div>
       </div>
     );
   }
 
+  const roleData = getRoleData(profile.role);
+  const RoleIcon = roleData.icon;
+
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <h2 className="text-md font-semibold text-[#111]">{t('Мой профиль')}</h2>
-        <div className="relative w-4 h-4">
-          <Image 
-            src="/icons/buttom/more.svg" 
-            alt={t('Ещё')}
-            fill
-            style={{ objectFit: 'contain' }}
-            className="opacity-60 hover:opacity-100 cursor-pointer transition-opacity"
-          />
-        </div>
+    <div 
+      onClick={handleClick}
+      className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer relative"
+    >
+      {/* Верхняя полоса */}
+      <div className="h-1 bg-[#E89480]" />
+      
+      {/* Стрелка справа сверху */}
+      <div className="absolute top-3 right-3 p-1.5 hover:bg-gray-50 rounded-lg transition-colors">
+        <ChevronRight className="w-4 h-4 text-gray-400" />
       </div>
-
-      {/* Profile Info */}
-      <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
-        {/* Simple Avatar */}
-        <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-300 shrink-0">
-          <Image
-            src={profile.avatar_url || '/img/avatar-default.png'}
-            alt="avatar"
-            width={96}
-            height={96}
-            className="object-cover"
-            unoptimized={profile.avatar_url?.includes('supabase')}
-            priority={true} 
-          />
-        </div>
-
-        {/* User Details */}
-        <div className="flex flex-col justify-center flex-1 min-w-[100px] space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm md:text-base font-semibold text-[#111] truncate">
-              {profile.first_name} {profile.last_name}
-            </p>
-            {profile.is_confirmed && (
-              <Image 
-                src="/icons/confirmed.svg" 
-                alt={t('Подтвержден')}
-                width={16} 
-                height={16}
-                style={{ width: '16px', height: '16px' }}
+      
+      <div className="p-5">
+        <div className="flex items-center gap-4">
+          {/* Аватар */}
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-50 border-2 border-white shadow-lg">
+              <Image
+                src={profile.avatar_url || '/img/avatar-default.png'}
+                alt="avatar"
+                width={56}
+                height={56}
+                className="object-cover"
+                unoptimized={profile.avatar_url?.includes('supabase')}
+                priority={true} 
               />
+            </div>
+            {profile.is_confirmed && (
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
             )}
           </div>
-          
-          {profile.referral_code && (
-            <p className="text-sm text-[#111] font-medium truncate">
-              {profile.referral_code}
-            </p>
+
+          {/* Информация */}
+          <div className="flex-1 min-w-0 pr-6">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 text-base truncate">
+                {profile.first_name} {profile.last_name}
+              </h3>
+            </div>
+            
+            {/* Роль с цветом #E09080 */}
+            <div className="flex items-center gap-2 mt-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md" 
+                   style={{ backgroundColor: '#FFF5F3', borderWidth: '1px', borderColor: '#FFE5E0' }}>
+                {RoleIcon && (
+                  <RoleIcon className="w-3.5 h-3.5" style={{ color: '#E09080' }} strokeWidth={2} />
+                )}
+                <span className="text-xs font-medium" style={{ color: '#E09080' }}>
+                  {roleData.name}
+                </span>
+              </div>
+            </div>
+
+            {/* Email */}
+            {profile.email && (
+              <p className="text-xs text-gray-400 mt-1.5 truncate">
+                {profile.email}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Дополнительная информация */}
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50">
+          {/* Профессия */}
+          {profile.profession && (
+            <div className="flex items-center gap-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500 font-medium">
+                {profile.profession}
+              </span>
+            </div>
           )}
           
+          {/* Регион */}
           {profile.region && (
-            <p className="text-sm text-gray-500 truncate">
-              📍 {profile.region}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-400">
+                {profile.region}
+              </span>
+            </div>
           )}
           
+          {/* Телефон */}
           {profile.phone && (
-            <p className="text-sm text-gray-500 truncate">
-              📱 {profile.phone}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-400">{profile.phone}</span>
+            </div>
           )}
         </div>
       </div>
-
-      <div className="mt-4 border-t border-gray-100" />
     </div>
   );
 }
