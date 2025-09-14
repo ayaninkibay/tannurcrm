@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import './globals.css'
-import { UserProvider } from '@/context/UserContext' 
+import ClientWrapper from '@/components/ClientWrapper'  // импорт обертки
 
 export const metadata = {
   title: 'Tannur CRM',
@@ -16,9 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-gray-100 text-black">
-        <UserProvider> {/* <- Оборачивай напрямую */}
+        <ClientWrapper>
           {children}
-        </UserProvider>
+        </ClientWrapper>
       </body>
     </html>
   )

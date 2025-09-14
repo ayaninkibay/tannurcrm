@@ -1,21 +1,24 @@
-// src/lib/supabase/client.ts
 'use client'
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
 
-// Создаем типизированный клиент с улучшенными настройками
+// Создаем типизированный клиент с правильными настройками
 export const supabase = createBrowserClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     auth: {
+      // Включаем автоматическое обновление токена
       autoRefreshToken: true,
+      // Сохраняем сессию в localStorage
       persistSession: true,
+      // Обнаруживаем сессию в URL (для email подтверждений и т.д.)
       detectSessionInUrl: true,
+      // Используем PKCE для безопасности
       flowType: 'pkce',
+      // Настройки хранилища
       storage: {
-        // Используем localStorage для надежного хранения сессии
         getItem: (key: string) => {
           if (typeof window === 'undefined') return null
           return window.localStorage.getItem(key)
@@ -28,70 +31,48 @@ export const supabase = createBrowserClient<Database>(
           if (typeof window === 'undefined') return
           window.localStorage.removeItem(key)
         }
-      },
-      // Добавляем настройки для автоматического обновления токена
-      refreshSession: {
-        // Обновляем токен за 60 секунд до истечения
-        autoRefreshInterval: 60
       }
     },
-    // Добавляем глобальные настройки для автоматического повтора запросов
+    // Глобальные настройки
     global: {
       headers: {
-        'x-client-info': 'supabase-js/web'
-      }
-    },
-    // Настройки для realtime (если используется)
-    realtime: {
-      params: {
-        eventsPerSecond: 10
+        'x-client-info': 'tannur-web-client'
       }
     }
   }
 )
 
-// Функция для проверки и обновления сессии
-export async function refreshSession() {
-  try {
-    const { data: { session }, error } = await supabase.auth.refreshSession()
-    if (error) {
-      console.error('Error refreshing session:', error)
-      return null
-    }
-    return session
-  } catch (error) {
-    console.error('Failed to refresh session:', error)
-    return null
-  }
-}
-
-// Функция для проверки валидности токена
+// Функция для проверки валидности сессии
 export async function validateSession() {
   try {
     const { data: { session }, error } = await supabase.auth.getSession()
     
-    if (error || !session) {
+    if (error) {
+      console.error('Session validation error:', error)
       return false
     }
     
-    // Проверяем, не истек ли токен
-    const expiresAt = session.expires_at
-    if (expiresAt) {
-      const now = Math.floor(Date.now() / 1000)
-      const timeUntilExpiry = expiresAt - now
-      
-      // Если токен истекает менее чем через 5 минут, обновляем его
-      if (timeUntilExpiry < 300) {
-        console.log('Token expiring soon, refreshing...')
-        const newSession = await refreshSession()
-        return !!newSession
-      }
-    }
-    
-    return true
+    return !!session?.user
   } catch (error) {
     console.error('Session validation error:', error)
     return false
+  }
+}
+
+// Функция для получения пользователя
+export async function getCurrentUser() {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error('Get user error:', error)
+      return null
+    }
+    
+    return user
+  } catch (error) {
+    console.error('Get user error:', error)
+    return null
   }
 }
 

@@ -23,8 +23,16 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set({ name, value, ...options })
-            response.cookies.set({ name, value, ...options })
+            // Устанавливаем куки с правильными настройками
+            const cookieOptions = {
+              ...options,
+              httpOnly: false, // Позволяем доступ из JavaScript
+              secure: process.env.NODE_ENV === 'production', // HTTPS только в продакшене
+              sameSite: 'lax' as const, // Защита от CSRF
+              maxAge: 60 * 60 * 24 * 7 // 7 дней
+            }
+            request.cookies.set({ name, value, ...cookieOptions })
+            response.cookies.set({ name, value, ...cookieOptions })
           })
         },
       },
@@ -32,32 +40,14 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    // ВАЖНО: Используем getSession вместо getUser для обновления токена
+    // Получаем сессию - Supabase автоматически обновит токен если нужно
     const { data: { session }, error } = await supabase.auth.getSession()
     
-    // Если есть сессия, обновляем токен если необходимо
-    if (session) {
-      const expiresAt = session.expires_at
-      if (expiresAt) {
-        const now = Math.floor(Date.now() / 1000)
-        const timeUntilExpiry = expiresAt - now
-        
-        // Обновляем токен если он истекает менее чем через 10 минут
-        if (timeUntilExpiry < 600) {
-          console.log('Token expiring soon in middleware, refreshing...')
-          const { data: { session: newSession }, error: refreshError } = 
-            await supabase.auth.refreshSession()
-          
-          if (refreshError) {
-            console.error('Failed to refresh session in middleware:', refreshError)
-          } else {
-            console.log('Session refreshed successfully in middleware')
-          }
-        }
-      }
+    if (error) {
+      console.error('Session error in middleware:', error)
     }
 
-    // Получаем пользователя после возможного обновления сессии
+    // Получаем пользователя
     const { data: { user } } = await supabase.auth.getUser()
 
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
@@ -88,7 +78,8 @@ export async function middleware(request: NextRequest) {
 
     console.log('middleware → allow', { 
       user: user?.email || 'anonymous',
-      path: request.nextUrl.pathname 
+      path: request.nextUrl.pathname,
+      sessionExists: !!session
     })
 
   } catch (error) {
