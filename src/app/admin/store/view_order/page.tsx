@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -10,88 +10,55 @@ import {
   BadgeCheck, AlertTriangle
 } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { OrderService, OrderWithItems } from '@/lib/orders/OrderService';
 
 /* ===== Типы ===== */
-type OrderStatus = 'pending' | 'accepted' | 'collecting' | 'delivery' | 'delivered' | 'rejected';
-type OrderType = 'shop' | 'dealers' | 'star';
+type OrderStatus = 'new' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
 type PayStatus = 'paid' | 'unpaid' | 'partial';
 
-interface Order {
-  id: string;
-  clientId: string;
-  name: string;
-  phone: string;
-  date: string;              // "YYYY-MM-DD HH:mm"
-  products: string[];
-  address?: string;
-  status: OrderStatus;
-  amount: number;
-  type: OrderType;
-}
-interface OrderItem { name: string; qty: number; price: number; }
-interface ExtendedOrder extends Order {
-  items: OrderItem[];
-  deliveryMethod: 'courier' | 'pickup';
-  shippingPrice: number;
-  discount: number;
-  payment: { method: 'card' | 'cash' | 'transfer'; status: PayStatus; paidAmount: number; };
-  createdAt: string;
-  updatedAt: string;
-}
-
 /* ===== Fallback моки ===== */
-const fallbackOrders: Order[] = [
-  { id: 'ORD-001', clientId: 'TN82732', name: 'Айгерим Нурланова', phone: '+7 777 123 45 67', date: '2025-01-20 14:30', products: ['Товар 1', 'Товар 2'], address: 'ул. Абая 150, кв. 45', status: 'pending', amount: 45000, type: 'shop' },
-  { id: 'ORD-002', clientId: 'TN82733', name: 'Ерлан Сериков',     phone: '+7 708 987 65 43', date: '2025-01-20 15:45', products: ['Товар 3'], address: 'пр. Достык 89', status: 'delivery', amount: 25000, type: 'shop' },
-  { id: 'DLR-001', clientId: 'TN82734', name: 'Мадина Касымова',   phone: '+7 701 555 44 33', date: '2025-01-20 10:15', products: ['Товар 1', 'Товар 2', 'Товар 3'], status: 'accepted', amount: 120000, type: 'dealers' },
-  { id: 'STR-001', clientId: 'TN82735', name: 'Данияр Жумабек',    phone: '+7 775 222 11 00', date: '2025-01-20 16:20', products: ['Премиум товар 1'], address: 'мкр. Самал-2, д. 15', status: 'collecting', amount: 85000, type: 'star' },
-  { id: 'ORD-003', clientId: 'TN82736', name: 'Алия Сатыбалды',    phone: '+7 747 888 99 00', date: '2025-01-15 11:20', products: ['Товар 4', 'Товар 5'], address: 'ул. Жандосова 58', status: 'delivered', amount: 67000, type: 'shop' }
+const fallbackOrders: OrderWithItems[] = [
+  { 
+    id: 'ORD-001', 
+    user: { first_name: 'Айгерим', last_name: 'Нурланова', email: 'aigerim@mail.ru', phone: '+7 777 123 45 67' },
+    created_at: '2025-01-20T14:30:00Z', 
+    updated_at: '2025-01-20T14:30:00Z',
+    order_status: 'new', 
+    total_amount: 45000, 
+    delivery_address: 'ул. Абая 150, кв. 45',
+    payment_status: 'unpaid',
+    order_items: [
+      { product: { name: 'Крем для лица Tannur', price: 15000 }, quantity: 2, price: 15000 },
+      { product: { name: 'Сыворотка антивозрастная', price: 15000 }, quantity: 1, price: 15000 }
+    ],
+    order_number: null,
+    paid_at: null,
+    referrer_star_id: null,
+    delivery_date: null,
+    notes: null,
+    user_id: 'test-user-id'
+  }
 ];
 
 /* ===== Цвета статусов (классы) ===== */
-const statusColor: Record<OrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  accepted: 'bg-blue-100 text-blue-700',
-  collecting: 'bg-purple-100 text-purple-700',
-  delivery: 'bg-orange-100 text-orange-700',
+const statusColor: Record<string, string> = {
+  new: 'bg-yellow-100 text-yellow-700',
+  confirmed: 'bg-blue-100 text-blue-700',
+  processing: 'bg-purple-100 text-purple-700',
+  shipped: 'bg-orange-100 text-orange-700',
   delivered: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700'
+  cancelled: 'bg-red-100 text-red-700',
+  returned: 'bg-gray-100 text-gray-700'
 };
-const statusFlow: OrderStatus[] = ['pending', 'accepted', 'collecting', 'delivery', 'delivered'];
+
+const statusFlow: string[] = ['new', 'confirmed', 'processing', 'shipped', 'delivered'];
 
 /* ===== Утилиты ===== */
 const money = (n: number) => `${n.toLocaleString('ru-RU')} ₸`;
 
-/** Преобразуем базовый заказ в расширенный (как будто пришло из БД) */
-function hydrate(order: Order): ExtendedOrder {
-  const priceOf = (name: string) => {
-    const base = Math.abs([...name].reduce((s, c) => s + c.charCodeAt(0), 0));
-    const rounded = (base % 9) * 500 + 5000;
-    return Math.round(rounded / 100) * 100;
-  };
-  const items: OrderItem[] = (order.products || []).map((p) => ({ name: p, qty: 1, price: priceOf(p) }));
-  const deliveryMethod: ExtendedOrder['deliveryMethod'] = order.address ? 'courier' : 'pickup';
-  const shippingPrice = deliveryMethod === 'courier' ? 1500 : 0;
-
-  return {
-    ...order,
-    items,
-    deliveryMethod,
-    shippingPrice,
-    discount: 0,
-    payment: {
-      method: 'card',
-      status: order.status === 'delivered' ? 'paid' : 'unpaid',
-      paidAmount: order.status === 'delivered' ? order.amount + shippingPrice : 0
-    },
-    createdAt: order.date,
-    updatedAt: order.date
-  };
-}
-
 /* ===== UI блоки ===== */
-const Badge = ({ label, status }: { label: string; status: OrderStatus }) => (
-  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor[status]}`}>{label}</span>
+const Badge = ({ label, status }: { label: string; status: string }) => (
+  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor[status] || 'bg-gray-100 text-gray-700'}`}>{label}</span>
 );
 
 const Section = ({ title, icon: Icon, children }:{
@@ -113,67 +80,103 @@ function ViewOrderContent() {
   const { t } = useTranslate();
   const sp = useSearchParams();
 
-  const [order, setOrder] = useState<ExtendedOrder | null>(null);
+  const [order, setOrder] = useState<OrderWithItems | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const [noteText, setNoteText] = useState('');
   const [log, setLog] = useState<string[]>([]);
-  const [confirm, setConfirm] = useState<{ open: boolean; to: OrderStatus | null; title: string; }>({ open: false, to: null, title: '' });
+  const [confirm, setConfirm] = useState<{ open: boolean; to: string | null; title: string; }>({ open: false, to: null, title: '' });
 
   // локализация текстов статусов
-  const statusText = useMemo<Record<OrderStatus, string>>(() => ({
-    pending: t('Ожидает'),
-    accepted: t('Принят'),
-    collecting: t('Сборка'),
-    delivery: t('Доставка'),
+  const statusText = useMemo<Record<string, string>>(() => ({
+    new: t('Новый'),
+    confirmed: t('Подтвержден'),
+    processing: t('Обработка'),
+    shipped: t('Отправлен'),
     delivered: t('Доставлен'),
-    rejected: t('Отклонен')
+    cancelled: t('Отменен'),
+    returned: t('Возврат')
   }), [t]);
 
   /* загрузка заказа */
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('selected_order');
-      if (raw) { setOrder(hydrate(JSON.parse(raw))); return; }
-    } catch {}
+    const loadOrder = async () => {
+      try {
+        // Сначала пробуем загрузить из localStorage
+        const raw = localStorage.getItem('selected_order');
+        if (raw) { 
+          const orderData = JSON.parse(raw);
+          
+          // Если есть ID, загружаем полные данные из базы
+          if (orderData.id) {
+            const orderService = new OrderService();
+            const result = await orderService.getOrderById(orderData.id);
+            
+            if (result.success && result.data) {
+              console.log('Loaded full order data:', result.data);
+              setOrder(result.data);
+              return;
+            }
+          }
+          
+          // Иначе используем данные из localStorage
+          setOrder(orderData); 
+          return; 
+        }
+      } catch (error) {
+        console.error('Error loading order:', error);
+      }
+    };
+
+    loadOrder();
   }, []);
+  
   useEffect(() => {
     if (order) return;
     const id = sp?.get('id');
     if (id) {
       const found = fallbackOrders.find(o => o.id === id);
-      if (found) setOrder(hydrate(found));
+      if (found) setOrder(found);
     }
   }, [sp, order]);
 
   /* суммы */
   const totals = useMemo(() => {
     if (!order) return { items: 0, shipping: 0, discount: 0, grand: 0 };
-    const items = order.items.reduce((s, i) => s + i.qty * i.price, 0);
-    const shipping = order.shippingPrice;
-    const discount = order.discount;
+    
+    const items = order.order_items?.reduce((sum, item) => {
+      const price = item.price || item.product?.price || 0;
+      const qty = item.quantity || 1;
+      return sum + (price * qty);
+    }, 0) || order.total_amount || 0;
+    
+    const shipping = order.delivery_address ? 1500 : 0;
+    const discount = 0;
     const grand = items + shipping - discount;
+    
     return { items, shipping, discount, grand };
   }, [order]);
 
   /* действия */
-  const requestStatusChange = (to: OrderStatus) => {
-    if (!order) return;
+  const requestStatusChange = (to: string) => {
+    if (!order || !order.order_status) return;
     const title = t('Подтвердите: {from} → {to}')
-      .replace('{from}', statusText[order.status])
+      .replace('{from}', statusText[order.order_status])
       .replace('{to}', statusText[to]);
     setConfirm({ open: true, to, title });
   };
 
   const applyStatusChange = () => {
     if (!order || !confirm.to) return;
-    const to = confirm.to as OrderStatus;
+    const to = confirm.to as string;
 
-    const next: ExtendedOrder = {
+    const next: OrderWithItems = {
       ...order,
-      status: to,
-      updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
+      order_status: to,
+      updated_at: new Date().toISOString()
     };
-    if (to === 'delivered') next.payment = { ...next.payment, status: 'paid', paidAmount: totals.grand };
+    if (to === 'delivered') {
+      next.payment_status = 'paid';
+    }
 
     setOrder(next);
     try { localStorage.setItem('selected_order', JSON.stringify(next)); } catch {}
@@ -188,20 +191,31 @@ function ViewOrderContent() {
   };
 
   const copyAddress = async () => {
-    if (!order?.address) return;
-    try { await navigator.clipboard.writeText(order.address); } catch {}
+    if (!order?.delivery_address) return;
+    try { await navigator.clipboard.writeText(order.delivery_address); } catch {}
   };
 
-  const callClientHref = order?.phone ? `tel:${order.phone.replace(/\s+/g,'')}` : '#';
-  const openInMapsHref = order?.address ? `https://maps.google.com/?q=${encodeURIComponent(order.address)}` : '#';
+  const callClientHref = order?.user?.phone ? `tel:${order.user.phone.replace(/\s+/g,'')}` : '#';
+  const openInMapsHref = order?.delivery_address ? `https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}` : '#';
 
-  const currentStep = order ? statusFlow.indexOf(order.status) : -1;
-  const nextAllowed: OrderStatus | null = useMemo(() => {
-    if (!order) return null;
-    if (order.status === 'rejected' || order.status === 'delivered') return null;
-    const idx = statusFlow.indexOf(order.status);
+  const currentStep = order && order.order_status ? statusFlow.indexOf(order.order_status) : -1;
+  const nextAllowed: string | null = useMemo(() => {
+    if (!order || !order.order_status) return null;
+    if (order.order_status === 'cancelled' || order.order_status === 'delivered') return null;
+    const idx = statusFlow.indexOf(order.order_status);
     return statusFlow[idx + 1] ?? null;
   }, [order]);
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   if (!order) {
     return (
@@ -216,7 +230,7 @@ function ViewOrderContent() {
 
   return (
     <div className="p-2 md:p-6">
-      <MoreHeaderAD title={`${t('Просмотр заказа')} #${order.id}`} showBackButton={true} />
+      <MoreHeaderAD title={`${t('Просмотр заказа')} #${order.id.slice(-8)}`} showBackButton={true} />
 
       {/* Шапка */}
       <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-6">
@@ -225,12 +239,13 @@ function ViewOrderContent() {
             <div className="p-3 bg-gray-50 rounded-xl"><Hash className="w-5 h-5 text-gray-500" /></div>
             <div>
               <div className="flex items-center gap-3">
-                <div className="font-mono text-sm text-gray-700">{order.id}</div>
-                <Badge status={order.status} label={statusText[order.status]} />
+                <div className="font-mono text-sm text-gray-700">{order.id.slice(-8)}</div>
+                <Badge status={order.order_status || 'new'} label={statusText[order.order_status || 'new']} />
               </div>
               <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />
-                {t('Создан:')} {order.createdAt} • {t('Обновлён:')} {order.updatedAt}
+                {t('Создан:')} {formatDate(order.created_at)} 
+                {order.updated_at && ` • ${t('Обновлён:')} ${formatDate(order.updated_at)}`}
               </div>
             </div>
           </div>
@@ -242,27 +257,31 @@ function ViewOrderContent() {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#D77E6C] hover:bg-[#C66B5A] text-white text-sm font-medium"
                 title={t('Продолжить → {status}').replace('{status}', statusText[nextAllowed])}
               >
-                {order.status === 'pending' && <Check className="w-4 h-4" />}
-                {order.status === 'accepted' && <Package className="w-4 h-4" />}
-                {order.status === 'collecting' && <Truck className="w-4 h-4" />}
-                {order.status === 'delivery' && <CheckCircle2 className="w-4 h-4" />}
+                {order.order_status === 'new' && <Check className="w-4 h-4" />}
+                {order.order_status === 'confirmed' && <Package className="w-4 h-4" />}
+                {order.order_status === 'processing' && <Truck className="w-4 h-4" />}
+                {order.order_status === 'shipped' && <CheckCircle2 className="w-4 h-4" />}
                 {t('Продолжить → {status}').replace('{status}', statusText[nextAllowed])}
               </button>
             )}
             <button
-              onClick={() => requestStatusChange('rejected')}
+              onClick={() => requestStatusChange('cancelled')}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 text-sm font-medium"
-              disabled={order.status === 'rejected' || order.status === 'delivered'}
+              disabled={order.order_status === 'cancelled' || order.order_status === 'delivered'}
               title={t('Отклонить заказ')}
             >
               <XCircle className="w-4 h-4" /> {t('Отклонить')}
             </button>
-            <a href={callClientHref} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">
-              <Phone className="w-4 h-4" /> {t('Позвонить')}
-            </a>
-            <a href={openInMapsHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">
-              <MapPinned className="w-4 h-4" /> {t('Открыть в картах')}
-            </a>
+            {order.user?.phone && (
+              <a href={callClientHref} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">
+                <Phone className="w-4 h-4" /> {t('Позвонить')}
+              </a>
+            )}
+            {order.delivery_address && (
+              <a href={openInMapsHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">
+                <MapPinned className="w-4 h-4" /> {t('Открыть в картах')}
+              </a>
+            )}
             <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium">
               <Printer className="w-4 h-4" /> {t('Печать')}
             </button>
@@ -274,15 +293,15 @@ function ViewOrderContent() {
           {statusFlow.map((st, idx) => (
             <React.Fragment key={st}>
               <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx <= (statusFlow.indexOf(order.status)) ? 'bg-[#D77E6C] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx <= (statusFlow.indexOf(order.order_status || 'new')) ? 'bg-[#D77E6C] text-white' : 'bg-gray-100 text-gray-400'}`}>
                   {idx + 1}
                 </div>
-                <div className={`text-xs sm:text-sm ${idx <= (statusFlow.indexOf(order.status)) ? 'text-gray-900' : 'text-gray-400'}`}>
+                <div className={`text-xs sm:text-sm ${idx <= (statusFlow.indexOf(order.order_status || 'new')) ? 'text-gray-900' : 'text-gray-400'}`}>
                   {statusText[st]}
                 </div>
               </div>
               {idx < statusFlow.length - 1 && (
-                <div className={`flex-1 h-[2px] ${idx < (statusFlow.indexOf(order.status)) ? 'bg-[#D77E6C]' : 'bg-gray-200'}`} />
+                <div className={`flex-1 h-[2px] ${idx < (statusFlow.indexOf(order.order_status || 'new')) ? 'bg-[#D77E6C]' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           ))}
@@ -305,14 +324,26 @@ function ViewOrderContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map((it, i) => (
-                    <tr key={i} className="border-t border-gray-100">
-                      <td className="py-3 pr-4"><div className="text-sm font-medium text-gray-900">{t(it.name)}</div></td>
-                      <td className="py-3 text-right text-sm">{money(it.price)}</td>
-                      <td className="py-3 text-center text-sm">{it.qty}</td>
-                      <td className="py-3 text-right text-sm font-medium">{money(it.qty * it.price)}</td>
+                  {order.order_items && order.order_items.length > 0 ? (
+                    order.order_items.map((item, i) => {
+                      const price = item.price || item.product?.price || 0;
+                      const qty = item.quantity || 1;
+                      const name = item.product?.name || `Товар ${i + 1}`;
+                      
+                      return (
+                        <tr key={i} className="border-t border-gray-100">
+                          <td className="py-3 pr-4"><div className="text-sm font-medium text-gray-900">{name}</div></td>
+                          <td className="py-3 text-right text-sm">{money(price)}</td>
+                          <td className="py-3 text-center text-sm">{qty}</td>
+                          <td className="py-3 text-right text-sm font-medium">{money(qty * price)}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-gray-500">{t('Товары не указаны')}</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
                 <tfoot className="border-t border-gray-200">
                   <tr>
@@ -320,7 +351,7 @@ function ViewOrderContent() {
                     <td className="py-2 text-right text-sm font-medium">{money(totals.items)}</td>
                   </tr>
                   <tr>
-                    <td colSpan={3} className="py-2 text-right text-sm text-gray-500">{t('Доставка (стоимость)')}</td>
+                    <td colSpan={3} className="py-2 text-right text-sm text-gray-500">{t('Доставка')}</td>
                     <td className="py-2 text-right text-sm font-medium">{money(totals.shipping)}</td>
                   </tr>
                   {totals.discount > 0 && (
@@ -372,12 +403,16 @@ function ViewOrderContent() {
         <div className="space-y-6">
           <Section title={t('Клиент')} icon={User}>
             <div className="space-y-2 text-sm">
-              <div className="font-medium text-gray-900">{t(order.name)}</div>
-              <div className="text-gray-500">{order.clientId}</div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-400" />
-                <a className="hover:underline" href={callClientHref}>{order.phone}</a>
+              <div className="font-medium text-gray-900">
+                {order.user?.first_name} {order.user?.last_name}
               </div>
+              {order.user?.email && <div className="text-gray-500">{order.user.email}</div>}
+              {order.user?.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-400" />
+                  <a className="hover:underline" href={callClientHref}>{order.user.phone}</a>
+                </div>
+              )}
             </div>
           </Section>
 
@@ -386,12 +421,12 @@ function ViewOrderContent() {
               <div className="flex items-center gap-2">
                 <BadgeCheck className="w-4 h-4 text-gray-400" />
                 <span className="font-medium">
-                  {order.deliveryMethod === 'courier' ? t('Курьер') : t('Самовывоз')}
+                  {order.delivery_address ? t('Курьер') : t('Самовывоз')}
                 </span>
               </div>
-              {order.address ? (
+              {order.delivery_address ? (
                 <>
-                  <div className="text-gray-700">{order.address}</div>
+                  <div className="text-gray-700">{order.delivery_address}</div>
                   <div className="flex gap-2 mt-2">
                     <a href={openInMapsHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-medium">
                       <MapPinned className="w-3.5 h-3.5" /> {t('Карты')}
@@ -410,22 +445,14 @@ function ViewOrderContent() {
           <Section title={t('Оплата')} icon={CreditCard}>
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">{t('Метод')}</span>
-                <span className="font-medium">
-                  {order.payment.method === 'card' && t('Банковская карта')}
-                  {order.payment.method === 'cash' && t('Наличные')}
-                  {order.payment.method === 'transfer' && t('Перевод')}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-gray-600">{t('Статус')}</span>
                 <span className={`font-medium ${
-                  order.payment.status === 'paid' ? 'text-green-600' :
-                  order.payment.status === 'partial' ? 'text-orange-600' : 'text-gray-800'
+                  order.payment_status === 'paid' ? 'text-green-600' :
+                  order.payment_status === 'partial' ? 'text-orange-600' : 'text-gray-800'
                 }`}>
-                  {order.payment.status === 'paid' && t('Оплачен')}
-                  {order.payment.status === 'partial' && t('Частично оплачен')}
-                  {order.payment.status === 'unpaid' && t('Не оплачен')}
+                  {order.payment_status === 'paid' && t('Оплачен')}
+                  {order.payment_status === 'partial' && t('Частично оплачен')}
+                  {(!order.payment_status || order.payment_status === 'unpaid') && t('Не оплачен')}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -434,7 +461,7 @@ function ViewOrderContent() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">{t('Оплачено')}</span>
-                <span>{money(order.payment.paidAmount)}</span>
+                <span>{money(order.payment_status === 'paid' ? totals.grand : 0)}</span>
               </div>
             </div>
           </Section>

@@ -10,35 +10,28 @@ import DealerRow from '@/components/reports/teamtannur/dealer';
 import CelebrityRow from '@/components/reports/teamtannur/celebrity';
 import EmployeeRow from '@/components/reports/teamtannur/employee';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useTeamModule } from '@/lib/teamcontent/team.module';
+import { TeamMemberData } from '@/lib/teamcontent/team.service';
 
 type TabId = 'dealers' | 'stars' | 'employees';
 
 export default function Team() {
   const { t } = useTranslate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<TabId>('dealers');
-
-  // ======= ДАННЫЕ (моки выводим через t(...)) =======
-  const dealers: TeamMember[] = [
-    { id: 'KZ868970', name: 'Ани Иманбай',   profession: 'Доктор',   date: '22-02-2025', status: 'active',  commands: 8  },
-    { id: 'KZ868971', name: 'Томирис Снок',  profession: 'Business', date: '22-02-2025', status: 'active',  commands: 23 },
-    { id: 'KZ868972', name: 'Ани Иманбай',   profession: 'Доктор',   date: '22-02-2025', status: 'blocked', commands: 12 },
-    { id: 'KZ868973', name: 'Томирис Снок',  profession: 'Business', date: '22-02-2025', status: 'active',  commands: 84 },
-  ];
-
-  const stars: TeamMember[] = [
-    { id: 'KZ900001', name: 'Інжу Ануарбек', profession: 'Певица',     date: '05-01-2025', status: 'active', commands: 5  },
-    { id: 'KZ900002', name: 'Самал Толеп',   profession: 'Актриса',    date: '10-01-2025', status: 'active', commands: 2  },
-    { id: 'KZ900003', name: 'Ержан Бек',     profession: 'Блогер',     date: '12-01-2025', status: 'active', commands: 11 },
-    { id: 'HR0001',   name: 'Айдос Нурсеитов', profession: 'HR',       date: '15-01-2025', status: 'active', commands: 1  },
-  ];
-
-  const employees: TeamMember[] = [
-    { id: 'HR0001', name: 'Айдос Нурсеитов', profession: 'HR',           date: '15-01-2025', status: 'active',  commands: 1 },
-    { id: 'FN0002', name: 'Асел Абдуллина',  profession: 'Финансист',    date: '18-01-2025', status: 'active',  commands: 1 },
-    { id: 'WH0003', name: 'Берик Тулеген',   profession: 'Складовщик',   date: '20-01-2025', status: 'blocked', commands: 1 },
-    { id: 'MG0004', name: 'Жанар Садыкова',  profession: 'Менеджер',     date: '21-01-2025', status: 'active',  commands: 4 },
-  ];
+  
+  // Используем модуль для управления командой
+  const {
+    dealers,
+    celebrities,
+    employees,
+    statistics,
+    loading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    refreshData,
+    clearError
+  } = useTeamModule();
 
   const tabTitle: Record<TabId, string> = {
     dealers: 'Дилеры',
@@ -50,7 +43,7 @@ export default function Team() {
     {
       id: 'dealers' as const,
       title: 'Дилеры',
-      count: dealers.length,
+      count: statistics.dealers,
       subtitle: 'Общее количество',
       icon: '/icons/IconUsersOrange.svg',
       bgColor: 'bg-orange-50',
@@ -60,7 +53,7 @@ export default function Team() {
     {
       id: 'stars' as const,
       title: 'Звезды',
-      count: stars.length,
+      count: statistics.celebrities,
       subtitle: 'Общее количество',
       icon: '/icons/IconStarOrange.svg',
       bgColor: 'bg-yellow-50',
@@ -70,7 +63,7 @@ export default function Team() {
     {
       id: 'employees' as const,
       title: 'Сотрудники',
-      count: employees.length,
+      count: statistics.employees,
       subtitle: 'Общее количество',
       icon: '/icons/IconStarOrange.svg',
       bgColor: 'bg-blue-50',
@@ -80,38 +73,30 @@ export default function Team() {
   ];
 
   // текущий набор по табу
-  const currentData: TeamMember[] = useMemo(() => {
+  const currentData: TeamMemberData[] = useMemo(() => {
     switch (selectedTab) {
-      case 'stars': return stars;
+      case 'stars': return celebrities;
       case 'employees': return employees;
       default: return dealers;
     }
-  }, [selectedTab]);
+  }, [selectedTab, dealers, celebrities, employees]);
 
-  // фильтрация поиска (safe для undefined)
+  // фильтрация поиска
   const filteredMembers = useMemo(() => {
+    if (!searchQuery) return currentData;
+    
     const q = searchQuery.toLowerCase();
     return currentData.filter((m) => {
       const name = (m.name ?? '').toLowerCase();
       const prof = (m.profession ?? '').toLowerCase();
-      const id   = (m.id ?? '').toLowerCase();
+      const id = (m.id ?? '').toLowerCase();
       return name.includes(q) || prof.includes(q) || id.includes(q);
     });
   }, [currentData, searchQuery]);
 
-  // отображаемые данные — моки через t() (safe для undefined)
-  const displayedMembers = useMemo(
-    () =>
-      filteredMembers.map((m) => ({
-        ...m,
-        name: t(m.name ?? ''),
-        profession: t(m.profession ?? ''),
-      })),
-    [filteredMembers, t]
-  );
-
   const handleMemberClick = (member: TeamMember) => {
     console.log('Clicked member:', member);
+    // Можно добавить переход на страницу пользователя
   };
 
   const StatCard = ({
@@ -159,6 +144,40 @@ export default function Team() {
       </div>
     </div>
   );
+
+  // Загрузка
+  if (loading) {
+    return (
+      <div className="w-full h-full">
+        <header className="w-full mb-4">
+          <MoreHeaderAD title={t('Команда Tannur')} />
+        </header>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#DC7C67] border-t-transparent"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ошибка
+  if (error) {
+    return (
+      <div className="w-full h-full">
+        <header className="w-full mb-4">
+          <MoreHeaderAD title={t('Команда Tannur')} />
+        </header>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
+          <span className="text-red-700">{error}</span>
+          <button 
+            onClick={refreshData}
+            className="ml-4 text-red-600 underline hover:text-red-800"
+          >
+            {t('Попробовать снова')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full">
@@ -249,9 +268,19 @@ export default function Team() {
                 {t(tabTitle[selectedTab])} {filteredMembers.length} {t('человек')}
               </h3>
               <div className="flex items-center gap-2">
+                <button 
+                  onClick={refreshData}
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors" 
+                  aria-label="refresh"
+                  title={t('Обновить')}
+                >
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
                 <button className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors" aria-label="filter">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707л-6.414 6.414a1 1 0 00-.293.707V17л-4 4v-6.586a1 1 0 00-.293-.707Л3.293 7.293A1 1 0 013 6.586V4z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 </button>
               </div>
@@ -285,14 +314,17 @@ export default function Team() {
               </thead>
 
               <tbody className="bg-white divide-y divide-gray-100">
-                {displayedMembers.length > 0 ? (
-                  displayedMembers.map((member, i) => {
+                {filteredMembers.length > 0 ? (
+                  filteredMembers.map((member, i) => {
                     const key = `${member.id}-${i}`;
+                    // Преобразуем в формат TeamMember для компонентов
+                    const teamMember: TeamMember = member as any;
+                    
                     if (selectedTab === 'dealers')
-                      return <DealerRow key={key} member={member} onClick={handleMemberClick} />;
+                      return <DealerRow key={key} member={teamMember} onClick={handleMemberClick} />;
                     if (selectedTab === 'stars')
-                      return <CelebrityRow key={key} member={member} onClick={handleMemberClick} />;
-                    return <EmployeeRow key={key} member={member} onClick={handleMemberClick} />;
+                      return <CelebrityRow key={key} member={teamMember} onClick={handleMemberClick} />;
+                    return <EmployeeRow key={key} member={teamMember} onClick={handleMemberClick} />;
                   })
                 ) : (
                   <tr>

@@ -1,17 +1,19 @@
-// src/app/admin/warehouse/create_distributor/page.tsx
 'use client';
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import {
-  Building2, User, Phone, Mail, MapPin, ShieldCheck, Save, X, Globe2
+  Building2, User, Phone, Mail, MapPin, ShieldCheck, Save, X, Globe2, AlertCircle
 } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useDistributorModule } from '@/lib/distributor/useDistributorModule';
+import { CreateDistributorData } from '@/lib/distributor/DistributorService';
 
-type Distributor = {
+type FormData = {
   orgName: string;
   contactName: string;
+  lastName: string;
   phone: string;
   email?: string;
   region: string;
@@ -43,10 +45,12 @@ const REGIONS = [
 export default function CreateDistributorPage() {
   const router = useRouter();
   const { t } = useTranslate();
+  const { createDistributor, loading, error } = useDistributorModule();
 
-  const [form, setForm] = useState<Distributor>({
+  const [form, setForm] = useState<FormData>({
     orgName: '',
     contactName: '',
+    lastName: '',
     phone: '',
     email: '',
     region: '',
@@ -59,19 +63,19 @@ export default function CreateDistributorPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
 
   const isValid = useMemo(() => {
     return (
       form.orgName.trim().length > 1 &&
       form.contactName.trim().length > 1 &&
+      form.lastName.trim().length > 1 &&
       form.phone.trim().length >= 6 &&
       form.region.trim().length > 0 &&
       form.agreementAccepted
     );
   }, [form]);
 
-  const onChange = (key: keyof Distributor, value: any) => {
+  const onChange = (key: keyof FormData, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: '' }));
   };
@@ -81,7 +85,8 @@ export default function CreateDistributorPage() {
 
     const nextErrors: Record<string, string> = {};
     if (!form.orgName || form.orgName.trim().length < 2) nextErrors.orgName = 'Укажите название организации/ИП';
-    if (!form.contactName || form.contactName.trim().length < 2) nextErrors.contactName = 'Укажите контактное лицо';
+    if (!form.contactName || form.contactName.trim().length < 2) nextErrors.contactName = 'Укажите имя контактного лица';
+    if (!form.lastName || form.lastName.trim().length < 2) nextErrors.lastName = 'Укажите фамилию контактного лица';
     if (!form.phone || form.phone.trim().length < 6) nextErrors.phone = 'Укажите корректный номер телефона';
     if (!form.region) nextErrors.region = 'Выберите регион';
     if (!form.agreementAccepted) nextErrors.agreementAccepted = 'Необходимо согласие';
@@ -89,16 +94,27 @@ export default function CreateDistributorPage() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    try {
-      setSubmitting(true);
-      await new Promise((r) => setTimeout(r, 700));
-      router.push('/admin/warehouse');
-    } catch (err) {
-      console.error(err);
-      alert(t('Не удалось сохранить. Попробуйте ещё раз.'));
-    } finally {
-      setSubmitting(false);
+    // Подготавливаем данные для создания
+    const distributorData: CreateDistributorData = {
+      first_name: form.contactName.trim(),
+      last_name: form.lastName.trim(),
+      phone: form.phone.trim(),
+      email: form.email?.trim() || undefined,
+      region: form.region,
+      org_name: form.orgName.trim(),
+      bin: form.bin?.trim() || undefined,
+      address: form.address?.trim() || undefined,
+      site: form.site?.trim() || undefined,
+      notes: form.note?.trim() || undefined,
+      start_balance: form.startBalance || 0
+    };
+
+    const result = await createDistributor(distributorData);
+    
+    if (result.success) {
+      router.push('/admin/warehouse?tab=distributors');
     }
+    // Ошибка будет показана через состояние error из хука
   };
 
   return (
@@ -114,6 +130,14 @@ export default function CreateDistributorPage() {
           </span>
         }
       />
+
+      {/* Показываем ошибку если есть */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-4">
         <div className="bg-white rounded-2xl p-4 md:p-6">
@@ -135,11 +159,11 @@ export default function CreateDistributorPage() {
               </button>
               <button
                 type="submit"
-                disabled={!isValid || submitting}
+                disabled={!isValid || loading}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
-                {submitting ? t('Сохранение…') : t('Сохранить')}
+                {loading ? t('Сохранение…') : t('Сохранить')}
               </button>
             </div>
           </div>
@@ -155,7 +179,7 @@ export default function CreateDistributorPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm text-gray-600 mb-1">{t('Организация / ИП *')}</label>
                     <div className="relative">
                       <input
@@ -169,15 +193,28 @@ export default function CreateDistributorPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">{t('Контактное лицо *')}</label>
+                    <label className="block text-sm text-gray-600 mb-1">{t('Имя контактного лица *')}</label>
                     <div className="relative">
                       <input
                         className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${errors.contactName ? 'border-red-400' : 'border-gray-200'}`}
-                        placeholder={t('Акмаржан Лейс')}
+                        placeholder={t('Акмаржан')}
                         value={form.contactName}
                         onChange={(e) => onChange('contactName', e.target.value)}
                       />
                       {errors.contactName && <p className="mt-1 text-xs text-red-500">{t(errors.contactName)}</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">{t('Фамилия контактного лица *')}</label>
+                    <div className="relative">
+                      <input
+                        className={`w-full rounded-xl border px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#D77E6C] ${errors.lastName ? 'border-red-400' : 'border-gray-200'}`}
+                        placeholder={t('Лейс')}
+                        value={form.lastName}
+                        onChange={(e) => onChange('lastName', e.target.value)}
+                      />
+                      {errors.lastName && <p className="mt-1 text-xs text-red-500">{t(errors.lastName)}</p>}
                     </div>
                   </div>
 
@@ -315,7 +352,9 @@ export default function CreateDistributorPage() {
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <User className="w-4 h-4" />
                     <span className="font-medium">
-                      {form.contactName || t('Контакт не указан')}
+                      {form.contactName || form.lastName 
+                        ? `${form.contactName} ${form.lastName}`.trim() 
+                        : t('Контакт не указан')}
                     </span>
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
@@ -358,11 +397,11 @@ export default function CreateDistributorPage() {
             </button>
             <button
               type="submit"
-              disabled={!isValid || submitting}
+              disabled={!isValid || loading}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#D77E6C] text-white hover:bg-[#c76e5d] disabled:opacity-60"
             >
               <Save className="w-4 h-4" />
-              {submitting ? t('Сохранение…') : t('Сохранить')}
+              {loading ? t('Сохранение…') : t('Сохранить')}
             </button>
           </div>
         </div>

@@ -17,12 +17,13 @@ import {
   BarChart3,
   ShoppingBag,
   Sparkles,
-  Eye
+  Eye,
+  Building2
 } from 'lucide-react';
 
 import { useProductModule } from '@/lib/product/ProductModule';
 import { useGiftModule } from '@/lib/gift/useGiftModule';
-import Distrib, { DistribItem } from '@/components/reports/warehouse/distrib';
+import { useDistributorModule } from '@/lib/distributor/useDistributorModule';
 import Presents, { GiftItem } from '@/components/reports/warehouse/presents';
 import { useTranslate } from '@/hooks/useTranslate';
 
@@ -49,6 +50,12 @@ export default function WareHouse() {
     loadStats
   } = useGiftModule();
 
+  const {
+    distributors,
+    loading: distributorsLoading,
+    loadDistributors
+  } = useDistributorModule();
+
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalStock: 0,
@@ -60,6 +67,7 @@ export default function WareHouse() {
     loadProducts();
     loadGifts();
     loadStats();
+    loadDistributors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -70,6 +78,13 @@ export default function WareHouse() {
       loadStats();
     }
   }, [activeTab, loadGifts, loadStats]);
+
+  // Перезагружаем дистрибьюторов при переключении на вкладку distributors
+  useEffect(() => {
+    if (activeTab === 'distributors') {
+      loadDistributors();
+    }
+  }, [activeTab, loadDistributors]);
 
   useEffect(() => {
     if (products.length > 0) {
@@ -115,12 +130,6 @@ export default function WareHouse() {
     return imageUrl;
   };
 
-  // МОКИ для дистрибьюторов (остаются как есть)
-  const distribItems: DistribItem[] = [
-    { name: t('ИП Манна Мир'), qty: 153, total: '1 238 984 ₸', region: t('Алматы, Аксай 123') },
-    { name: t('ТОО Жанна'),    qty: 43,  total: '538 984 ₸',   region: t('Алматы, Жандосова 2') },
-  ];
-
   // Конвертируем реальные подарки в формат для компонента Presents
   const giftItems: GiftItem[] = gifts.map(gift => ({
     name: gift.recipient_name,
@@ -147,10 +156,10 @@ export default function WareHouse() {
       id: 'distributors' as const,
       icon: Users,
       title: t('Дистрибьюторы'),
-      count: 312, // Пока остается статичным
-      unit: t('товаров'),
-      sum: '2 598 899 ₸', // Пока остается статичным
-      sumLabel: t('На реализации'),
+      count: distributors.length,
+      unit: t('дистрибьюторов'),
+      sum: distributors.reduce((sum, d) => sum + (d.current_balance || 0), 0).toLocaleString('ru-RU') + ' ₸',
+      sumLabel: t('Общий баланс'),
       color: '#7C9D6C',
       bgColor: 'bg-green-50',
       borderColor: 'border-green-600',
@@ -373,7 +382,82 @@ export default function WareHouse() {
               )}
 
               {activeTab === 'distributors' && (
-                <Distrib items={distribItems} />
+                <>
+                  {distributorsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-600 border-t-transparent"></div>
+                    </div>
+                  ) : distributors.length > 0 ? (
+                    <div className="space-y-3">
+                      {distributors.map((distributor) => (
+                        <div 
+                          key={distributor.id} 
+                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
+                          onClick={() => router.push(`/admin/warehouse/distributors/${distributor.id}`)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                              <Building2 className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{distributor.org_name}</h3>
+                              <p className="text-sm text-gray-600">
+                                {distributor.user?.first_name} {distributor.user?.last_name}
+                              </p>
+                              <p className="text-xs text-gray-500">{distributor.user?.region}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="font-semibold text-gray-900">
+                                {formatPrice(distributor.current_balance)}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {t('Баланс')}
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="text-sm text-gray-600">
+                                {distributor.user?.phone}
+                              </div>
+                              <div className={`text-xs px-2 py-1 rounded-full ${
+                                distributor.status === 'active' ? 'bg-green-100 text-green-800' :
+                                distributor.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {distributor.status === 'active' ? t('Активен') :
+                                 distributor.status === 'inactive' ? t('Неактивен') : t('Заблокирован')}
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/admin/warehouse/distributors/${distributor.id}`);
+                              }}
+                              className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-4">{t('Дистрибьюторы не найдены')}</p>
+                      <button
+                        onClick={() => router.push('/admin/warehouse/create_distributor')}
+                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
+                      >
+                        {t('Добавить первого дистрибьютора')}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'gifts' && (
