@@ -1,50 +1,97 @@
 import { supabase } from '@/lib/supabase/client';
-import { Database } from '@/types/supabase';
 
-type DocumentCategoryRow = Database['public']['Tables']['document_categories']['Row'];
-type DocumentRow = Database['public']['Tables']['documents']['Row'];
-type DocumentInsert = Database['public']['Tables']['documents']['Insert'];
-
-export interface DocumentWithCategory extends DocumentRow {
-  category: DocumentCategoryRow;
-}
-
-export interface CategoryWithDocuments extends DocumentCategoryRow {
-  documents: DocumentRow[];
-}
-
-export interface UploadDocumentData {
-  category_id: string;
+export interface DocumentCategory {
+  id: string;
   name: string;
-  file: File;
+  icon_src: string | null;
+  sort_order: number | null;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface StorageFile {
+  id: string;
+  name: string;
+  size: number;
+  created_at: string;
+  updated_at: string;
+  category_id: string;
+  public_url: string;
+}
+
+export interface CategoryWithFiles extends DocumentCategory {
+  files: StorageFile[];
 }
 
 export class DocumentService {
-  // Получение всех категорий с документами
-  async getCategoriesWithDocuments(): Promise<{ success: boolean; data?: CategoryWithDocuments[]; error?: string }> {
+  // Получение всех категорий с файлами из Storage
+  async getCategoriesWithFiles(): Promise<{ success: boolean; data?: CategoryWithFiles[]; error?: string }> {
     try {
-      const { data, error } = await supabase
+      // Получаем категории
+      const { data: categories, error: categoriesError } = await supabase
         .from('document_categories')
-        .select(`
-          *,
-          documents:documents(*)
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
-      if (error) {
-        return { success: false, error: error.message };
+      if (categoriesError) {
+        return { success: false, error: categoriesError.message };
       }
 
-      // Фильтруем активные документы и сортируем по дате создания
-      const categoriesWithDocuments = (data || []).map(category => ({
-        ...category,
-        documents: (category.documents || [])
-          .filter((doc: any) => doc.is_active)
-          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      }));
+      // Для каждой категории получаем файлы из Storage
+      const categoriesWithFiles: CategoryWithFiles[] = [];
+      
+      for (const category of categories || []) {
+        // Получаем список файлов из Storage для данной категории
+        const { data: files, error: filesError } = await supabase.storage
+          .from('documents')
+          .list(category.id, {
+            limit: 100,
+            offset: 0
+          });
 
-      return { success: true, data: categoriesWithDocuments };
+        if (filesError) {
+          console.error(`Error loading files for category ${category.id}:`, filesError);
+          categoriesWithFiles.push({ ...category, files: [] });
+          continue;
+        }
+
+        // Преобразуем файлы в нужный формат
+        const storageFiles: StorageFile[] = (files || [])
+          .filter(file => file.name !== '.emptyFolderPlaceholder') // Исключаем служебные файлы
+          .map(file => {
+            const { data: urlData } = supabase.storage
+              .from('documents')
+              .getPublicUrl(`${category.id}/${file.name}`);
+
+            // Извлекаем читаемое имя из имени файла
+            // Формат: timestamp_random_originalname.ext
+            let displayName = file.name;
+            const parts = file.name.split('_');
+            if (parts.length >= 3) {
+              // Убираем timestamp и random часть, оставляем оригинальное имя
+              displayName = parts.slice(2).join('_');
+            }
+
+            return {
+              id: file.id || `${category.id}-${file.name}`,
+              name: displayName,
+              size: file.metadata?.size || 0,
+              created_at: file.created_at || new Date().toISOString(),
+              updated_at: file.updated_at || new Date().toISOString(),
+              category_id: category.id,
+              public_url: urlData.publicUrl
+            };
+          });
+
+        categoriesWithFiles.push({
+          ...category,
+          files: storageFiles
+        });
+      }
+
+      return { success: true, data: categoriesWithFiles };
     } catch (error) {
       return { 
         success: false, 
@@ -53,24 +100,52 @@ export class DocumentService {
     }
   }
 
-  // Загрузка файла в Supabase Storage
-  async uploadFile(file: File, categoryId: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  // Обновление названия категории
+  async updateCategoryName(categoryId: string, newName: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // Генерируем уникальное имя файла
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `documents/${categoryId}/${fileName}`;
+      const { error } = await supabase
+        .from('document_categories')
+        .update({ 
+          name: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', categoryId);
 
-      // Загружаем файл в Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Ошибка обновления категории' 
+      };
+    }
+  }
+
+  // Загрузка файла в Storage
+  async uploadFile(categoryId: string, file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+      // Очищаем имя файла от специальных символов, но сохраняем его читаемым
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9а-яА-Я.\-_ ]/g, '');
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 8);
+      
+      // Сохраняем оригинальное имя в новом имени файла
+      const fileName = `${timestamp}_${randomString}_${cleanFileName}`;
+      const filePath = `${categoryId}/${fileName}`;
+
+      // Загружаем файл
+      const { data, error } = await supabase.storage
         .from('documents')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
 
-      if (uploadError) {
-        return { success: false, error: uploadError.message };
+      if (error) {
+        return { success: false, error: error.message };
       }
 
       // Получаем публичный URL
@@ -87,115 +162,43 @@ export class DocumentService {
     }
   }
 
-  // Создание документа
-  async createDocument(data: UploadDocumentData): Promise<{ success: boolean; data?: DocumentRow; error?: string }> {
+  // Удаление файла из Storage
+  async deleteFile(categoryId: string, fileName: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // Сначала загружаем файл
-      const uploadResult = await this.uploadFile(data.file, data.category_id);
+      const filePath = `${categoryId}/${fileName}`;
       
-      if (!uploadResult.success || !uploadResult.url) {
-        return { success: false, error: uploadResult.error || 'Ошибка загрузки файла' };
-      }
-
-      // Получаем текущего пользователя
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // Создаем запись документа
-      const { data: documentData, error: documentError } = await supabase
+      const { error } = await supabase.storage
         .from('documents')
-        .insert({
-          category_id: data.category_id,
-          name: data.name,
-          file_name: data.file.name,
-          file_size: data.file.size,
-          file_type: data.file.type,
-          file_url: uploadResult.url,
-          uploaded_by: user?.id || null,
-          is_active: true
-        })
-        .select()
-        .single();
+        .remove([filePath]);
 
-      if (documentError) {
-        // Если создание записи не удалось, удаляем загруженный файл
-        const filePath = uploadResult.url.split('/').pop();
-        if (filePath) {
-          await supabase.storage
-            .from('documents')
-            .remove([`documents/${data.category_id}/${filePath}`]);
-        }
-        return { success: false, error: documentError.message };
-      }
-
-      return { success: true, data: documentData };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
-      };
-    }
-  }
-
-  // Удаление документа
-  async deleteDocument(documentId: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Сначала получаем информацию о документе
-      const { data: document, error: getError } = await supabase
-        .from('documents')
-        .select('file_url, category_id')
-        .eq('id', documentId)
-        .single();
-
-      if (getError || !document) {
-        return { success: false, error: getError?.message || 'Документ не найден' };
-      }
-
-      // Удаляем файл из Storage
-      const fileName = document.file_url.split('/').pop();
-      if (fileName) {
-        const filePath = `documents/${document.category_id}/${fileName}`;
-        await supabase.storage
-          .from('documents')
-          .remove([filePath]);
-      }
-
-      // Удаляем запись из базы данных
-      const { error: deleteError } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId);
-
-      if (deleteError) {
-        return { success: false, error: deleteError.message };
+      if (error) {
+        return { success: false, error: error.message };
       }
 
       return { success: true };
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
+        error: error instanceof Error ? error.message : 'Ошибка удаления файла' 
       };
     }
   }
 
-  // Получение URL для скачивания файла
-  async getDownloadUrl(fileUrl: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  // Скачивание файла
+  async downloadFile(publicUrl: string): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
-      // Извлекаем путь к файлу из полного URL
-      const urlParts = fileUrl.split('/');
-      const fileName = urlParts.pop();
-      const categoryPath = urlParts.slice(-2, -1)[0];
-      
-      if (!fileName || !categoryPath) {
+      // Извлекаем путь из публичного URL
+      const urlParts = publicUrl.split('/storage/v1/object/public/documents/');
+      if (urlParts.length !== 2) {
         return { success: false, error: 'Неверный URL файла' };
       }
 
-      const filePath = `documents/${categoryPath}/${fileName}`;
+      const filePath = decodeURIComponent(urlParts[1]);
 
-      // Создаем подписанный URL для скачивания (действителен 1 час)
+      // Создаем подписанный URL для скачивания
       const { data, error } = await supabase.storage
         .from('documents')
-        .createSignedUrl(filePath, 3600);
+        .createSignedUrl(filePath, 3600); // URL действителен 1 час
 
       if (error) {
         return { success: false, error: error.message };
@@ -205,7 +208,7 @@ export class DocumentService {
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Ошибка получения ссылки для скачивания' 
+        error: error instanceof Error ? error.message : 'Ошибка получения ссылки' 
       };
     }
   }

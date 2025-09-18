@@ -1,25 +1,26 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { DocumentService, CategoryWithDocuments, UploadDocumentData } from './DocumentService';
+import { DocumentService, CategoryWithFiles } from './DocumentService';
 
 export interface UseDocumentModuleReturn {
   // Состояние
-  categories: CategoryWithDocuments[];
+  categories: CategoryWithFiles[];
   loading: boolean;
   uploading: boolean;
   error: string | null;
   
   // Методы
   loadDocuments: () => Promise<void>;
-  uploadDocument: (data: UploadDocumentData) => Promise<{ success: boolean; error?: string }>;
-  deleteDocument: (documentId: string) => Promise<{ success: boolean; error?: string }>;
+  uploadDocument: (categoryId: string, file: File) => Promise<{ success: boolean; error?: string }>;
+  deleteDocument: (categoryId: string, fileName: string) => Promise<{ success: boolean; error?: string }>;
   downloadDocument: (fileUrl: string, fileName: string) => Promise<void>;
+  updateCategoryName: (categoryId: string, newName: string) => Promise<{ success: boolean; error?: string }>;
   clearError: () => void;
 }
 
 export const useDocumentModule = (): UseDocumentModuleReturn => {
-  const [categories, setCategories] = useState<CategoryWithDocuments[]>([]);
+  const [categories, setCategories] = useState<CategoryWithFiles[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export const useDocumentModule = (): UseDocumentModuleReturn => {
       setLoading(true);
       setError(null);
       
-      const result = await documentService.getCategoriesWithDocuments();
+      const result = await documentService.getCategoriesWithFiles();
       
       if (result.success && result.data) {
         setCategories(result.data);
@@ -46,27 +47,47 @@ export const useDocumentModule = (): UseDocumentModuleReturn => {
     }
   }, []);
 
-  // Загрузка документа
-  const uploadDocument = useCallback(async (data: UploadDocumentData): Promise<{ success: boolean; error?: string }> => {
+  // Обновление названия категории
+  const updateCategoryName = useCallback(async (categoryId: string, newName: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      setUploading(true);
       setError(null);
       
-      const result = await documentService.createDocument(data);
+      const result = await documentService.updateCategoryName(categoryId, newName);
       
-      if (result.success && result.data) {
+      if (result.success) {
         // Обновляем локальное состояние
         setCategories(prev => prev.map(category => 
-          category.id === data.category_id
-            ? {
-                ...category,
-                documents: [result.data!, ...category.documents]
-              }
+          category.id === categoryId
+            ? { ...category, name: newName }
             : category
         ));
         return { success: true };
       } else {
-        const errorMessage = result.error || 'Ошибка загрузки документа';
+        const errorMessage = result.error || 'Ошибка обновления категории';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, []);
+
+  // Загрузка файла
+  const uploadDocument = useCallback(async (categoryId: string, file: File): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setUploading(true);
+      setError(null);
+      
+      const result = await documentService.uploadFile(categoryId, file);
+      
+      if (result.success) {
+        // Перезагружаем список файлов
+        await loadDocuments();
+        return { success: true };
+      } else {
+        const errorMessage = result.error || 'Ошибка загрузки файла';
         setError(errorMessage);
         return { success: false, error: errorMessage };
       }
@@ -77,24 +98,21 @@ export const useDocumentModule = (): UseDocumentModuleReturn => {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [loadDocuments]);
 
-  // Удаление документа
-  const deleteDocument = useCallback(async (documentId: string): Promise<{ success: boolean; error?: string }> => {
+  // Удаление файла
+  const deleteDocument = useCallback(async (categoryId: string, fileName: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setError(null);
       
-      const result = await documentService.deleteDocument(documentId);
+      const result = await documentService.deleteFile(categoryId, fileName);
       
       if (result.success) {
-        // Обновляем локальное состояние
-        setCategories(prev => prev.map(category => ({
-          ...category,
-          documents: category.documents.filter(doc => doc.id !== documentId)
-        })));
+        // Перезагружаем список файлов
+        await loadDocuments();
         return { success: true };
       } else {
-        const errorMessage = result.error || 'Ошибка удаления документа';
+        const errorMessage = result.error || 'Ошибка удаления файла';
         setError(errorMessage);
         return { success: false, error: errorMessage };
       }
@@ -103,14 +121,14 @@ export const useDocumentModule = (): UseDocumentModuleReturn => {
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [loadDocuments]);
 
-  // Скачивание документа
+  // Скачивание файла
   const downloadDocument = useCallback(async (fileUrl: string, fileName: string) => {
     try {
       setError(null);
       
-      const result = await documentService.getDownloadUrl(fileUrl);
+      const result = await documentService.downloadFile(fileUrl);
       
       if (result.success && result.url) {
         // Создаем ссылку для скачивания
@@ -142,6 +160,7 @@ export const useDocumentModule = (): UseDocumentModuleReturn => {
     uploadDocument,
     deleteDocument,
     downloadDocument,
+    updateCategoryName,
     clearError
   };
 };

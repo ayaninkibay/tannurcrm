@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { reportService } from './ReportService';
 import type {
@@ -66,11 +66,38 @@ export const useReportModule = (): UseReportModuleReturn => {
     to: null
   });
 
+  // Рефы для предотвращения дублирования запросов
+  const loadingRef = useRef<Set<string>>(new Set());
+  const loadedUsersRef = useRef<Set<string>>(new Set());
+
+  /**
+   * Проверка, выполняется ли уже запрос для данного пользователя
+   */
+  const isLoading = useCallback((userId: string, type: string): boolean => {
+    return loadingRef.current.has(`${userId}-${type}`);
+  }, []);
+
+  /**
+   * Установка состояния загрузки
+   */
+  const setLoadingState = useCallback((userId: string, type: string, loading: boolean) => {
+    if (loading) {
+      loadingRef.current.add(`${userId}-${type}`);
+    } else {
+      loadingRef.current.delete(`${userId}-${type}`);
+    }
+    setLoading(loadingRef.current.size > 0);
+  }, []);
+
   /**
    * Загрузка отчета по subscription payments
    */
   const loadSubscriptionPaymentsReport = useCallback(async (userId: string) => {
-    setLoading(true);
+    if (isLoading(userId, 'subscriptions')) {
+      return;
+    }
+
+    setLoadingState(userId, 'subscriptions', true);
     setError(null);
     
     try {
@@ -87,20 +114,30 @@ export const useReportModule = (): UseReportModuleReturn => {
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingState(userId, 'subscriptions', false);
     }
-  }, []);
+  }, [isLoading, setLoadingState]);
 
   /**
    * Загрузка отчета по заказам
    */
   const loadOrdersReport = useCallback(async (userId: string) => {
-    setLoading(true);
+    if (isLoading(userId, 'orders')) {
+      return;
+    }
+
+    // Если данные уже загружались для этого пользователя, не загружаем повторно
+    if (loadedUsersRef.current.has(`${userId}-orders`) && orders.length > 0) {
+      return;
+    }
+
+    setLoadingState(userId, 'orders', true);
     setError(null);
     
     try {
       const data = await reportService.getOrdersReport(userId);
       setOrders(data);
+      loadedUsersRef.current.add(`${userId}-orders`);
       
       if (data.length === 0) {
         toast.info('Нет данных по заказам');
@@ -113,15 +150,19 @@ export const useReportModule = (): UseReportModuleReturn => {
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingState(userId, 'orders', false);
     }
-  }, []);
+  }, [isLoading, setLoadingState, orders.length]);
 
   /**
    * Загрузка отчета по командным закупкам
    */
   const loadTeamPurchasesReport = useCallback(async (userId: string) => {
-    setLoading(true);
+    if (isLoading(userId, 'team-purchases')) {
+      return;
+    }
+
+    setLoadingState(userId, 'team-purchases', true);
     setError(null);
     
     try {
@@ -141,15 +182,19 @@ export const useReportModule = (): UseReportModuleReturn => {
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingState(userId, 'team-purchases', false);
     }
-  }, []);
+  }, [isLoading, setLoadingState]);
 
   /**
    * Загрузка сводного отчета
    */
   const loadUserSummaryReport = useCallback(async (userId: string) => {
-    setLoading(true);
+    if (isLoading(userId, 'summary')) {
+      return;
+    }
+
+    setLoadingState(userId, 'summary', true);
     setError(null);
     
     try {
@@ -166,15 +211,19 @@ export const useReportModule = (): UseReportModuleReturn => {
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingState(userId, 'summary', false);
     }
-  }, []);
+  }, [isLoading, setLoadingState]);
 
   /**
    * Загрузка полного отчета (все типы)
    */
   const loadFullReport = useCallback(async (userId: string) => {
-    setLoading(true);
+    if (isLoading(userId, 'full')) {
+      return;
+    }
+
+    setLoadingState(userId, 'full', true);
     setError(null);
     
     try {
@@ -191,15 +240,18 @@ export const useReportModule = (): UseReportModuleReturn => {
       setTeamPurchases(purchases);
       setUserSummary(summary);
       
+      // Отмечаем что данные загружены
+      loadedUsersRef.current.add(`${userId}-orders`);
+      
       toast.success('Полный отчет загружен');
     } catch (err: any) {
       const errorMessage = err.message || 'Ошибка загрузки полного отчета';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoadingState(userId, 'full', false);
     }
-  }, []);
+  }, [isLoading, setLoadingState]);
 
   /**
    * Экспорт subscription payments в CSV
@@ -336,6 +388,9 @@ export const useReportModule = (): UseReportModuleReturn => {
     setTeamPurchases([]);
     setUserSummary(null);
     setError(null);
+    loadedUsersRef.current.clear();
+    loadingRef.current.clear();
+    setLoading(false);
     toast.info('Отчеты очищены');
   }, []);
 

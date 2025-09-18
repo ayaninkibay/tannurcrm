@@ -3,9 +3,18 @@
 import React, { useEffect } from 'react';
 import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
-import Footer from '@/components/Footer';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useDocumentModule } from '@/lib/documents/useDocumentModule';
+import { 
+  FileText, 
+  Download, 
+  FolderOpen, 
+  Info,
+  File,
+  FileVideo,
+  FileImage,
+  FilePlus
+} from 'lucide-react';
 
 export default function DealerDocumentsPage() {
   const { t } = useTranslate();
@@ -23,9 +32,27 @@ export default function DealerDocumentsPage() {
     loadDocuments();
   }, [loadDocuments]);
 
-  const formatFileSize = (bytes: number | null) => {
+  const formatFileSize = (bytes: number) => {
     if (!bytes) return '';
-    return `${(bytes / (1024 * 1024)).toFixed(1)} ${t('MB')}`;
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    if (['pdf', 'doc', 'docx', 'txt'].includes(extension || '')) {
+      return <FileText className="w-5 h-5 text-[#DC7C67]" />;
+    }
+    if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) {
+      return <FileVideo className="w-5 h-5 text-[#DC7C67]" />;
+    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '')) {
+      return <FileImage className="w-5 h-5 text-[#DC7C67]" />;
+    }
+    return <File className="w-5 h-5 text-[#DC7C67]" />;
   };
 
   const handleDownload = async (fileUrl: string, fileName: string) => {
@@ -34,82 +61,84 @@ export default function DealerDocumentsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4 sm:space-y-8 p-2 md:p-6">
-        <MoreHeaderAD title={t('Документы Tannur')} />
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#DC7C67] border-t-transparent"></div>
+      <div className="min-h-screen">
+        <div className="space-y-8 p-2 md:p-6">
+          <MoreHeaderAD title={t('Документы Tannur')} />
+          <div className="flex justify-center py-16">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#DC7C67] border-t-transparent"></div>
+              <div className="absolute inset-0 animate-pulse rounded-full h-12 w-12 border-4 border-[#DC7C67] opacity-20"></div>
+            </div>
+          </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const fileBlock = (category: any) => (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 flex-1 h-full w-full">
-      <h2 className="text-sm md:text-lg text-gray-800 mb-4 flex items-center gap-2">
-        {category.icon_src && (
-          <Image src={category.icon_src} alt="icon" width={18} height={18} />
-        )}
-        {t(category.name)}
-        <span className="text-xs text-gray-500 ml-auto">
-          ({category.documents.length} {t('файлов')})
-        </span>
-      </h2>
+  const FileCard = ({ category }: { category: any }) => (
+    <div className="bg-white rounded-2xl hover:shadow-sm transition-all duration-300 overflow-hidden border border-gray-100">
+      {/* Заголовок категории */}
+      <div className="bg-gradient-to-r from-[#DC7C67] to-[#E89380] p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+            {category.icon_src ? (
+              <Image src={category.icon_src} alt="icon" width={20} height={20} />
+            ) : (
+              <FolderOpen className="w-5 h-5 text-white" />
+            )}
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-semibold text-sm md:text-base">
+              {t(category.name)}
+            </h3>
+            <p className="text-white/80 text-xs">
+              {category.files.length} {t('файлов')}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <div className="flex flex-col gap-3">
-        {category.documents.length > 0 ? (
-          category.documents.map((document: any) => (
+      {/* Список файлов */}
+      <div className="p-4 sm:p-5 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+        {category.files.length > 0 ? (
+          category.files.map((file: any) => (
             <div
-              key={document.id}
-              className="bg-[#F2F2F2] flex items-center justify-between px-3 sm:px-4 py-2 rounded-xl group hover:bg-gray-200 transition-colors"
+              key={file.id}
+              className="group flex items-center justify-between p-3 bg-gray-50 hover:bg-orange-50 rounded-xl transition-all duration-200 cursor-pointer"
+              onClick={() => handleDownload(file.public_url, file.name)}
             >
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <Image
-                  src="/icons/Icon file gray.png"
-                  alt="file"
-                  width={16}
-                  height={16}
-                  className="object-contain flex-shrink-0"
-                />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-2 bg-white rounded-lg group-hover:bg-orange-100 transition-colors">
+                  {getFileIcon(file.name)}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs sm:text-sm text-gray-800 truncate block">
-                    {document.name}
-                  </span>
-                  {document.file_size && (
-                    <span className="text-xs text-gray-500">
-                      {formatFileSize(document.file_size)}
-                    </span>
+                  <p className="text-sm font-medium text-gray-800 truncate group-hover:text-[#DC7C67] transition-colors">
+                    {file.name}
+                  </p>
+                  {file.size > 0 && (
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)}
+                    </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 ml-2">
-                <button 
-                  onClick={() => handleDownload(document.file_url, document.file_name)}
-                  className="p-1 hover:bg-gray-300 rounded transition-colors" 
-                  aria-label="download"
-                  title={t('Скачать файл')}
-                >
-                  <Image
-                    src="/icons/Icon download.png"
-                    alt="download"
-                    width={14}
-                    height={14}
-                  />
-                </button>
-              </div>
+              <button 
+                className="p-2 hover:bg-white rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
+                aria-label="download"
+                title={t('Скачать файл')}
+              >
+                <Download className="w-4 h-4 text-[#DC7C67]" />
+              </button>
             </div>
           ))
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Image
-              src="/icons/Icon file gray.png"
-              alt="no files"
-              width={32}
-              height={32}
-              className="mx-auto mb-2 opacity-50"
-            />
-            <p className="text-sm">{t('В этой категории пока нет файлов')}</p>
+          <div className="text-center py-12">
+            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
+              <FilePlus className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">{t('В этой категории пока нет файлов')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Файлы появятся после загрузки')}</p>
           </div>
         )}
       </div>
@@ -117,64 +146,71 @@ export default function DealerDocumentsPage() {
   );
 
   return (
-    <div className="space-y-4 sm:space-y-8 p-2 md:p-6 relative">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6">
+    <div className="min-h-screen">
+      <div className="space-y-6 sm:space-y-8 p-2 md:p-6">
         <MoreHeaderAD title={t('Документы Tannur')} />
 
+        {/* Ошибка */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-red-700">{error}</span>
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-xl p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Info className="w-5 h-5 text-red-600" />
+              </div>
+              <span className="text-red-800 text-sm font-medium">{error}</span>
             </div>
             <button
               onClick={clearError}
-              className="text-red-500 hover:text-red-700"
+              className="p-1 hover:bg-red-100 rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-blue-700 text-sm">
-              {t('Здесь вы можете просматривать и скачивать документы, загруженные администратором')}
-            </span>
-          </div>
-        </div>
 
+        {/* Сетка категорий */}
         {categories.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {categories.map((category) => (
-              <div key={category.id}>
-                {fileBlock(category)}
-              </div>
+              <FileCard key={category.id} category={category} />
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl p-8 text-center">
-            <Image
-              src="/icons/Icon file gray.png"
-              alt="no documents"
-              width={48}
-              height={48}
-              className="mx-auto mb-4 opacity-50"
-            />
-            <p className="text-gray-500 mb-2">{t('Документы пока не загружены')}</p>
-            <p className="text-sm text-gray-400">{t('Обратитесь к администратору для получения документов')}</p>
+          <div className="bg-white rounded-2xl p-12 text-center shadow-lg">
+            <div className="inline-flex p-6 bg-gradient-to-br from-orange-100 to-orange-50 rounded-full mb-6">
+              <FolderOpen className="w-12 h-12 text-[#DC7C67]" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              {t('Документы пока не загружены')}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
+              {t('Обратитесь к администратору для получения необходимых документов. Они появятся здесь после загрузки.')}
+            </p>
           </div>
         )}
       </div>
 
-      <Footer />
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #DC7C67;
+          border-radius: 10px;
+          opacity: 0.6;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #C66B5A;
+        }
+      `}</style>
     </div>
   );
 }

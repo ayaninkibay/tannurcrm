@@ -1,10 +1,23 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useDocumentModule } from '@/lib/documents/useDocumentModule';
+import { 
+  Edit2, 
+  Check, 
+  X, 
+  Upload,
+  Trash2,
+  Download,
+  FileText,
+  FileVideo,
+  FileImage,
+  File,
+  Folder
+} from 'lucide-react';
 
 export default function AdminDocumentsPage() {
   const { t } = useTranslate();
@@ -18,10 +31,13 @@ export default function AdminDocumentsPage() {
     uploadDocument,
     deleteDocument,
     downloadDocument,
+    updateCategoryName,
     clearError
   } = useDocumentModule();
 
-  const [dragOver, setDragOver] = React.useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
   const fileInputRefs = React.useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   useEffect(() => {
@@ -33,11 +49,7 @@ export default function AdminDocumentsPage() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      await uploadDocument({
-        category_id: categoryId,
-        name: file.name,
-        file: file
-      });
+      await uploadDocument(categoryId, file);
     }
   };
 
@@ -57,23 +69,63 @@ export default function AdminDocumentsPage() {
     handleFileUpload(categoryId, e.dataTransfer.files);
   };
 
-  const handleDeleteFile = async (categoryId: string, documentId: string) => {
+  const handleDeleteFile = async (category: any, file: any) => {
     if (confirm(t('Вы уверены, что хотите удалить этот документ?'))) {
-      await deleteDocument(documentId);
+      const urlParts = file.public_url.split('/');
+      const fullFileName = urlParts[urlParts.length - 1];
+      await deleteDocument(category.id, decodeURIComponent(fullFileName));
     }
   };
 
-  const formatFileSize = (bytes: number | null) => {
+  const startEditCategory = (categoryId: string, currentName: string) => {
+    setEditingCategory(categoryId);
+    setEditName(currentName);
+  };
+
+  const cancelEdit = () => {
+    setEditingCategory(null);
+    setEditName('');
+  };
+
+  const saveEdit = async (categoryId: string) => {
+    if (!editName.trim()) return;
+    
+    const result = await updateCategoryName(categoryId, editName.trim());
+    if (result.success) {
+      setEditingCategory(null);
+      setEditName('');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
     if (!bytes) return '';
-    return `${(bytes / (1024 * 1024)).toFixed(1)} ${t('MB')}`;
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    if (['pdf', 'doc', 'docx', 'txt'].includes(extension || '')) {
+      return <FileText className="w-4 h-4 text-[#DC7C67]" />;
+    }
+    if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) {
+      return <FileVideo className="w-4 h-4 text-[#DC7C67]" />;
+    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '')) {
+      return <FileImage className="w-4 h-4 text-[#DC7C67]" />;
+    }
+    return <File className="w-4 h-4 text-[#DC7C67]" />;
   };
 
   const FileUploadArea = ({ categoryId }: { categoryId: string }) => (
     <div
-      className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors cursor-pointer ${
+      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
         dragOver === categoryId
           ? 'border-[#DC7C67] bg-orange-50'
-          : 'border-gray-300 hover:border-gray-400'
+          : 'border-gray-300 hover:border-gray-400 bg-gray-50'
       } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
       onDragOver={(e) => handleDragOver(e, categoryId)}
       onDragLeave={handleDragLeave}
@@ -92,90 +144,142 @@ export default function AdminDocumentsPage() {
         disabled={uploading}
       />
 
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
           {uploading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#DC7C67] border-t-transparent"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#DC7C67] border-t-transparent"></div>
           ) : (
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
+            <Upload className="w-6 h-6 text-[#DC7C67]" />
           )}
         </div>
-        <span className="text-xs text-gray-500">
-          {uploading ? t('Загрузка...') : t('Перетащите файлы или нажмите')}
-        </span>
+        <div>
+          <p className="text-sm font-medium text-gray-700">
+            {uploading ? t('Загрузка...') : t('Загрузить файлы')}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {t('Перетащите или нажмите для выбора')}
+          </p>
+        </div>
       </div>
     </div>
   );
 
   if (loading) {
     return (
-      <div className="space-y-4 sm:space-y-8 p-2 md:p-6">
-        <MoreHeaderAD title={t('Документы Tannur')} />
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#DC7C67] border-t-transparent"></div>
+      <div className="min-h-screen p-2 md:p-6">
+        <MoreHeaderAD title={t('Управление документами')} />
+        <div className="flex justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-[#DC7C67] border-t-transparent"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-8 p-2 md:p-6 relative">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6">
-        <MoreHeaderAD title={t('Документы Tannur')} />
+    <div className="min-h-screen p-2 md:p-6">
+      <div className="mx-auto">
+        <MoreHeaderAD title={t('Управление документами')} />
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
-            <span className="text-red-700">{error}</span>
-            <button onClick={clearError} className="text-red-500 hover:text-red-700">×</button>
+          <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+            <span className="text-red-700 text-sm">{error}</span>
+            <button onClick={clearError} className="text-red-500 hover:text-red-700">
+              <X className="w-5 h-5" />
+            </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((category) => (
-            <div key={category.id} className="bg-white rounded-2xl p-4 sm:p-6">
-              <h2 className="text-sm md:text-lg text-gray-800 mb-4 flex items-center gap-2">
-                {category.icon_src && (
-                  <Image src={category.icon_src} alt="icon" width={18} height={18} />
-                )}
-                {t(category.name)}
-                <span className="text-xs text-gray-500 ml-auto">
-                  ({category.documents.length} {t('файлов')})
-                </span>
-              </h2>
+            <div key={category.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Заголовок категории */}
+              <div className="p-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  {editingCategory === category.id ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && saveEdit(category.id)}
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#DC7C67] focus:border-transparent"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => saveEdit(category.id)}
+                        className="p-1.5 hover:bg-green-50 rounded-lg transition-colors"
+                      >
+                        <Check className="w-4 h-4 text-green-600" />
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <X className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Folder className="w-5 h-5 text-[#DC7C67]" />
+                        <h3 className="text-base font-semibold text-gray-900">
+                          {t(category.name)}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditCategory(category.id, category.name)}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          title={t('Редактировать название')}
+                        >
+                          <Edit2 className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <span className="text-sm text-gray-500 ml-2">
+                          {category.files.length}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
 
-              <div className="flex flex-col gap-3">
-                {category.documents.map((document) => (
-                  <div key={document.id} className="bg-[#F2F2F2] flex items-center justify-between px-3 sm:px-4 py-2 rounded-xl group hover:bg-gray-200 transition-colors">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Image src="/icons/Icon file gray.png" alt="file" width={16} height={16} className="flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs sm:text-sm text-gray-800 truncate block">{document.name}</span>
-                        {document.file_size && (
-                          <span className="text-xs text-gray-500">{formatFileSize(document.file_size)}</span>
-                        )}
+              {/* Список файлов */}
+              <div className="p-4">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto mb-4">
+                  {category.files.map((file) => (
+                    <div 
+                      key={file.id} 
+                      className="group flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {getFileIcon(file.name)}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-800 truncate">{file.name}</p>
+                          {file.size > 0 && (
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => handleDeleteFile(category, file)}
+                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                          title={t('Удалить')}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                        <button 
+                          onClick={() => downloadDocument(file.public_url, file.name)}
+                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                          title={t('Скачать')}
+                        >
+                          <Download className="w-4 h-4 text-gray-600" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 ml-2">
-                      <button
-                        onClick={() => handleDeleteFile(category.id, document.id)}
-                        className="p-1 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={() => downloadDocument(document.file_url, document.file_name)}
-                        className="p-1 hover:bg-gray-300 rounded transition-colors"
-                      >
-                        <Image src="/icons/Icon download.png" alt="download" width={14} height={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
 
                 <FileUploadArea categoryId={category.id} />
               </div>

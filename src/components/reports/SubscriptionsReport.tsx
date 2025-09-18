@@ -1,25 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Crown, Download, Calendar } from "lucide-react";
+import { Crown, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslate } from "@/hooks/useTranslate";
 import { useReportModule } from "@/lib/reports/ReportModule";
 import { useUser } from "@/context/UserContext";
 import type { SubscriptionPaymentReport } from "@/lib/reports/ReportService";
 
-export type Period = "all" | "last6" | "thisYear" | "prevYear";
-
-interface Props {
-  period?: Period;
-  onPeriodChange?: (period: Period) => void;
-}
-
-const periodOptions = [
-  { value: "all", label: "За всё время" },
-  { value: "last6", label: "6 месяцев" },
-  { value: "thisYear", label: "Текущий год" },
-  { value: "prevYear", label: "Прошлый год" },
-];
+interface Props {}
 
 // Мобильная карточка подписки
 const MobileSubscriptionCard: React.FC<{ sub: SubscriptionPaymentReport; index: number }> = ({ sub }) => {
@@ -78,14 +66,117 @@ const MobileSubscriptionCard: React.FC<{ sub: SubscriptionPaymentReport; index: 
   );
 };
 
-const SubscriptionsReport: React.FC<Props> = ({ 
-  period = "all", 
-  onPeriodChange = () => {} 
+// Компонент пагинации
+const Pagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange,
+  t 
+}: { 
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  t: (k: string) => string;
 }) => {
+  if (totalPages <= 1) return null;
+
+  const getVisiblePages = () => {
+    const pages = [];
+    const showPages = 5; // Максимум страниц для показа
+    
+    let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+    let endPage = Math.min(totalPages, startPage + showPages - 1);
+    
+    // Корректируем начальную страницу если мало страниц в конце
+    if (endPage - startPage + 1 < showPages) {
+      startPage = Math.max(1, endPage - showPages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
+  };
+
+  const visiblePages = getVisiblePages();
+
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {/* Предыдущая страница */}
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {/* Первая страница */}
+      {visiblePages[0] > 1 && (
+        <>
+          <button
+            onClick={() => onPageChange(1)}
+            className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            1
+          </button>
+          {visiblePages[0] > 2 && (
+            <span className="px-2 text-gray-400">...</span>
+          )}
+        </>
+      )}
+
+      {/* Видимые страницы */}
+      {visiblePages.map(page => (
+        <button
+          key={page}
+          onClick={() => onPageChange(page)}
+          className={`px-3 py-1.5 rounded-lg transition-colors ${
+            currentPage === page
+              ? "bg-[#D77E6C] text-white"
+              : "hover:bg-gray-100"
+          }`}
+        >
+          {page}
+        </button>
+      ))}
+
+      {/* Последняя страница */}
+      {visiblePages[visiblePages.length - 1] < totalPages && (
+        <>
+          {visiblePages[visiblePages.length - 1] < totalPages - 1 && (
+            <span className="px-2 text-gray-400">...</span>
+          )}
+          <button
+            onClick={() => onPageChange(totalPages)}
+            className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            {totalPages}
+          </button>
+        </>
+      )}
+
+      {/* Следующая страница */}
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+};
+
+const SubscriptionsReport: React.FC<Props> = () => {
   const { t } = useTranslate();
   const { profile } = useUser();
   const reportModule = useReportModule();
-  const [selectedPeriod, setSelectedPeriod] = useState(period);
+  
+  // Состояние для пагинации
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Загружаем данные при монтировании
   useEffect(() => {
@@ -94,18 +185,30 @@ const SubscriptionsReport: React.FC<Props> = ({
     }
   }, [profile?.id]);
 
-  const handlePeriodChange = (newPeriod: Period) => {
-    setSelectedPeriod(newPeriod);
-    onPeriodChange(newPeriod);
-  };
+  // Получаем все подписки
+  const allSubscriptions = reportModule.subscriptionPayments;
 
-  // Фильтруем данные по периоду
-  const filteredData = reportModule.getFilteredData(reportModule.subscriptionPayments);
-
-  // Расчет общей суммы
-  const totalAmount = filteredData
+  // Расчет общей суммы ВСЕХ подписок
+  const totalAmount = allSubscriptions
     .filter(sub => sub.status === "paid")
     .reduce((sum, sub) => sum + (sub.amount || 0), 0);
+
+  // Пагинация
+  const totalPages = Math.ceil(allSubscriptions.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSubscriptions = allSubscriptions.slice(startIndex, endIndex);
+
+  // Сброс на первую страницу при изменении данных
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [allSubscriptions.length]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Прокрутка наверх при смене страницы
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl border border-gray-100 p-4 md:p-6">
@@ -113,8 +216,8 @@ const SubscriptionsReport: React.FC<Props> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(215, 126, 108, 0.1)' }}>
-              <Crown className="w-5 h-5" style={{ color: '#D77E6C' }} />
+            <div className="p-2 bg-[#D77E6C]/10 rounded-lg">
+              <Crown className="w-5 h-5 text-[#D77E6C]" />
             </div>
             <h3 className="text-xl md:text-2xl font-medium text-gray-900">
               {t("Отчет по подпискам")}
@@ -125,42 +228,11 @@ const SubscriptionsReport: React.FC<Props> = ({
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="bg-gray-50 rounded-xl px-4 py-3">
-            <p className="text-xs text-gray-500 mb-1">{t("Общая сумма")}</p>
-            <p className="text-lg md:text-xl font-bold" style={{ color: '#D77E6C' }}>
-              {totalAmount.toLocaleString('ru-KZ')}₸
-            </p>
-          </div>
-          <button 
-            onClick={reportModule.exportSubscriptionPayments}
-            className="flex items-center justify-center gap-2 text-white px-4 py-3 rounded-xl transition-colors"
-            style={{ backgroundColor: '#D77E6C' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#C66B5A'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D77E6C'}
-          >
-            <Download className="w-4 h-4" />
-            <span className="text-sm font-medium">{t("Скачать")}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Переключатель периода */}
-      <div className="overflow-x-auto mb-6">
-        <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit min-w-full sm:min-w-0">
-          {periodOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handlePeriodChange(option.value as Period)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                selectedPeriod === option.value
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              {t(option.label)}
-            </button>
-          ))}
+        <div className="bg-gray-50 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500 mb-1">{t("Общая сумма")}</p>
+          <p className="text-lg md:text-xl font-bold text-[#D77E6C]">
+            {totalAmount.toLocaleString('ru-KZ')}₸
+          </p>
         </div>
       </div>
 
@@ -172,23 +244,37 @@ const SubscriptionsReport: React.FC<Props> = ({
       )}
 
       {/* Нет данных */}
-      {!reportModule.loading && filteredData.length === 0 && (
+      {!reportModule.loading && allSubscriptions.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">{t("Нет данных для отображения")}</p>
+          <Crown className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg font-medium mb-2">{t("Нет подписок")}</p>
+          <p className="text-gray-400 text-sm">{t("У вас пока нет подписочных платежей")}</p>
+        </div>
+      )}
+
+      {/* Информация о пагинации */}
+      {!reportModule.loading && allSubscriptions.length > 0 && (
+        <div className="mb-4 flex justify-between items-center text-sm text-gray-600">
+          <p>
+            {t("Показано")} {startIndex + 1}-{Math.min(endIndex, allSubscriptions.length)} из {allSubscriptions.length} подписок
+          </p>
+          <p>
+            {t("Страница")} {currentPage} из {totalPages}
+          </p>
         </div>
       )}
 
       {/* Мобильная версия - карточки */}
-      {!reportModule.loading && filteredData.length > 0 && (
+      {!reportModule.loading && currentSubscriptions.length > 0 && (
         <div className="md:hidden">
-          {filteredData.map((sub, idx) => (
+          {currentSubscriptions.map((sub, idx) => (
             <MobileSubscriptionCard key={sub.id} sub={sub} index={idx} />
           ))}
         </div>
       )}
 
       {/* Десктопная версия - таблица */}
-      {!reportModule.loading && filteredData.length > 0 && (
+      {!reportModule.loading && currentSubscriptions.length > 0 && (
         <div className="hidden md:block overflow-hidden rounded-xl bg-white border border-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -218,7 +304,7 @@ const SubscriptionsReport: React.FC<Props> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((sub) => (
+                {currentSubscriptions.map((sub) => (
                   <tr
                     key={sub.id}
                     className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
@@ -291,27 +377,14 @@ const SubscriptionsReport: React.FC<Props> = ({
       )}
 
       {/* Пагинация */}
-      {!reportModule.loading && filteredData.length > 0 && (
-        <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-          <p className="text-center sm:text-left">
-            {t("Показано {n} записей").replace("{n}", String(filteredData.length))}
-          </p>
-          <div className="flex gap-1">
-            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              ←
-            </button>
-            <button 
-              className="px-3 py-1.5 rounded-lg text-white"
-              style={{ backgroundColor: '#D77E6C' }}
-            >
-              1
-            </button>
-            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">2</button>
-            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">3</button>
-            <button className="px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              →
-            </button>
-          </div>
+      {!reportModule.loading && allSubscriptions.length > 0 && (
+        <div className="mt-6 flex justify-center">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            t={t}
+          />
         </div>
       )}
     </div>

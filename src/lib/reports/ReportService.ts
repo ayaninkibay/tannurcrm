@@ -175,9 +175,6 @@ async getSubscriptionPaymentsReport(userId: string): Promise<SubscriptionPayment
   /**
    * Получить детальный отчет по заказам пользователя
    */
- /**
- * Получить детальный отчет по заказам пользователя
- */
 async getOrdersReport(userId: string): Promise<OrderReport[]> {
   try {
     // Получаем заказы пользователя
@@ -193,12 +190,12 @@ async getOrdersReport(userId: string): Promise<OrderReport[]> {
 
     // Для каждого заказа получаем детали
     for (const order of orders || []) {
-      // ИСПРАВЛЕНО: Указываем конкретную связь для products
+      // ИСПРАВЛЕНО: Используем правильное имя связи из вашей схемы
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
         .select(`
           *,
-          product:products!order_items_product_id_fkey(
+          product:products!fk_order_items_product(
             name,
             category,
             image_url
@@ -208,13 +205,37 @@ async getOrdersReport(userId: string): Promise<OrderReport[]> {
 
       if (itemsError) {
         console.error('Error fetching order items:', itemsError);
-        continue;
-      }
+        // Можно попробовать альтернативный синтаксис
+        const { data: itemsAlt, error: altError } = await supabase
+          .from('order_items')
+          .select(`
+            *,
+            products(
+              name,
+              category,
+              image_url
+            )
+          `)
+          .eq('order_id', order.id);
 
-      orderReports.push({
-        ...order,
-        items: items || []
-      });
+        if (altError) {
+          console.error('Alternative query also failed:', altError);
+          continue;
+        }
+
+        orderReports.push({
+          ...order,
+          items: (itemsAlt || []).map(item => ({
+            ...item,
+            product: item.products
+          }))
+        });
+      } else {
+        orderReports.push({
+          ...order,
+          items: items || []
+        });
+      }
     }
 
     return orderReports;
@@ -247,7 +268,57 @@ async getOrdersReport(userId: string): Promise<OrderReport[]> {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error with named relation, trying alternative:', error);
+      
+      // Альтернативный запрос без именованной связи
+      const { data: altMemberships, error: altError } = await supabase
+        .from('team_purchase_members')
+        .select(`
+          *,
+          team_purchases(
+            id,
+            title,
+            status,
+            target_amount,
+            collected_amount,
+            paid_amount,
+            initiator_id
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (altError) throw altError;
+
+      const reports: TeamPurchaseReport[] = [];
+
+      // Для каждого участия получаем бонусы
+      for (const membership of altMemberships || []) {
+        // Получаем бонусы для этой закупки
+        const { data: bonuses } = await supabase
+          .from('team_purchase_bonuses')
+          .select('bonus_amount, received_percent')
+          .eq('team_purchase_id', membership.team_purchase_id)
+          .eq('beneficiary_id', userId);
+
+        const totalEarned = bonuses?.reduce((sum, b) => sum + (b.bonus_amount || 0), 0) || 0;
+        const personalBonus = bonuses?.find(b => b.received_percent)?.bonus_amount || 0;
+        const teamBonus = totalEarned - personalBonus;
+
+        reports.push({
+          ...membership,
+          team_purchase: membership.team_purchases,
+          bonuses: {
+            total_earned: totalEarned,
+            personal_bonus: personalBonus,
+            team_bonus: teamBonus
+          }
+        });
+      }
+
+      return reports;
+    }
 
     const reports: TeamPurchaseReport[] = [];
 
@@ -321,7 +392,7 @@ async getOrdersReport(userId: string): Promise<OrderReport[]> {
         tp.team_purchase?.status === 'completed'
       ).length;
 
-      // Получаем бонусы
+      // Получаем бонусы (исправлена таблица на bonus_payots согласно схеме)
       const { data: bonusPayouts } = await supabase
         .from('bonus_payots')
         .select('amount, status')
