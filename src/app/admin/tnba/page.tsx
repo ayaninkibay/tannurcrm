@@ -77,8 +77,10 @@ function AcademyContent() {
   }
 
   return (
-    <div className="p-2">
-      <MoreHeaderAD title="Академия Tannur" />
+    <div className="min-h-screen">
+      <header className="flex">
+        <MoreHeaderAD title={t('Академия Tannur')} />
+      </header>
 
       <div className="px-0">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">

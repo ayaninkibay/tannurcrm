@@ -32,6 +32,7 @@ export default function DashboardPage() {
       {/* Верхний блок с профилем, реферальной ссылкой и спонсором */}
 
 
+
         <div className="flex flex-col lg:flex-row items-center gap-4 md:gap-6">
           {/* Профиль */}
           <div className="flex-1 w-full">
@@ -47,6 +48,7 @@ export default function DashboardPage() {
           <div className="flex-1 w-full">
             <SponsorCard variant="minimal" />
 
+
           </div>
         </div>
 
@@ -55,7 +57,9 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Карточки баланса и команды */}
         <div className="h-full">
-          <BalanceCard balance={890020} size="normal" variant="white" />
+
+          <BalanceCard balance={890020} size="normal" variant="dark" />
+
         </div>
         <div className="h-full">
           <TeamCardModule 
