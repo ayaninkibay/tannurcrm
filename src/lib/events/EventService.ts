@@ -1,178 +1,157 @@
-// services/EventService.ts
+import { supabase } from '@/lib/supabase/client';
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Database } from '@/types/supabase';
-import type { Event, CreateEventInput, UpdateEventInput } from '@/types/custom.types';
+export interface Event {
+  id: string;
+  created_at: string | null;
+  updated_at: string | null;
+  title: string;
+  description?: string | null;
+  short_description?: string | null;
+  image_url?: string | null;
+  banner_url?: string | null;
+  gallery?: string[] | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  goals?: any[] | null;
+  rewards?: any[] | null;
+  conditions?: any[] | null;
+  badge_color?: string | null;
+  badge_icon?: string | null;
+  priority?: number | null;
+  is_featured?: boolean | null;
+  tags?: string[] | null;
+  created_by?: string | null;
+  event_type?: string | null;
+  target_amount?: number | null;
+  reward?: string | null;
+  reward_description?: string | null;
+  max_participants?: number | null;
+}
 
-export class EventService {
-  private supabase;
+export interface EventWithStats extends Event {
+  participants_count: number;
+  achieved_count: number;
+  total_turnover: number;
+}
 
-  constructor() {
-    this.supabase = createClientComponentClient<Database>();
-  }
+export class EventsService {
+  // Получить все события со статистикой
+ // Обновленный метод getEventsWithStats в lib/events/EventService.ts
+async getEventsWithStats(): Promise<EventWithStats[]> {
+  try {
+    const { data: events, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  // ========================================
-  // ПОЛУЧЕНИЕ СОБЫТИЙ
-  // ========================================
-
-  /**
-   * Получить все события с вычисленными статусами
-   */
-  async getAllEvents(): Promise<Event[]> {
-    try {
-      const { data, error } = await this.supabase
-        .rpc('get_all_events');
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching events:', error);
+    if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
-  }
-
-  /**
-   * Получить событие по ID
-   */
-  async getEventById(id: string): Promise<Event | null> {
-    try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching event:', error);
-      throw error;
+    
+    if (!events || events.length === 0) {
+      console.log('No events found in database');
+      return [];
     }
-  }
 
-  /**
-   * Получить опубликованные события
-   */
-  async getPublishedEvents(): Promise<Event[]> {
-    try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'published')
-        .order('priority', { ascending: false })
-        .order('start_date', { ascending: false });
+    // Получаем всех дилеров
+    const { data: dealers } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'dealer');
 
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching published events:', error);
-      throw error;
+    // Получаем все оплаченные заказы
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('user_id, total_amount')
+      .eq('payment_status', 'paid');
+
+    // Подсчитываем товарооборот для КАЖДОГО дилера отдельно
+    const dealerTurnovers = new Map<string, number>();
+    
+    if (orders) {
+      orders.forEach(order => {
+        const current = dealerTurnovers.get(order.user_id) || 0;
+        dealerTurnovers.set(order.user_id, current + (order.total_amount || 0));
+      });
     }
+
+    // Обрабатываем каждое событие
+    const eventsWithStats = events.map((event: any) => {
+      const targetAmount = Number(event.target_amount) || 0;
+      let achievedCount = 0;
+      let totalTurnoverSum = 0; // Сумма товарооборотов ВСЕХ участников
+      let participantsWithTurnover = 0; // Количество участников с товарооборотом > 0
+
+      // Считаем, сколько дилеров достигли цели
+      dealerTurnovers.forEach((turnover, userId) => {
+        if (turnover > 0) {
+          participantsWithTurnover++;
+          totalTurnoverSum += turnover;
+        }
+        if (targetAmount > 0 && turnover >= targetAmount) {
+          achievedCount++;
+        }
+      });
+
+      const eventWithStats: EventWithStats = {
+        ...event,
+        participants_count: dealers?.length || 0, // Всего дилеров в системе
+        achieved_count: achievedCount, // Сколько достигли цели
+        total_turnover: totalTurnoverSum // Сумма товарооборотов всех дилеров
+      };
+
+      console.log('Event stats:', {
+        title: event.title,
+        target: targetAmount,
+        participantsCount: dealers?.length || 0,
+        achievedCount: achievedCount,
+        totalTurnover: totalTurnoverSum
+      });
+
+      return eventWithStats;
+    });
+
+    return eventsWithStats;
+  } catch (error) {
+    console.error('Error in getEventsWithStats:', error);
+    return [];
   }
+}
 
-  /**
-   * Получить события для админа (все статусы)
-   */
-  async getAdminEvents(): Promise<Event[]> {
+  // Создать новое событие
+  async createEvent(eventData: Partial<Event>) {
     try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching admin events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Получить активные события (текущие)
-   */
-  async getActiveEvents(): Promise<Event[]> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
+      const { data: user } = await supabase.auth.getUser();
       
-      const { data, error } = await this.supabase
+      const insertData: any = {
+        title: eventData.title || '',
+        description: eventData.description,
+        short_description: eventData.reward,
+        event_type: eventData.event_type || 'turnover',
+        target_amount: eventData.target_amount || 0,
+        reward: eventData.reward,
+        reward_description: eventData.reward_description,
+        start_date: eventData.start_date || new Date().toISOString().split('T')[0],
+        end_date: eventData.end_date || '2024-12-31',
+        max_participants: eventData.max_participants,
+        status: eventData.status || 'active',
+        is_featured: true,
+        priority: 1,
+        created_by: user?.user?.id
+      };
+
+      if (eventData.reward) {
+        insertData.rewards = [eventData.reward];
+      }
+      if (eventData.reward_description) {
+        insertData.conditions = [eventData.reward_description];
+      }
+
+      const { data, error } = await supabase
         .from('events')
-        .select('*')
-        .eq('status', 'published')
-        .lte('start_date', today)
-        .gte('end_date', today)
-        .order('priority', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching active events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Получить предстоящие события
-   */
-  async getUpcomingEvents(): Promise<Event[]> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'published')
-        .gt('start_date', today)
-        .order('start_date', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching upcoming events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Получить прошедшие события
-   */
-  async getPastEvents(limit: number = 10): Promise<Event[]> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .eq('status', 'published')
-        .lt('end_date', today)
-        .order('end_date', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching past events:', error);
-      throw error;
-    }
-  }
-
-  // ========================================
-  // СОЗДАНИЕ И ОБНОВЛЕНИЕ
-  // ========================================
-
-  /**
-   * Создать новое событие
-   */
-  async createEvent(input: CreateEventInput): Promise<Event> {
-    try {
-      const { data: userData } = await this.supabase.auth.getUser();
-      
-      const { data, error } = await this.supabase
-        .from('events')
-        .insert([{
-          ...input,
-          created_by: userData?.user?.id
-        }])
+        .insert(insertData)
         .select()
         .single();
 
@@ -184,17 +163,23 @@ export class EventService {
     }
   }
 
-  /**
-   * Обновить событие
-   */
-  async updateEvent(id: string, input: UpdateEventInput): Promise<Event> {
+  // Обновить событие
+  async updateEvent(id: string, updates: Partial<Event>) {
     try {
-      const { data, error } = await this.supabase
+      // Убираем null значения из updates
+      const cleanUpdates: any = {};
+      Object.keys(updates).forEach(key => {
+        const value = (updates as any)[key];
+        if (value !== null) {
+          cleanUpdates[key] = value;
+        }
+      });
+
+      cleanUpdates.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
         .from('events')
-        .update({
-          ...input,
-          updated_at: new Date().toISOString()
-        })
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -207,241 +192,52 @@ export class EventService {
     }
   }
 
-  /**
-   * Удалить событие
-   */
-  async deleteEvent(id: string): Promise<void> {
+  // Удалить событие
+  async deleteEvent(id: string) {
     try {
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('events')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      return true;
     } catch (error) {
       console.error('Error deleting event:', error);
-      throw error;
+      return false;
     }
   }
 
-  // ========================================
-  // УПРАВЛЕНИЕ СТАТУСОМ
-  // ========================================
-
-  /**
-   * Опубликовать событие
-   */
-  async publishEvent(id: string): Promise<Event> {
+  // Получить участие дилера в событиях
+  async getDealerEventParticipation(userId: string) {
     try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .update({ 
-          status: 'published',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error publishing event:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Снять с публикации (в черновик)
-   */
-  async unpublishEvent(id: string): Promise<Event> {
-    try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .update({ 
-          status: 'draft',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error unpublishing event:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Архивировать событие
-   */
-  async archiveEvent(id: string): Promise<Event> {
-    try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .update({ 
-          status: 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error archiving event:', error);
-      throw error;
-    }
-  }
-
-  // ========================================
-  // ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ
-  // ========================================
-
-  /**
-   * Дублировать событие
-   */
-  async duplicateEvent(id: string): Promise<Event> {
-    try {
-      // Получаем оригинальное событие
-      const original = await this.getEventById(id);
-      if (!original) throw new Error('Event not found');
-
-      // Создаем копию с новым названием
-      const duplicate: CreateEventInput = {
-        title: `${original.title} (копия)`,
-        short_description: original.short_description,
-        description: original.description,
-        start_date: original.start_date,
-        end_date: original.end_date,
-        goals: original.goals,
-        rewards: original.rewards,
-        conditions: original.conditions,
-        badge_color: original.badge_color,
-        badge_icon: original.badge_icon,
-        priority: original.priority,
-        is_featured: false,
-        tags: original.tags,
-        status: 'draft', // Всегда создаем как черновик
-        image_url: original.image_url,
-        banner_url: original.banner_url,
-        gallery: original.gallery
-      };
-
-      return await this.createEvent(duplicate);
-    } catch (error) {
-      console.error('Error duplicating event:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Получить статистику событий
-   */
-  async getEventsStats(): Promise<{
-    total: number;
-    active: number;
-    upcoming: number;
-    past: number;
-    draft: number;
-  }> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // Получаем все события
-      const { data: allEvents, error } = await this.supabase
-        .from('events')
-        .select('id, status, start_date, end_date');
-
-      if (error) throw error;
-
-      const events = allEvents || [];
-
-      return {
-        total: events.length,
-        active: events.filter(e => 
-          e.status === 'published' && 
-          e.start_date <= today && 
-          e.end_date >= today
-        ).length,
-        upcoming: events.filter(e => 
-          e.status === 'published' && 
-          e.start_date > today
-        ).length,
-        past: events.filter(e => 
-          e.status === 'published' && 
-          e.end_date < today
-        ).length,
-        draft: events.filter(e => e.status === 'draft').length
-      };
-    } catch (error) {
-      console.error('Error fetching events stats:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Поиск событий
-   */
-  async searchEvents(query: string): Promise<Event[]> {
-    try {
-      const { data, error } = await this.supabase
+      const { data: events } = await supabase
         .from('events')
         .select('*')
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%,short_description.ilike.%${query}%`)
-        .order('priority', { ascending: false })
-        .order('created_at', { ascending: false });
+        .eq('status', 'active');
 
-      if (error) throw error;
-      return data || [];
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .eq('user_id', userId)
+        .eq('payment_status', 'paid');
+
+      const totalTurnover = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+
+      const participation = events?.map((event: any) => ({
+        event_id: event.id,
+        user_id: userId,
+        current_turnover: totalTurnover,
+        is_achieved: totalTurnover >= (Number(event.target_amount) || 0),
+        event
+      })) || [];
+
+      return participation;
     } catch (error) {
-      console.error('Error searching events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Получить события по тегу
-   */
-  async getEventsByTag(tag: string): Promise<Event[]> {
-    try {
-      const { data, error } = await this.supabase
-        .from('events')
-        .select('*')
-        .contains('tags', [tag])
-        .eq('status', 'published')
-        .order('priority', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching events by tag:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Обновить приоритет событий (для сортировки)
-   */
-  async updateEventsPriority(updates: { id: string; priority: number }[]): Promise<void> {
-    try {
-      const promises = updates.map(({ id, priority }) =>
-        this.supabase
-          .from('events')
-          .update({ priority })
-          .eq('id', id)
-      );
-
-      await Promise.all(promises);
-    } catch (error) {
-      console.error('Error updating events priority:', error);
-      throw error;
+      console.error('Error fetching dealer participation:', error);
+      return [];
     }
   }
 }
 
-// Экспортируем singleton
-export const eventService = new EventService();
+export const eventsService = new EventsService();
