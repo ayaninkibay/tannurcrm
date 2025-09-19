@@ -5,7 +5,7 @@ import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { StatisticCard } from '@/components/components_admins_dashboard/StatisticCard';
 import { RevenueCard } from '@/components/components_admins_dashboard/RevenueCard';
 import { WarehouseCard } from '@/components/components_admins_dashboard/WarehouseCard';
-import { TaskCard } from '@/components/components_admins_dashboard/TaskCard';
+import { BonusSystemStrategy } from '@/components/components_admins_dashboard/BonusSystemStrategy'; // ДОБАВИТЬ ИМПОРТ
 import Image from 'next/image';
 import TannurButton from '@/components/Button';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -185,79 +185,8 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* Нижняя секция: цели */}
-        <section className="space-y-4 sm:space-y-6">
-          <h2 className="text-xl sm:text-2xl font-medium">{t('Стратегия Tannur')}</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Краткосрочные цели */}
-            <div className="bg-white rounded-2xl p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900">{t('Краткосрочные цели')}</h3>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title={t('Добавить')}>
-                  <Image src="/icons/IconAddBlack.svg" width={20} height={20} alt={t('Добавить')} />
-                </button>
-              </div>
-              <hr className="border-t border-gray-200 mb-4" />
-              <div className="space-y-4">
-                <TaskCard
-                  title={t('Открыть новый филиал до 18 августа')}
-                  statusLabel={t('в процессе')}
-                  statusBg="bg-green-200"
-                  statusText="text-green-800"
-                  settingsUrl="#"
-                />
-                <TaskCard
-                  title={t('Провести ревизию на складе до 6 июля')}
-                  statusLabel={t('просрочено')}
-                  statusBg="bg-red-200"
-                  statusText="text-red-800"
-                  settingsUrl="#"
-                />
-                <TaskCard
-                  title={t('Объявить акцию на Август до 1 августа')}
-                  statusLabel={t('сделано')}
-                  statusBg="bg-blue-200"
-                  statusText="text-blue-800"
-                  settingsUrl="#"
-                />
-              </div>
-            </div>
-
-            {/* Долгосрочные цели */}
-            <div className="bg-white rounded-2xl p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900">{t('Долгосрочные цели')}</h3>
-                <button type="button" className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title={t('Добавить')}>
-                  <Image src="/icons/IconAddBlack.svg" width={20} height={20} alt={t('Добавить')} />
-                </button>
-              </div>
-              <hr className="border-t border-gray-200 mb-4" />
-              <div className="space-y-4">
-                <TaskCard
-                  title={t('Провести ревизию на складе до 6 июля')}
-                  statusLabel={t('просрочено')}
-                  statusBg="bg-red-200"
-                  statusText="text-red-800"
-                  settingsUrl="#"
-                />
-                <TaskCard
-                  title={t('Объявить акцию на Август до 1 августа')}
-                  statusLabel={t('сделано')}
-                  statusBg="bg-blue-200"
-                  statusText="text-blue-800"
-                  settingsUrl="#"
-                />
-                <TaskCard
-                  title={t('Открыть новый филиал до 18 августа')}
-                  statusLabel={t('в процессе')}
-                  statusBg="bg-green-200"
-                  statusText="text-green-800"
-                  settingsUrl="#"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* ЗАМЕНЯЕМ БЛОК ЦЕЛЕЙ НА БОНУСНУЮ СИСТЕМУ */}
+        <BonusSystemStrategy />
       </div>
     </div>
   );
