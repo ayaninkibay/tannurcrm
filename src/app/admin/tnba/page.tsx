@@ -88,8 +88,12 @@ function AcademyContent() {
   }
 
   return (
-    <div className="p-2 md:p-6">
-      <MoreHeaderAD title={t('Академия TNBA')} />
+
+    <div className="min-h-screen">
+      <header className="flex">
+        <MoreHeaderAD title={t('Академия Tannur')} />
+      </header>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8 mt-4 md:mt-6">

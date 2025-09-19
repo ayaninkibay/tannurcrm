@@ -25,10 +25,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Верхний блок с профилем, реферальной ссылкой и спонсором */}
+
       <div className="flex flex-col lg:flex-row items-center gap-4 md:gap-6">
         {/* Профиль */}
         <div className="flex-1 w-full">
           <UserProfileCard />
+
         </div>
         
         {/* Реферальная ссылка */}
@@ -53,6 +55,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
+
+
+
+
+
       {/* График и новости */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="h-full">
@@ -61,7 +68,8 @@ export default function DashboardPage() {
             dataType="personal"
           />
         </div>
-        <div className="h-full overflow-hidden flex flex-col">
+        <div className="min-h-[400px] overflow-hidden flex flex-col">
+
           <NewsEventsCard />
         </div>
       </div>
