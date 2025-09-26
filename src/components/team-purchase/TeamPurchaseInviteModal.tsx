@@ -1,10 +1,7 @@
-// components/team-purchase/TeamPurchaseInviteModal.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
-  X, Users, UserPlus, UserCheck, ChevronDown, ChevronRight,
-  Search, Check, AlertCircle, Loader2, Crown, Link2,
-  Mail, Send, UserX, Filter
+  X, Users, UserPlus, UserCheck, Search, Check, Loader2, Link2, 
+  UserX, Crown, Star, Award, TrendingUp, Sparkles, Gift
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -33,17 +30,13 @@ export default function TeamPurchaseInviteModal({
   const [users, setUsers] = useState<InvitableUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'direct' | 'sub' | 'not_invited'>('all');
-  const [showOnlySelected, setShowOnlySelected] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'direct' | 'sub'>('all');
   const [stats, setStats] = useState({
     totalInvitable: 0,
     directDealers: 0,
-    subDealers: 0,
-    alreadyInvited: 0,
-    alreadyJoined: 0
+    subDealers: 0
   });
 
-  // Загрузка списка пользователей
   useEffect(() => {
     loadUsers();
   }, [purchaseId, currentUserId]);
@@ -65,9 +58,7 @@ export default function TeamPurchaseInviteModal({
     }
   };
 
-  // Фильтрация пользователей
   const filteredUsers = users.filter(user => {
-    // Поиск
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchesSearch = 
@@ -77,18 +68,12 @@ export default function TeamPurchaseInviteModal({
       if (!matchesSearch) return false;
     }
 
-    // Фильтр по типу
     if (filter === 'direct' && !user.isDirectDealer) return false;
     if (filter === 'sub' && !user.isSubDealer) return false;
-    if (filter === 'not_invited' && (user.invited || user.joined)) return false;
-
-    // Показ только выбранных
-    if (showOnlySelected && !selectedUsers.has(user.id)) return false;
 
     return true;
   });
 
-  // Обработчики выбора
   const toggleUser = (userId: string) => {
     const newSelected = new Set(selectedUsers);
     if (newSelected.has(userId)) {
@@ -109,27 +94,6 @@ export default function TeamPurchaseInviteModal({
     setSelectedUsers(newSelected);
   };
 
-  const clearSelection = () => {
-    setSelectedUsers(new Set());
-  };
-
-  const selectAllDirect = () => {
-    const newSelected = new Set(selectedUsers);
-    users
-      .filter(u => u.isDirectDealer && !u.joined)
-      .forEach(u => newSelected.add(u.id));
-    setSelectedUsers(newSelected);
-  };
-
-  const selectAllSub = () => {
-    const newSelected = new Set(selectedUsers);
-    users
-      .filter(u => u.isSubDealer && !u.joined)
-      .forEach(u => newSelected.add(u.id));
-    setSelectedUsers(newSelected);
-  };
-
-  // Приглашение выбранных
   const inviteSelected = async () => {
     if (selectedUsers.size === 0) {
       toast.error(t('Выберите хотя бы одного дилера'));
@@ -145,56 +109,40 @@ export default function TeamPurchaseInviteModal({
       );
 
       if (result.success) {
-        toast.success(t(`Приглашено: ${result.invited} дилеров`));
+        toast.success(t(`Успешно приглашено: ${result.invited} дилеров`));
         onInvited?.();
-        await loadUsers();
-        clearSelection();
-      } else {
-        toast.error(t(`Приглашено: ${result.invited}, ошибок: ${result.failed}`));
-        if (result.errors.length > 0) {
-          console.error('Invitation errors:', result.errors);
-        }
+        onClose();
       }
     } catch (error) {
-      console.error('Error inviting users:', error);
       toast.error(t('Ошибка при отправке приглашений'));
     } finally {
       setInviting(false);
     }
   };
 
-  // Пригласить всех
-  const inviteAll = async (includeSubDealers: boolean = true) => {
-    if (!confirm(t(includeSubDealers 
-      ? 'Пригласить ВСЕХ дилеров и поддилеров?' 
-      : 'Пригласить всех ПРЯМЫХ дилеров?'))) {
-      return;
-    }
-
+  const inviteAll = async () => {
+    if (!confirm(t('Пригласить всех доступных дилеров?'))) return;
+    
     setInviting(true);
     try {
       const result = await teamPurchaseInvitationService.inviteAllDealers(
         purchaseId,
         currentUserId,
-        includeSubDealers
+        true
       );
 
       if (result.success) {
-        toast.success(t(`Успешно приглашено: ${result.invited} дилеров`));
+        toast.success(t(`Приглашено: ${result.invited} дилеров`));
         onInvited?.();
-        await loadUsers();
-      } else {
-        toast.error(t(`Приглашено: ${result.invited}, ошибок: ${result.failed}`));
+        onClose();
       }
     } catch (error) {
-      console.error('Error inviting all:', error);
       toast.error(t('Ошибка массового приглашения'));
     } finally {
       setInviting(false);
     }
   };
 
-  // Копирование ссылки
   const copyInviteLink = async () => {
     const link = `${window.location.origin}/team-purchase/join/${inviteCode}`;
     await navigator.clipboard.writeText(link);
@@ -202,256 +150,201 @@ export default function TeamPurchaseInviteModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Заголовок */}
-        <div className="p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+        {/* Красивый заголовок */}
+        <div className="bg-gradient-to-r from-[#D77E6C] to-[#E89380] p-6 text-white">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-[#111] mb-2">
-                {t('Пригласить дилеров в закупку')}
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                <UserPlus className="w-6 h-6" />
+                {t('Пригласить в команду')}
               </h2>
-              <p className="text-gray-600">{purchaseTitle}</p>
+              <p className="text-white/90">{purchaseTitle}</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            <button 
+              onClick={onClose} 
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Статистика */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
-            <div className="bg-blue-50 rounded-lg p-3">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalInvitable}</div>
-              <div className="text-xs text-blue-700">{t('Можно пригласить')}</div>
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4" />
+                <span className="text-2xl font-bold">{stats.totalInvitable}</span>
+              </div>
+              <p className="text-sm text-white/80">{t('Доступно')}</p>
             </div>
-            <div className="bg-green-50 rounded-lg p-3">
-              <div className="text-2xl font-bold text-green-600">{stats.directDealers}</div>
-              <div className="text-xs text-green-700">{t('Прямых дилеров')}</div>
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="w-4 h-4" />
+                <span className="text-2xl font-bold">{stats.directDealers}</span>
+              </div>
+              <p className="text-sm text-white/80">{t('Прямых')}</p>
             </div>
-            <div className="bg-purple-50 rounded-lg p-3">
-              <div className="text-2xl font-bold text-purple-600">{stats.subDealers}</div>
-              <div className="text-xs text-purple-700">{t('Поддилеров')}</div>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-3">
-              <div className="text-2xl font-bold text-yellow-600">{stats.alreadyInvited}</div>
-              <div className="text-xs text-yellow-700">{t('Уже приглашены')}</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="text-2xl font-bold text-gray-600">{stats.alreadyJoined}</div>
-              <div className="text-xs text-gray-700">{t('Присоединились')}</div>
+            <div className="bg-white/20 backdrop-blur rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Star className="w-4 h-4" />
+                <span className="text-2xl font-bold">{stats.subDealers}</span>
+              </div>
+              <p className="text-sm text-white/80">{t('Поддилеров')}</p>
             </div>
           </div>
         </div>
 
-        {/* Панель действий */}
-        <div className="p-4 border-b border-gray-200 space-y-3">
-          {/* Быстрые действия */}
+        {/* Быстрые действия */}
+        <div className="p-5 border-b border-gray-100 bg-gray-50">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => inviteAll(true)}
-              disabled={inviting || stats.totalInvitable === 0}
-              className="px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              onClick={inviteAll}
+              disabled={inviting}
+              className="px-4 py-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-medium"
             >
-              <Users className="w-4 h-4" />
-              {t('Пригласить ВСЕХ')}
+              <Sparkles className="w-4 h-4" />
+              {t('Пригласить всех')}
             </button>
             <button
-              onClick={() => inviteAll(false)}
-              disabled={inviting || stats.directDealers === 0}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              onClick={selectAll}
+              className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2"
             >
-              <UserPlus className="w-4 h-4" />
-              {t('Только прямых')}
+              <Check className="w-4 h-4" />
+              {t('Выбрать всех')}
             </button>
             <button
               onClick={copyInviteLink}
-              className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2"
             >
               <Link2 className="w-4 h-4" />
               {t('Скопировать ссылку')}
             </button>
           </div>
+        </div>
 
-          {/* Поиск и фильтры */}
-          <div className="flex gap-2">
+        {/* Поиск и фильтры */}
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('Поиск по имени или email...')}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C] transition-colors"
               />
             </div>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+              className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C]"
             >
               <option value="all">{t('Все дилеры')}</option>
-              <option value="direct">{t('Прямые дилеры')}</option>
+              <option value="direct">{t('Прямые')}</option>
               <option value="sub">{t('Поддилеры')}</option>
-              <option value="not_invited">{t('Не приглашенные')}</option>
             </select>
-          </div>
-
-          {/* Управление выбором */}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              <button
-                onClick={selectAll}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                {t('Выбрать всех')}
-              </button>
-              <span className="text-gray-400">|</span>
-              <button
-                onClick={selectAllDirect}
-                className="text-sm text-green-600 hover:underline"
-              >
-                {t('Прямых')}
-              </button>
-              <span className="text-gray-400">|</span>
-              <button
-                onClick={selectAllSub}
-                className="text-sm text-purple-600 hover:underline"
-              >
-                {t('Поддилеров')}
-              </button>
-              <span className="text-gray-400">|</span>
-              <button
-                onClick={clearSelection}
-                className="text-sm text-gray-600 hover:underline"
-              >
-                {t('Очистить')}
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="showSelected"
-                checked={showOnlySelected}
-                onChange={(e) => setShowOnlySelected(e.target.checked)}
-                className="rounded"
-              />
-              <label htmlFor="showSelected" className="text-sm text-gray-600">
-                {t('Только выбранные')} ({selectedUsers.size})
-              </label>
-            </div>
           </div>
         </div>
 
         {/* Список пользователей */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#D77E6C]" />
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <UserX className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">{t('Нет доступных дилеров для приглашения')}</p>
+              <p className="text-gray-500">{t('Нет доступных дилеров')}</p>
             </div>
           ) : (
             <div className="space-y-2">
               {filteredUsers.map(user => (
-                <div
+                <label
                   key={user.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     user.joined 
-                      ? 'bg-gray-50 border-gray-200 opacity-60' 
+                      ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed' 
                       : selectedUsers.has(user.id)
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-white border-gray-200 hover:bg-gray-50'
-                  } ${!user.joined && 'cursor-pointer'}`}
-                  onClick={() => !user.joined && toggleUser(user.id)}
+                      ? 'bg-[#D77E6C]/5 border-[#D77E6C]'
+                      : 'bg-white border-gray-200 hover:border-[#D77E6C]/50'
+                  }`}
                 >
-                  {/* Checkbox */}
-                  <div className="flex-shrink-0">
-                    {user.joined ? (
-                      <UserCheck className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.has(user.id)}
-                        onChange={() => toggleUser(user.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 text-[#D77E6C] rounded focus:ring-[#D77E6C]"
-                      />
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.has(user.id)}
+                    onChange={() => !user.joined && toggleUser(user.id)}
+                    disabled={user.joined}
+                    className="w-5 h-5 rounded text-[#D77E6C] focus:ring-[#D77E6C]"
+                  />
+                  
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#D77E6C] to-[#E89380] rounded-full flex items-center justify-center text-white font-semibold">
+                    {user.first_name?.[0] || user.email[0].toUpperCase()}
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      {user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}`
+                        : user.email}
+                    </p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {user.isDirectDealer && (
+                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-lg flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        {t('Прямой')}
+                      </span>
+                    )}
+                    {user.isSubDealer && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-lg flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        {t(`Уровень ${user.level}`)}
+                      </span>
+                    )}
+                    {user.joined && (
+                      <span className="text-green-600 font-medium flex items-center gap-1">
+                        <UserCheck className="w-4 h-4" />
+                        {t('В команде')}
+                      </span>
                     )}
                   </div>
-
-                  {/* Информация о пользователе */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-[#111]">
-                        {user.first_name && user.last_name 
-                          ? `${user.first_name} ${user.last_name}`
-                          : user.email}
-                      </span>
-                      {user.isDirectDealer && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                          {t('Прямой')}
-                        </span>
-                      )}
-                      {user.isSubDealer && (
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
-                          {t(`Уровень ${user.level}`)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-
-                  {/* Статус */}
-                  <div className="flex-shrink-0">
-                    {user.joined ? (
-                      <span className="text-sm text-green-600 font-medium">
-                        {t('В закупке')}
-                      </span>
-                    ) : user.invited ? (
-                      <span className="text-sm text-yellow-600">
-                        {t('Приглашен')}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+                </label>
               ))}
             </div>
           )}
         </div>
 
-        {/* Футер с кнопками */}
-        <div className="p-6 border-t border-gray-200">
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50"
-            >
-              {t('Закрыть')}
-            </button>
-            <button
-              onClick={inviteSelected}
-              disabled={inviting || selectedUsers.size === 0}
-              className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {inviting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t('Отправка...')}
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  {t(`Пригласить выбранных (${selectedUsers.size})`)}
-                </>
-              )}
-            </button>
-          </div>
+        {/* Футер */}
+        <div className="p-5 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors"
+          >
+            {t('Отмена')}
+          </button>
+          <button
+            onClick={inviteSelected}
+            disabled={inviting || selectedUsers.size === 0}
+            className="flex-1 py-3 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+          >
+            {inviting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {t('Отправка...')}
+              </>
+            ) : (
+              <>
+                <Gift className="w-5 h-5" />
+                {t(`Пригласить выбранных (${selectedUsers.size})`)}
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

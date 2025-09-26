@@ -8,10 +8,10 @@ import {
   Plus, Minus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { supabase } from '@/lib/supabase/client';
 
 import { useUser } from '@/context/UserContext';
 import { useCartModule } from '@/lib/cart/CartModule';
-import { useStockModule } from '@/lib/stock/StockModule';
 import { useTranslate } from '@/hooks/useTranslate';
 
 // Типы
@@ -27,7 +27,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const { t } = useTranslate();
   const { profile: currentUser } = useUser();
   const cart = useCartModule();
-  const stock = useStockModule(currentUser?.id);
 
   // Существующие стейты
   const [activeTab, setActiveTab] = useState<'composition' | 'video'>('composition');
@@ -39,19 +38,50 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
+  const [productStock, setProductStock] = useState<number>(0);
+  const [loadingStock, setLoadingStock] = useState(true);
 
-  // Загрузка данных корзины при монтировании
+  // Загрузка данных корзины и остатков при монтировании
   useEffect(() => {
-    if (currentUser && product) {
+    if (currentUser) {
       loadCartData();
+    }
+    if (product) {
+      loadProductStock();
     }
   }, [currentUser, product]);
 
   const loadCartData = async () => {
     if (!currentUser) return;
-    await cart.loadUserCart(currentUser.id);
-    if (product) {
-      await stock.loadStock(product.id);
+    try {
+      await cart.loadUserCart(currentUser.id);
+    } catch (error) {
+      // Не блокируем загрузку страницы если корзина не загрузилась
+      console.error('Error loading cart:', error);
+      // Корзина будет создана при первом добавлении товара
+    }
+  };
+
+  // Загрузка остатков товара
+  const loadProductStock = async () => {
+    if (!product) return;
+    
+    setLoadingStock(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', product.id)
+        .single();
+
+      if (error) throw error;
+      
+      setProductStock(data?.stock || 0);
+    } catch (error) {
+      console.error('Error loading stock:', error);
+      setProductStock(0);
+    } finally {
+      setLoadingStock(false);
     }
   };
 
@@ -65,8 +95,19 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
     if (!product) return;
 
+    // Проверка наличия товара
+    if (productStock < quantity) {
+      toast.error(t('Недостаточно товара на складе'));
+      return;
+    }
+
     setIsAddingToCart(true);
     try {
+      // Сначала убедимся что корзина загружена
+      if (!cart.cart) {
+        await cart.loadUserCart(currentUser.id);
+      }
+
       await cart.addItem(
         product.id,
         quantity,
@@ -74,11 +115,15 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
         product.price_dealer || 0
       );
 
-      toast.success(t('Товар добавлен в корзину'));
+      // Не дублируем toast - он уже показывается в cart.addItem
       setQuantity(1);
+      
+      // Обновляем остатки после добавления
+      await loadProductStock();
 
     } catch (error: any) {
-      toast.error(error.message || t('Ошибка добавления в корзину'));
+      // Ошибка уже показана в cart.addItem, просто логируем
+      console.error('Error adding to cart:', error);
     } finally {
       setIsAddingToCart(false);
     }
@@ -94,8 +139,19 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
     if (!product) return;
 
+    // Проверка наличия товара
+    if (productStock < quantity) {
+      toast.error(t('Недостаточно товара на складе'));
+      return;
+    }
+
     setIsBuyingNow(true);
     try {
+      // Сначала убедимся что корзина загружена
+      if (!cart.cart) {
+        await cart.loadUserCart(currentUser.id);
+      }
+
       await cart.addItem(
         product.id,
         quantity,
@@ -103,10 +159,15 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
         product.price_dealer || 0
       );
 
+      // Добавляем небольшую задержку чтобы данные успели сохраниться
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Переходим в корзину
       router.push('/dealer/cart');
 
     } catch (error: any) {
-      toast.error(error.message || t('Ошибка оформления'));
+      // Ошибка уже показана в cart.addItem, просто логируем
+      console.error('Error buying now:', error);
     } finally {
       setIsBuyingNow(false);
     }
@@ -262,9 +323,9 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                       {t('Хит продаж')}
                     </div>
                   )}
-                  {product.is_active === false && (
-                    <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      {t('Неактивен')}
+                  {productStock === 0 && !loadingStock && (
+                    <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      {t('Нет в наличии')}
                     </div>
                   )}
 
@@ -341,6 +402,11 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   {product.flagman && (
                     <span className="px-3 py-1 bg-[#D77E6C]/10 text-[#D77E6C] rounded-lg text-sm font-medium">
                       {t('Флагман')}
+                    </span>
+                  )}
+                  {!loadingStock && productStock > 0 && productStock <= 10 && (
+                    <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">
+                      {t('Осталось мало')} ({productStock} шт.)
                     </span>
                   )}
                 </div>
@@ -444,6 +510,22 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </div>
                 </div>
 
+                {/* Наличие товара */}
+                {!loadingStock && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">{t('В наличии:')}</span>
+                    <span className={`font-bold ${
+                      productStock === 0 ? 'text-red-600' : 
+                      productStock < 10 ? 'text-orange-600' : 
+                      'text-green-600'
+                    }`}>
+                      {productStock === 0 ? t('Нет в наличии') : 
+                       productStock < 10 ? `${productStock} шт. (мало)` : 
+                       `${productStock} шт.`}
+                    </span>
+                  </div>
+                )}
+
                 {/* Селектор количества */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">{t('Количество:')}</span>
@@ -457,8 +539,9 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                     </button>
                     <span className="w-12 text-center font-medium">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 flex items-center justify-center hover:bg-white rounded transition-colors"
+                      onClick={() => setQuantity(Math.min(productStock, quantity + 1))}
+                      disabled={quantity >= productStock}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-white rounded transition-colors disabled:opacity-50"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -469,18 +552,22 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={handleAddToCart}
-                    disabled={isAddingToCart}
-                    className="flex-1 px-6 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-[#D77E6C] text-white hover:bg-[#C56D5C] disabled:opacity-50"
+                    disabled={isAddingToCart || productStock === 0 || loadingStock}
+                    className="flex-1 px-6 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-[#D77E6C] text-white hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {isAddingToCart ? t('Добавление...') : t('Добавить в корзину')}
+                    {isAddingToCart ? t('Добавление...') : 
+                     productStock === 0 ? t('Нет в наличии') : 
+                     t('Добавить в корзину')}
                   </button>
                   <button
                     onClick={handleBuyNow}
-                    disabled={isBuyingNow}
-                    className="flex-1 border-2 px-6 py-4 rounded-full font-semibold transition-all duration-300 border-[#D77E6C] text-[#D77E6C] hover:bg-[#D77E6C] hover:text-white disabled:opacity-50"
+                    disabled={isBuyingNow || productStock === 0 || loadingStock}
+                    className="flex-1 border-2 px-6 py-4 rounded-full font-semibold transition-all duration-300 border-[#D77E6C] text-[#D77E6C] hover:bg-[#D77E6C] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isBuyingNow ? t('Переход...') : t('Купить сейчас')}
+                    {isBuyingNow ? t('Переход...') : 
+                     productStock === 0 ? t('Нет в наличии') : 
+                     t('Купить сейчас')}
                   </button>
                 </div>
 

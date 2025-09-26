@@ -5,6 +5,7 @@ import { bonusEventService, BonusEvent, UserProgress, BonusEventTarget } from '.
 
 export const useBonusEventModule = () => {
   const [events, setEvents] = useState<BonusEvent[]>([]);
+  const [mainEvent, setMainEvent] = useState<BonusEvent | null>(null);
   const [currentEvent, setCurrentEvent] = useState<BonusEvent | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [leaderboard, setLeaderboard] = useState<UserProgress[]>([]);
@@ -41,6 +42,23 @@ export const useBonusEventModule = () => {
       setError('Ошибка загрузки событий');
       console.error('Error loading events:', err);
       return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Загрузить главное событие (с priority = 1 или последнее)
+  const loadMainEvent = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await bonusEventService.getMainBonusEvent();
+      setMainEvent(data);
+      return data;
+    } catch (err) {
+      setError('Ошибка загрузки главного события');
+      console.error('Error loading main event:', err);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -97,7 +115,7 @@ export const useBonusEventModule = () => {
     }
   }, []);
 
-  // Обновить событие
+  // Обновить событие (включая приоритет)
   const updateEvent = useCallback(async (eventId: string, updates: Partial<BonusEvent>) => {
     setLoading(true);
     setError(null);
@@ -106,6 +124,10 @@ export const useBonusEventModule = () => {
       if (success) {
         // Перезагружаем событие после обновления
         await loadEventById(eventId);
+        // Если обновили приоритет, перезагружаем главное событие
+        if ('priority' in updates) {
+          await loadMainEvent();
+        }
       }
       return success;
     } catch (err) {
@@ -115,7 +137,12 @@ export const useBonusEventModule = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadEventById]);
+  }, [loadEventById, loadMainEvent]);
+
+  // Установить приоритет события
+  const setEventPriority = useCallback(async (eventId: string, priority: number) => {
+    return updateEvent(eventId, { priority });
+  }, [updateEvent]);
 
   // Деактивировать событие
   const deactivateEvent = useCallback(async (eventId: string) => {
@@ -126,6 +153,8 @@ export const useBonusEventModule = () => {
       if (success) {
         // Обновляем список событий
         await loadActiveEvents();
+        // Обновляем главное событие
+        await loadMainEvent();
       }
       return success;
     } catch (err) {
@@ -135,7 +164,7 @@ export const useBonusEventModule = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadActiveEvents]);
+  }, [loadActiveEvents, loadMainEvent]);
 
   // Проверить, достигнута ли цель
   const isTargetAchieved = useCallback((target: BonusEventTarget, turnover: number): boolean => {
@@ -155,6 +184,7 @@ export const useBonusEventModule = () => {
   return {
     // Данные
     events,
+    mainEvent,
     currentEvent,
     userProgress,
     leaderboard,
@@ -164,10 +194,12 @@ export const useBonusEventModule = () => {
     // Методы
     createBonusEvent,
     loadActiveEvents,
+    loadMainEvent,
     loadEventById,
     loadUserProgress,
     loadLeaderboard,
     updateEvent,
+    setEventPriority,
     deactivateEvent,
     
     // Хелперы

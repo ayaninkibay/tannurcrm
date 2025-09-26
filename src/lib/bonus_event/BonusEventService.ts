@@ -16,6 +16,7 @@ export interface BonusEvent {
   description: string;
   start_date: string;
   end_date: string;
+  priority?: number;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -30,7 +31,7 @@ export interface UserProgress {
   total_turnover: number;
   total_orders: number;
   last_order_date: string | null;
-  achieved_targets: string[]; // IDs целей, которые достигнуты
+  achieved_targets: string[];
 }
 
 export class BonusEventService {
@@ -39,7 +40,6 @@ export class BonusEventService {
   // Создать новое бонусное событие с целями
   async createBonusEvent(event: BonusEvent, targets: BonusEventTarget[]): Promise<BonusEvent> {
     try {
-      // Создаем событие
       const { data: eventData, error: eventError } = await this.supabase
         .from('bonus_events')
         .insert({
@@ -47,6 +47,7 @@ export class BonusEventService {
           description: event.description,
           start_date: event.start_date,
           end_date: event.end_date,
+          priority: event.priority || 0,
           is_active: true,
           created_by: (await this.supabase.auth.getUser()).data.user?.id
         })
@@ -55,7 +56,6 @@ export class BonusEventService {
 
       if (eventError) throw eventError;
 
-      // Создаем цели для события
       const targetsWithEventId = targets.map((target, index) => ({
         ...target,
         event_id: eventData.id,
@@ -79,7 +79,7 @@ export class BonusEventService {
     }
   }
 
-  // Получить активные бонусные события
+  // Получить ВСЕ активные бонусные события (без фильтра по приоритету)
   async getActiveBonusEvents(): Promise<BonusEvent[]> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -92,11 +92,11 @@ export class BonusEventService {
         `)
         .eq('is_active', true)
         .gte('end_date', today)
+        .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Сортируем цели по sort_order
       const formattedEvents = events?.map(event => ({
         ...event,
         targets: event.targets?.sort((a: any, b: any) => a.sort_order - b.sort_order) || []
@@ -106,6 +106,35 @@ export class BonusEventService {
     } catch (error) {
       console.error('Error fetching active bonus events:', error);
       return [];
+    }
+  }
+
+  // Получить главное бонусное событие (ТОЛЬКО с priority = 1)
+  async getMainBonusEvent(): Promise<BonusEvent | null> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Ищем ТОЛЬКО событие с priority = 1
+      const { data: priorityEvent, error: priorityError } = await this.supabase
+        .from('bonus_events')
+        .select(`
+          *,
+          targets:bonus_event_targets(*)
+        `)
+        .eq('is_active', true)
+        .eq('priority', 1)
+        .gte('end_date', today)
+        .single();
+
+      if (!priorityError && priorityEvent) {
+        priorityEvent.targets = priorityEvent.targets?.sort((a: any, b: any) => a.sort_order - b.sort_order) || [];
+        return priorityEvent;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching main bonus event:', error);
+      return null;
     }
   }
 
@@ -137,13 +166,6 @@ export class BonusEventService {
   // Получить прогресс пользователя в реальном времени
   async getUserProgress(userId: string, eventId?: string): Promise<UserProgress | null> {
     try {
-      // ВРЕМЕННАЯ ОТЛАДКА для конкретного пользователя
-      const isTestUser = userId === '33542896-acc2-41a6-ade3-1b6fbac7444f';
-      if (isTestUser) {
-        console.log('=== TESTING USER: Аян Инкибай ===');
-      }
-
-      // Получаем данные пользователя
       const { data: userData, error: userError } = await this.supabase
         .from('users')
         .select('id, first_name, last_name, email, phone')
@@ -152,7 +174,6 @@ export class BonusEventService {
 
       if (userError || !userData) return null;
 
-      // Если указан eventId, проверяем период события
       let dateFilter = {};
       if (eventId) {
         const event = await this.getBonusEventById(eventId);
@@ -164,24 +185,20 @@ export class BonusEventService {
         }
       }
 
-      // Получаем оплаченные заказы из обеих таблиц
       const queries = [];
 
-      // Обычные заказы
       let ordersQuery = this.supabase
         .from('orders')
         .select('total_amount, created_at')
         .eq('user_id', userId)
         .eq('payment_status', 'paid');
 
-      // Командные заказы - используем правильное название поля
       let teamOrdersQuery = this.supabase
         .from('team_purchase_orders')
-        .select('*') // Выбираем все поля, чтобы увидеть структуру
+        .select('*')
         .eq('user_id', userId)
         .eq('payment_status', 'paid');
 
-      // Применяем фильтр по датам если есть
       if (dateFilter.start && dateFilter.end) {
         ordersQuery = ordersQuery
           .gte('created_at', dateFilter.start)
@@ -199,61 +216,33 @@ export class BonusEventService {
 
       if (ordersResult.error) throw ordersResult.error;
       
-      // ОТЛАДКА для тестового пользователя
-      if (isTestUser) {
-        console.log('Orders result:', ordersResult.data);
-        console.log('Team orders result:', teamOrdersResult.data);
-        console.log('Team orders error:', teamOrdersResult.error);
-      }
-      
-      // Игнорируем ошибку team_purchase_orders если таблица не существует или пустая
       if (teamOrdersResult.error) {
         console.warn('Team purchase orders error (ignoring):', teamOrdersResult.error);
       }
 
-      // Объединяем все заказы
       const allOrders = [...(ordersResult.data || [])];
       
-      // Добавляем командные заказы если они есть
       if (teamOrdersResult.data && teamOrdersResult.data.length > 0) {
-        console.log('[getUserProgress] Team orders found:', teamOrdersResult.data.length);
         teamOrdersResult.data.forEach((order: any) => {
-          // В team_purchase_orders поле называется order_amount!
           const amount = order.order_amount || 0;
-          console.log('[getUserProgress] Team order amount:', amount);
           allOrders.push({
             total_amount: amount,
             created_at: order.created_at
           });
         });
-      } else {
-        console.log('[getUserProgress] No team orders found');
       }
 
-      // Считаем статистику
       let totalTurnover = 0;
       let lastOrderDate: string | null = null;
 
-      allOrders.forEach((order, index) => {
+      allOrders.forEach((order) => {
         const amount = order.total_amount || 0;
         totalTurnover += amount;
-        if (isTestUser) {
-          console.log(`Order ${index + 1}: amount=${amount}, running total=${totalTurnover}`);
-        }
         if (!lastOrderDate || new Date(order.created_at) > new Date(lastOrderDate)) {
           lastOrderDate = order.created_at;
         }
       });
 
-      if (isTestUser) {
-        console.log('=== FINAL RESULT for Аян Инкибай ===');
-        console.log('Total turnover:', totalTurnover);
-        console.log('Total orders:', allOrders.length);
-        console.log('Orders breakdown:', allOrders);
-        console.log('==================================');
-      }
-
-      // Определяем достигнутые цели
       const achievedTargets: string[] = [];
       if (eventId) {
         const event = await this.getBonusEventById(eventId);
@@ -285,45 +274,26 @@ export class BonusEventService {
   // Получить рейтинг участников события
   async getEventLeaderboard(eventId: string, limit: number = 10): Promise<UserProgress[]> {
     try {
-      console.log('[getEventLeaderboard] Starting for event:', eventId, 'limit:', limit);
-      
-      // Получаем событие для определения периода
       const event = await this.getBonusEventById(eventId);
-      if (!event) {
-        console.log('[getEventLeaderboard] Event not found');
-        return [];
-      }
-      console.log('[getEventLeaderboard] Event period:', event.start_date, 'to', event.end_date);
+      if (!event) return [];
 
-      // Получаем всех пользователей
       const { data: users, error: usersError } = await this.supabase
         .from('users')
         .select('id, first_name, last_name, email, phone, role')
-        .in('role', ['dealer', 'admin']); // Только дилеры и админы
+        .in('role', ['dealer', 'admin']);
 
-      if (usersError || !users) {
-        console.error('[getEventLeaderboard] Error loading users:', usersError);
-        return [];
-      }
-      console.log('[getEventLeaderboard] Found users:', users.length);
+      if (usersError || !users) return [];
 
-      // Получаем прогресс для каждого пользователя
-      console.log('[getEventLeaderboard] Loading progress for each user...');
       const progressPromises = users.map(user => 
         this.getUserProgress(user.id, eventId)
       );
 
       const allProgress = await Promise.all(progressPromises);
-      console.log('[getEventLeaderboard] Progress loaded for all users');
 
-      // Фильтруем null значения и сортируем по товарообороту
       const validProgress = allProgress
         .filter(p => p !== null && p.total_turnover > 0)
         .sort((a, b) => b!.total_turnover - a!.total_turnover)
         .slice(0, limit);
-
-      console.log('[getEventLeaderboard] Valid progress entries:', validProgress.length);
-      console.log('[getEventLeaderboard] Top user turnover:', validProgress[0]?.total_turnover || 0);
       
       return validProgress as UserProgress[];
     } catch (error) {
@@ -382,5 +352,4 @@ export class BonusEventService {
   }
 }
 
-// Экспортируем singleton
 export const bonusEventService = new BonusEventService();

@@ -11,7 +11,8 @@ import {
   Users,
   TrendingUp,
   Trophy,
-  X
+  X,
+  Zap
 } from 'lucide-react'
 
 import { useUser } from '@/context/UserContext'
@@ -64,32 +65,85 @@ const BonusTablePopup = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   )
 }
 
+// Полноценный шиммер для всего блока
 const FullBlockShimmer = () => (
-  <div className="bg-white rounded-3xl p-6 animate-pulse shadow-lg">
-    <div className="flex items-center justify-between mb-6">
+  <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50">
+    {/* Заголовок шиммер */}
+    <div className="flex items-center justify-between mb-4 animate-pulse">
       <div>
-        <div className="h-6 bg-gray-200 rounded-lg w-40 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-32"></div>
+        <div className="h-7 bg-gray-200 rounded-lg w-44 mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-36"></div>
       </div>
-      <div className="flex -space-x-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="w-10 h-10 bg-gray-200 rounded-full"></div>
-        ))}
-      </div>
-    </div>
-    <div className="flex gap-4 mb-6">
-      <div className="flex-1 bg-gray-100 rounded-2xl p-4">
-        <div className="h-8 bg-gray-200 rounded w-12 mb-1"></div>
-        <div className="h-4 bg-gray-200 rounded w-20"></div>
-      </div>
-      <div className="flex-1 bg-gray-100 rounded-2xl p-4">
-        <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
-        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 bg-gray-200 rounded-xl"></div>
+        <div className="flex -space-x-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="w-10 h-10 bg-gray-200 rounded-full ring-3 ring-white"></div>
+          ))}
+        </div>
       </div>
     </div>
-    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-4">
-      <div className="h-5 bg-gray-200 rounded w-32 mb-3"></div>
-      <div className="h-2 bg-gray-200 rounded-full"></div>
+    
+    {/* Статистика шиммер */}
+    <div className="grid grid-cols-2 gap-3 mb-4 animate-pulse">
+      <div className="bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl p-4">
+        <div className="h-9 bg-gray-200 rounded-lg w-14 mb-1"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-20"></div>
+      </div>
+      <div className="bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl p-4">
+        <div className="h-9 bg-gray-200 rounded-lg w-20 mb-1"></div>
+        <div className="h-4 bg-gray-200 rounded-md w-24"></div>
+      </div>
+    </div>
+    
+    {/* Текущая закупка шиммер - ПОЛНОЦЕННЫЙ БЛОК */}
+    <div className="mb-5 animate-pulse">
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-4 bg-gray-200 rounded-md w-32"></div>
+        <div className="h-7 bg-gray-200 rounded-full w-28"></div>
+      </div>
+      
+      <div className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-4 border border-gray-100">
+        {/* Заголовок закупки */}
+        <div className="h-5 bg-gray-200 rounded-lg w-56 mb-4"></div>
+        
+        <div className="space-y-3">
+          {/* Прогресс */}
+          <div>
+            <div className="flex justify-between items-baseline mb-2">
+              <div className="h-4 bg-gray-200 rounded-md w-20"></div>
+              <div className="h-8 bg-gray-200 rounded-lg w-16"></div>
+            </div>
+            <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full w-2/3 bg-gray-300 rounded-full relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200 to-transparent animate-shimmer"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Суммы */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="h-4 bg-gray-200 rounded-md w-16"></div>
+              <div className="h-5 bg-gray-200 rounded-md w-24"></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 bg-gray-200 rounded-md w-12"></div>
+              <div className="h-5 bg-gray-200 rounded-md w-28"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {/* Кнопки шиммер */}
+    <div className="flex gap-2 sm:gap-3 animate-pulse">
+      <div className="flex-1 h-14 bg-gray-200 rounded-2xl"></div>
+      <div className="flex items-center gap-2 px-5 py-3.5 bg-gray-200 rounded-2xl">
+        <div className="w-8 h-5"></div>
+        <div className="w-6 h-6 bg-gray-300 rounded-full"></div>
+        <div className="w-4 h-4"></div>
+      </div>
     </div>
   </div>
 )
@@ -154,6 +208,7 @@ export default function TeamPurchaseList({
       return 0
     })[0]
 
+  // Показываем шиммер при загрузке
   if (teamPurchase.loading) {
     return <FullBlockShimmer />
   }
@@ -219,78 +274,96 @@ export default function TeamPurchaseList({
         </div>
 
         {/* Активная закупка / пустое состояние */}
-        {activePurchase ? (
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-500">{t('Текущая закупка')}</span>
-              {daysLeft !== null && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
-                  <Clock className="w-3.5 h-3.5" />
-                  {t('Осталось {n} дней').replace('{n}', String(daysLeft))}
-                </span>
-              )}
-            </div>
-            
-            <div 
-              onClick={() => handlePurchaseClick(activePurchase.id)}
-              className="bg-gradient-to-r from-gray-50 via-gray-50 to-white rounded-2xl p-4 cursor-pointer hover:from-[#D77E6C]/5 hover:to-[#E89380]/5 transition-all duration-200 group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D77E6C]/10 to-transparent rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="mb-5">
+          {activePurchase ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-500">{t('Текущая закупка')}</span>
+                {daysLeft !== null && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    {t('Осталось {n} дней').replace('{n}', String(daysLeft))}
+                  </span>
+                )}
+              </div>
               
-              <div className="relative">
-                <h4 className="text-base font-semibold text-gray-900 mb-3 group-hover:text-[#D77E6C] transition-colors">
-                  {activePurchase.title}
-                </h4>
+              <div 
+                onClick={() => handlePurchaseClick(activePurchase.id)}
+                className="bg-gradient-to-r from-gray-50 via-gray-50 to-white rounded-2xl p-4 cursor-pointer hover:from-[#D77E6C]/5 hover:to-[#E89380]/5 transition-all duration-200 group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D77E6C]/10 to-transparent rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
                 
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between items-baseline mb-1.5">
-                      <span className="text-sm text-gray-500">{t('Прогресс')}</span>
-                      <span className="text-2xl font-bold text-[#D77E6C]">
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-700 ease-out relative"
-                        style={{
-                          width: `${progress}%`,
-                          background: 'linear-gradient(90deg, #D77E6C 0%, #E89380 100%)'
-                        }}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={Math.round(progress)}
-                        role="progressbar"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                <div className="relative">
+                  <h4 className="text-base font-semibold text-gray-900 mb-3 group-hover:text-[#D77E6C] transition-colors">
+                    {activePurchase.title}
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1.5">
+                        <span className="text-sm text-gray-500">{t('Прогресс')}</span>
+                        <span className="text-2xl font-bold text-[#D77E6C]">
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-700 ease-out relative"
+                          style={{
+                            width: `${progress}%`,
+                            background: 'linear-gradient(90deg, #D77E6C 0%, #E89380 100%)'
+                          }}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={Math.round(progress)}
+                          role="progressbar"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">
-                      {t('Собрано:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.collected_amount)} ₸</span>
-                    </span>
-                    <span className="text-gray-600">
-                      {t('Цель:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.target_amount)} ₸</span>
-                    </span>
+                    
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">
+                        {t('Собрано:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.collected_amount)} ₸</span>
+                      </span>
+                      <span className="text-gray-600">
+                        {t('Цель:')} <span className="font-semibold text-gray-900">{formatPrice(activePurchase.target_amount)} ₸</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 mb-5 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-gray-100 to-transparent rounded-full -translate-y-20 translate-x-20"></div>
-            <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                <ShoppingCart className="w-8 h-8 text-gray-500" />
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-500">{t('Текущая закупка')}</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                  <Zap className="w-3.5 h-3.5" />
+                  {t('Ожидание')}
+                </span>
               </div>
-              <p className="text-gray-600 font-medium">{t('Нет активных закупок')}</p>
-              <p className="text-sm text-gray-500 mt-1">{t('Создайте первую командную закупку')}</p>
-            </div>
-          </div>
-        )}
+              
+              <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50/50 rounded-2xl p-6 relative overflow-hidden border border-gray-100">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-[#D77E6C]/5 to-transparent rounded-full -translate-y-20 translate-x-20"></div>
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#E89380]/5 to-transparent rounded-full translate-y-16 -translate-x-16"></div>
+                
+                <div className="relative text-center">
+                  <div className="w-14 h-14 bg-gradient-to-br from-[#D77E6C]/10 to-[#E89380]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <ShoppingCart className="w-7 h-7 text-[#D77E6C]" />
+                  </div>
+                  <h4 className="text-base font-semibold text-gray-900 mb-1">
+                    {t('Нет активных событий')}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {t('Начните командную закупку и получайте бонусы')}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Кнопки действий */}
         <div className="flex flex-wrap gap-2 sm:gap-3">

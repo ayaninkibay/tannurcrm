@@ -7,18 +7,14 @@ import { useUser } from '@/context/UserContext';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { teamPurchaseBonusService } from '@/lib/team-purchase/TeamPurchaseBonusService';
 import {
-  ArrowLeft,
   Calculator,
   CheckCircle,
-  DollarSign,
   Loader2,
   Users,
   Award,
   Coins,
   Clock,
   Calendar,
-  FileText,
-  Package,
   ChevronDown,
   ChevronUp,
   Info,
@@ -26,8 +22,26 @@ import {
   Eye,
   EyeOff,
   TrendingUp,
-  Zap
+  RefreshCw,
+  UserX,
+  DollarSign,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
+
+type TurnoverData = {
+  user_id: string;
+  personal_turnover: number;
+  bonus_percent: number;
+};
+
+type UserData = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  parent_id?: string;
+};
 
 type BonusDetail = {
   id: string;
@@ -35,27 +49,31 @@ type BonusDetail = {
   contributor_id: string;
   hierarchy_level: number;
   contribution_amount: number;
-  team_bonus_percent: number;
   beneficiary_percent: number;
   contributor_percent: number;
   received_percent: number;
   bonus_amount: number;
-  calculation_status: string;
-  payment_status: string;
   calculation_details: any;
-  beneficiary: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    personal_level: number;
-    personal_turnover: number;
+  updated_at: string;
+  balance_transaction_id?: string | null;
+  beneficiary: UserData & {
+    current_turnover?: number;
+    current_percent?: number;
   };
-  contributor: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
+  contributor: UserData & {
+    current_turnover?: number;
+    current_percent?: number;
+  };
+};
+
+type TeamMember = {
+  id: string;
+  user_id: string;
+  contribution_actual: number;
+  status: string;
+  user: UserData & {
+    personal_turnover?: number;
+    bonus_percent?: number;
   };
 };
 
@@ -75,6 +93,8 @@ type TeamPurchaseDetail = {
   bonuses_approved: boolean;
   bonuses_approved_at: string | null;
   bonuses_approved_by: string | null;
+  bonuses_transferred_to_balance: boolean;
+  bonuses_transferred_at: string | null;
   initiator: {
     id: string;
     first_name: string;
@@ -82,59 +102,378 @@ type TeamPurchaseDetail = {
     email: string;
     phone: string;
   };
-  members: Array<{
-    id: string;
-    user_id: string;
-    contribution_actual: number;
-    status: string;
-    user: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-      parent_id?: string;
-      personal_level: number;
-      personal_turnover: number;
-    };
-  }>;
+  members: TeamMember[];
 };
 
-// Таблица процентов бонусов
-const BONUS_LEVELS = [
-  { min: 300000, percent: 5 },
-  { min: 1000000, percent: 8 },
-  { min: 3000000, percent: 10 },
-  { min: 5000000, percent: 13 },
-  { min: 10000000, percent: 15 },
-  { min: 20000000, percent: 18 },
-  { min: 50000000, percent: 20 },
-  { min: 100000000, percent: 21 },
-  { min: 150000000, percent: 22 },
-  { min: 200000000, percent: 23 },
-  { min: 300000000, percent: 24 },
-  { min: 400000000, percent: 25 },
-  { min: 500000000, percent: 26 },
-  { min: 700000000, percent: 27 },
-  { min: 1000000000, percent: 28 }
-];
+// Модальное окно подтверждения выплаты
+const PayoutConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  totalAmount,
+  recipientsCount
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  totalAmount: number;
+  recipientsCount: number;
+}) => {
+  const [confirmText, setConfirmText] = useState('');
+  const isConfirmed = confirmText === 'ВЫПЛАТИТЬ';
 
-// Функция для получения процента по сумме
-const getPercentByAmount = (amount: number): number => {
-  for (let i = BONUS_LEVELS.length - 1; i >= 0; i--) {
-    if (amount >= BONUS_LEVELS[i].min) {
-      return BONUS_LEVELS[i].percent;
-    }
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <DollarSign className="w-5 h-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Подтверждение выплаты бонусов
+            </h3>
+            
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="font-semibold text-red-800 mb-2">
+                ⚠️ ВНИМАНИЕ! Это необратимое действие
+              </p>
+              <ul className="space-y-1 text-red-700 text-sm">
+                <li>• Будет выплачено: <span className="font-bold">{totalAmount.toLocaleString()} ₸</span></li>
+                <li>• Получателей: <span className="font-bold">{recipientsCount}</span></li>
+                <li>• Деньги будут зачислены на балансы</li>
+                <li>• После выплаты изменения невозможны</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Для подтверждения введите <span className="font-bold text-gray-900">ВЫПЛАТИТЬ</span> в поле ниже:
+              </p>
+              
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Введите ВЫПЛАТИТЬ"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!isConfirmed}
+            className={`flex-1 px-4 py-2 rounded-lg transition-colors font-semibold ${
+              isConfirmed
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Выплатить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Модальное окно финализации
+const FinalizationModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm,
+  purchaseTitle 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  purchaseTitle: string;
+}) => {
+  if (!isOpen) return null;
+
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const daysRemaining = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Подтверждение финализации
+            </h3>
+            <div className="space-y-3 text-sm text-gray-600">
+              <p>
+                Вы уверены, что хотите финализировать бонусы для закупки 
+                <span className="font-semibold text-gray-900"> "{purchaseTitle}"</span>?
+              </p>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="font-semibold text-yellow-800 mb-1">
+                  ⚠️ Важная информация:
+                </p>
+                <ul className="space-y-1 text-yellow-700 text-xs">
+                  <li>• До конца месяца осталось <span className="font-bold">{daysRemaining} {daysRemaining === 1 ? 'день' : daysRemaining < 5 ? 'дня' : 'дней'}</span></li>
+                  <li>• После финализации бонусы будут зафиксированы</li>
+                  <li>• Изменения в товарообороте НЕ повлияют на финальные суммы</li>
+                  <li>• Preview будет продолжать обновляться для информации</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="font-semibold text-blue-800 mb-1">
+                  💡 Рекомендация:
+                </p>
+                <p className="text-blue-700 text-xs">
+                  Финализацию лучше проводить в последние дни месяца, когда товарооборот уже сформирован.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 bg-[#E89380] text-white rounded-lg hover:bg-[#E89380]/90 transition-colors font-semibold"
+          >
+            Финализировать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Компонент для отображения после выплаты
+const PaymentCompletedPanel = ({ 
+  purchase,
+  bonuses,
+  totalAmount,
+  recipientsCount
+}: {
+  purchase: TeamPurchaseDetail;
+  bonuses: BonusDetail[];
+  totalAmount: number;
+  recipientsCount: number;
+}) => {
+  return (
+    <div className="space-y-4 mt-4">
+      <div className="bg-green-100 border-2 border-green-300 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-lg font-bold text-green-900 mb-1">
+              Бонусы выплачены
+            </h4>
+            <p className="text-green-800 text-sm mb-3">
+              Все бонусы успешно начислены на балансы пользователей
+            </p>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div className="bg-white/50 rounded p-2">
+                <div className="text-green-600 text-xs">Выплачено</div>
+                <div className="font-bold text-green-900">{totalAmount.toLocaleString()} ₸</div>
+              </div>
+              <div className="bg-white/50 rounded p-2">
+                <div className="text-green-600 text-xs">Получателей</div>
+                <div className="font-bold text-green-900">{recipientsCount}</div>
+              </div>
+              <div className="bg-white/50 rounded p-2">
+                <div className="text-green-600 text-xs">Дата выплаты</div>
+                <div className="font-bold text-green-900">
+                  {purchase.bonuses_transferred_at 
+                    ? new Date(purchase.bonuses_transferred_at).toLocaleDateString('ru-RU')
+                    : new Date().toLocaleDateString('ru-RU')}
+                </div>
+              </div>
+              <div className="bg-white/50 rounded p-2">
+                <div className="text-green-600 text-xs">Статус</div>
+                <div className="font-bold text-green-900">Завершено</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start gap-2">
+          <Lock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-yellow-900 mb-1">
+              Изменения заблокированы
+            </p>
+            <p className="text-yellow-700 text-sm">
+              После выплаты бонусов любые изменения невозможны. Данные зафиксированы и защищены от редактирования.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Панель управления после финализации
+const FinalizedControls = ({
+  purchase,
+  bonuses,
+  onApprove,
+  onPayout,
+  isApproving,
+  isPayingOut,
+  hasPayments
+}: {
+  purchase: TeamPurchaseDetail;
+  bonuses: BonusDetail[];
+  onApprove: () => void;
+  onPayout: () => void;
+  isApproving: boolean;
+  isPayingOut: boolean;
+  hasPayments: boolean;
+}) => {
+  const [showDetails, setShowDetails] = useState(false);
+  
+  if (hasPayments) {
+    return (
+      <PaymentCompletedPanel
+        purchase={purchase}
+        bonuses={bonuses}
+        totalAmount={bonuses.reduce((sum, b) => sum + b.bonus_amount, 0)}
+        recipientsCount={new Set(bonuses.map(b => b.beneficiary_id)).size}
+      />
+    );
   }
-  return 0;
+  
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Бонусы финализированы
+          </h4>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <span className="text-green-700">Месяц:</span>
+              <p className="font-semibold text-green-900">
+                {new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+            <div>
+              <span className="text-green-700">Сумма к выплате:</span>
+              <p className="font-semibold text-green-900">
+                {bonuses.reduce((sum, b) => sum + b.bonus_amount, 0).toLocaleString()} ₸
+              </p>
+            </div>
+            <div>
+              <span className="text-green-700">Получателей:</span>
+              <p className="font-semibold text-green-900">
+                {new Set(bonuses.map(b => b.beneficiary_id)).size}
+              </p>
+            </div>
+            <div>
+              <span className="text-green-700">Статус:</span>
+              <p className="font-semibold text-green-900">
+                {purchase.bonuses_approved ? 'Одобрено' : 'Ожидает одобрения'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {!purchase.bonuses_approved && (
+            <button
+              onClick={onApprove}
+              disabled={isApproving}
+              className="px-3 py-1.5 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+            >
+              {isApproving ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <CheckCircle className="w-3 h-3" />
+              )}
+              Одобрить
+            </button>
+          )}
+          
+          {purchase.bonuses_approved && (
+            <button
+              onClick={onPayout}
+              disabled={isPayingOut}
+              className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+            >
+              {isPayingOut ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <DollarSign className="w-3 h-3" />
+              )}
+              Выплатить
+            </button>
+          )}
+          
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200 flex items-center gap-1"
+          >
+            {showDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            Детали
+          </button>
+        </div>
+      </div>
+
+      {showDetails && (
+        <div className="mt-4 pt-4 border-t border-green-200">
+          <div className="space-y-2">
+            <h5 className="font-semibold text-green-900 text-sm mb-2">История действий:</h5>
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-3 h-3" />
+                <span>Финализировано: {new Date().toLocaleDateString('ru-RU')}</span>
+              </div>
+              {purchase.bonuses_approved_at && (
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Одобрено: {new Date(purchase.bonuses_approved_at).toLocaleDateString('ru-RU')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-// Функция для получения инициалов
+// Утилиты
 const getInitials = (firstName: string, lastName: string): string => {
   if (!firstName || !lastName) return 'UN';
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 };
 
-// Функция для генерации цвета аватара на основе имени
 const getAvatarColor = (name: string): string => {
   const colors = [
     '#E89380', '#6B73FF', '#9333EA', '#F59E0B', '#EF4444',
@@ -147,7 +486,6 @@ const getAvatarColor = (name: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// Функция для форматирования статуса
 const getStatusText = (status: string): string => {
   const statusMap: { [key: string]: string } = {
     'forming': 'Формируется',
@@ -159,10 +497,66 @@ const getStatusText = (status: string): string => {
   return statusMap[status] || status;
 };
 
-// Детальное объяснение бонуса с формулами
+// Компонент для неучаствующего родителя
+const NonParticipantItem = ({ 
+  user,
+  level,
+  children
+}: {
+  user: UserData;
+  level: number;
+  children?: React.ReactNode;
+}) => {
+  const avatarColor = getAvatarColor(`${user.first_name} ${user.last_name}`);
+  
+  return (
+    <>
+      <div className="border-b border-gray-100 bg-gray-50/50">
+        <div className="flex items-center py-2 px-4 md:px-6 opacity-60">
+          <div style={{ marginLeft: `${level * 24}px` }} className="flex items-center flex-1 min-w-0 relative">
+            {level > 0 && (
+              <>
+                <div className="absolute -left-3 top-1/2 w-3 h-px bg-gray-300"></div>
+                <div className="absolute -left-3 -top-3 w-px h-[calc(50%+12px)] bg-gray-300"></div>
+              </>
+            )}
+
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xs mr-3 flex-shrink-0 relative"
+              style={{ backgroundColor: avatarColor }}
+            >
+              {getInitials(user.first_name, user.last_name)}
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gray-400 rounded-full flex items-center justify-center">
+                <UserX className="w-2.5 h-2.5 text-white" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-600 text-sm">
+                  {user.first_name} {user.last_name}
+                </h3>
+                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
+                  Не участвует
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-xs text-gray-500 italic mr-8">
+            Промежуточное звено
+          </div>
+        </div>
+      </div>
+      {children}
+    </>
+  );
+};
+
+// Детальное объяснение бонуса
 const DetailedBonusExplanation = ({ 
   bonus, 
-  isPersonal = false,
+  isPersonal = false, 
   showFormulas = false 
 }: {
   bonus: BonusDetail;
@@ -173,27 +567,22 @@ const DetailedBonusExplanation = ({
   const contributorName = `${bonus.contributor.first_name} ${bonus.contributor.last_name}`;
   
   if (showFormulas) {
-    // Для личного бонуса - упрощенный вид
     if (isPersonal) {
       return (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="text-gray-600">Покупка на сумму:</div>
-            <div className="font-semibold text-gray-900">
-              {bonus.contribution_amount.toLocaleString()} ₸
-            </div>
+            <div className="text-gray-600">Вклад участника:</div>
+            <div className="font-semibold">{bonus.contribution_amount.toLocaleString()} ₸</div>
             
-            <div className="text-gray-600">Процент:</div>
-            <div className="font-semibold text-gray-900">
-              {bonus.beneficiary_percent}%
-            </div>
+            <div className="text-gray-600">Процент участника:</div>
+            <div className="font-bold text-green-600">{bonus.beneficiary_percent}%</div>
             
-            <div className="col-span-2 border-t border-gray-200 pt-2 mt-2">
-              <div className="font-mono text-xs text-gray-600 mb-1">
+            <div className="col-span-2 border-t pt-2 mt-2">
+              <div className="font-mono text-xs text-gray-600">
                 {bonus.beneficiary_percent}% × {bonus.contribution_amount.toLocaleString()}₸
               </div>
               <div className="text-sm">
-                <span className="font-semibold text-gray-900">Итого бонус:</span>{' '}
+                <span className="font-semibold">Личный бонус:</span>{' '}
                 <span className="font-bold text-[#E89380]">
                   {bonus.bonus_amount.toLocaleString()} ₸
                 </span>
@@ -204,36 +593,34 @@ const DetailedBonusExplanation = ({
       );
     }
     
-    // Для дифференциального бонуса - полный вид
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="text-gray-600">База расчета:</div>
-          <div className="font-semibold text-gray-900">
-            {bonus.contribution_amount.toLocaleString()} ₸
+          <div className="text-gray-600">Вклад участника:</div>
+          <div>
+            <span className="font-semibold text-blue-700">{contributorName}</span>
+            <div className="font-semibold">{bonus.contribution_amount.toLocaleString()} ₸</div>
           </div>
           
-          <div className="text-gray-600">Получатель:</div>
-          <div className="font-semibold text-gray-900">
-            {beneficiaryName}: {bonus.beneficiary_percent}%
-          </div>
+          <div className="text-gray-600">Мой процент:</div>
+          <div className="font-semibold text-green-600">{bonus.beneficiary_percent}%</div>
           
-          <div className="text-gray-600">От кого:</div>
-          <div className="font-semibold text-gray-900">
-            {contributorName}: {bonus.contributor_percent}%
-          </div>
+          <div className="text-gray-600">Процент {bonus.contributor.first_name}:</div>
+          <div className="font-semibold">{bonus.contributor_percent}%</div>
           
           <div className="text-gray-600">Получаемая разница:</div>
-          <div className="font-bold text-green-600">
-            {bonus.received_percent}%
-          </div>
+          <div className="font-bold text-green-600">{bonus.received_percent}%</div>
           
-          <div className="col-span-2 border-t border-gray-200 pt-2 mt-2">
-            <div className="font-mono text-xs text-gray-600 mb-1">
-              ({bonus.beneficiary_percent}% - {bonus.contributor_percent}%) × {bonus.contribution_amount.toLocaleString()}₸
+          <div className="col-span-2 border-t pt-2 mt-2">
+            <div className="font-mono text-xs text-gray-600">
+              ({bonus.beneficiary_percent}% - {bonus.contributor_percent}%) × 
+              <span className="text-blue-700 font-semibold"> {bonus.contribution_amount.toLocaleString()}₸</span>
             </div>
-            <div className="text-sm">
-              <span className="font-semibold text-gray-900">Итого бонус:</span>{' '}
+            <div className="text-xs text-gray-500 mt-1">
+              Дифференциальный бонус: {bonus.received_percent}% × {bonus.contribution_amount.toLocaleString()}₸
+            </div>
+            <div className="text-sm mt-1">
+              <span className="font-semibold">Дифференциальный бонус:</span>{' '}
               <span className="font-bold text-[#E89380]">
                 {bonus.bonus_amount.toLocaleString()} ₸
               </span>
@@ -244,7 +631,6 @@ const DetailedBonusExplanation = ({
     );
   }
 
-  // Краткий вид
   return (
     <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-xs">
       <div className="flex items-start gap-2">
@@ -262,7 +648,7 @@ const DetailedBonusExplanation = ({
           ) : (
             <div>
               <span className="text-gray-600">От</span>{' '}
-              <span className="font-semibold">{contributorName}:</span>{' '}
+              <span className="font-semibold text-blue-700">{contributorName}:</span>{' '}
               <span className="font-mono text-gray-700">
                 ({bonus.beneficiary_percent}% - {bonus.contributor_percent}%)
               </span>{' '}
@@ -278,213 +664,42 @@ const DetailedBonusExplanation = ({
   );
 };
 
-// Объяснение почему нет бонуса
-const NoBonusExplanation = ({ 
-  potentialBeneficiary, 
-  contributor,
-  teamPercent 
-}: {
-  potentialBeneficiary: any;
-  contributor: any;
-  teamPercent: number;
-}) => {
-  const beneficiaryPercent = Math.max(
-    getPercentByAmount(potentialBeneficiary.contribution_actual || 0),
-    getPercentByAmount(potentialBeneficiary.user.personal_turnover || 0)
-  );
-  
-  const contributorPercent = Math.max(
-    getPercentByAmount(contributor.contribution_actual || 0),
-    getPercentByAmount(contributor.user.personal_turnover || 0)
-  );
-
-  let reason = '';
-  let icon = AlertCircle;
-  
-  if (beneficiaryPercent <= contributorPercent) {
-    reason = `Не получает: ${beneficiaryPercent}% ≤ ${contributorPercent}% участника`;
-  } else if (beneficiaryPercent > teamPercent) {
-    reason = `Ограничен командным процентом: ${beneficiaryPercent}% > ${teamPercent}%`;
-  }
-
-  if (!reason) return null;
-
-  return (
-    <div className="bg-orange-50 border border-orange-200 rounded px-3 py-2 text-xs">
-      <div className="flex items-start gap-2">
-        <AlertCircle className="w-3 h-3 text-orange-500 flex-shrink-0 mt-0.5" />
-        <span className="text-orange-700">{reason}</span>
-      </div>
-    </div>
-  );
-};
-
 // Статистика иерархии
-const HierarchyStats = ({ 
-  purchase, 
-  bonuses, 
-  teamPercent 
-}: { 
-  purchase: TeamPurchaseDetail;
-  bonuses: BonusDetail[];
-  teamPercent: number;
-}) => {
-  const totalPossible = purchase.paid_amount * (teamPercent / 100);
+const HierarchyStats = ({ purchase, bonuses }: { purchase: TeamPurchaseDetail; bonuses: BonusDetail[] }) => {
   const totalDistributed = bonuses.reduce((sum, b) => sum + b.bonus_amount, 0);
-  const efficiency = (totalDistributed / totalPossible) * 100;
   const maxLevel = Math.max(...bonuses.map(b => b.hierarchy_level), 0);
-
+  
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
       <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-gray-600" />
-        Анализ распределения
+        Анализ распределения бонусов
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Командный %</div>
-          <div className="font-bold text-lg text-gray-900">{teamPercent}%</div>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div>
           <div className="text-xs text-gray-600 mb-1">Уровней иерархии</div>
           <div className="font-bold text-lg text-gray-900">{maxLevel + 1}</div>
         </div>
         <div>
-          <div className="text-xs text-gray-600 mb-1">Распределено</div>
+          <div className="text-xs text-gray-600 mb-1">Всего участников</div>
+          <div className="font-bold text-lg text-gray-900">{purchase.members.length}</div>
+        </div>
+        <div>
+          <div className="text-xs text-gray-600 mb-1">Распределено бонусов</div>
           <div className="font-bold text-lg text-[#E89380]">
             {totalDistributed.toLocaleString()} ₸
           </div>
         </div>
-        <div>
-          <div className="text-xs text-gray-600 mb-1">Распределено из 100%</div>
-          <div className="font-bold text-lg text-gray-900">{efficiency.toFixed(1)}%</div>
-        </div>
       </div>
-      {efficiency < 95 && (
-        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-          <AlertCircle className="w-3 h-3 inline mr-1" />
-          Часть бонусов не распределена из-за преваышения личного процента участников над вышестоящими в иерархии.
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Компонент симулятора
-const BonusSimulator = ({ 
-  purchase,
-  onClose 
-}: { 
-  purchase: TeamPurchaseDetail;
-  onClose: () => void;
-}) => {
-  const [simValues, setSimValues] = useState<{[key: string]: number}>({});
-  const [simResults, setSimResults] = useState<any>(null);
-
-  useEffect(() => {
-    const initial: {[key: string]: number} = {};
-    purchase.members.forEach(m => {
-      initial[m.user_id] = m.contribution_actual;
-    });
-    setSimValues(initial);
-  }, [purchase]);
-
-  const calculateSimulation = () => {
-    const totalAmount = Object.values(simValues).reduce((sum, val) => sum + val, 0);
-    const teamPercent = getPercentByAmount(totalAmount);
-    
-    // Здесь упрощенный расчет для демонстрации
-    const results = purchase.members.map(member => {
-      const contribution = simValues[member.user_id] || 0;
-      const personalPercent = getPercentByAmount(contribution);
-      const personalBonus = contribution * (Math.min(personalPercent, teamPercent) / 100);
-      
-      return {
-        userId: member.user_id,
-        name: `${member.user.first_name} ${member.user.last_name}`,
-        contribution,
-        personalBonus,
-        totalBonus: personalBonus // В реальности нужно считать иерархию
-      };
-    });
-
-    setSimResults({
-      totalAmount,
-      teamPercent,
-      results
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Симулятор бонусов (расчитывается бонус только от личного вклада)</h2>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-6">
-          <div className="space-y-3 mb-6">
-            {purchase.members.map(member => (
-              <div key={member.user_id} className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 w-32">
-                  {member.user.first_name} {member.user.last_name}
-                </span>
-                <input
-                  type="number"
-                  value={simValues[member.user_id] || 0}
-                  onChange={(e) => setSimValues({
-                    ...simValues,
-                    [member.user_id]: parseInt(e.target.value) || 0
-                  })}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded text-sm"
-                  placeholder="Сумма вклада"
-                />
-              </div>
-            ))}
-          </div>
-          
-          <button
-            onClick={calculateSimulation}
-            className="w-full px-4 py-2 bg-[#E89380] text-white rounded-lg hover:bg-[#E89380]/90 font-semibold"
-          >
-            Рассчитать
-          </button>
-          
-          {simResults && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="mb-3">
-                <span className="text-sm text-gray-600">Общая сумма:</span>{' '}
-                <span className="font-bold">{simResults.totalAmount.toLocaleString()} ₸</span>
-                <span className="text-sm text-gray-600 ml-3">Командный %:</span>{' '}
-                <span className="font-bold">{simResults.teamPercent}%</span>
-              </div>
-              <div className="space-y-2">
-                {simResults.results.map((r: any) => (
-                  <div key={r.userId} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{r.name}</span>
-                    <span className="font-semibold text-[#E89380]">
-                      {r.totalBonus.toLocaleString()} ₸
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+        <Info className="w-3 h-3 inline mr-1" />
+        Бонусы рассчитаны на основе текущего товарооборота из user_turnover_current
       </div>
     </div>
   );
 };
 
-// Компонент элемента списка участника с иерархией
+// Компонент участника
 const TeamMemberItem = React.memo(({
   member,
   bonuses,
@@ -494,10 +709,11 @@ const TeamMemberItem = React.memo(({
   onToggle,
   showFormulas,
   children,
-  parentMember = null,
-  isOrganizer
+  isOrganizer,
+  turnoverMap,
+  allUsersMap
 }: {
-  member: any;
+  member: TeamMember;
   bonuses: BonusDetail[];
   purchase: TeamPurchaseDetail;
   level?: number;
@@ -505,8 +721,9 @@ const TeamMemberItem = React.memo(({
   onToggle: () => void;
   showFormulas: boolean;
   children?: React.ReactNode;
-  parentMember?: any;
   isOrganizer: boolean;
+  turnoverMap: Map<string, TurnoverData>;
+  allUsersMap: Map<string, UserData>;
 }) => {
   const user = member.user;
   const contribution = member.contribution_actual;
@@ -517,35 +734,46 @@ const TeamMemberItem = React.memo(({
   const differentialBonuses = userBonuses.filter((b: BonusDetail) => b.contributor_id !== user.id);
   const totalBonus = userBonuses.reduce((sum, b) => sum + b.bonus_amount, 0);
 
-  const memberPercent = Math.max(
-    getPercentByAmount(contribution),
-    getPercentByAmount(user.personal_turnover || 0)
-  );
+  const turnoverData = turnoverMap.get(user.id);
+  const memberPercent = turnoverData?.bonus_percent || personalBonus?.beneficiary_percent || 0;
+  const memberTurnover = turnoverData?.personal_turnover || 0;
 
-  const teamPercent = getPercentByAmount(purchase.paid_amount);
-
-  // Функция для рекурсивного поиска всех потомков
-  const getAllDescendants = (userId: string): any[] => {
-    const descendants: any[] = [];
-    const directChildren = purchase.members.filter(m => m.user.parent_id === userId);
+  const getAllDescendants = (userId: string): TeamMember[] => {
+    const descendants: TeamMember[] = [];
     
-    directChildren.forEach(child => {
-      descendants.push(child);
-      // Рекурсивно добавляем потомков каждого ребенка
-      descendants.push(...getAllDescendants(child.user_id));
+    purchase.members.forEach(m => {
+      let currentId = m.user_id;
+      let currentParentId = m.user.parent_id;
+      
+      while (currentParentId) {
+        if (currentParentId === userId) {
+          descendants.push(m);
+          break;
+        }
+        
+        const parent = purchase.members.find(p => p.user_id === currentParentId);
+        if (parent) {
+          currentParentId = parent.user.parent_id;
+        } else {
+          const parentUser = allUsersMap.get(currentParentId);
+          if (parentUser) {
+            currentParentId = parentUser.parent_id;
+          } else {
+            break;
+          }
+        }
+      }
     });
     
     return descendants;
   };
 
-  // Получаем ВСЕХ потомков (не только прямых детей)
   const allDescendants = getAllDescendants(user.id);
 
   return (
     <>
       <div className="group border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150 bg-white">
         <div className="flex items-center py-3 px-4 md:px-6">
-          {/* Иерархия с линиями */}
           <div style={{ marginLeft: `${level * 24}px` }} className="flex items-center flex-1 min-w-0 relative">
             {level > 0 && (
               <>
@@ -554,7 +782,6 @@ const TeamMemberItem = React.memo(({
               </>
             )}
 
-            {/* Аватар */}
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-xs mr-3 flex-shrink-0"
               style={{ backgroundColor: avatarColor }}
@@ -562,7 +789,6 @@ const TeamMemberItem = React.memo(({
               {getInitials(user.first_name, user.last_name)}
             </div>
 
-            {/* Информация о пользователе */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <h3 className="font-semibold text-gray-900 text-sm">
@@ -576,29 +802,26 @@ const TeamMemberItem = React.memo(({
               </div>
               <div className="text-xs text-gray-500">
                 <span className="hidden md:inline">
-                  Уровень: {user.personal_level || 0}% • Лич. товарооборот: {user.personal_turnover?.toLocaleString() || 0} ₸
+                  Товарооборот: {memberTurnover.toLocaleString()} ₸
                 </span>
                 <span className="md:hidden">
-                  {user.personal_level || 0}% • {(user.personal_turnover / 1000000).toFixed(1)}М ₸
+                  {(memberTurnover / 1000000).toFixed(1)}М ₸
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Процент в иерархии */}
           <div className="hidden sm:block w-16 text-center mx-2">
             <div className="text-lg font-bold text-gray-900">{memberPercent}%</div>
-            <div className="text-xs text-gray-500">макс</div>
+            <div className="text-xs text-gray-500">бонус</div>
           </div>
 
-          {/* Вклад */}
           <div className="hidden md:block w-28 text-right mr-4">
             <span className="text-sm font-semibold text-gray-900">
               {contribution.toLocaleString()} ₸
             </span>
           </div>
 
-          {/* Общий бонус */}
           <div className="w-24 md:w-32 text-right mr-2">
             <span className="text-base md:text-lg font-bold text-[#E89380]">
               {totalBonus.toLocaleString()} ₸
@@ -610,7 +833,6 @@ const TeamMemberItem = React.memo(({
             )}
           </div>
 
-          {/* Кнопка для разворачивания деталей */}
           <button
             onClick={onToggle}
             className="p-1.5 hover:bg-gray-200 rounded transition-colors"
@@ -623,11 +845,9 @@ const TeamMemberItem = React.memo(({
           </button>
         </div>
 
-        {/* Детальная информация о бонусах */}
         {isExpanded && (
           <div className="px-4 md:px-6 pb-3" style={{ marginLeft: `${level * 24}px` }}>
             <div className="ml-12 space-y-2">
-              {/* Личный бонус */}
               {personalBonus && (
                 <DetailedBonusExplanation 
                   bonus={personalBonus} 
@@ -636,7 +856,6 @@ const TeamMemberItem = React.memo(({
                 />
               )}
               
-              {/* Полученные командные бонусы */}
               {differentialBonuses.map((bonus) => (
                 <DetailedBonusExplanation 
                   key={bonus.id} 
@@ -646,53 +865,43 @@ const TeamMemberItem = React.memo(({
                 />
               ))}
 
-              {/* Показываем почему НЕ получил от ВСЕХ потомков в иерархии */}
               {allDescendants.map(descendant => {
-                const descendantPercent = Math.max(
-                  getPercentByAmount(descendant.contribution_actual),
-                  getPercentByAmount(descendant.user.personal_turnover || 0)
-                );
+                const descendantTurnover = turnoverMap.get(descendant.user_id);
+                const descendantPercent = descendantTurnover?.bonus_percent || 0;
                 
                 const didReceive = differentialBonuses.some(b => b.contributor_id === descendant.user_id);
                 
-                // Показываем объяснение если НЕ получил и процент потомка >= моего
-                if (!didReceive && descendantPercent >= memberPercent && descendant.contribution_actual > 0) {
-                  // Определяем уровень в иерархии
-                  const isDirectChild = descendant.user.parent_id === user.id;
-                  const hierarchyNote = isDirectChild ? '' : ' (поддилер)';
+                if (!didReceive && descendant.contribution_actual > 0 && memberPercent > 0) {
+                  let reason = '';
+                  if (descendantPercent >= memberPercent) {
+                    reason = `Личный процент ${memberPercent}% ≤ ${descendantPercent}% участника`;
+                  }
                   
-                  return (
-                    <div key={descendant.user_id} className="bg-orange-50 border border-orange-200 rounded px-3 py-2 text-xs">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-3 h-3 text-orange-500 flex-shrink-0 mt-0.5" />
-                        <div className="text-orange-700">
-                          <span>
-                            Не получает от <span className="font-semibold">{descendant.user.first_name} {descendant.user.last_name}</span>{hierarchyNote}:
-                          </span>{' '}
-                          <span>
-                            Личный процент {memberPercent}% ≤ {descendantPercent}% участника
-                          </span>
+                  if (reason) {
+                    return (
+                      <div key={descendant.user_id} className="bg-orange-50 border border-orange-200 rounded px-3 py-2 text-xs">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-3 h-3 text-orange-500 flex-shrink-0 mt-0.5" />
+                          <div className="text-orange-700">
+                            <span>
+                              Не получает от <span className="font-semibold">
+                                {descendant.user.first_name} {descendant.user.last_name}
+                              </span>:
+                            </span>{' '}
+                            <span>{reason}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
+                    );
+                  }
                 }
                 return null;
               })}
 
-              {/* Если вообще нет бонусов и есть вклад - показываем только личный */}
-              {personalBonus === undefined && contribution > 0 && memberPercent > 0 && (
+              {personalBonus === undefined && contribution > 0 && memberPercent === 0 && (
                 <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-xs text-gray-600">
                   <Info className="w-3 h-3 inline mr-1" />
-                  Должен был получить личный бонус: {memberPercent}% от {contribution.toLocaleString()} ₸ = {(contribution * Math.min(memberPercent, teamPercent) / 100).toLocaleString()} ₸
-                </div>
-              )}
-              
-              {/* Если процент 0% */}
-              {contribution > 0 && memberPercent === 0 && (
-                <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-xs text-gray-600">
-                  <Info className="w-3 h-3 inline mr-1" />
-                  Нет бонуса: сумма вклада {contribution.toLocaleString()} ₸ недостаточна для получения процента (минимум 300,000 ₸)
+                  Нет бонуса: недостаточный товарооборот для получения процента
                 </div>
               )}
             </div>
@@ -700,7 +909,6 @@ const TeamMemberItem = React.memo(({
         )}
       </div>
 
-      {/* Дочерние элементы */}
       {children}
     </>
   );
@@ -715,17 +923,25 @@ export default function TeamPurchaseDetailPage() {
 
   const [purchase, setPurchase] = useState<TeamPurchaseDetail | null>(null);
   const [bonuses, setBonuses] = useState<BonusDetail[]>([]);
+  const [turnoverMap, setTurnoverMap] = useState<Map<string, TurnoverData>>(new Map());
+  const [allUsersMap, setAllUsersMap] = useState<Map<string, UserData>>(new Map());
+  const [isPreview, setIsPreview] = useState(true);
+  const [isFinalized, setIsFinalized] = useState(false);
+  const [hasPayments, setHasPayments] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isPayingOut, setIsPayingOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState(new Set<string>());
   const [showFormulas, setShowFormulas] = useState(false);
-  const [showSimulator, setShowSimulator] = useState(false);
+  const [showFinalizationModal, setShowFinalizationModal] = useState(false);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   const loadPurchaseDetails = useCallback(async () => {
     try {
       setIsLoading(true);
+      
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('team_purchases')
         .select(`*, initiator:users!team_purchases_initiator_id_fkey (id, first_name, last_name, email, phone)`)
@@ -736,20 +952,63 @@ export default function TeamPurchaseDetailPage() {
 
       const { data: membersData, error: membersError } = await supabase
         .from('team_purchase_members')
-        .select(`*, user:users!team_purchase_members_user_id_fkey (id, first_name, last_name, email, parent_id, personal_level, personal_turnover)`)
+        .select(`
+          *,
+          user:users!team_purchase_members_user_id_fkey (
+            id, first_name, last_name, email, parent_id
+          )
+        `)
         .eq('team_purchase_id', purchaseId)
         .eq('status', 'purchased');
 
       if (membersError) throw membersError;
 
-      setPurchase({
-        ...purchaseData,
-        members: membersData || []
+      const allUserIds = new Set<string>();
+      (membersData || []).forEach(m => {
+        allUserIds.add(m.user_id);
+        if (m.user.parent_id) allUserIds.add(m.user.parent_id);
       });
 
-      if (purchaseData.bonuses_calculated) {
-        await loadBonuses();
-      }
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email, parent_id')
+        .in('id', Array.from(allUserIds));
+
+      const usersMap = new Map<string, UserData>();
+      (allUsers || []).forEach(u => usersMap.set(u.id, u));
+      setAllUsersMap(usersMap);
+
+      const { data: turnoverData } = await supabase
+        .from('user_turnover_current')
+        .select('user_id, personal_turnover, bonus_percent');
+
+      const turnoverMapData = new Map<string, TurnoverData>();
+      (turnoverData || []).forEach(t => {
+        turnoverMapData.set(t.user_id, t);
+      });
+      setTurnoverMap(turnoverMapData);
+
+      const enhancedMembers = (membersData || []).map(member => {
+        const turnover = turnoverMapData.get(member.user_id);
+        return {
+          ...member,
+          user: {
+            ...member.user,
+            personal_turnover: turnover?.personal_turnover || 0,
+            bonus_percent: turnover?.bonus_percent || 0
+          }
+        };
+      });
+
+      setPurchase({
+        ...purchaseData,
+        members: enhancedMembers
+      });
+
+      setHasPayments(purchaseData.bonuses_transferred_to_balance || false);
+
+      await loadBonuses();
+      await checkFinalizationStatus();
     } catch (error) {
       console.error('Error loading purchase details:', error);
     } finally {
@@ -759,16 +1018,40 @@ export default function TeamPurchaseDetailPage() {
 
   const loadBonuses = async () => {
     try {
-      const { data: bonusesData, error } = await supabase
-        .from('team_purchase_bonuses')
-        .select(`*, beneficiary:users!team_purchase_bonuses_beneficiary_id_fkey (id, first_name, last_name, email, personal_turnover, personal_level), contributor:users!team_purchase_bonuses_contributor_id_fkey (id, first_name, last_name, email)`)
-        .eq('team_purchase_id', purchaseId)
-        .order('hierarchy_level', { ascending: true });
-
-      if (error) throw error;
-      setBonuses(bonusesData || []);
+      const finalStats = await teamPurchaseBonusService.getFinalStats(purchaseId);
+      
+      if (finalStats.data?.transferredCount > 0) {
+        setHasPayments(true);
+        const result = await teamPurchaseBonusService.getFinalBonuses(purchaseId);
+        if (result.success) {
+          setBonuses(result.data);
+          setIsPreview(false);
+        }
+      } else if (finalStats.data?.isFinalized) {
+        const result = await teamPurchaseBonusService.getFinalBonuses(purchaseId);
+        if (result.success) {
+          setBonuses(result.data);
+          setIsPreview(false);
+        }
+      } else {
+        const result = await teamPurchaseBonusService.getPreviewBonuses(purchaseId);
+        if (result.success) {
+          setBonuses(result.data);
+          setIsPreview(true);
+        }
+      }
     } catch (error) {
       console.error('Error loading bonuses:', error);
+    }
+  };
+
+  const checkFinalizationStatus = async () => {
+    try {
+      const stats = await teamPurchaseBonusService.getFinalStats(purchaseId);
+      setIsFinalized(stats.data?.isFinalized || false);
+      setHasPayments(stats.data?.transferredCount > 0);
+    } catch (error) {
+      console.error('Error checking finalization status:', error);
     }
   };
 
@@ -778,53 +1061,91 @@ export default function TeamPurchaseDetailPage() {
     }
   }, [purchaseId, loadPurchaseDetails]);
 
-  const calculateBonuses = async () => {
+  const updatePreview = async () => {
     try {
       setIsCalculating(true);
-      const result = await teamPurchaseBonusService.calculateBonuses(purchaseId);
-      if (result?.success) {
-        alert(`Бонусы рассчитаны! Всего: ${result.total_bonuses} ₸`);
-        await loadPurchaseDetails();
+      const result = await teamPurchaseBonusService.calculatePreviewBonuses(purchaseId);
+      
+      if (result.success) {
+        alert('✅ Preview бонусов обновлен!');
+        await loadBonuses();
       } else {
-        alert(result?.error || 'Ошибка при расчете бонусов');
+        alert(`❌ Ошибка: ${result.error || 'Не удалось обновить preview'}`);
       }
     } catch (error) {
-      alert('Ошибка при расчете бонусов');
+      console.error('Error updating preview:', error);
+      alert('❌ Ошибка при обновлении preview');
     } finally {
       setIsCalculating(false);
     }
   };
 
-  const approveBonuses = async () => {
-    if (!profile?.id) return;
+  const handleFinalizationClick = () => {
+    setShowFinalizationModal(true);
+  };
+
+  const finalizeBonuses = async () => {
+    setShowFinalizationModal(false);
     try {
-      setIsApproving(true);
-      const result = await teamPurchaseBonusService.approveBonuses(purchaseId, profile.id);
-      if (result?.success) {
-        alert(`Бонусы одобрены!`);
-        await loadPurchaseDetails();
+      setIsFinalizing(true);
+      const result = await teamPurchaseBonusService.finalizeBonuses(purchaseId);
+      
+      if (result.success) {
+        const successMessage = `✅ Бонусы успешно финализированы!\nСумма: ${result.total_amount?.toLocaleString()} ₸\nКоличество: ${result.count} записей`;
+        alert(successMessage);
+        setIsFinalized(true);
+        await checkFinalizationStatus();
       } else {
-        alert(result?.error || 'Ошибка при одобрении бонусов');
+        alert(`❌ Ошибка: ${result.error || 'Не удалось финализировать бонусы'}`);
       }
     } catch (error) {
-      alert('Ошибка при одобрении бонусов');
+      console.error('Error finalizing bonuses:', error);
+      alert('❌ Произошла ошибка при финализации');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const approveBonuses = async () => {
+    if (!confirm('Вы уверены, что хотите одобрить бонусы к выплате?')) return;
+    
+    try {
+      setIsApproving(true);
+      const result = await teamPurchaseBonusService.approveFinalBonuses(purchaseId, profile?.id);
+      
+      if (result.success) {
+        alert(`✅ Одобрено ${result.approved_count} бонусов`);
+        await loadPurchaseDetails();
+      } else {
+        alert(`❌ Ошибка: ${result.error}`);
+      }
+    } catch (error) {
+      alert('❌ Ошибка при одобрении');
     } finally {
       setIsApproving(false);
     }
   };
 
+  const handlePayoutClick = () => {
+    setShowPayoutModal(true);
+  };
+
   const payoutBonuses = async () => {
+    setShowPayoutModal(false);
     try {
       setIsPayingOut(true);
-      const result = await teamPurchaseBonusService.payoutBonuses(purchaseId);
-      if (result?.success) {
-        alert(`Бонусы выплачены!`);
+      const result = await teamPurchaseBonusService.payoutFinalBonuses(purchaseId);
+      
+      if (result.success) {
+        alert(`✅ Успешно начислено на баланс!\n${result.message}`);
+        setHasPayments(true);
         await loadPurchaseDetails();
+        await loadBonuses();
       } else {
-        alert(result?.error || 'Ошибка при выплате бонусов');
+        alert(`❌ Ошибка: ${result.error}`);
       }
     } catch (error) {
-      alert('Ошибка при выплате бонусов');
+      alert('❌ Ошибка при начислении на баланс');
     } finally {
       setIsPayingOut(false);
     }
@@ -853,40 +1174,92 @@ export default function TeamPurchaseDetailPage() {
     }
 
     const membersMap = new Map(purchase.members.map(m => [m.user_id, m]));
-    const rootMembers = purchase.members.filter(m => !m.user.parent_id || !membersMap.has(m.user.parent_id));
+    const organizer = purchase.members.find(m => m.user_id === purchase.initiator_id);
+    if (!organizer) return null;
 
-    const renderMember = (member: any, level = 0, parentMember: any = null): React.ReactNode => {
-  const children = purchase.members.filter(m => m.user.parent_id === member.user.id);
-  const isExpanded = expandedItems.has(member.user.id);
+    const renderMemberWithChildren = (member: TeamMember, level = 0): React.ReactNode => {
+      const directChildren = purchase.members.filter(m => m.user.parent_id === member.user_id);
+      const isExpanded = expandedItems.has(member.user_id);
+      const isOrganizer = member.user_id === purchase.initiator_id;
+      
+      const childrenByIntermediateParent = new Map<string | null, TeamMember[]>();
+      
+      purchase.members.forEach(m => {
+        let currentParentId = m.user.parent_id;
+        let immediateParentId = m.user.parent_id;
+        
+        while (currentParentId) {
+          if (currentParentId === member.user_id) {
+            if (immediateParentId !== member.user_id && !membersMap.has(immediateParentId)) {
+              if (!childrenByIntermediateParent.has(immediateParentId)) {
+                childrenByIntermediateParent.set(immediateParentId, []);
+              }
+              childrenByIntermediateParent.get(immediateParentId)!.push(m);
+            } else if (immediateParentId === member.user_id) {
+              if (!childrenByIntermediateParent.has(null)) {
+                childrenByIntermediateParent.set(null, []);
+              }
+              childrenByIntermediateParent.get(null)!.push(m);
+            }
+            break;
+          }
+          
+          const parent = membersMap.get(currentParentId);
+          if (parent) {
+            currentParentId = parent.user.parent_id;
+          } else {
+            const parentUser = allUsersMap.get(currentParentId);
+            if (parentUser) {
+              currentParentId = parentUser.parent_id;
+            } else {
+              break;
+            }
+          }
+        }
+      });
 
-  // ➡️ Определяем, является ли участник организатором
-  const isOrganizer = purchase.initiator_id === member.user.id;
-
-  return (
-    <TeamMemberItem
-      key={member.user.id}
-      member={member}
-      bonuses={bonuses}
-      purchase={purchase}
-      level={level}
-      isExpanded={isExpanded}
-      onToggle={() => toggleExpanded(member.user.id)}
-      showFormulas={showFormulas}
-      parentMember={parentMember}
-      // ➡️ Передаем переменную как пропс
-      isOrganizer={isOrganizer}
+      return (
+        <TeamMemberItem
+          key={member.user_id}
+          member={member}
+          bonuses={bonuses}
+          purchase={purchase}
+          level={level}
+          isExpanded={isExpanded}
+          onToggle={() => toggleExpanded(member.user_id)}
+          showFormulas={showFormulas}
+          isOrganizer={isOrganizer}
+          turnoverMap={turnoverMap}
+          allUsersMap={allUsersMap}
         >
-          {children.length > 0 && (
-            <div className="relative">
-              {children.map(child => renderMember(child, level + 1, member))}
-            </div>
+          {childrenByIntermediateParent.get(null)?.map(child => 
+            renderMemberWithChildren(child, level + 1)
           )}
+          
+          {Array.from(childrenByIntermediateParent.entries()).map(([intermediateId, children]) => {
+            if (intermediateId === null) return null;
+            
+            const intermediateUser = allUsersMap.get(intermediateId);
+            if (!intermediateUser) return null;
+            
+            return (
+              <NonParticipantItem 
+                key={intermediateId} 
+                user={intermediateUser} 
+                level={level + 1}
+              >
+                {children.map(child => 
+                  renderMemberWithChildren(child, level + 2)
+                )}
+              </NonParticipantItem>
+            );
+          })}
         </TeamMemberItem>
       );
     };
 
-    return rootMembers.map(member => renderMember(member, 0));
-  }, [purchase, bonuses, expandedItems, showFormulas]);
+    return renderMemberWithChildren(organizer, 0);
+  }, [purchase, bonuses, expandedItems, showFormulas, turnoverMap, allUsersMap]);
 
   if (isLoading) {
     return (
@@ -905,21 +1278,18 @@ export default function TeamPurchaseDetailPage() {
   }
 
   const totalBonuses = bonuses.reduce((sum, b) => sum + b.bonus_amount, 0);
-  const teamPercent = getPercentByAmount(purchase.paid_amount);
   const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="min-h-screen">
       <div className="mx-auto">
-                {/* Шапка */}
-                <header className="mb-6">
-                  <MoreHeaderAD title={'Просмотр командной закупки'} showBackButton={true} />
-                </header>
-        {/* Заголовок и основная информация */}
+        <header className="mb-6">
+          <MoreHeaderAD title={'Просмотр командной закупки'} showBackButton={true} />
+        </header>
+        
         <div className="bg-white px-4 rounded-2xl md:px-6 py-4 border-b border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-
               <div>
                 <h1 className="text-lg md:text-xl font-bold text-gray-900">{purchase.title}</h1>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1 text-xs md:text-sm text-gray-500">
@@ -944,7 +1314,6 @@ export default function TeamPurchaseDetailPage() {
               </div>
             </div>
 
-            {/* Кнопки управления */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowFormulas(!showFormulas)}
@@ -953,107 +1322,116 @@ export default function TeamPurchaseDetailPage() {
                 {showFormulas ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 <span className="hidden sm:inline">Формулы</span>
               </button>
-              
-              <button
-                onClick={() => setShowSimulator(true)}
-                className="px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm"
-              >
-                <Zap className="w-4 h-4" />
-                <span className="hidden sm:inline">Симулятор</span>
-              </button>
 
-              {isAdmin && (
+              {isAdmin && !hasPayments && (
                 <>
-                  {!purchase.bonuses_calculated && (
+                  <button
+                    onClick={updatePreview}
+                    disabled={isCalculating}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 text-sm"
+                  >
+                    {isCalculating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">Обновить Preview</span>
+                  </button>
+
+                  {!isFinalized && (
                     <button
-                      onClick={calculateBonuses}
-                      disabled={isCalculating}
+                      onClick={handleFinalizationClick}
+                      disabled={isFinalizing}
                       className="px-3 py-2 bg-[#E89380] text-white rounded-lg hover:bg-[#E89380]/90 disabled:opacity-50 flex items-center gap-2 text-sm"
                     >
-                      {isCalculating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
-                      <span className="hidden sm:inline">Рассчитать</span>
-                    </button>
-                  )}
-                  {purchase.bonuses_calculated && !purchase.bonuses_approved && (
-                    <button
-                      onClick={approveBonuses}
-                      disabled={isApproving}
-                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2 text-sm"
-                    >
-                      {isApproving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      <span className="hidden sm:inline">Одобрить</span>
-                    </button>
-                  )}
-                  {purchase.bonuses_approved && (
-                    <button
-                      onClick={payoutBonuses}
-                      disabled={isPayingOut}
-                      className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 text-sm"
-                    >
-                      {isPayingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
-                      <span className="hidden sm:inline">Выплатить</span>
+                      {isFinalizing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">Финализировать</span>
                     </button>
                   )}
                 </>
               )}
+              
+              {hasPayments && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm">Изменения заблокированы</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Статистические карточки */}
-<div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-    <div className="bg-white rounded-lg p-3 border border-gray-200">
-        <div className="flex items-center gap-2 mb-1">
-            <Coins className="w-4 h-4 text-gray-500" />
-            <span className="text-xs md:text-sm font-medium text-gray-600">Общая сумма</span>
-        </div>
-        <p className="text-lg md:text-xl font-bold text-gray-900">
-            {purchase.paid_amount.toLocaleString()} ₸
-        </p>
-        <p className="text-xs text-gray-500">из {purchase.target_amount.toLocaleString()} ₸</p>
-    </div>
-
-    <div className="bg-white rounded-lg p-3 border border-gray-200">
-        <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-gray-500" />
-            <span className="text-xs md:text-sm font-medium text-gray-600">Участников</span>
-        </div>
-        <p className="text-lg md:text-xl font-bold text-gray-900">{purchase.members.length}</p>
-        <p className="text-xs text-gray-500">активных</p>
-    </div>
-
-    <div className="bg-[#E89380]/10 rounded-lg p-3 border border-[#E89380]/30">
-        <div className="flex items-center gap-2 mb-1">
-            <Award className="w-4 h-4 text-[#E89380]" />
-            <span className="text-xs md:text-sm font-medium text-gray-600">Всего бонусов</span>
-        </div>
-        <p className="text-lg md:text-xl font-bold text-[#E89380]">
-            {totalBonuses.toLocaleString()} ₸
-        </p>
-        <p className="text-xs text-gray-500">начислено</p>
-    </div>
-
-    <div className="bg-white rounded-lg p-3 border border-gray-200">
-        <div className="flex items-center gap-2 mb-1">
-            <Package className="w-4 h-4 text-gray-500" />
-            <span className="text-xs md:text-sm font-medium text-gray-600">Процент</span>
-        </div>
-        <p className="text-lg md:text-xl font-bold text-gray-900">{teamPercent}%</p>
-        <p className="text-xs text-gray-500">командный</p>
-    </div>
-</div>
-          {/* Статистика иерархии */}
-          {bonuses.length > 0 && (
-            <div className="mt-4">
-              <HierarchyStats 
-                purchase={purchase}
-                bonuses={bonuses}
-                teamPercent={teamPercent}
-              />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            <div className="bg-white rounded-lg p-3 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <Coins className="w-4 h-4 text-gray-500" />
+                <span className="text-xs md:text-sm font-medium text-gray-600">Общая сумма</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-gray-900">
+                {purchase.paid_amount.toLocaleString()} ₸
+              </p>
             </div>
+
+            <div className="bg-white rounded-lg p-3 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-gray-500" />
+                <span className="text-xs md:text-sm font-medium text-gray-600">Участников</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-gray-900">{purchase.members.length}</p>
+            </div>
+
+            <div className="bg-[#E89380]/10 rounded-lg p-3 border border-[#E89380]/30">
+              <div className="flex items-center gap-2 mb-1">
+                <Award className="w-4 h-4 text-[#E89380]" />
+                <span className="text-xs md:text-sm font-medium text-gray-600">Всего бонусов</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-[#E89380]">
+                {totalBonuses.toLocaleString()} ₸
+              </p>
+            </div>
+          </div>
+
+          {bonuses.length > 0 && (
+            <>
+              {!hasPayments && (
+                <div className={`${isFinalized ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-3 mt-4`}>
+                  <div className="flex items-start gap-2">
+                    <Info className={`w-4 h-4 ${isFinalized ? 'text-green-600' : 'text-blue-600'} mt-0.5`} />
+                    <div className="text-sm">
+                      <p className={`font-semibold ${isFinalized ? 'text-green-900' : 'text-blue-900'} mb-1`}>
+                        {isFinalized ? 'Финальный расчет' : 'Предварительный расчет (Preview)'}
+                      </p>
+                      <p className={`${isFinalized ? 'text-green-700' : 'text-blue-700'} text-xs`}>
+                        Проценты основаны на текущем товарообороте из user_turnover_current.
+                        {!isFinalized && ' Данные обновляются автоматически.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isFinalized && (
+                <FinalizedControls
+                  purchase={purchase}
+                  bonuses={bonuses}
+                  onApprove={approveBonuses}
+                  onPayout={handlePayoutClick}
+                  isApproving={isApproving}
+                  isPayingOut={isPayingOut}
+                  hasPayments={hasPayments}
+                />
+              )}
+              
+              <div className="mt-4">
+                <HierarchyStats purchase={purchase} bonuses={bonuses} />
+              </div>
+            </>
           )}
         </div>
 
-        {/* Заголовки колонок */}
         <div className="bg-white border-b border-gray-200 sticky mt-5 top-0 z-10">
           <div className="px-4 md:px-6 py-2">
             <div className="flex items-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -1066,46 +1444,28 @@ export default function TeamPurchaseDetailPage() {
           </div>
         </div>
 
-        {/* Список участников с иерархией */}
         <div className="bg-white">
           {buildHierarchy()}
         </div>
 
-        {/* Статус расчетов */}
         <div className="bg-gray-50 border-t border-gray-200">
           <div className="px-4 md:px-6 py-3">
             <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm">
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  purchase.bonuses_calculated ? 'bg-green-500' : 'bg-gray-300'
-                }`}></div>
-                <span className={`${
-                  purchase.bonuses_calculated ? 'text-green-700' : 'text-gray-500'
-                }`}>
-                  Рассчитаны
-                  {purchase.bonuses_calculated_at && (
-                    <span className="ml-1 text-gray-400 hidden md:inline">
-                      ({new Date(purchase.bonuses_calculated_at).toLocaleDateString('ru-RU')})
-                    </span>
-                  )}
+                <div className={`w-2 h-2 rounded-full ${hasPayments ? 'bg-green-500' : (isFinalized ? 'bg-green-500' : 'bg-blue-500')}`}></div>
+                <span className={`${hasPayments ? 'text-green-700' : (isFinalized ? 'text-green-700' : 'text-blue-700')}`}>
+                  {hasPayments ? 'Выплачено' : (isFinalized ? 'Финализировано' : 'Preview режим')}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  purchase.bonuses_approved ? 'bg-green-500' : 'bg-gray-300'
-                }`}></div>
-                <span className={`${
-                  purchase.bonuses_approved ? 'text-green-700' : 'text-gray-500'
-                }`}>
-                  Одобрены
-                  {purchase.bonuses_approved_at && (
-                    <span className="ml-1 text-gray-400 hidden md:inline">
-                      ({new Date(purchase.bonuses_approved_at).toLocaleDateString('ru-RU')})
-                    </span>
-                  )}
-                </span>
-              </div>
+              {hasPayments && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-green-700 font-semibold">
+                    Деньги на балансах
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center gap-1 text-gray-500 ml-auto">
                 <Clock className="w-3 h-3" />
@@ -1116,13 +1476,20 @@ export default function TeamPurchaseDetailPage() {
         </div>
       </div>
 
-      {/* Симулятор */}
-      {showSimulator && (
-        <BonusSimulator 
-          purchase={purchase}
-          onClose={() => setShowSimulator(false)}
-        />
-      )}
+      <FinalizationModal
+        isOpen={showFinalizationModal}
+        onClose={() => setShowFinalizationModal(false)}
+        onConfirm={finalizeBonuses}
+        purchaseTitle={purchase?.title || ''}
+      />
+
+      <PayoutConfirmationModal
+        isOpen={showPayoutModal}
+        onClose={() => setShowPayoutModal(false)}
+        onConfirm={payoutBonuses}
+        totalAmount={totalBonuses}
+        recipientsCount={new Set(bonuses.map(b => b.beneficiary_id)).size}
+      />
     </div>
   );
 }

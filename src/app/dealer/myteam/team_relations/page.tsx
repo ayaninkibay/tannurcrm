@@ -7,7 +7,8 @@ import {
   UserPlus, CheckCircle, AlertCircle, Gift, Trophy, ShoppingCart,
   MoreVertical, Calendar, X, Share2, Copy, Crown, Star,
   CreditCard, Truck, Settings, ChevronRight, LogOut, UserX,
-  Play, Mail, FileCheck, DollarSign, Bell
+  Play, Mail, FileCheck, DollarSign, Bell, ArrowRight, Zap,
+  Sparkles, Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -24,6 +25,7 @@ import TeamPurchaseInvitations from '@/components/team-purchase/TeamPurchaseInvi
 import { useUser } from '@/context/UserContext';
 import { useTeamPurchaseModule } from '@/lib/team-purchase/TeamPurchaseModule';
 import { teamPurchaseLifecycleService } from '@/lib/team-purchase/TeamPurchaseLifecycleService';
+import { teamPurchaseService } from '@/lib/team-purchase/TeamPurchaseService';
 import { TEAM_PURCHASE_RULES } from '@/lib/team-purchase/BusinessRules';
 
 // Типы
@@ -35,12 +37,12 @@ export default function TeamPurchasePage() {
   const { profile: currentUser, loading: userLoading } = useUser();
 
   // Состояния
-  const [activeTab, setActiveTab] = useState<'forming' | 'active' | 'confirming' | 'completed'>('forming');
   const [selectedPurchase, setSelectedPurchase] = useState<TeamPurchaseView | null>(null);
   const [showManagement, setShowManagement] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   
   // Данные для модалки приглашений
@@ -94,11 +96,94 @@ export default function TeamPurchasePage() {
     }
   };
 
-  const handleCopyInviteLink = async (purchaseId: string) => {
-    const link = await teamPurchase.getInviteLink(purchaseId);
-    setInviteLink(link);
-    await navigator.clipboard.writeText(link);
-    toast.success(t('Ссылка скопирована'));
+  const handleOpenManagement = async (purchaseId: string) => {
+    await teamPurchase.loadPurchaseDetails(purchaseId);
+    if (teamPurchase.currentPurchase) {
+      setSelectedPurchase(teamPurchase.currentPurchase);
+      setShowManagement(true);
+    }
+  };
+
+  const handleViewDetails = async (purchaseId: string) => {
+    try {
+      console.log('=== ЗАГРУЗКА ОТЧЕТА ===');
+      console.log('Purchase ID:', purchaseId);
+      
+      // Загружаем данные через сервис
+      const details = await teamPurchaseService.getPurchaseDetails(purchaseId);
+      
+      console.log('=== ДАННЫЕ ИЗ СЕРВИСА ===');
+      console.log('Purchase:', details.purchase);
+      console.log('Members count:', details.members?.length);
+      
+      // Если members пустой, загрузим напрямую из БД для любого статуса
+      if (!details.members || details.members.length === 0) {
+        console.log('⚠️ Нет участников! Загружаем напрямую из БД...');
+        
+        // Загружаем ВСЕХ участников напрямую из Supabase
+        const { supabase } = await import('@/lib/supabase/client');
+        
+        // Сначала загружаем участников
+        const { data: allMembers, error: membersError } = await supabase
+          .from('team_purchase_members')
+          .select('*')
+          .eq('team_purchase_id', purchaseId);
+        
+        if (membersError) {
+          console.error('Ошибка загрузки участников:', membersError);
+        } else if (allMembers && allMembers.length > 0) {
+          console.log('=== ЗАГРУЖЕНО ИЗ team_purchase_members ===');
+          console.log('Всего записей:', allMembers.length);
+          
+          // Загружаем данные пользователей отдельно
+          const userIds = allMembers.map(m => m.user_id).filter(Boolean);
+          const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', userIds);
+          
+          if (usersError) {
+            console.error('Ошибка загрузки users:', usersError);
+          }
+          
+          // Создаем map для быстрого поиска
+          const usersMap = new Map(users?.map(u => [u.id, u]) || []);
+          
+          // Формируем memberViews для отображения
+          const memberViews = allMembers.map(member => {
+            console.log(`Участник ${member.user_id}:`, {
+              status: member.status,
+              contribution_target: member.contribution_target,
+              contribution_actual: member.contribution_actual
+            });
+            
+            return {
+              member: member,
+              user: usersMap.get(member.user_id) || null,
+              cartItems: [],
+              order: null,
+              isOrganizer: member.role === 'organizer',
+              hasPaid: member.status === 'purchased'
+            };
+          });
+          
+          // Обновляем details с реальными участниками
+          details.members = memberViews;
+          details.totalMembers = memberViews.length;
+          
+          console.log('✅ Загружено участников:', memberViews.length);
+          console.log('Сумма contribution_actual:', allMembers.reduce((sum, m) => sum + (m.contribution_actual || 0), 0));
+        } else {
+          console.log('❌ Нет записей в team_purchase_members для этой закупки');
+        }
+      }
+      
+      setSelectedPurchase(details);
+      setShowDetails(true);
+    } catch (error) {
+      console.error('❌ ОШИБКА загрузки отчета:', error);
+      toast.error(t('Ошибка загрузки деталей'));
+    }
   };
 
   const handleOpenInviteModal = (purchase: TeamPurchase) => {
@@ -108,19 +193,19 @@ export default function TeamPurchasePage() {
     setShowInviteModal(true);
   };
 
-  // Фильтрация закупок
-  const filteredPurchases = teamPurchase.purchases.filter(p => {
-    if (activeTab === 'forming') return p.status === 'forming';
-    if (activeTab === 'active') return p.status === 'active';
-    if (activeTab === 'confirming') return p.status === 'confirming';
-    if (activeTab === 'completed') return p.status === 'completed' || p.status === 'cancelled';
-    return false;
-  });
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('ru-RU', { useGrouping: true }).replace(/,/g, ' ');
+  };
 
-  const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
   const formatDate = (date: string | null) => {
     if (!date) return t('Не установлен');
     return new Date(date).toLocaleDateString('ru-RU');
+  };
+
+  const getDaysLeft = (deadline: string | null) => {
+    if (!deadline) return null
+    const days = Math.ceil((new Date(deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    return days > 0 ? days : 0
   };
 
   const calculateProgress = (current: number, target: number) => {
@@ -128,433 +213,431 @@ export default function TeamPurchasePage() {
     return Math.min(100, (current / target) * 100);
   };
 
+  // Группировка закупок по статусам
+  const groupedPurchases = {
+    forming: teamPurchase.purchases.filter(p => p.status === 'forming'),
+    active: teamPurchase.purchases.filter(p => p.status === 'active'),
+    confirming: teamPurchase.purchases.filter(p => p.status === 'confirming'),
+    completed: teamPurchase.purchases.filter(p => p.status === 'completed' || p.status === 'cancelled')
+  };
+
   // Статистика
   const stats = {
-    forming: teamPurchase.purchases.filter(p => p.status === 'forming').length,
-    active: teamPurchase.purchases.filter(p => p.status === 'active').length,
-    confirming: teamPurchase.purchases.filter(p => p.status === 'confirming').length,
-    completed: teamPurchase.purchases.filter(p => p.status === 'completed').length
+    total: teamPurchase.purchases.length,
+    totalCollected: teamPurchase.purchases.reduce((sum, p) => sum + (p.collected_amount || 0), 0)
   };
 
   if (userLoading || teamPurchase.loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#D77E6C] border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#D77E6C] border-t-transparent"></div>
       </div>
     );
   }
 
   if (!currentUser) return null;
 
-  return (
-    <div className="min-h-screen bg-[#F6F6F6] p-5">
-      <MoreHeaderDE title={t('Командные закупки')} showBackButton={true} />
+  const PurchaseCard = ({ purchase }: { purchase: TeamPurchase }) => {
+    const isOrganizer = purchase.initiator_id === currentUser?.id;
+    const isFinanceOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'finance';
+    const progress = calculateProgress(purchase.collected_amount || 0, purchase.target_amount);
+    const daysLeft = getDaysLeft(purchase.deadline);
 
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+    return (
+      <div className="bg-white rounded-3xl p-5 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+        {/* Декоративные элементы */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D77E6C]/10 to-transparent rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[#E89380]/10 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
         
-        {/* Блок приглашений для дилеров */}
-        {currentUser?.role === 'dealer' && (
-          <TeamPurchaseInvitations 
-            userId={currentUser.id} 
-            onAccept={() => teamPurchase.loadPurchases()}
-          />
-        )}
-
-        {/* Статистика */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Users className="w-5 h-5 text-yellow-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.forming}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('На сборе')}</div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Package className="w-5 h-5 text-green-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.active}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('Активных')}</div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="w-5 h-5 text-blue-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.confirming}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('На проверке')}</div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-gray-600" />
-              </div>
-              <span className="text-2xl font-bold text-[#111]">{stats.completed}</span>
-            </div>
-            <div className="text-sm text-gray-500">{t('Завершено')}</div>
-          </div>
-        </div>
-
-        {/* Вкладки */}
-        <div className="bg-white rounded-xl border border-gray-200 p-1 mb-6">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('forming')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'forming'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('Сбор')} {stats.forming > 0 && `(${stats.forming})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'active'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('Активные')} {stats.active > 0 && `(${stats.active})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('confirming')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'confirming'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('На проверке')} {stats.confirming > 0 && `(${stats.confirming})`}
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'completed'
-                  ? 'bg-[#D77E6C] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {t('Завершенные')} {stats.completed > 0 && `(${stats.completed})`}
-            </button>
-          </div>
-        </div>
-
-        {/* Список закупок */}
-        <div className="space-y-4">
-          {filteredPurchases.map(purchase => {
-            const isOrganizer = purchase.initiator_id === currentUser?.id;
-            const isFinanceOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'finance';
-            
-            return (
-              <div key={purchase.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-[#111] mb-2">{purchase.title}</h3>
-                      <div className="flex items-center gap-4">
-                        {isOrganizer && (
-                          <span className="flex items-center gap-1 text-sm bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                            <Crown className="w-3 h-3" />
-                            {t('Организатор')}
-                          </span>
-                        )}
-                        <span className={`text-sm font-medium ${
-                          purchase.status === 'active' ? 'text-green-600' :
-                          purchase.status === 'forming' ? 'text-yellow-600' :
-                          purchase.status === 'confirming' ? 'text-blue-600' :
-                          purchase.status === 'completed' ? 'text-gray-600' :
-                          'text-red-600'
-                        }`}>
-                          {purchase.status === 'forming' && t('⏳ Сбор участников')}
-                          {purchase.status === 'active' && t('✅ Активна - идут покупки')}
-                          {purchase.status === 'confirming' && t('🔍 На проверке')}
-                          {purchase.status === 'completed' && t('🏁 Завершена')}
-                          {purchase.status === 'cancelled' && t('❌ Отменена')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Действия для разных статусов */}
-                    <div className="flex gap-2">
-                      {/* FORMING - управление, приглашение и старт */}
-                      {purchase.status === 'forming' && isOrganizer && (
-                        <>
-                          <button
-                            onClick={async () => {
-                              await teamPurchase.loadPurchaseDetails(purchase.id);
-                              if (teamPurchase.currentPurchase) {
-                                setSelectedPurchase(teamPurchase.currentPurchase);
-                                setShowManagement(true);
-                              }
-                            }}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
-                            title={t('Управление')}
-                          >
-                            <Settings className="w-5 h-5 text-gray-600" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenInviteModal(purchase)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                            title={t('Пригласить дилеров')}
-                          >
-                            <UserPlus className="w-4 h-4" />
-                            {t('Пригласить')}
-                          </button>
-                          <button
-                            onClick={async () => {
-                              const result = await teamPurchaseLifecycleService.startActivePurchase(purchase.id);
-                              if (result.success) {
-                                toast.success(result.message);
-                                await teamPurchase.loadPurchases();
-                              } else {
-                                toast.error(result.message);
-                              }
-                            }}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                          >
-                            <Play className="w-4 h-4" />
-                            {t('Начать')}
-                          </button>
-                        </>
-                      )}
-
-                      {/* ACTIVE - управление, приглашение и переход к проверке */}
-                      {purchase.status === 'active' && (
-                        <>
-                          {isOrganizer && (
-                            <>
-                              <button
-                                onClick={async () => {
-                                  await teamPurchase.loadPurchaseDetails(purchase.id);
-                                  if (teamPurchase.currentPurchase) {
-                                    setSelectedPurchase(teamPurchase.currentPurchase);
-                                    setShowManagement(true);
-                                  }
-                                }}
-                                className="p-2 hover:bg-gray-100 rounded-lg"
-                                title={t('Управление')}
-                              >
-                                <Settings className="w-5 h-5 text-gray-600" />
-                              </button>
-                              <button
-                                onClick={() => handleOpenInviteModal(purchase)}
-                                className="p-2 hover:bg-gray-100 rounded-lg"
-                                title={t('Пригласить еще дилеров')}
-                              >
-                                <UserPlus className="w-4 h-4 text-gray-600" />
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  const result = await teamPurchaseLifecycleService.moveToConfirming(purchase.id);
-                                  if (result.success) {
-                                    toast.success(result.message);
-                                    if (result.stats) {
-                                      toast(`Оплатили: ${result.stats.paidMembers}/${result.stats.totalMembers}. Сумма: ${result.stats.totalAmount.toLocaleString('ru-RU')} ₸`, {
-                                        icon: '📊',
-                                        duration: 5000
-                                      });
-                                    }
-                                    await teamPurchase.loadPurchases();
-                                  } else {
-                                    toast.error(result.message);
-                                  }
-                                }}
-                                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2"
-                                title={t('Все сделали заказы? Передать на проверку')}
-                              >
-                                <FileCheck className="w-4 h-4" />
-                                {t('На проверку')}
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-
-                      {/* CONFIRMING - только финансист может завершить */}
-                      {purchase.status === 'confirming' && (
-                        <>
-                          {(isOrganizer || isFinanceOrAdmin) && (
-                            <button
-                              onClick={async () => {
-                                if (confirm(t('Подтвердить завершение закупки?'))) {
-                                  const result = await teamPurchaseLifecycleService.completeAfterVerification(
-                                    purchase.id,
-                                    currentUser?.id || ''
-                                  );
-                                  if (result.success) {
-                                    toast.success(result.message);
-                                    await teamPurchase.loadPurchases();
-                                  } else {
-                                    toast.error(result.message);
-                                  }
-                                }
-                              }}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                            >
-                              <Trophy className="w-4 h-4" />
-                              {t('Завершить проверку')}
-                            </button>
-                          )}
-                        </>
-                      )}
-
-                      {/* Копирование ссылки доступно всегда для forming и active */}
-                      {['forming', 'active'].includes(purchase.status) && (
-                        <button
-                          onClick={() => handleCopyInviteLink(purchase.id)}
-                          className="p-2 hover:bg-gray-100 rounded-lg"
-                          title={t('Скопировать ссылку')}
-                        >
-                          <Share2 className="w-5 h-5 text-gray-600" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                {/* Прогресс плана */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600">{t('Собрано')}</span>
-                    <span className="text-sm font-medium">
-                      {formatPrice(purchase.collected_amount || 0)} / {formatPrice(purchase.target_amount)}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#D77E6C] to-[#E89380] transition-all"
-                      style={{ width: `${calculateProgress(purchase.collected_amount || 0, purchase.target_amount)}%` }}
-                    />
-                  </div>
-                </div>
-
-                  {/* Дедлайн если есть */}
-                  {purchase.deadline && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                      <Calendar className="w-4 h-4" />
-                      <span>{t('Дедлайн:')} {formatDate(purchase.deadline)}</span>
-                    </div>
-                  )}
-
-                  {/* Кнопки действий внизу карточки */}
-                  <div className="flex gap-3 mt-4">
-                    {/* В активной фазе - можно покупать */}
-                    {purchase.status === 'active' && (
-                      <button
-                        onClick={() => handleOpenPurchase(purchase.id, true)}
-                        className="flex-1 py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] flex items-center justify-center gap-2"
-                      >
-                        <ShoppingCart className="w-5 h-5" />
-                        {t('Выбрать товары')}
-                      </button>
-                    )}
-                    
-                    {/* В фазе формирования - можно присоединиться */}
-                    {purchase.status === 'forming' && !isOrganizer && (
-                      <button
-                        onClick={async () => {
-                          const contribution = prompt(t('Планируемая сумма покупки (₸):'), '50000');
-                          if (contribution) {
-                            await teamPurchase.joinPurchase(
-                              purchase.invite_code, 
-                              Number(contribution)
-                            );
-                          }
-                        }}
-                        className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 flex items-center justify-center gap-2"
-                      >
-                        <UserPlus className="w-5 h-5" />
-                        {t('Присоединиться')}
-                      </button>
-                    )}
-
-                    {/* На проверке - только информация */}
-                    {purchase.status === 'confirming' && (
-                      <div className="flex-1 py-3 bg-blue-100 text-blue-700 rounded-xl font-medium flex items-center justify-center gap-2">
-                        <Clock className="w-5 h-5" />
-                        {t('Ожидает проверки финансистом')}
-                      </div>
-                    )}
-
-                    {/* Завершена - можно посмотреть отчет */}
-                    {purchase.status === 'completed' && (
-                      <button
-                        onClick={() => handleOpenPurchase(purchase.id)}
-                        className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50"
-                      >
-                        {t('Посмотреть отчет')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {filteredPurchases.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-[#111] mb-2">
-                {activeTab === 'forming' && t('Нет закупок на сборе')}
-                {activeTab === 'active' && t('Нет активных закупок')}
-                {activeTab === 'confirming' && t('Нет закупок на проверке')}
-                {activeTab === 'completed' && t('Нет завершенных закупок')}
+        <div className="relative">
+          {/* Заголовок и статус */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900 text-base mb-2 group-hover:text-[#D77E6C] transition-colors">
+                {purchase.title}
               </h3>
-              <p className="text-gray-500">
-                {t('Создайте новую закупку или дождитесь приглашения')}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {isOrganizer && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-gradient-to-r from-[#D77E6C]/10 to-[#E89380]/10 text-[#D77E6C] rounded-lg font-medium">
+                    <Crown className="w-3.5 h-3.5" />
+                    {t('Организатор')}
+                  </span>
+                )}
+                {daysLeft !== null && daysLeft <= 3 && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-medium animate-pulse">
+                    <Clock className="w-3.5 h-3.5" />
+                    {t('Осталось {n} дн').replace('{n}', String(daysLeft))}
+                  </span>
+                )}
+                {purchase.status === 'active' && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-green-50 text-green-600 rounded-lg font-medium">
+                    <Zap className="w-3.5 h-3.5" />
+                    {t('Активна')}
+                  </span>
+                )}
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Кнопка создания */}
+            {/* Быстрые действия */}
+            <div className="flex items-center gap-1">
+              {/* Кнопка просмотра участников для активных и формирующихся закупок */}
+              {['active', 'forming'].includes(purchase.status) && (
+                <button
+                  onClick={() => handleViewDetails(purchase.id)}
+                  className="p-2 hover:bg-[#D77E6C]/10 rounded-xl transition-colors"
+                  title={t('Посмотреть участников')}
+                >
+                  <Eye className="w-4 h-4 text-[#D77E6C]" />
+                </button>
+              )}
+              {/* Кнопка приглашения для формирующихся и активных закупок */}
+              {['forming', 'active'].includes(purchase.status) && isOrganizer && (
+                <button
+                  onClick={() => handleOpenInviteModal(purchase)}
+                  className="px-3 py-1.5 bg-[#D77E6C] text-white text-xs font-medium rounded-lg hover:bg-[#C66B5A] transition-colors flex items-center gap-1"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  {t('Пригласить')}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Прогресс */}
+          <div className="space-y-3 mb-4">
+            <div>
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-sm text-gray-500">{t('Прогресс')}</span>
+                <span className="text-2xl font-bold text-[#D77E6C]">{Math.round(progress)}%</span>
+              </div>
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out relative"
+                  style={{
+                    width: `${progress}%`,
+                    background: purchase.status === 'active' 
+                      ? 'linear-gradient(90deg, #D77E6C 0%, #E89380 100%)'
+                      : 'linear-gradient(90deg, #9CA3AF 0%, #D1D5DB 100%)'
+                  }}
+                >
+                  {progress > 50 && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">
+                {t('Собрано:')} <span className="font-semibold text-gray-900">{formatPrice(purchase.collected_amount || 0)} ₸</span>
+              </span>
+              <span className="text-gray-600">
+                {t('Цель:')} <span className="font-semibold text-gray-900">{formatPrice(purchase.target_amount)} ₸</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Действия */}
+          <div className="flex gap-2">
+            {purchase.status === 'forming' && isOrganizer && (
+              <>
+                <button
+                  onClick={() => handleOpenManagement(purchase.id)}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 text-sm font-medium rounded-2xl hover:from-gray-200 hover:to-gray-100 transition-all"
+                >
+                  {t('Управление')}
+                </button>
+                <button
+                  onClick={async () => {
+                    const result = await teamPurchaseLifecycleService.startActivePurchase(purchase.id);
+                    if (result.success) {
+                      toast.success(result.message);
+                      await teamPurchase.loadPurchases();
+                    } else {
+                      toast.error(result.message);
+                    }
+                  }}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white text-sm font-medium rounded-2xl hover:from-[#C66B5A] hover:to-[#D77E6C] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1"
+                >
+                  <Play className="w-4 h-4" />
+                  {t('Начать')}
+                </button>
+              </>
+            )}
+
+            {purchase.status === 'forming' && !isOrganizer && (
+              <button
+                onClick={async () => {
+                  const contribution = prompt(t('Планируемая сумма покупки (₸):'), '50000');
+                  if (contribution) {
+                    await teamPurchase.joinPurchase(
+                      purchase.invite_code, 
+                      Number(contribution)
+                    );
+                  }
+                }}
+                className="flex-1 py-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white text-sm font-medium rounded-2xl hover:from-[#C66B5A] hover:to-[#D77E6C] transition-all shadow-md hover:shadow-lg"
+              >
+                {t('Присоединиться')}
+              </button>
+            )}
+
+            {purchase.status === 'active' && (
+              <>
+                <button
+                  type="button" // ВАЖНО! Добавьте type="button"
+                  onClick={(e) => {
+                    e.preventDefault(); // Предотвращаем отправку формы
+                    e.stopPropagation(); // Останавливаем всплытие события
+                    handleOpenPurchase(purchase.id, true);
+                  }}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white text-sm font-medium rounded-2xl hover:from-[#C66B5A] hover:to-[#D77E6C] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  {t('Выбрать товары')}
+                </button>
+                {isOrganizer && (
+                  <>
+                    <button
+                      onClick={() => handleOpenManagement(purchase.id)}
+                      className="px-3 py-2.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 rounded-2xl hover:from-gray-200 hover:to-gray-100 transition-all"
+                      title={t('Управление')}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm(t('Завершить активную фазу и передать на проверку?'))) {
+                          const result = await teamPurchaseLifecycleService.moveToConfirming(purchase.id);
+                          if (result.success) {
+                            toast.success(result.message);
+                            await teamPurchase.loadPurchases();
+                          } else {
+                            toast.error(result.message);
+                          }
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-400 text-white text-sm font-medium rounded-2xl hover:from-amber-600 hover:to-amber-500 transition-all shadow-md hover:shadow-lg"
+                      title={t('На проверку')}
+                    >
+                      <FileCheck className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {purchase.status === 'confirming' && (isOrganizer || isFinanceOrAdmin) && (
+              <button
+                onClick={async () => {
+                  if (confirm(t('Подтвердить завершение закупки?'))) {
+                    const result = await teamPurchaseLifecycleService.completeAfterVerification(
+                      purchase.id,
+                      currentUser?.id || ''
+                    );
+                    if (result.success) {
+                      toast.success(result.message);
+                      await teamPurchase.loadPurchases();
+                    } else {
+                      toast.error(result.message);
+                    }
+                  }
+                }}
+                className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium rounded-2xl hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg"
+              >
+                {t('Завершить проверку')}
+              </button>
+            )}
+
+            {purchase.status === 'confirming' && !(isOrganizer || isFinanceOrAdmin) && (
+              <div className="flex-1 py-2.5 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-sm font-medium rounded-2xl text-center">
+                {t('На проверке')}
+              </div>
+            )}
+
+            {purchase.status === 'completed' && (
+              <button
+                onClick={() => handleViewDetails(purchase.id)}
+                className="flex-1 py-2.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 text-sm font-medium rounded-2xl hover:from-gray-200 hover:to-gray-100 transition-all"
+              >
+                {t('Посмотреть отчет')}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen">
+      <div className="p-4 sm:p-6">
+        <MoreHeaderDE title={t('Командные закупки')} showBackButton={true} />
+
         <div className="mt-6">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full py-4 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            {t('Создать новую командную закупку')}
-          </button>
+          {/* Блок приглашений для дилеров */}
+          {currentUser?.role === 'dealer' && (
+            <TeamPurchaseInvitations 
+              userId={currentUser.id} 
+              onAccept={() => teamPurchase.loadPurchases()}
+            />
+          )}
+
+          {/* Общая статистика */}
+          <div className="bg-gradient-to-r from-[#D77E6C]/10 via-[#E89380]/10 to-white rounded-3xl p-6 mb-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-[#D77E6C]/20 to-transparent rounded-full -translate-y-20 translate-x-20"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#E89380]/20 to-transparent rounded-full translate-y-16 -translate-x-16"></div>
+            
+            <div className="relative flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-[#D77E6C]">{stats.total}</h2>
+                <p className="text-sm text-[#D77E6C]/70 font-medium mt-1">{t('Всего закупок')}</p>
+              </div>
+              <div className="text-right">
+                <h2 className="text-3xl font-bold text-[#D77E6C]">{formatPrice(stats.totalCollected)} ₸</h2>
+                <p className="text-sm text-[#D77E6C]/70 font-medium mt-1">{t('Общая сумма')}</p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl font-medium hover:from-gray-800 hover:to-gray-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 group"
+              >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                {t('Создать')}
+              </button>
+            </div>
+          </div>
+
+          {/* Секции по статусам */}
+          <div className="space-y-8">
+            {/* Активные */}
+            {groupedPurchases.active.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2.5 h-2.5 bg-[#D77E6C] rounded-full animate-pulse"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('Активные закупки')}</h3>
+                  <span className="px-2.5 py-1 bg-[#D77E6C]/10 text-[#D77E6C] rounded-lg text-sm font-medium">
+                    {groupedPurchases.active.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedPurchases.active.map(purchase => (
+                    <PurchaseCard key={purchase.id} purchase={purchase} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* На сборе */}
+            {groupedPurchases.forming.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2.5 h-2.5 bg-amber-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('Сбор участников')}</h3>
+                  <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium">
+                    {groupedPurchases.forming.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedPurchases.forming.map(purchase => (
+                    <PurchaseCard key={purchase.id} purchase={purchase} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* На проверке */}
+            {groupedPurchases.confirming.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('На проверке')}</h3>
+                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+                    {groupedPurchases.confirming.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedPurchases.confirming.map(purchase => (
+                    <PurchaseCard key={purchase.id} purchase={purchase} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Завершенные */}
+            {groupedPurchases.completed.length > 0 && (
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2.5 h-2.5 bg-gray-400 rounded-full"></div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('Завершенные')}</h3>
+                  <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium">
+                    {groupedPurchases.completed.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedPurchases.completed.map(purchase => (
+                    <PurchaseCard key={purchase.id} purchase={purchase} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Пустое состояние */}
+            {stats.total === 0 && (
+              <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-3xl p-12 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#D77E6C]/10 to-transparent rounded-full -translate-y-32 translate-x-32"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#E89380]/10 to-transparent rounded-full translate-y-24 -translate-x-24"></div>
+                
+                <div className="relative">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#D77E6C]/10 to-[#E89380]/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+                    <ShoppingCart className="w-10 h-10 text-[#D77E6C]" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {t('Нет командных закупок')}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">
+                    {t('Создайте первую закупку и получайте бонусы вместе с командой')}
+                  </p>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-2xl font-medium hover:from-[#C66B5A] hover:to-[#D77E6C] transition-all shadow-md hover:shadow-lg group"
+                  >
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                    {t('Создать закупку')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Модалка создания */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-[#111]">{t('Создать командную закупку')}</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-semibold text-gray-900">{t('Создать закупку')}</h2>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('Название закупки *')}
+                <label className="block text-sm text-gray-600 mb-2">
+                  {t('Название')} *
                 </label>
                 <input
                   type="text"
                   value={createForm.title}
                   onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                  placeholder={t('Например: Закупка печей Tannur - Январь 2025')}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                  placeholder={t('Например: Закупка печей Tannur')}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C] transition-colors text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm text-gray-600 mb-2">
                   {t('Описание')}
                 </label>
                 <textarea
@@ -562,53 +645,39 @@ export default function TeamPurchasePage() {
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                   placeholder={t('Опишите цель закупки')}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C] transition-colors resize-none text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm text-gray-600 mb-2">
                     {t('План сбора')}
                   </label>
                   <input
-                    type="number"
-                    value={createForm.targetAmount}
-                    onChange={(e) => setCreateForm({ ...createForm, targetAmount: Number(e.target.value) })}
-                    min={100000}
-                    step={100000}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                    type="text"
+                    value={formatPrice(createForm.targetAmount)}
+                    onChange={(e) => {
+                      const numValue = Number(e.target.value.replace(/\s/g, ''));
+                      if (!isNaN(numValue)) {
+                        setCreateForm({ ...createForm, targetAmount: numValue });
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C] transition-colors text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">{t('Это просто план, не ограничение')}</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('Дедлайн (опционально)')}
+                  <label className="block text-sm text-gray-600 mb-2">
+                    {t('Дедлайн')}
                   </label>
                   <input
                     type="date"
                     value={createForm.deadline}
                     onChange={(e) => setCreateForm({ ...createForm, deadline: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#D77E6C] transition-colors text-sm"
                   />
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">{t('Новый процесс закупок:')}</p>
-                    <ul className="space-y-1 text-xs">
-                      <li>{t('1️⃣ Создание - приглашайте участников')}</li>
-                      <li>{t('2️⃣ Начать - активация без проверок')}</li>
-                      <li>{t('3️⃣ Активная фаза - все покупают')}</li>
-                      <li>{t('4️⃣ На проверку - когда все готовы')}</li>
-                      <li>{t('5️⃣ Завершение - финансист проверяет')}</li>
-                    </ul>
-                  </div>
                 </div>
               </div>
             </div>
@@ -616,23 +685,123 @@ export default function TeamPurchasePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50"
+                className="flex-1 py-2.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 rounded-xl font-medium hover:from-gray-200 hover:to-gray-100 transition-colors"
               >
                 {t('Отмена')}
               </button>
               <button
                 onClick={handleCreatePurchase}
                 disabled={!createForm.title}
-                className="flex-1 py-3 bg-[#D77E6C] text-white rounded-xl font-medium hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl font-medium hover:from-[#C66B5A] hover:to-[#D77E6C] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
               >
-                {t('Создать закупку')}
+                {t('Создать')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Модалка выбора товаров */}
+      {/* Модалка деталей/отчета */}
+      {showDetails && selectedPurchase && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {t('Отчет по закупке')}
+              </h2>
+              <button onClick={() => setShowDetails(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Информация о закупке */}
+            <div className="mb-5">
+              <h3 className="font-semibold text-lg text-gray-900 mb-2">{selectedPurchase.purchase.title}</h3>
+              <p className="text-sm text-gray-600">
+                {t('Участников:')} {selectedPurchase.members?.length || 0}
+              </p>
+            </div>
+
+            {/* Список участников - компактный */}
+            <div className="space-y-2">
+              {selectedPurchase.members && selectedPurchase.members.length > 0 ? (
+                <>
+                  {selectedPurchase.members
+                    .filter(m => m.member.status !== 'removed' && m.member.contribution_actual > 0)
+                    .sort((a, b) => (b.member.contribution_actual || 0) - (a.member.contribution_actual || 0))
+                    .map((memberView, index) => {
+                      const member = memberView.member;
+                      const user = memberView.user;
+                      
+                      return (
+                        <div key={member.id} className="flex items-center justify-between py-2 px-3 hover:bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-gray-500 w-6">
+                              {index + 1}.
+                            </span>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {user?.first_name && user?.last_name 
+                                  ? `${user.first_name} ${user.last_name}`
+                                  : user?.name || user?.email || 'Участник'}
+                                {memberView.isOrganizer && (
+                                  <span className="ml-2 text-xs text-[#D77E6C]">
+                                    {t('организатор')}
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {t('Присоединился:')} {new Date(member.joined_at || member.created_at).toLocaleDateString('ru-RU')}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <p className="font-semibold text-[#D77E6C]">
+                              {formatPrice(member.contribution_actual || 0)} ₸
+                            </p>
+                            {member.status === 'purchased' && (
+                              <p className="text-xs text-green-600">{t('Оплачено')}</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {/* Итоговая сумма */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center px-3">
+                      <span className="font-semibold text-gray-900">
+                        {t('Итого:')}
+                      </span>
+                      <span className="text-xl font-bold text-[#D77E6C]">
+                        {formatPrice(
+                          selectedPurchase.members
+                            .filter(m => m.member.status !== 'removed')
+                            .reduce((sum, m) => sum + (m.member.contribution_actual || 0), 0)
+                        )} ₸
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 bg-gray-50 rounded-xl">
+                  <p className="text-gray-500">{t('Нет данных о закупках')}</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowDetails(false)}
+              className="w-full mt-6 py-2.5 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+            >
+              {t('Закрыть')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Остальные модалки */}
       {showProductSelector && teamPurchase.currentPurchase && (
         <TeamPurchaseProductSelector
           purchaseId={teamPurchase.currentPurchase.purchase.id}
@@ -651,7 +820,6 @@ export default function TeamPurchasePage() {
         />
       )}
 
-      {/* Модалка управления */}
       {showManagement && selectedPurchase && (
         <TeamPurchaseManagement
           purchase={selectedPurchase}
@@ -703,7 +871,6 @@ export default function TeamPurchasePage() {
         />
       )}
 
-      {/* Модалка массового приглашения */}
       {showInviteModal && invitePurchaseId && (
         <TeamPurchaseInviteModal
           purchaseId={invitePurchaseId}

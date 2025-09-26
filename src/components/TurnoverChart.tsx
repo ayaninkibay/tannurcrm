@@ -44,7 +44,7 @@ export type TurnoverChartProps = {
   apiEndpoint?: string;
 };
 
-type PeriodType = 'thisMonth' | 'lastMonth' | 'last3Months' | 'last6Months' | 'thisYear' | 'all' | 'custom';
+type PeriodType = 'last15Days' | 'thisMonth' | 'lastMonth' | 'last3Months' | 'last6Months' | 'thisYear' | 'all' | 'custom';
 type ViewType = 'daily' | 'monthly';
 
 export const TurnoverChart: React.FC<TurnoverChartProps> = ({
@@ -62,9 +62,8 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
 }) => {
   const { t } = useTranslate();
 
-  // Устанавливаем текущий месяц как период по умолчанию
-  const [period, setPeriod] = useState<PeriodType>('thisMonth');
-  const [viewType, setViewType] = useState<ViewType>('daily');
+  // По умолчанию показываем последние 15 дней
+  const [period, setPeriod] = useState<PeriodType>('last15Days');
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -151,6 +150,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
 
   // Пункты периода
   const periodOptions = useMemo(() => ([
+    { value: 'last15Days' as PeriodType, label: t('Последние 15 дней') },
     { value: 'thisMonth' as PeriodType, label: t('Текущий месяц') },
     { value: 'lastMonth' as PeriodType, label: t('Прошлый месяц') },
     { value: 'last3Months' as PeriodType, label: t('3 месяца') },
@@ -171,17 +171,28 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showDropdown]);
 
-  // Автоматическое определение типа отображения на основе периода
-  useEffect(() => {
-    if (period === 'thisMonth' || period === 'lastMonth') {
-      setViewType('daily');
-    } else if (period === 'last3Months' || period === 'last6Months' || period === 'thisYear' || period === 'all') {
-      setViewType('monthly');
-    } else if (period === 'custom' && customDateRange.start && customDateRange.end) {
-      const start = new Date(customDateRange.start);
-      const end = new Date(customDateRange.end);
-      const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      setViewType(diffDays <= 45 ? 'daily' : 'monthly');
+  // Определение типа отображения на основе периода
+  const viewType = useMemo(() => {
+    switch (period) {
+      case 'last15Days':
+      case 'thisMonth':
+      case 'lastMonth':
+        return 'daily';
+      case 'last3Months':
+      case 'last6Months':
+      case 'thisYear':
+      case 'all':
+        return 'monthly';
+      case 'custom':
+        if (customDateRange.start && customDateRange.end) {
+          const start = new Date(customDateRange.start);
+          const end = new Date(customDateRange.end);
+          const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return diffDays <= 45 ? 'daily' : 'monthly';
+        }
+        return 'daily';
+      default:
+        return 'daily';
     }
   }, [period, customDateRange]);
 
@@ -190,51 +201,72 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
     if (!rawData || rawData.length === 0) return [];
     
     const now = new Date();
-    let filteredData = [...rawData];
+    now.setHours(23, 59, 59, 999);
+    
     let startDate: Date;
-    let endDate: Date = new Date();
+    let endDate: Date = now;
 
     // Определяем диапазон дат для фильтрации
     switch (period) {
+      case 'last15Days':
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 14); // 15 дней включая сегодня
+        startDate.setHours(0, 0, 0, 0);
+        break;
+        
       case 'thisMonth':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = now;
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Последний день месяца
+        endDate.setHours(23, 59, 59, 999);
         break;
+        
       case 'lastMonth':
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        endDate.setHours(23, 59, 59, 999);
         break;
+        
       case 'last3Months':
         startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-        endDate = now;
+        startDate.setHours(0, 0, 0, 0);
         break;
+        
       case 'last6Months':
         startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        endDate = now;
+        startDate.setHours(0, 0, 0, 0);
         break;
+        
       case 'thisYear':
         startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = now;
+        startDate.setHours(0, 0, 0, 0);
         break;
+        
       case 'custom':
         if (customDateRange.start && customDateRange.end) {
           startDate = new Date(customDateRange.start);
+          startDate.setHours(0, 0, 0, 0);
           endDate = new Date(customDateRange.end);
           endDate.setHours(23, 59, 59, 999);
         } else {
           return [];
         }
         break;
+        
       case 'all':
       default:
         const dates = rawData.map(item => new Date(item.created_at || item.completed_at));
+        if (dates.length === 0) return [];
         startDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        startDate.setHours(0, 0, 0, 0);
         endDate = new Date(Math.max(...dates.map(d => d.getTime())));
+        endDate.setHours(23, 59, 59, 999);
         break;
     }
 
     // Фильтруем данные по диапазону дат
-    filteredData = rawData.filter(item => {
+    const filteredData = rawData.filter(item => {
       const date = new Date(item.created_at || item.completed_at);
       return date >= startDate && date <= endDate;
     });
@@ -268,23 +300,10 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      // Логика отображения дней
-      const daysWithSales = allDays.filter(d => d.value > 0);
-      const totalDays = allDays.length;
-      
-      if (totalDays <= 15) {
-        // Показываем все дни если их 15 или меньше
-        return allDays;
-      } else if (daysWithSales.length <= 15) {
-        // Если дней с продажами 15 или меньше, показываем только их
-        return daysWithSales;
-      } else {
-        // Если дней с продажами больше 15, показываем все дни с продажами
-        return daysWithSales;
-      }
+      return allDays;
       
     } else {
-      // Группировка по месяцам
+      // Группировка по месяцам для периодов больше 45 дней
       const monthlyData: { [key: string]: number } = {};
       
       filteredData.forEach(item => {
@@ -298,15 +317,21 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
         monthlyData[monthKey] += value;
       });
 
-      return Object.entries(monthlyData)
-        .map(([monthKey, value]) => {
-          const [year, month] = monthKey.split('-');
-          return {
-            date: new Date(parseInt(year), parseInt(month) - 1, 1),
-            value: value
-          };
-        })
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
+      // Создаем массив всех месяцев в периоде
+      const allMonths: MonthValue[] = [];
+      const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+      
+      while (currentDate <= endMonth) {
+        const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        allMonths.push({
+          date: new Date(currentDate),
+          value: monthlyData[monthKey] || 0
+        });
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+
+      return allMonths;
     }
   }, [rawData, period, viewType, customDateRange]);
 
@@ -316,13 +341,16 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
       label: viewType === 'daily' 
         ? d.date.getDate().toString() // Для дней показываем только число
         : d.date.toLocaleString('ru', { month: 'short', year: '2-digit' }), // Для месяцев
-      fullDate: d.date.toLocaleDateString('ru'),
+      fullDate: viewType === 'daily'
+        ? d.date.toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })
+        : d.date.toLocaleString('ru', { month: 'long', year: 'numeric' }),
       value: d.value,
       lineValue: d.value + lineOffset,
     }));
   }, [processedData, lineOffset, viewType]);
 
   const total = useMemo(() => graphData.reduce((sum, d) => sum + d.value, 0), [graphData]);
+  const daysWithSales = useMemo(() => graphData.filter(d => d.value > 0).length, [graphData]);
 
   const formatYAxis = (value: number) => {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(0)}M`;
@@ -351,8 +379,16 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
     if (period === 'custom' && customDateRange.start && customDateRange.end) {
       return `${new Date(customDateRange.start).toLocaleDateString('ru')} - ${new Date(customDateRange.end).toLocaleDateString('ru')}`;
     }
-    return periodOptions.find(o => o.value === period)?.label || t('Текущий месяц');
+    return periodOptions.find(o => o.value === period)?.label || t('Последние 15 дней');
   };
+
+  // Расчет интервала для оси X
+  const xAxisInterval = useMemo(() => {
+    if (graphData.length <= 15) return 0; // Показываем все метки
+    if (graphData.length <= 30) return 1; // Показываем каждую вторую
+    if (graphData.length <= 45) return 2; // Показываем каждую третью
+    return Math.floor(graphData.length / 15); // Показываем ~15 меток
+  }, [graphData.length]);
 
   return (
     <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 h-full">
@@ -383,7 +419,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 min-w-[180px]">
+              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 min-w-[200px]">
                 {periodOptions.map((option) => (
                   <button
                     key={option.value}
@@ -469,12 +505,24 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
       {/* Статистика */}
       {showStats && !loading && graphData.length > 0 && (
         <div className="bg-gray-50 rounded-xl px-4 py-3 mb-6">
-          <p className="text-xs text-gray-500 mb-1">{t('Итого за период')}</p>
-          {isClient && (
-            <p className="text-lg font-bold text-gray-900">
-              {total.toLocaleString('ru-RU')} ₸
-            </p>
-          )}
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">{t('Итого за период')}</p>
+              {isClient && (
+                <p className="text-lg font-bold text-gray-900">
+                  {total.toLocaleString('ru-RU')} ₸
+                </p>
+              )}
+            </div>
+            {viewType === 'daily' && daysWithSales > 0 && (
+              <div className="text-right">
+                <p className="text-xs text-gray-500 mb-1">{t('Дней с продажами')}</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {daysWithSales} / {graphData.length}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -513,10 +561,10 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
                 axisLine={false}
                 tick={{ fontSize: 11, fill: '#6b7280' }}
                 dy={10}
-                interval={graphData.length > 20 ? 1 : 0}
-                angle={graphData.length > 15 ? -45 : 0}
-                textAnchor={graphData.length > 15 ? "end" : "middle"}
-                height={graphData.length > 15 ? 60 : 40}
+                interval={xAxisInterval}
+                angle={graphData.length > 20 ? -45 : 0}
+                textAnchor={graphData.length > 20 ? "end" : "middle"}
+                height={graphData.length > 20 ? 60 : 40}
               />
               <YAxis
                 tickLine={false}
@@ -612,14 +660,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
           )}
           <div className="ml-auto flex items-center gap-1 text-gray-400">
             <Calendar className="w-3 h-3" />
-            <span>
-              {t('Период:')} {getPeriodLabel()}
-              {viewType === 'daily' && processedData.length > 0 && (
-                <span className="ml-1">
-                  ({processedData.filter(d => d.value > 0).length} {t('дней с продажами')})
-                </span>
-              )}
-            </span>
+            <span>{getPeriodLabel()}</span>
           </div>
         </div>
       )}

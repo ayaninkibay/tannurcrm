@@ -5,12 +5,11 @@ import { useUser } from '@/context/UserContext'
 import { useTranslate } from '@/hooks/useTranslate' 
 import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import BalanceCard from '@/components/blocks/BalanceCard'
-import { BonusProgressCard } from '@/components/blocks/BonusProgressCard' // НОВЫЙ ИМПОРТ
+import { BonusProgressCard } from '@/components/blocks/BonusProgressCard'
 import UserProfileCard from '@/components/profile/UserProfileCard'
 import ReferalLink from '@/components/blocks/ReferralLink'
 import SponsorCard from '@/components/blocks/SponsorCard'
 import { TurnoverChart } from '@/components/TurnoverChart'
-import { generateMonthlyData } from '@/components/generateData'
 import NewsEventsCard from '@/components/events/NewsEventsCard'
 
 export default function DashboardPage() {
@@ -25,12 +24,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Верхний блок с профилем, реферальной ссылкой и спонсором */}
-
       <div className="flex flex-col lg:flex-row items-center gap-4 md:gap-6">
         {/* Профиль */}
         <div className="flex-1 w-full">
           <UserProfileCard />
-
         </div>
         
         {/* Реферальная ссылка */}
@@ -46,19 +43,19 @@ export default function DashboardPage() {
 
       {/* Основной контент */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Карточки баланса и бонусного прогресса */}
+        {/* Карточка баланса с реальными данными из withdrawalService */}
         <div className="h-full">
-          <BalanceCard balance={890020} size="normal" variant="dark" />
+          <BalanceCard 
+            userId={user?.id}     // Передаем ID пользователя для загрузки реальных данных
+            size="normal"         // Размер карточки
+            variant="light"       // Светлая тема (вместо "white" используем "light")
+          />
         </div>
+        {/* Карточка бонусного прогресса */}
         <div className="h-full">
-          <BonusProgressCard userId={user?.id} /> {/* ЗАМЕНИЛИ НА БОНУСНЫЙ ПРОГРЕСС */}
+          <BonusProgressCard userId={user?.id} />
         </div>
       </div>
-
-
-
-
-
 
       {/* График и новости */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -69,7 +66,6 @@ export default function DashboardPage() {
           />
         </div>
         <div className="min-h-[400px] overflow-hidden flex flex-col">
-
           <NewsEventsCard />
         </div>
       </div>

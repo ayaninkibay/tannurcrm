@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { 
-  ArrowLeft, 
   Loader2, 
   User, 
   Mail, 
@@ -19,9 +18,13 @@ import {
   XCircle,
   AlertCircle,
   Clock,
+  Hash,
   FileText,
   MapPin,
-  Instagram
+  Instagram,
+  Shield,
+  Banknote,
+  Briefcase
 } from 'lucide-react';
 
 type SubscriptionDetail = {
@@ -33,9 +36,6 @@ type SubscriptionDetail = {
   status: string;
   paid_at: string;
   created_at: string;
-  sponsor_bonus: number | null;
-  ceo_bonus: number | null;
-  approved_by: string | null;
   notes?: string;
   user?: {
     id: string;
@@ -43,6 +43,7 @@ type SubscriptionDetail = {
     last_name: string;
     email: string;
     phone: string;
+    iin?: string;
     region?: string;
     instagram?: string;
     avatar_url?: string;
@@ -51,6 +52,7 @@ type SubscriptionDetail = {
     created_at: string;
     is_confirmed: boolean;
     status: string;
+    role: string;
   };
   parent?: {
     id: string;
@@ -58,10 +60,6 @@ type SubscriptionDetail = {
     last_name: string;
     email: string;
     phone: string;
-  };
-  approver?: {
-    first_name: string;
-    last_name: string;
   };
 };
 
@@ -97,6 +95,7 @@ const SubscriptionDetailPage = () => {
             last_name,
             email,
             phone,
+            iin,
             region,
             instagram,
             avatar_url,
@@ -104,7 +103,8 @@ const SubscriptionDetailPage = () => {
             personal_turnover,
             created_at,
             is_confirmed,
-            status
+            status,
+            role
           ),
           parent:parent_id (
             id,
@@ -112,10 +112,6 @@ const SubscriptionDetailPage = () => {
             last_name,
             email,
             phone
-          ),
-          approver:approved_by (
-            first_name,
-            last_name
           )
         `)
         .eq('id', subscriptionId)
@@ -132,136 +128,59 @@ const SubscriptionDetailPage = () => {
     }
   };
 
-  const handleApprove = async () => {
-    if (!subscription) return;
-    
-    setIsProcessing(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // ВАЖНО: Сначала обновляем пользователя с явным указанием всех полей
-      console.log('Updating user status for ID:', subscription.user_id);
-      
-      // Шаг 1: Обновляем статус пользователя напрямую
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .update({ 
-          role: 'dealer',
-          is_confirmed: true,
-          status: 'active' // Убедитесь что именно 'active'
-        })
-        .eq('id', subscription.user_id)
-        .select()
-        .single();
+const handleApprove = async () => {
+  if (!subscription) return;
+  
+  setIsProcessing(true);
+  
+  try {
+    // Шаг 1: Обновляем статус пользователя на активного дилера
+    const { error: userError } = await supabase
+      .from('users')
+      .update({ 
+        status: 'active',
+        is_confirmed: true,
+        role: 'dealer'
+      })
+      .eq('id', subscription.user_id);
 
-      if (userError) {
-        console.error('Error updating user:', userError);
-        throw new Error(`Ошибка обновления пользователя: ${userError.message}`);
-      }
-      
-      console.log('User updated successfully:', userData);
+    if (userError) throw userError;
 
-      // Шаг 2: Обновляем статус платежа
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('subscription_payments')
-        .update({ 
-          status: 'paid',
-          approved_by: user?.id,
-          paid_at: subscription.paid_at || new Date().toISOString()
-        })
-        .eq('id', subscription.id)
-        .select()
-        .single();
+    // Шаг 2: Обновляем статус платежа
+    const { error: paymentError } = await supabase
+      .from('subscription_payments')
+      .update({ 
+        status: 'paid'
+      })
+      .eq('id', subscription.id);
 
-      if (paymentError) {
-        console.error('Error updating payment:', paymentError);
-        
-        // Откатываем изменения пользователя
-        await supabase
-          .from('users')
-          .update({ 
-            role: 'user',
-            is_confirmed: false,
-            status: 'inactive'
-          })
-          .eq('id', subscription.user_id);
-          
-        throw new Error(`Ошибка обновления платежа: ${paymentError.message}`);
-      }
-      
-      console.log('Payment updated successfully:', paymentData);
+    if (paymentError) throw paymentError;
 
-      // Шаг 3: Создаем бонус для спонсора если есть
-      if (subscription.parent_id && subscription.sponsor_bonus && subscription.sponsor_bonus > 0) {
-        const { error: bonusError } = await supabase
-          .from('bonus_payots')
-          .insert({
-            user_id: subscription.parent_id,
-            amount: subscription.sponsor_bonus,
-            type: 'referral',
-            status: 'assembled',
-            note: `Бонус за привлечение дилера ${subscription.user?.first_name} ${subscription.user?.last_name}`,
-            reference_user_id: subscription.user_id,
-            calculation_base: subscription.amount
-          });
-        
-        if (bonusError) {
-          console.error('Error creating sponsor bonus:', bonusError);
-          // Не прерываем процесс, но логируем ошибку
-        }
+    // Шаг 3: Вызываем функцию распределения бонусов через RPC
+    const { data, error: bonusError } = await supabase
+      .rpc('process_subscription_payment_bonuses', {
+        p_payment_id: subscription.id
+      });
 
-        // Обновляем товарооборот спонсора
-        const { data: parentData } = await supabase
-          .from('users')
-          .select('personal_turnover')
-          .eq('id', subscription.parent_id)
-          .single();
-        
-        if (parentData) {
-          const newTurnover = (parentData.personal_turnover || 0) + subscription.amount;
-          
-          const { error: turnoverError } = await supabase
-            .from('users')
-            .update({
-              personal_turnover: newTurnover
-            })
-            .eq('id', subscription.parent_id);
-          
-          if (turnoverError) {
-            console.error('Error updating sponsor turnover:', turnoverError);
-          }
-        }
-      }
-
-      // Шаг 4: Проверяем, что обновление прошло успешно
-      const { data: checkUser, error: checkError } = await supabase
-        .from('users')
-        .select('status, role, is_confirmed')
-        .eq('id', subscription.user_id)
-        .single();
-      
-      if (checkError) {
-        console.error('Error checking user after update:', checkError);
-      } else {
-        console.log('User status after update:', checkUser);
-        
-        if (checkUser.status !== 'active') {
-          console.warn('Warning: User status is not active after update:', checkUser.status);
-        }
-      }
-
-      alert('Подписка успешно одобрена! Аккаунт дилера активирован.');
-      router.push('/admin/finance');
-      
-    } catch (error: any) {
-      console.error('Error approving subscription:', error);
-      alert(`Ошибка при одобрении подписки: ${error.message || 'Неизвестная ошибка'}`);
-    } finally {
-      setIsProcessing(false);
-      setShowConfirmModal(false);
+    if (bonusError) {
+      console.error('Error distributing bonuses:', bonusError);
+      // Не прерываем процесс, но логируем ошибку
+      alert('Подписка одобрена, но возникла ошибка при распределении бонусов');
+    } else if (data && data.success) {
+      console.log('Bonuses distributed:', data.message);
     }
-  };
+
+    alert('Подписка успешно одобрена! Аккаунт дилера активирован, бонусы распределены.');
+    router.push('/admin/finance');
+    
+  } catch (error: any) {
+    console.error('Error approving subscription:', error);
+    alert(`Ошибка при одобрении: ${error.message}`);
+  } finally {
+    setIsProcessing(false);
+    setShowConfirmModal(false);
+  }
+};
 
   const handleReject = async () => {
     if (!subscription || !rejectReason.trim()) {
@@ -272,35 +191,22 @@ const SubscriptionDetailPage = () => {
     setIsProcessing(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Обновляем только статус платежа
       const { error } = await supabase
         .from('subscription_payments')
         .update({ 
           status: 'rejected',
-          approved_by: user?.id,
           notes: rejectReason
         })
         .eq('id', subscription.id);
 
       if (error) throw error;
 
-      // Убеждаемся, что пользователь остается неактивным
-      await supabase
-        .from('users')
-        .update({ 
-          status: 'inactive',
-          is_confirmed: false
-        })
-        .eq('id', subscription.user_id);
-
       alert('Подписка отклонена');
       router.push('/admin/finance');
       
     } catch (error: any) {
       console.error('Error rejecting subscription:', error);
-      alert(`Ошибка при отклонении подписки: ${error.message || 'Неизвестная ошибка'}`);
+      alert(`Ошибка при отклонении: ${error.message}`);
     } finally {
       setIsProcessing(false);
       setShowConfirmModal(false);
@@ -312,47 +218,38 @@ const SubscriptionDetailPage = () => {
     switch (status) {
       case 'pending':
         return (
-          <span className="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium flex items-center gap-2">
-            <Clock className="w-4 h-4" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-medium">
+            <Clock className="w-3.5 h-3.5" />
             Ожидает одобрения
           </span>
         );
       case 'paid':
         return (
-          <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-sm font-medium flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">
+            <CheckCircle className="w-3.5 h-3.5" />
             Оплачено
           </span>
         );
       case 'rejected':
         return (
-          <span className="px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-sm font-medium flex items-center gap-2">
-            <XCircle className="w-4 h-4" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium">
+            <XCircle className="w-3.5 h-3.5" />
             Отклонено
           </span>
         );
       default:
-        return (
-          <span className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-lg text-sm font-medium">
-            {status}
-          </span>
-        );
+        return null;
     }
   };
 
   const getPaymentMethodName = (method: string) => {
-    switch (method) {
-      case 'kaspi_transfer':
-        return 'Kaspi перевод';
-      case 'kaspi_qr':
-        return 'Kaspi QR';
-      case 'bank_transfer':
-        return 'Банковский перевод';
-      case 'bank_card':
-        return 'Банковская карта';
-      default:
-        return method;
-    }
+    const methods: any = {
+      'kaspi_transfer': 'Kaspi перевод',
+      'kaspi_qr': 'Kaspi QR',
+      'bank_transfer': 'Банковский перевод',
+      'bank_card': 'Банковская карта'
+    };
+    return methods[method] || method;
   };
 
   if (isLoading) {
@@ -366,330 +263,355 @@ const SubscriptionDetailPage = () => {
   if (!subscription) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
+        <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
         <p className="text-gray-500">Подписка не найдена</p>
-        <button
-          onClick={() => router.back()}
-          className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-        >
-          Вернуться назад
-        </button>
       </div>
     );
   }
 
   return (
     <>
-      <div className="w-full h-full p-2 md:p-4 lg:p-6 bg-gray-50 min-h-screen">
-        <MoreHeaderAD title="Детали подписки" />
-        
-        {/* Back button */}
-        <div className="mt-4 mb-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-all hover:shadow-sm group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-sm font-medium">Назад</span>
-          </button>
-        </div>
+      <div className="min-h-screen">
+        <div className="p-2 md:p-4 lg:p-6">
+          <MoreHeaderAD title="Детали подписки" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* User Info Card */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-gray-600" />
-                Информация о дилере
-              </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
               
-              <div className="flex items-start gap-4 mb-6">
-                {subscription.user?.avatar_url ? (
-                  <Image
-                    src={subscription.user.avatar_url}
-                    alt="Avatar"
-                    width={80}
-                    height={80}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-gray-400" />
+              {/* User Info Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-[#D77E6C] to-[#C66B5A] p-6 text-white">
+                  <div className="flex items-center gap-4">
+                    {subscription.user?.avatar_url ? (
+                      <Image
+                        src={subscription.user.avatar_url}
+                        alt="Avatar"
+                        width={72}
+                        height={72}
+                        className="rounded-full border-3 border-white/20"
+                      />
+                    ) : (
+                      <div className="w-[72px] h-[72px] bg-white/20 rounded-full flex items-center justify-center">
+                        <User className="w-9 h-9 text-white" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold">
+                        {subscription.user?.first_name} {subscription.user?.last_name}
+                      </h3>
+                      <p className="text-white/80">
+                        ID: {subscription.user_id.slice(0, 8)}
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
                 
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {subscription.user?.first_name} {subscription.user?.last_name}
+                <div className="p-6">
+                  <h4 className="font-semibold text-gray-900 mb-4">Информация о пользователе</h4>
+                  
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-medium text-sm">{subscription.user?.email}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Телефон</p>
+                        <p className="font-medium text-sm">{subscription.user?.phone || 'Не указан'}</p>
+                      </div>
+                    </div>
+
+                    {subscription.user?.region && (
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">Регион</p>
+                          <p className="font-medium text-sm">{subscription.user.region}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {subscription.user?.instagram && (
+                      <div className="flex items-start gap-3">
+                        <Instagram className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">Instagram</p>
+                          <p className="font-medium text-sm">@{subscription.user.instagram}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Статус аккаунта</p>
+                        <p className="font-medium text-sm">
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            subscription.user?.status === 'active' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {subscription.user?.status || 'Неактивен'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Briefcase className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Роль</p>
+                        <p className="font-medium text-sm capitalize">{subscription.user?.role || 'user'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Личный товарооборот</p>
+                        <p className="font-medium text-sm">
+                          {(subscription.user?.personal_turnover || 0).toLocaleString()} ₸
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Дата регистрации</p>
+                        <p className="font-medium text-sm">
+                          {new Date(subscription.user?.created_at || '').toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
+                    </div>
+                                          {subscription.user?.iin && (
+                        <div className="flex items-start gap-3">
+                          <Hash className="w-4 h-4 text-gray-400 mt-1" />
+                          <div>
+                            <p className="text-xs text-gray-500">ИИН</p>
+                            <p className="font-medium text-sm font-mono">{subscription.user.iin}</p>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sponsor Card */}
+              {subscription.parent && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#D77E6C]" />
+                    Информация о спонсоре
                   </h3>
-                  <p className="text-sm text-gray-500 mb-2">ID: {subscription.user_id.slice(-8)}</p>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                      subscription.user?.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {subscription.user?.status || 'inactive'}
-                    </span>
-                    {subscription.user?.is_confirmed && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium">
-                        Подтвержден
-                      </span>
+                  
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-lg">
+                          {subscription.parent.first_name} {subscription.parent.last_name}
+                        </p>
+                        <p className="text-sm text-gray-500">{subscription.parent.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Получит бонус</p>
+                        <p className="text-lg font-bold text-green-600">+25,000 ₸</p>
+                      </div>
+                    </div>
+                    {subscription.parent.phone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-3.5 h-3.5" />
+                        {subscription.parent.phone}
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm font-medium">{subscription.user?.email}</p>
+              {/* Payment Notes */}
+              {subscription.notes && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#D77E6C]" />
+                    Детали платежа от дилера
+                  </h3>
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{subscription.notes}</p>
                   </div>
                 </div>
+              )}
+
+              {/* Payment Details */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h3 className="font-semibold mb-4">Информация о платеже</h3>
                 
-                <div className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500">Телефон</p>
-                    <p className="text-sm font-medium">{subscription.user?.phone || 'Не указан'}</p>
-                  </div>
-                </div>
-                
-                {subscription.user?.region && (
+                <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                    </div>
                     <div>
-                      <p className="text-xs text-gray-500">Регион</p>
-                      <p className="text-sm font-medium">{subscription.user.region}</p>
+                      <p className="text-xs text-gray-500">Способ оплаты</p>
+                      <p className="font-medium">{getPaymentMethodName(subscription.method)}</p>
                     </div>
                   </div>
-                )}
-                
-                {subscription.user?.instagram && (
+                  
                   <div className="flex items-center gap-3">
-                    <Instagram className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Instagram</p>
-                      <p className="text-sm font-medium">@{subscription.user.instagram}</p>
+                    <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-purple-600" />
                     </div>
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500">Дата регистрации</p>
-                    <p className="text-sm font-medium">
-                      {new Date(subscription.user?.created_at || '').toLocaleDateString('ru-RU')}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <DollarSign className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-xs text-gray-500">Личный товарооборот</p>
-                    <p className="text-sm font-medium">
-                      {(subscription.user?.personal_turnover || 0).toLocaleString()} ₸
-                    </p>
+                    <div>
+                      <p className="text-xs text-gray-500">Дата платежа</p>
+                      <p className="font-medium">
+                        {new Date(subscription.paid_at).toLocaleDateString('ru-RU')}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(subscription.paid_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Sponsor Info Card */}
-            {subscription.parent && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-gray-600" />
-                  Информация о спонсоре
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500">Имя</p>
-                    <p className="text-sm font-medium">
-                      {subscription.parent.first_name} {subscription.parent.last_name}
+            {/* Sidebar - Actions */}
+            <div className="space-y-6">
+              {/* Actions Card with Amount and Status */}
+              {subscription.status === 'pending' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">Детали заявки</h3>
+                      {getStatusBadge(subscription.status)}
+                    </div>
+                    <div className="bg-gradient-to-r from-[#D77E6C]/10 to-[#C66B5A]/10 rounded-xl p-4">
+                      <p className="text-sm text-gray-600 mb-1">Сумма платежа</p>
+                      <p className="text-3xl font-bold text-[#D77E6C]">
+                        {subscription.amount.toLocaleString()} ₸
+                      </p>
+                    </div>
+                  </div>
+
+                  <h3 className="font-semibold mb-4">Действия</h3>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setConfirmAction('approve');
+                        setShowConfirmModal(true);
+                      }}
+                      disabled={isProcessing}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      Одобрить и активировать
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setConfirmAction('reject');
+                        setShowConfirmModal(true);
+                      }}
+                      disabled={isProcessing}
+                      className="w-full bg-white hover:bg-gray-50 text-red-600 border-2 border-red-200 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-5 h-5" />
+                      Отклонить заявку
+                    </button>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+                    <p className="text-xs text-amber-800">
+                      При одобрении дилер получит доступ к личному кабинету, а спонсоры получат бонусы.
                     </p>
                   </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm font-medium">{subscription.parent.email}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">Телефон</p>
-                    <p className="text-sm font-medium">{subscription.parent.phone || 'Не указан'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs text-gray-500">ID спонсора</p>
-                    <p className="text-sm font-medium font-mono">{subscription.parent_id?.slice(-8)}</p>
-                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Notes */}
-            {subscription.notes && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-600" />
-                  Примечания
-                </h2>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{subscription.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Payment Info Card */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">Детали платежа</h3>
+              )}
               
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500">Статус</p>
-                  <div className="mt-1">
+              {subscription.status === 'paid' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-4">
                     {getStatusBadge(subscription.status)}
                   </div>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-gray-500">Сумма платежа</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {subscription.amount.toLocaleString()} ₸
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-gray-500">Способ оплаты</p>
-                  <p className="text-sm font-medium flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-gray-400" />
-                    {getPaymentMethodName(subscription.method)}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-gray-500">Дата оплаты</p>
-                  <p className="text-sm font-medium">
-                    {new Date(subscription.paid_at).toLocaleDateString('ru-RU')}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(subscription.paid_at).toLocaleTimeString('ru-RU')}
-                  </p>
-                </div>
-                
-                <div className="pt-4 border-t border-gray-100 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Бонус спонсору:</span>
-                    <span className="text-sm font-medium">
-                      {(subscription.sponsor_bonus || 0).toLocaleString()} ₸
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">CEO бонус:</span>
-                    <span className="text-sm font-medium">
-                      {(subscription.ceo_bonus || 0).toLocaleString()} ₸
-                    </span>
-                  </div>
-                </div>
-                
-                {subscription.approved_by && subscription.approver && (
-                  <div className="pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">Обработал</p>
-                    <p className="text-sm font-medium">
-                      {subscription.approver.first_name} {subscription.approver.last_name}
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-xl p-4">
+                    <p className="text-sm text-gray-600 mb-1">Оплаченная сумма</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {subscription.amount.toLocaleString()} ₸
                     </p>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            {subscription.status === 'pending' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold mb-4">Действия</h3>
-                
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      setConfirmAction('approve');
-                      setShowConfirmModal(true);
-                    }}
-                    disabled={isProcessing}
-                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                    Одобрить подписку
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      setConfirmAction('reject');
-                      setShowConfirmModal(true);
-                    }}
-                    disabled={isProcessing}
-                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white py-3 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
-                  >
-                    <XCircle className="w-5 h-5" />
-                    Отклонить
-                  </button>
-                </div>
-                
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-xs text-blue-800">
-                    <strong>Внимание!</strong> После одобрения аккаунт пользователя будет 
-                    автоматически переведен в статус "Дилер" и активирован.
+                  <p className="text-sm text-gray-600 mt-4">
+                    Аккаунт дилера активирован, бонусы распределены.
                   </p>
                 </div>
-              </div>
-            )}
+              )}
+              
+              {subscription.status === 'rejected' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-4">
+                    {getStatusBadge(subscription.status)}
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-4">
+                    <p className="text-sm text-red-700">
+                      Заявка была отклонена администратором.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold mb-4">
-              {confirmAction === 'approve' ? 'Подтвердить одобрение' : 'Подтвердить отклонение'}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">
+              {confirmAction === 'approve' ? 'Подтвердить одобрение' : 'Отклонить заявку'}
             </h3>
             
             {confirmAction === 'approve' ? (
-              <div>
+              <>
                 <p className="text-gray-600 mb-4">
-                  Вы уверены, что хотите одобрить эту подписку и активировать аккаунт дилера?
+                  Вы уверены, что хотите одобрить подписку?
                 </p>
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <p className="text-sm">
-                    <strong>Дилер:</strong> {subscription?.user?.first_name} {subscription?.user?.last_name}
-                  </p>
-                  <p className="text-sm">
-                    <strong>Сумма:</strong> {subscription?.amount.toLocaleString()} ₸
-                  </p>
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Дилер:</span>
+                    <span className="font-medium">
+                      {subscription?.user?.first_name} {subscription?.user?.last_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Сумма:</span>
+                    <span className="font-medium">{subscription?.amount.toLocaleString()} ₸</span>
+                  </div>
                 </div>
-              </div>
+                <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
+                  ✓ Статус пользователя → <strong>active</strong><br/>
+                  ✓ Подтверждение → <strong>is_confirmed: true</strong><br/>
+                  ✓ Роль → <strong>dealer</strong>
+                </div>
+              </>
             ) : (
-              <div>
+              <>
                 <p className="text-gray-600 mb-4">
-                  Укажите причину отклонения подписки:
+                  Укажите причину отклонения:
                 </p>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="Причина отклонения..."
                   rows={3}
                 />
-              </div>
+              </>
             )}
             
             <div className="flex gap-3 mt-6">
@@ -699,23 +621,26 @@ const SubscriptionDetailPage = () => {
                   setRejectReason('');
                 }}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={confirmAction === 'approve' ? handleApprove : handleReject}
                 disabled={isProcessing || (confirmAction === 'reject' && !rejectReason.trim())}
-                className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:bg-gray-400 ${
+                className={`flex-1 px-4 py-3 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 ${
                   confirmAction === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-red-600 hover:bg-red-700'
-                }`}
+                } disabled:bg-gray-400`}
               >
                 {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Подтвердить'
+                  <>
+                    {confirmAction === 'approve' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    Подтвердить
+                  </>
                 )}
               </button>
             </div>

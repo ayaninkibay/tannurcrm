@@ -14,7 +14,8 @@ interface NewsEvent {
   badge_icon?: string;
   badge_color?: string;
   start_date?: string;
-  event_status?: 'active' | 'upcoming' | 'past';
+  end_date?: string;
+  event_status?: 'published' | 'upcoming' | 'past';
   short_description?: string;
   is_featured?: boolean;
   priority?: number;
@@ -46,7 +47,7 @@ export default function NewsEventsCard({
       // Загружаем события из Supabase
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, image_url, badge_icon, badge_color, start_date, short_description, is_featured, priority, end_date')
+        .select('id, title, image_url, badge_icon, badge_color, start_date, end_date, short_description, is_featured, priority')
         .eq('status', 'published')
         .order('priority', { ascending: false })
         .order('start_date', { ascending: false })
@@ -61,14 +62,14 @@ export default function NewsEventsCard({
       // Вычисляем статус для каждого события
       const today = new Date().toISOString().split('T')[0];
       const eventsWithStatus = (data || []).map(event => {
-        let eventStatus: 'active' | 'upcoming' | 'past';
+        let eventStatus: 'published' | 'upcoming' | 'past' = 'past';
         
-        if (event.start_date > today) {
+        if (event.start_date && event.start_date > today) {
           eventStatus = 'upcoming';
-        } else if (event.end_date && today <= event.end_date) {
-          eventStatus = 'active';
-        } else {
-          eventStatus = 'past';
+        } else if (event.start_date && event.end_date && today >= event.start_date && today <= event.end_date) {
+          eventStatus = 'published';
+        } else if (event.start_date && !event.end_date && today >= event.start_date) {
+          eventStatus = 'published';
         }
         
         return {
@@ -88,7 +89,7 @@ export default function NewsEventsCard({
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
-      case 'active':
+      case 'published':
         return { text: 'Активно', color: 'bg-green-100 text-green-700' };
       case 'upcoming':
         return { text: 'Скоро', color: 'bg-yellow-100 text-yellow-700' };
@@ -101,13 +102,17 @@ export default function NewsEventsCard({
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ru-RU', { 
-      day: 'numeric',
-      month: 'short'
-    });
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('ru-RU', { 
+        day: 'numeric',
+        month: 'short'
+      });
+    } catch (e) {
+      console.error('Error formatting date:', dateStr, e);
+      return '';
+    }
   };
-
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col">
@@ -191,6 +196,10 @@ export default function NewsEventsCard({
                                 src={event.image_url}
                                 alt=""
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.error('Failed to load image:', event.image_url);
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               />
                             ) : event.badge_icon ? (
                               <span 

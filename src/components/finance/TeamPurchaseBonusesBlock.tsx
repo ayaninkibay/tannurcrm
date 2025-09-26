@@ -83,7 +83,7 @@ export default function TeamPurchaseBonusesBlock() {
           // Если бонусы рассчитаны, получаем статистику
           if (purchase.bonuses_calculated) {
             const { data: bonusStats } = await supabase
-              .from('team_purchase_bonuses')
+              .from('team_purchase_bonuses_final')
               .select('bonus_amount')
               .eq('team_purchase_id', purchase.id);
 

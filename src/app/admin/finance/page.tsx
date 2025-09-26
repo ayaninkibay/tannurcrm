@@ -1,3 +1,4 @@
+// app/admin/finance/page.tsx (обновленная версия с блоком заявок на вывод)
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,9 +8,10 @@ import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import TotalAmountCard from '@/components/finance/TotalAmountCard';
 import PendingTransactionsTable from '@/components/finance/PendingTransactionsTable';
 import PaymentHistoryTable from '@/components/finance/PaymentHistoryTable';
+import TeamPurchaseBonusesBlock from '@/components/finance/TeamPurchaseBonusesBlock';
+import WithdrawalRequestsBlock from '@/components/finance/WithdrawalRequestsBlock'; // Импортируем новый блок
 import { useTranslate } from '@/hooks/useTranslate';
 import { Loader2, Users, CreditCard, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import TeamPurchaseBonusesBlock from '@/components/finance/TeamPurchaseBonusesBlock';
 
 type SubscriptionPayment = {
   id: string;
@@ -52,6 +54,7 @@ const FinanceTransactionsPage = () => {
   const [subscriptions, setSubscriptions] = useState<SubscriptionPayment[]>([]);
   const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
   const [totalSubscriptionAmount, setTotalSubscriptionAmount] = useState(0);
+  const [totalWithdrawalAmount, setTotalWithdrawalAmount] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string>(t('Все типы'));
   const [periodFilter, setPeriodFilter] = useState<string>(t('Все периоды'));
 
@@ -60,7 +63,7 @@ const FinanceTransactionsPage = () => {
     []
   );
 
-  // Mock data for transactions
+  // Mock data for transactions (можно убрать после полной интеграции)
   const pendingTransactions: TxBase[] = useMemo(
     () => [
       {
@@ -70,15 +73,6 @@ const FinanceTransactionsPage = () => {
         date: '22-08-2025',
         transactionId: 'KZ848970',
         type: t('л. товарооборот'),
-        status: t('одобрить')
-      },
-      {
-        id: 2,
-        name: t('Айгерім Нұрболатқызы'),
-        amount: 156420,
-        date: '22-08-2025',
-        transactionId: 'KZ849125',
-        type: t('к. товарооборот'),
         status: t('одобрить')
       }
     ],
@@ -95,15 +89,6 @@ const FinanceTransactionsPage = () => {
         transactionId: 'KZ848970',
         type: t('за подписку'),
         status: t('блок')
-      },
-      {
-        id: 2,
-        name: t('Тәмірлан Смак'),
-        amount: 584370,
-        date: '22-08-2025',
-        transactionId: 'KZ848971',
-        type: t('л. товарооборот'),
-        status: t('оплачен')
       }
     ],
     [t]
@@ -112,6 +97,7 @@ const FinanceTransactionsPage = () => {
   // Load subscription payments
   useEffect(() => {
     loadSubscriptionPayments();
+    loadWithdrawalStats();
   }, []);
 
   const loadSubscriptionPayments = async () => {
@@ -152,6 +138,24 @@ const FinanceTransactionsPage = () => {
       console.error('Error loading subscriptions:', error);
     } finally {
       setIsLoadingSubscriptions(false);
+    }
+  };
+
+  // Load withdrawal stats for total amount
+  const loadWithdrawalStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('withdrawal_requests')
+        .select('amount')
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      
+      const pendingTotal = (data || []).reduce((sum, item) => sum + item.amount, 0);
+      setTotalWithdrawalAmount(pendingTotal);
+      
+    } catch (error) {
+      console.error('Error loading withdrawal stats:', error);
     }
   };
 
@@ -261,10 +265,16 @@ const FinanceTransactionsPage = () => {
     }
   };
 
+  // Общая сумма всех ожидающих операций
+  const totalPendingAmount = totalSubscriptionAmount + totalWithdrawalAmount + 84370; // Добавляем mock данные
+
   return (
     <div className="w-full h-full">
       <MoreHeaderAD title={t('Финансовый отдел Tannur')} />
       <div className="space-y-4 md:space-y-6 lg:space-y-8 mt-4 md:mt-6">
+        
+        {/* Блок заявок на вывод средств - НОВЫЙ */}
+        <WithdrawalRequestsBlock />
         
         {/* Subscription Payments Block */}
         <div className="bg-white rounded-2xl shadow-sm">
@@ -321,7 +331,7 @@ const FinanceTransactionsPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {subscriptions.map((subscription) => (
+                  {subscriptions.slice(0, 5).map((subscription) => (
                     <tr 
                       key={subscription.id}
                       className="hover:bg-gray-50 transition-colors cursor-pointer"
@@ -346,11 +356,11 @@ const FinanceTransactionsPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <p className="text-sm font-semibold text-gray-900">
-                            {subscription.amount.toLocaleString()} ₸
+                            {(subscription.amount || 0).toLocaleString()} ₸
                           </p>
                           {subscription.sponsor_bonus && (
                             <p className="text-xs text-gray-500">
-                              Бонус: {subscription.sponsor_bonus.toLocaleString()} ₸
+                              Бонус: {(subscription.sponsor_bonus || 0).toLocaleString()} ₸
                             </p>
                           )}
                         </div>
@@ -414,7 +424,7 @@ const FinanceTransactionsPage = () => {
         {/* Top: Total Amount + Pending Transactions */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 lg:items-stretch">
           <div className="lg:col-span-1 lg:min-h-[400px]">
-            <TotalAmountCard amount={84213000 + totalSubscriptionAmount} />
+            <TotalAmountCard amount={totalPendingAmount} />
           </div>
           <div className="lg:col-span-3 lg:min-h-[400px]">
             <PendingTransactionsTable

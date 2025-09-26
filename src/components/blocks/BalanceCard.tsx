@@ -1,7 +1,7 @@
-// Обновлённый компонент с i18n
+// components/blocks/BalanceCard.tsx
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   LogOut,
   History,
@@ -9,14 +9,18 @@ import {
   TrendingDown,
   ArrowRight,
   Wallet,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react'
 import { useTranslate } from '@/hooks/useTranslate'
+import { withdrawalService, type Balance } from '@/lib/transactions/withdrawalService'
+import { toast } from 'react-hot-toast'
 
 interface BalanceCardProps {
-  balance: number | string
+  userId?: string
   variant?: 'light' | 'dark'
   size?: 'compact' | 'normal' | 'large'
+  onBalanceUpdate?: (balance: Balance) => void
 }
 
 // Декоративный компонент с точками
@@ -29,20 +33,104 @@ const DotsPattern = ({ className }: { className?: string }) => (
 )
 
 export default function BalanceCard({
-  balance,
+  userId,
   variant = 'light',
-  size = 'normal'
+  size = 'normal',
+  onBalanceUpdate
 }: BalanceCardProps) {
   const { t } = useTranslate()
   const isDark = variant === 'dark'
+  
+  // Состояния для данных
+  const [balance, setBalance] = useState<Balance | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Загрузка баланса
+  useEffect(() => {
+    async function loadBalance() {
+      if (!userId) {
+        setIsLoading(false)
+        return
+      }
+      
+      try {
+        setIsLoading(true)
+        setError(null)
+        const userBalance = await withdrawalService.getUserBalance(userId)
+        setBalance(userBalance)
+        
+        // Callback для родительского компонента
+        if (onBalanceUpdate) {
+          onBalanceUpdate(userBalance)
+        }
+      } catch (err) {
+        console.error('Error loading balance:', err)
+        setError(t('Ошибка загрузки баланса'))
+        toast.error(t('Не удалось загрузить баланс'))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadBalance()
+  }, [userId, t, onBalanceUpdate])
+
+  // Подписка на обновления в реальном времени
+  useEffect(() => {
+    if (!userId) return
+
+    const subscription = withdrawalService.subscribeToWithdrawals(
+      userId,
+      async () => {
+        // При изменении в выводах обновляем баланс
+        try {
+          const updatedBalance = await withdrawalService.getUserBalance(userId)
+          setBalance(updatedBalance)
+          
+          if (onBalanceUpdate) {
+            onBalanceUpdate(updatedBalance)
+          }
+        } catch (err) {
+          console.error('Error updating balance:', err)
+        }
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [userId, onBalanceUpdate])
 
   // Цветовые схемы
-  const bgClass = isDark
-    ? 'bg-[#3A3D43]'
-    : 'bg-white'
-
+  const bgClass = isDark ? 'bg-[#3A3D43]' : 'bg-white'
   const labelClass = isDark ? 'text-gray-400' : 'text-gray-600'
   const amountClass = isDark ? 'text-white' : 'text-gray-900'
+
+  // Форматирование суммы
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString('ru-RU')
+  }
+
+  // Если загрузка
+  if (isLoading) {
+    return (
+      <div className={`${bgClass} rounded-xl p-6 flex items-center justify-center min-h-[140px]`}>
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  // Если ошибка или нет userId
+  if (error || !userId || !balance) {
+    return (
+      <div className={`${bgClass} rounded-xl p-6`}>
+        <p className="text-gray-500 text-center">
+          {error || t('Нет данных о балансе')}
+        </p>
+      </div>
+    )
+  }
 
   // COMPACT версия - только баланс и быстрый вывод
   if (size === 'compact') {
@@ -55,13 +143,21 @@ export default function BalanceCard({
         <div>
           <p className={`${labelClass} text-xs mb-1`}>{t('Баланс')}</p>
           <h3 className={`text-lg font-bold ${amountClass}`}>
-            {typeof balance === 'number' ? balance.toLocaleString('ru-RU') : balance} ₸
+            {formatAmount(balance.available_balance)} ₸
           </h3>
+          {balance.frozen_balance > 0 && (
+            <p className={`text-xs ${labelClass} mt-1`}>
+              {t('Заморожено')}: {formatAmount(balance.frozen_balance)} ₸
+            </p>
+          )}
         </div>
         <a
           href="/dealer/payments"
-          className="p-2 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-lg transition-colors"
-          title={t('Вывод средств')}
+          className={`p-2 ${balance.can_withdraw 
+            ? 'bg-[#D77E6C] hover:bg-[#C66B5A]' 
+            : 'bg-gray-400 cursor-not-allowed'
+          } text-white rounded-lg transition-colors`}
+          title={balance.can_withdraw ? t('Вывод средств') : t('Вывод недоступен')}
         >
           <ArrowRight className="w-4 h-4" />
         </a>
@@ -87,22 +183,33 @@ export default function BalanceCard({
           {/* Заголовок и баланс */}
           <div className="flex-grow">
             <div className="flex items-center gap-2 mb-2">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${isDark ? 'bg-green-400' : 'bg-green-500'}`}></div>
+              <div className={`w-2 h-2 rounded-full animate-pulse ${
+                balance.can_withdraw ? 'bg-green-400' : 'bg-yellow-400'
+              }`}></div>
               <p className={`${labelClass} text-sm font-medium`}>
                 {t('Ваш баланс')}
               </p>
             </div>
 
             <h2 className={`text-3xl font-bold ${amountClass} mb-2`}>
-              {typeof balance === 'number' ? balance.toLocaleString('ru-RU') : balance} ₸
+              {formatAmount(balance.available_balance)} ₸
             </h2>
 
             {/* Статус вывода */}
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs ${
               isDark ? 'bg-[#2D2F33] text-gray-300' : 'bg-gray-100 text-gray-600'
             }`}>
-              <Check className="w-4 h-4" />
-              <span>{t('Доступно для вывода')}</span>
+              {balance.can_withdraw ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>{t('Доступно для вывода')}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-4 h-4 rounded-full bg-yellow-500 animate-pulse"></div>
+                  <span>{t('Вывод временно недоступен')}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -110,7 +217,11 @@ export default function BalanceCard({
           <div className="grid grid-cols-2 gap-3 mt-6">
             <a
               href="/dealer/payments"
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#D77E6C] to-[#E09080] hover:from-[#C66B5A] hover:to-[#D77E6C] text-white py-2.5 rounded-xl transition-all duration-300 hover:shadow-md"
+              className={`flex items-center justify-center gap-2 ${
+                balance.can_withdraw
+                  ? 'bg-gradient-to-r from-[#D77E6C] to-[#E09080] hover:from-[#C66B5A] hover:to-[#D77E6C]'
+                  : 'bg-gray-400 cursor-not-allowed'
+              } text-white py-2.5 rounded-xl transition-all duration-300 hover:shadow-md`}
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm font-medium">{t('Вывод')}</span>
@@ -163,50 +274,89 @@ export default function BalanceCard({
           <p className={`${labelClass} text-sm mb-2`}>{t('Текущий баланс')}</p>
           <div className="flex items-baseline gap-4">
             <h2 className={`text-4xl font-bold ${amountClass}`}>
-              {typeof balance === 'number' ? balance.toLocaleString('ru-RU') : balance} ₸
+              {formatAmount(balance.current_balance)} ₸
             </h2>
-            <div className="flex items-center gap-1 text-green-500">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-sm font-medium">+12.5%</span>
-            </div>
+            {/* Динамика изменения */}
+            {balance.current_balance > balance.total_withdrawn && (
+              <div className="flex items-center gap-1 text-green-500">
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  +{Math.round((balance.current_balance / (balance.total_withdrawn || 1) - 1) * 100)}%
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Статистика в 3 колонки */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className={`p-4 rounded-xl ${isDark ? 'bg-[#2D2F33]' : 'bg-gray-50'}`}>
-            <p className={`text-xs ${labelClass} mb-1`}>{t('За месяц')}</p>
-            <p className={`text-lg font-semibold ${amountClass}`}>245 000 ₸</p>
+            <p className={`text-xs ${labelClass} mb-1`}>{t('Всего заработано')}</p>
+            <p className={`text-lg font-semibold ${amountClass}`}>
+              {formatAmount(balance.total_earned)} ₸
+            </p>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="w-3 h-3 text-green-500" />
-              <span className="text-xs text-green-500">+8%</span>
+              <span className="text-xs text-green-500">{t('общий доход')}</span>
             </div>
           </div>
 
           <div className={`p-4 rounded-xl ${isDark ? 'bg-[#2D2F33]' : 'bg-gray-50'}`}>
             <p className={`text-xs ${labelClass} mb-1`}>{t('Выведено')}</p>
-            <p className={`text-lg font-semibold ${amountClass}`}>125 000 ₸</p>
+            <p className={`text-lg font-semibold ${amountClass}`}>
+              {formatAmount(balance.total_withdrawn)} ₸
+            </p>
             <div className="flex items-center gap-1 mt-1">
               <TrendingDown className="w-3 h-3 text-orange-500" />
-              <span className="text-xs text-orange-500">-5%</span>
+              <span className="text-xs text-orange-500">{t('всего выводов')}</span>
             </div>
           </div>
 
           <div className={`p-4 rounded-xl ${isDark ? 'bg-[#2D2F33]' : 'bg-gray-50'}`}>
-            <p className={`text-xs ${labelClass} mb-1`}>{t('В ожидании')}</p>
-            <p className={`text-lg font-semibold ${amountClass}`}>45 000 ₸</p>
+            <p className={`text-xs ${labelClass} mb-1`}>{t('Доступно')}</p>
+            <p className={`text-lg font-semibold ${amountClass}`}>
+              {formatAmount(balance.available_balance)} ₸
+            </p>
             <div className="flex items-center gap-1 mt-1">
-              <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse"></div>
-              <span className="text-xs text-yellow-600">{t('обработка')}</span>
+              {balance.can_withdraw ? (
+                <>
+                  <Check className="w-3 h-3 text-green-500" />
+                  <span className="text-xs text-green-500">{t('к выводу')}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse"></div>
+                  <span className="text-xs text-yellow-600">{t('ожидание')}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Заморожено (если есть) */}
+        {balance.frozen_balance > 0 && (
+          <div className={`p-4 rounded-xl mb-6 ${isDark ? 'bg-amber-900/20 border border-amber-800/30' : 'bg-amber-50 border border-amber-200'}`}>
+            <p className={`text-xs ${isDark ? 'text-amber-300' : 'text-amber-700'} mb-1 font-medium`}>
+              {t('Заморожено')}
+            </p>
+            <p className={`text-lg font-semibold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>
+              {formatAmount(balance.frozen_balance)} ₸
+            </p>
+            <p className={`text-xs mt-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+              {t('Средства в процессе вывода')}
+            </p>
+          </div>
+        )}
 
         {/* Расширенные кнопки действий */}
         <div className="grid grid-cols-3 gap-3">
           <a
             href="/dealer/payments"
-            className="flex flex-col items-center gap-2 bg-gradient-to-r from-[#D77E6C] to-[#E09080] hover:from-[#C66B5A] hover:to-[#D77E6C] text-white py-3 rounded-xl transition-all duration-300"
+            className={`flex flex-col items-center gap-2 ${
+              balance.can_withdraw
+                ? 'bg-gradient-to-r from-[#D77E6C] to-[#E09080] hover:from-[#C66B5A] hover:to-[#D77E6C]'
+                : 'bg-gray-400 cursor-not-allowed'
+            } text-white py-3 rounded-xl transition-all duration-300`}
           >
             <LogOut className="w-4 h-4" />
             <span className="text-xs font-medium">{t('Вывести')}</span>
@@ -235,44 +385,6 @@ export default function BalanceCard({
             <TrendingUp className="w-4 h-4" />
             <span className="text-xs font-medium">{t('Аналитика')}</span>
           </a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Примеры использования компонента
-export function BalanceCardExamples() {
-  const { t } = useTranslate()
-
-  return (
-    <div className="p-8 bg-gray-100 space-y-8">
-      <div className="text-2xl font-bold mb-4">{t('Варианты BalanceCard с разным контентом')}</div>
-
-      {/* Compact версия */}
-      <div>
-        <p className="mb-2 text-sm text-gray-600 font-medium">{t('Compact - минимальная информация для узких мест')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-          <BalanceCard balance={890020} size="compact" variant="light" />
-          <BalanceCard balance={890020} size="compact" variant="dark" />
-        </div>
-      </div>
-
-      {/* Normal версия */}
-      <div>
-        <p className="mb-2 text-sm text-gray-600 font-medium">{t('Normal - стандартная информация с кнопками')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <BalanceCard balance={890020} size="normal" variant="light" />
-          <BalanceCard balance={890020} size="normal" variant="dark" />
-        </div>
-      </div>
-
-      {/* Large версия */}
-      <div>
-        <p className="mb-2 text-sm text-gray-600 font-medium">{t('Large - полная аналитика и история')}</p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <BalanceCard balance={890020} size="large" variant="light" />
-          <BalanceCard balance={890020} size="large" variant="dark" />
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { cartService } from './CartService'; // УБЕДИТЕСЬ, ЧТО ПУТЬ ПРАВИЛЬНЫЙ
+import { cartService } from './CartService';
 import type { Cart, CartItemView } from '@/types';
 
 export interface UseCartModuleReturn {
@@ -63,11 +63,31 @@ export const useCartModule = (): UseCartModuleReturn => {
       setCartItems(items);
       setDeliveryMethod(loadedCart.delivery_method || 'pickup');
       
-      // По умолчанию выбираем доступные товары
-      const availableItems = new Set<string>(
-        items.filter(item => item.stock > 0).map(item => item.id)
-      );
-      setSelectedItems(availableItems);
+      // Восстанавливаем выбранные товары из localStorage
+      const savedSelection = localStorage.getItem(`cart_selection_${cartId}`);
+      if (savedSelection) {
+        try {
+          const saved = JSON.parse(savedSelection);
+          // Проверяем что сохраненные товары все еще в корзине и доступны
+          const validIds = new Set(saved.filter((id: string) => {
+            const item = items.find(i => i.id === id);
+            return item && item.stock > 0;
+          }));
+          setSelectedItems(validIds);
+        } catch {
+          // Если ошибка парсинга, выбираем все доступные
+          const availableItems = new Set<string>(
+            items.filter(item => item.stock > 0).map(item => item.id)
+          );
+          setSelectedItems(availableItems);
+        }
+      } else {
+        // По умолчанию выбираем все доступные товары
+        const availableItems = new Set<string>(
+          items.filter(item => item.stock > 0).map(item => item.id)
+        );
+        setSelectedItems(availableItems);
+      }
       
       if (loadedCart.promo_discount) {
         setPromoDiscount(loadedCart.promo_discount);
@@ -86,7 +106,8 @@ export const useCartModule = (): UseCartModuleReturn => {
     price: number, 
     priceDealer: number
   ) => {
-    if (!cart) {
+    // Если корзина еще не загружена и не в процессе загрузки
+    if (!cart && !loading) {
       toast.error('Корзина не загружена');
       return;
     }
@@ -97,44 +118,38 @@ export const useCartModule = (): UseCartModuleReturn => {
     }
 
     try {
-      // Проверяем, есть ли уже этот товар в корзине
-      const existingItem = cartItems.find(item => item.product_id === productId);
+      // Используем функцию БД add_to_cart через сервис
+      // Она автоматически создаст корзину если нужно
+      const userId = cart?.user_id;
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+
+      // Используем новый метод который использует функцию БД
+      const result = await cartService.addItemToCart(userId, productId, quantity);
       
-      if (existingItem) {
-        // Если товар уже есть, увеличиваем количество
-        await cartService.updateItemQuantity(
-          existingItem.id, 
-          existingItem.quantity + quantity
-        );
-        
-        // Обновляем локальное состояние
-        setCartItems(prev => prev.map(item => 
-          item.id === existingItem.id 
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        ));
-        
-        toast.success('Количество товара обновлено');
+      // Перезагружаем корзину для получения актуальных данных
+      await loadUserCart(userId);
+      
+      if (result && result.message) {
+        toast.success(result.message);
       } else {
-        // Добавляем новый товар
-        await cartService.addNewItem(cart.id, productId, quantity);
-        
-        // Перезагружаем корзину для получения нового товара
-        const { cart: updatedCart, items } = await cartService.loadCart(cart.id);
-        setCart(updatedCart);
-        setCartItems(items);
-        
         toast.success('Товар добавлен в корзину');
       }
     } catch (error: any) {
       console.error('Error adding item to cart:', error);
-      throw new Error(error.message || 'Ошибка добавления товара');
+      const errorMessage = error.message || 'Ошибка добавления товара';
+      toast.error(errorMessage);
+      throw new Error(errorMessage);
     }
-  }, [cart, cartItems]);
+  }, [cart, loading, loadUserCart]);
 
   const clearSelection = useCallback(() => {
     setSelectedItems(new Set());
-  }, []);
+    if (cart?.id) {
+      localStorage.removeItem(`cart_selection_${cart.id}`);
+    }
+  }, [cart]);
 
   const updateQuantity = useCallback(async (itemId: string, change: number) => {
     if (!cartService) return;
@@ -150,9 +165,10 @@ export const useCartModule = (): UseCartModuleReturn => {
       setCartItems(prev => prev.map(i => 
         i.id === itemId ? { ...i, quantity: newQuantity } : i
       ));
-    } catch (error) {
+      toast.success('Количество обновлено');
+    } catch (error: any) {
       console.error('Error updating quantity:', error);
-      toast.error('Ошибка обновления количества');
+      toast.error(error.message || 'Ошибка обновления количества');
     }
   }, [cartItems]);
 
@@ -165,6 +181,13 @@ export const useCartModule = (): UseCartModuleReturn => {
       setSelectedItems(prev => {
         const newSet = new Set(prev);
         newSet.delete(itemId);
+        // Сохраняем в localStorage
+        if (cart?.id) {
+          localStorage.setItem(
+            `cart_selection_${cart.id}`,
+            JSON.stringify(Array.from(newSet))
+          );
+        }
         return newSet;
       });
       toast.success('Товар удален из корзины');
@@ -172,7 +195,7 @@ export const useCartModule = (): UseCartModuleReturn => {
       console.error('Error removing item:', error);
       toast.error('Ошибка удаления товара');
     }
-  }, []);
+  }, [cart]);
 
   const toggleItemSelection = useCallback((itemId: string) => {
     const item = cartItems.find(i => i.id === itemId);
@@ -185,18 +208,37 @@ export const useCartModule = (): UseCartModuleReturn => {
       } else {
         newSet.add(itemId);
       }
+      
+      // Сохраняем в localStorage
+      if (cart?.id) {
+        localStorage.setItem(
+          `cart_selection_${cart.id}`,
+          JSON.stringify(Array.from(newSet))
+        );
+      }
+      
       return newSet;
     });
-  }, [cartItems]);
+  }, [cartItems, cart]);
 
   const toggleSelectAll = useCallback(() => {
     const availableItems = cartItems.filter(item => item.stock > 0);
     if (selectedItems.size === availableItems.length && selectedItems.size > 0) {
       setSelectedItems(new Set());
+      if (cart?.id) {
+        localStorage.removeItem(`cart_selection_${cart.id}`);
+      }
     } else {
-      setSelectedItems(new Set(availableItems.map(item => item.id)));
+      const allIds = new Set(availableItems.map(item => item.id));
+      setSelectedItems(allIds);
+      if (cart?.id) {
+        localStorage.setItem(
+          `cart_selection_${cart.id}`,
+          JSON.stringify(Array.from(allIds))
+        );
+      }
     }
-  }, [cartItems, selectedItems]);
+  }, [cartItems, selectedItems, cart]);
 
   const updateDeliveryMethod = useCallback(async (method: 'pickup' | 'delivery') => {
     if (!cart || !cartService) return;
@@ -204,8 +246,11 @@ export const useCartModule = (): UseCartModuleReturn => {
     setDeliveryMethod(method);
     try {
       await cartService.updateDeliveryMethod(cart.id, method);
+      // Обновляем локальное состояние корзины
+      setCart(prev => prev ? { ...prev, delivery_method: method } : null);
     } catch (error) {
       console.error('Error updating delivery method:', error);
+      toast.error('Ошибка обновления способа доставки');
     }
   }, [cart]);
 
@@ -218,12 +263,18 @@ export const useCartModule = (): UseCartModuleReturn => {
       setCartItems(remainingItems);
       setSelectedItems(new Set());
       
+      // Очищаем localStorage
+      if (cart.id) {
+        localStorage.removeItem(`cart_selection_${cart.id}`);
+      }
+      
       if (remainingItems.length === 0) {
         await cartService.markAsOrdered(cart.id);
       }
     } catch (error) {
       console.error('Error clearing cart:', error);
       toast.error('Ошибка очистки корзины');
+      throw error;
     }
   }, [cart, cartItems, selectedItems]);
 

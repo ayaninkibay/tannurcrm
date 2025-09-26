@@ -9,7 +9,6 @@ import { useTranslate } from '@/hooks/useTranslate';
 
 const adminNavItems = [
   { href: '/admin/dashboard',  icon: '/icons/sidebar/homewhite.svg',  iconGray: '/icons/sidebar/homegray.svg',     label: 'Дэшборд' },
-  { href: '/admin/reports',    icon: '/icons/sidebar/reportgray.svg', iconGray: '/icons/sidebar/reportwhite.svg',  label: 'Отчеты' },
   { href: '/admin/teamcontent',icon: '/icons/sidebar/teamwhite.svg',  iconGray: '/icons/sidebar/teamgray.svg',     label: 'Команда' },
   { href: '/admin/store',      icon: '/icons/sidebar/storewhite.svg', iconGray: '/icons/sidebar/storegray.svg',    label: 'Tannutstore' },
   { href: '/admin/tnba',       icon: '/icons/sidebar/tnbawhite.svg',  iconGray: '/icons/sidebar/tnbawhite.svg',    label: 'Настройки' },
