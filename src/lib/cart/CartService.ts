@@ -263,8 +263,6 @@ class CartService {
       .from('carts')
       .update({ 
         status: 'completed',
-        promo_code: null,
-        promo_discount: null,
         updated_at: new Date().toISOString()
       })
       .eq('id', cartId);

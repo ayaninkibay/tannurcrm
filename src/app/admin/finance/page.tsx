@@ -1,4 +1,3 @@
-// app/admin/finance/page.tsx (обновленная версия с блоком заявок на вывод)
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -8,10 +7,12 @@ import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import TotalAmountCard from '@/components/finance/TotalAmountCard';
 import PendingTransactionsTable from '@/components/finance/PendingTransactionsTable';
 import PaymentHistoryTable from '@/components/finance/PaymentHistoryTable';
-import TeamPurchaseBonusesBlock from '@/components/finance/TeamPurchaseBonusesBlock';
-import WithdrawalRequestsBlock from '@/components/finance/WithdrawalRequestsBlock'; // Импортируем новый блок
+import WithdrawalRequestsBlock from '@/components/finance/WithdrawalRequestsBlock';
 import { useTranslate } from '@/hooks/useTranslate';
-import { Loader2, Users, CreditCard, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { 
+  Loader2, Users, CreditCard, Clock, CheckCircle, XCircle, 
+  AlertCircle, TrendingUp, DollarSign, ArrowRight, Calendar
+} from 'lucide-react';
 
 type SubscriptionPayment = {
   id: string;
@@ -47,6 +48,22 @@ type TxBase = {
   status: string;
 };
 
+type BonusStats = {
+  totalTurnover: number;
+  totalBonuses: number;
+  pendingBonuses: number;
+  paidBonuses: number;
+  topDealers: Array<{
+    id: string;
+    name: string;
+    turnover: number;
+    bonus: number;
+    percent: number;
+  }>;
+  currentMonth: string;
+  lastMonth: string;
+};
+
 const FinanceTransactionsPage = () => {
   const router = useRouter();
   const { t } = useTranslate();
@@ -57,13 +74,15 @@ const FinanceTransactionsPage = () => {
   const [totalWithdrawalAmount, setTotalWithdrawalAmount] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string>(t('Все типы'));
   const [periodFilter, setPeriodFilter] = useState<string>(t('Все периоды'));
+  const [bonusStats, setBonusStats] = useState<BonusStats | null>(null);
+  const [isLoadingBonuses, setIsLoadingBonuses] = useState(true);
 
   const currentDate = useMemo(
     () => new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }),
     []
   );
 
-  // Mock data for transactions (можно убрать после полной интеграции)
+  // Mock data for transactions
   const pendingTransactions: TxBase[] = useMemo(
     () => [
       {
@@ -94,11 +113,84 @@ const FinanceTransactionsPage = () => {
     [t]
   );
 
-  // Load subscription payments
+  // Load all data
   useEffect(() => {
     loadSubscriptionPayments();
     loadWithdrawalStats();
+    loadBonusStats();
   }, []);
+
+  // Load bonus statistics
+  const loadBonusStats = async () => {
+    try {
+      setIsLoadingBonuses(true);
+      
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      const lastMonthDate = new Date();
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const lastMonth = lastMonthDate.toISOString().substring(0, 7);
+      
+      // Загружаем текущий товарооборот
+      const { data: turnoverData, error: turnoverError } = await supabase
+        .from('user_turnover_current')
+        .select('*')
+        .order('total_turnover', { ascending: false })
+        .limit(5);
+      
+      if (turnoverError) throw turnoverError;
+      
+      // Загружаем данные о пользователях
+      const userIds = turnoverData?.map(t => t.user_id) || [];
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+        
+      if (usersError) throw usersError;
+      
+      // Объединяем данные
+      const topDealers = turnoverData?.map(t => {
+        const user = usersData?.find(u => u.id === t.user_id);
+        return {
+          id: t.user_id,
+          name: user ? `${user.first_name} ${user.last_name}` : 'Неизвестный',
+          turnover: t.total_turnover || 0,
+          bonus: (t.personal_turnover || 0) * (t.bonus_percent || 0) / 100,
+          percent: t.bonus_percent || 0
+        };
+      }) || [];
+      
+      // Считаем общие суммы
+      const totalTurnover = turnoverData?.reduce((sum, t) => sum + (t.total_turnover || 0), 0) || 0;
+      const totalBonuses = turnoverData?.reduce((sum, t) => 
+        sum + ((t.personal_turnover || 0) * (t.bonus_percent || 0) / 100), 0
+      ) || 0;
+      
+      // Загружаем выплаченные бонусы за прошлый месяц
+      const { data: paidBonuses, error: paidError } = await supabase
+        .from('monthly_bonuses')
+        .select('bonus_amount')
+        .eq('month_period', lastMonth)
+        .eq('status', 'paid');
+        
+      const paidAmount = paidBonuses?.reduce((sum, b) => sum + b.bonus_amount, 0) || 0;
+      
+      setBonusStats({
+        totalTurnover,
+        totalBonuses,
+        pendingBonuses: totalBonuses,
+        paidBonuses: paidAmount,
+        topDealers,
+        currentMonth,
+        lastMonth
+      });
+      
+    } catch (error) {
+      console.error('Error loading bonus stats:', error);
+    } finally {
+      setIsLoadingBonuses(false);
+    }
+  };
 
   const loadSubscriptionPayments = async () => {
     try {
@@ -127,7 +219,6 @@ const FinanceTransactionsPage = () => {
 
       setSubscriptions(data || []);
       
-      // Calculate total amount from pending subscriptions
       const pendingTotal = (data || [])
         .filter(s => s.status === 'pending')
         .reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -141,7 +232,6 @@ const FinanceTransactionsPage = () => {
     }
   };
 
-  // Load withdrawal stats for total amount
   const loadWithdrawalStats = async () => {
     try {
       const { data, error } = await supabase
@@ -159,7 +249,6 @@ const FinanceTransactionsPage = () => {
     }
   };
 
-  // Quick approve/reject subscription
   const handleQuickApprove = async (id: string) => {
     try {
       const { error } = await supabase
@@ -172,7 +261,6 @@ const FinanceTransactionsPage = () => {
 
       if (error) throw error;
       
-      // Reload subscriptions
       loadSubscriptionPayments();
     } catch (error) {
       console.error('Error approving subscription:', error);
@@ -191,19 +279,16 @@ const FinanceTransactionsPage = () => {
 
       if (error) throw error;
       
-      // Reload subscriptions
       loadSubscriptionPayments();
     } catch (error) {
       console.error('Error rejecting subscription:', error);
     }
   };
 
-  // Navigate to subscription details
   const handleViewSubscription = (subscription: SubscriptionPayment) => {
     router.push(`/admin/finance/subscription/${subscription.id}`);
   };
 
-  // Navigate to user page
   const handleOpenUser = (userName: string) => {
     try {
       if (typeof window !== 'undefined') {
@@ -216,7 +301,6 @@ const FinanceTransactionsPage = () => {
   const handleApprove = (id: number) => { /* TODO: интеграция */ };
   const handleReject = (id: number) => { /* TODO: интеграция */ };
 
-  // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -249,7 +333,6 @@ const FinanceTransactionsPage = () => {
     }
   };
 
-  // Get payment method name
   const getPaymentMethodName = (method: string) => {
     switch (method) {
       case 'kaspi_transfer':
@@ -265,6 +348,15 @@ const FinanceTransactionsPage = () => {
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('ru-RU').format(amount) + ' ₸';
+  };
+
+  const getMonthName = (monthStr: string) => {
+    const date = new Date(monthStr + '-01');
+    return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  };
+
   // Общая сумма всех ожидающих операций
   const totalPendingAmount = totalSubscriptionAmount + totalWithdrawalAmount + 84370; // Добавляем mock данные
 
@@ -273,8 +365,138 @@ const FinanceTransactionsPage = () => {
       <MoreHeaderAD title={t('Финансовый отдел Tannur')} />
       <div className="space-y-4 md:space-y-6 lg:space-y-8 mt-4 md:mt-6">
         
-        {/* Блок заявок на вывод средств - НОВЫЙ */}
+        {/* Блок заявок на вывод средств */}
         <WithdrawalRequestsBlock />
+        
+        {/* Блок месячных бонусов - НОВЫЙ */}
+        <div className="bg-white rounded-2xl shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Месячные бонусы дилеров</h2>
+                  <p className="text-sm text-gray-500">Товарооборот и начисления за {getMonthName(bonusStats?.currentMonth || '')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push('/admin/finance/bonuses')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200"
+              >
+                <span>Управление бонусами</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {isLoadingBonuses ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : bonusStats ? (
+            <div className="p-6">
+              {/* Статистика */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <p className="text-sm text-gray-600">Общий товарооборот</p>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatCurrency(bonusStats.totalTurnover)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Текущий месяц</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-blue-600" />
+                    <p className="text-sm text-gray-600">К начислению</p>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatCurrency(bonusStats.pendingBonuses)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Ожидает финализации</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-4 h-4 text-purple-600" />
+                    <p className="text-sm text-gray-600">Выплачено в прошлом месяце</p>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatCurrency(bonusStats.paidBonuses)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{getMonthName(bonusStats.lastMonth)}</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-orange-600" />
+                    <p className="text-sm text-gray-600">Активный период</p>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900">
+                    {getMonthName(bonusStats.currentMonth)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Расчет после окончания месяца</p>
+                </div>
+              </div>
+
+              {/* ТОП дилеров */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">ТОП-5 дилеров по товарообороту</h3>
+                <div className="space-y-2">
+                  {bonusStats.topDealers.map((dealer, index) => (
+                    <div key={dealer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white
+                          ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500' : 
+                            index === 1 ? 'bg-gradient-to-br from-gray-400 to-gray-500' :
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                            'bg-gray-400'}`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{dealer.name}</p>
+                          <p className="text-xs text-gray-500">
+                            Товарооборот: {formatCurrency(dealer.turnover)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-purple-600">
+                          {formatCurrency(dealer.bonus)}
+                        </p>
+                        <p className="text-xs text-gray-500">{dealer.percent}% бонус</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Информационный блок */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">Расчет бонусов производится ежемесячно</p>
+                    <p className="text-xs">
+                      Финализация и выплата бонусов за текущий месяц будет доступна с 1-го числа следующего месяца.
+                      Для детального просмотра и управления бонусами используйте кнопку "Управление бонусами".
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Нет данных о бонусах</p>
+            </div>
+          )}
+        </div>
         
         {/* Subscription Payments Block */}
         <div className="bg-white rounded-2xl shadow-sm">
@@ -418,8 +640,6 @@ const FinanceTransactionsPage = () => {
             </div>
           )}
         </div>
-
-        <TeamPurchaseBonusesBlock />
 
         {/* Top: Total Amount + Pending Transactions */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 lg:items-stretch">

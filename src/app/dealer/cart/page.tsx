@@ -133,16 +133,8 @@ export default function CartPage() {
         }))
       );
 
-      // Обновляем товарооборот пользователя
-      await userService.updateProfile(currentUser.id, {
-        personal_turnover: (currentUser.personal_turnover || 0) + totalAmount
-      });
-
       // Очищаем корзину
       await cart.clearCart();
-
-      // Запускаем расчет бонусов
-      await orderService.calculateBonuses(order.id);
 
       toast.success('Заказ успешно создан!');
       router.push('/dealer/orders');

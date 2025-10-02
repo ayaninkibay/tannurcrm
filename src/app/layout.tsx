@@ -3,7 +3,7 @@ import './globals.css'
 import ClientWrapper from '@/components/ClientWrapper'  // импорт обертки
 
 export const metadata = {
-  title: 'Tannur CRM',
+  title: 'TNBA | Tannur App',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

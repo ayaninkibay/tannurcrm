@@ -524,7 +524,7 @@ export default function HomePage() {
               </span>
               <br />
               <span className="bg-gradient-to-r from-[#D77E6C] to-[#C56D5C] bg-clip-text text-transparent">
-                Tannur CRM
+                Tannur Business Academy
               </span>
             </motion.h1>
 

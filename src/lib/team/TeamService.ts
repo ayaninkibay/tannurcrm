@@ -28,33 +28,32 @@ export interface TeamStats {
 }
 
 export class TeamService {
-  static async getMyTeam(userId: string): Promise<TeamMember[]> {
-    try {
-      const { data: teamData, error: teamError } = await supabase
-        .rpc('get_team_members', { dealer_id: userId });
+static async getMyTeam(userId: string): Promise<TeamMember[]> {
+  try {
+    // Получаем только прямых рефералов
+    const { data: directTeam, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('parent_id', userId)
+      .limit(100); // Ограничиваем для производительности
 
-      if (teamError) {
-        return await this.getTeamDirectly(userId);
-      }
+    if (error) throw error;
 
-      const teamIds = teamData?.map((item: any) => item) || [];
-      const allIds = teamIds.length > 0 ? [...teamIds, userId] : [userId];
+    // Добавляем самого пользователя
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', allIds);
+    const allMembers = currentUser ? [currentUser, ...(directTeam || [])] : directTeam || [];
 
-      if (usersError) {
-        throw usersError;
-      }
-
-      return this.transformUsersToTeamMembers(users || []);
-    } catch (error) {
-      console.error('Ошибка получения команды:', error);
-      return [];
-    }
+    return this.transformUsersToTeamMembers(allMembers);
+  } catch (error) {
+    console.error('Ошибка получения команды:', error);
+    return [];
   }
+}
 
   static async getDealerTeam(dealerId: string): Promise<TeamMember[]> {
     try {

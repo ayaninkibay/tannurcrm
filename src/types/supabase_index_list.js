@@ -58,7 +58,14 @@
   {
     "table_name": "balance_transactions",
     "index_name": "idx_balance_transactions_user_id_status",
-    "column_name": "amount",
+    "column_name": "user_id",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "balance_transactions",
+    "index_name": "idx_balance_transactions_user_id_status",
+    "column_name": "status",
     "is_unique": false,
     "is_primary": false
   },
@@ -72,13 +79,6 @@
   {
     "table_name": "balance_transactions",
     "index_name": "idx_balance_transactions_user_id_status",
-    "column_name": "user_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "balance_transactions",
-    "index_name": "idx_balance_transactions_user_id_status",
     "column_name": "operation",
     "is_unique": false,
     "is_primary": false
@@ -86,7 +86,7 @@
   {
     "table_name": "balance_transactions",
     "index_name": "idx_balance_transactions_user_id_status",
-    "column_name": "status",
+    "column_name": "amount",
     "is_unique": false,
     "is_primary": false
   },
@@ -142,14 +142,14 @@
   {
     "table_name": "bonus_events",
     "index_name": "idx_bonus_events_active",
-    "column_name": "end_date",
+    "column_name": "is_active",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "bonus_events",
     "index_name": "idx_bonus_events_active",
-    "column_name": "is_active",
+    "column_name": "end_date",
     "is_unique": false,
     "is_primary": false
   },
@@ -282,14 +282,14 @@
   {
     "table_name": "carts",
     "index_name": "idx_carts_user_status",
-    "column_name": "user_id",
+    "column_name": "status",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "carts",
     "index_name": "idx_carts_user_status",
-    "column_name": "status",
+    "column_name": "user_id",
     "is_unique": false,
     "is_primary": false
   },
@@ -422,14 +422,14 @@
   {
     "table_name": "events",
     "index_name": "idx_events_dates",
-    "column_name": "start_date",
+    "column_name": "end_date",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "events",
     "index_name": "idx_events_dates",
-    "column_name": "end_date",
+    "column_name": "start_date",
     "is_unique": false,
     "is_primary": false
   },
@@ -548,14 +548,14 @@
   {
     "table_name": "identities",
     "index_name": "identities_provider_id_provider_unique",
-    "column_name": "provider",
+    "column_name": "provider_id",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "identities",
     "index_name": "identities_provider_id_provider_unique",
-    "column_name": "provider_id",
+    "column_name": "provider",
     "is_unique": true,
     "is_primary": false
   },
@@ -570,6 +570,202 @@
     "table_name": "instances",
     "index_name": "instances_pkey",
     "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_25",
+    "index_name": "messages_2025_09_25_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_25",
+    "index_name": "messages_2025_09_25_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_25",
+    "index_name": "messages_2025_09_25_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_25",
+    "index_name": "messages_2025_09_25_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_26",
+    "index_name": "messages_2025_09_26_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_26",
+    "index_name": "messages_2025_09_26_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_26",
+    "index_name": "messages_2025_09_26_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_26",
+    "index_name": "messages_2025_09_26_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_27",
+    "index_name": "messages_2025_09_27_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_27",
+    "index_name": "messages_2025_09_27_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_27",
+    "index_name": "messages_2025_09_27_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_27",
+    "index_name": "messages_2025_09_27_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_28",
+    "index_name": "messages_2025_09_28_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_28",
+    "index_name": "messages_2025_09_28_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_28",
+    "index_name": "messages_2025_09_28_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_28",
+    "index_name": "messages_2025_09_28_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_29",
+    "index_name": "messages_2025_09_29_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_29",
+    "index_name": "messages_2025_09_29_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_29",
+    "index_name": "messages_2025_09_29_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_29",
+    "index_name": "messages_2025_09_29_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_30",
+    "index_name": "messages_2025_09_30_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_30",
+    "index_name": "messages_2025_09_30_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_09_30",
+    "index_name": "messages_2025_09_30_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_09_30",
+    "index_name": "messages_2025_09_30_pkey",
+    "column_name": "inserted_at",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_10_01",
+    "index_name": "messages_2025_10_01_inserted_at_topic_idx",
+    "column_name": "topic",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_10_01",
+    "index_name": "messages_2025_10_01_inserted_at_topic_idx",
+    "column_name": "inserted_at",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "messages_2025_10_01",
+    "index_name": "messages_2025_10_01_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "messages_2025_10_01",
+    "index_name": "messages_2025_10_01_pkey",
+    "column_name": "inserted_at",
     "is_unique": true,
     "is_primary": true
   },
@@ -639,14 +835,14 @@
   {
     "table_name": "mfa_factors",
     "index_name": "mfa_factors_user_friendly_name_unique",
-    "column_name": "user_id",
+    "column_name": "friendly_name",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "mfa_factors",
     "index_name": "mfa_factors_user_friendly_name_unique",
-    "column_name": "friendly_name",
+    "column_name": "user_id",
     "is_unique": true,
     "is_primary": false
   },
@@ -681,6 +877,76 @@
   {
     "table_name": "migrations",
     "index_name": "migrations_pkey",
+    "column_name": "id",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_beneficiary",
+    "column_name": "beneficiary_id",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_beneficiary_auth",
+    "column_name": "beneficiary_id",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_contributor",
+    "column_name": "contributor_id",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_month",
+    "column_name": "month_period",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_status",
+    "column_name": "status",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "idx_monthly_bonuses_type",
+    "column_name": "bonus_type",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "monthly_bonuses_month_period_beneficiary_id_contributor_id_key",
+    "column_name": "month_period",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "monthly_bonuses_month_period_beneficiary_id_contributor_id_key",
+    "column_name": "contributor_id",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "monthly_bonuses_month_period_beneficiary_id_contributor_id_key",
+    "column_name": "beneficiary_id",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "monthly_bonuses",
+    "index_name": "monthly_bonuses_pkey",
     "column_name": "id",
     "is_unique": true,
     "is_primary": true
@@ -730,6 +996,13 @@
   {
     "table_name": "objects",
     "index_name": "idx_name_bucket_level_unique",
+    "column_name": "level",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "objects",
+    "index_name": "idx_name_bucket_level_unique",
     "column_name": "bucket_id",
     "is_unique": true,
     "is_primary": false
@@ -738,13 +1011,6 @@
     "table_name": "objects",
     "index_name": "idx_name_bucket_level_unique",
     "column_name": "name",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "objects",
-    "index_name": "idx_name_bucket_level_unique",
-    "column_name": "level",
     "is_unique": true,
     "is_primary": false
   },
@@ -765,14 +1031,14 @@
   {
     "table_name": "objects",
     "index_name": "idx_objects_lower_name",
-    "column_name": "bucket_id",
+    "column_name": "level",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "objects",
     "index_name": "idx_objects_lower_name",
-    "column_name": "level",
+    "column_name": "bucket_id",
     "is_unique": false,
     "is_primary": false
   },
@@ -786,7 +1052,7 @@
   {
     "table_name": "objects",
     "index_name": "objects_bucket_id_level_idx",
-    "column_name": "bucket_id",
+    "column_name": "name",
     "is_unique": true,
     "is_primary": false
   },
@@ -800,7 +1066,7 @@
   {
     "table_name": "objects",
     "index_name": "objects_bucket_id_level_idx",
-    "column_name": "name",
+    "column_name": "bucket_id",
     "is_unique": true,
     "is_primary": false
   },
@@ -919,20 +1185,6 @@
   {
     "table_name": "pg_amop",
     "index_name": "pg_amop_fam_strat_index",
-    "column_name": "amopstrategy",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "pg_amop",
-    "index_name": "pg_amop_fam_strat_index",
-    "column_name": "amoplefttype",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "pg_amop",
-    "index_name": "pg_amop_fam_strat_index",
     "column_name": "amoprighttype",
     "is_unique": true,
     "is_primary": false
@@ -946,17 +1198,24 @@
   },
   {
     "table_name": "pg_amop",
+    "index_name": "pg_amop_fam_strat_index",
+    "column_name": "amoplefttype",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "pg_amop",
+    "index_name": "pg_amop_fam_strat_index",
+    "column_name": "amopstrategy",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "pg_amop",
     "index_name": "pg_amop_oid_index",
     "column_name": "oid",
     "is_unique": true,
     "is_primary": true
-  },
-  {
-    "table_name": "pg_amop",
-    "index_name": "pg_amop_opr_fam_index",
-    "column_name": "amoppurpose",
-    "is_unique": true,
-    "is_primary": false
   },
   {
     "table_name": "pg_amop",
@@ -973,9 +1232,9 @@
     "is_primary": false
   },
   {
-    "table_name": "pg_amproc",
-    "index_name": "pg_amproc_fam_proc_index",
-    "column_name": "amprocrighttype",
+    "table_name": "pg_amop",
+    "index_name": "pg_amop_opr_fam_index",
+    "column_name": "amoppurpose",
     "is_unique": true,
     "is_primary": false
   },
@@ -989,6 +1248,13 @@
   {
     "table_name": "pg_amproc",
     "index_name": "pg_amproc_fam_proc_index",
+    "column_name": "amprocnum",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "pg_amproc",
+    "index_name": "pg_amproc_fam_proc_index",
     "column_name": "amproclefttype",
     "is_unique": true,
     "is_primary": false
@@ -996,7 +1262,7 @@
   {
     "table_name": "pg_amproc",
     "index_name": "pg_amproc_fam_proc_index",
-    "column_name": "amprocnum",
+    "column_name": "amprocrighttype",
     "is_unique": true,
     "is_primary": false
   },
@@ -1010,14 +1276,14 @@
   {
     "table_name": "pg_attrdef",
     "index_name": "pg_attrdef_adrelid_adnum_index",
-    "column_name": "adrelid",
+    "column_name": "adnum",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_attrdef",
     "index_name": "pg_attrdef_adrelid_adnum_index",
-    "column_name": "adnum",
+    "column_name": "adrelid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1031,14 +1297,14 @@
   {
     "table_name": "pg_attribute",
     "index_name": "pg_attribute_relid_attnam_index",
-    "column_name": "attrelid",
+    "column_name": "attname",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_attribute",
     "index_name": "pg_attribute_relid_attnam_index",
-    "column_name": "attname",
+    "column_name": "attrelid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1066,7 +1332,7 @@
   {
     "table_name": "pg_auth_members",
     "index_name": "pg_auth_members_member_role_index",
-    "column_name": "grantor",
+    "column_name": "roleid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1080,7 +1346,7 @@
   {
     "table_name": "pg_auth_members",
     "index_name": "pg_auth_members_member_role_index",
-    "column_name": "roleid",
+    "column_name": "grantor",
     "is_unique": true,
     "is_primary": false
   },
@@ -1094,7 +1360,7 @@
   {
     "table_name": "pg_auth_members",
     "index_name": "pg_auth_members_role_member_index",
-    "column_name": "grantor",
+    "column_name": "roleid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1108,7 +1374,7 @@
   {
     "table_name": "pg_auth_members",
     "index_name": "pg_auth_members_role_member_index",
-    "column_name": "roleid",
+    "column_name": "grantor",
     "is_unique": true,
     "is_primary": false
   },
@@ -1185,7 +1451,7 @@
   {
     "table_name": "pg_collation",
     "index_name": "pg_collation_name_enc_nsp_index",
-    "column_name": "collname",
+    "column_name": "collencoding",
     "is_unique": true,
     "is_primary": false
   },
@@ -1199,7 +1465,7 @@
   {
     "table_name": "pg_collation",
     "index_name": "pg_collation_name_enc_nsp_index",
-    "column_name": "collencoding",
+    "column_name": "collname",
     "is_unique": true,
     "is_primary": false
   },
@@ -1213,14 +1479,14 @@
   {
     "table_name": "pg_constraint",
     "index_name": "pg_constraint_conname_nsp_index",
-    "column_name": "conname",
+    "column_name": "connamespace",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "pg_constraint",
     "index_name": "pg_constraint_conname_nsp_index",
-    "column_name": "connamespace",
+    "column_name": "conname",
     "is_unique": false,
     "is_primary": false
   },
@@ -1234,13 +1500,6 @@
   {
     "table_name": "pg_constraint",
     "index_name": "pg_constraint_conrelid_contypid_conname_index",
-    "column_name": "conname",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "pg_constraint",
-    "index_name": "pg_constraint_conrelid_contypid_conname_index",
     "column_name": "conrelid",
     "is_unique": true,
     "is_primary": false
@@ -1249,6 +1508,13 @@
     "table_name": "pg_constraint",
     "index_name": "pg_constraint_conrelid_contypid_conname_index",
     "column_name": "contypid",
+    "is_unique": true,
+    "is_primary": false
+  },
+  {
+    "table_name": "pg_constraint",
+    "index_name": "pg_constraint_conrelid_contypid_conname_index",
+    "column_name": "conname",
     "is_unique": true,
     "is_primary": false
   },
@@ -1332,14 +1598,14 @@
   {
     "table_name": "pg_db_role_setting",
     "index_name": "pg_db_role_setting_databaseid_rol_index",
-    "column_name": "setdatabase",
+    "column_name": "setrole",
     "is_unique": true,
     "is_primary": true
   },
   {
     "table_name": "pg_db_role_setting",
     "index_name": "pg_db_role_setting_databaseid_rol_index",
-    "column_name": "setrole",
+    "column_name": "setdatabase",
     "is_unique": true,
     "is_primary": true
   },
@@ -1374,13 +1640,6 @@
   {
     "table_name": "pg_depend",
     "index_name": "pg_depend_depender_index",
-    "column_name": "objsubid",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "pg_depend",
-    "index_name": "pg_depend_depender_index",
     "column_name": "classid",
     "is_unique": false,
     "is_primary": false
@@ -1394,8 +1653,8 @@
   },
   {
     "table_name": "pg_depend",
-    "index_name": "pg_depend_reference_index",
-    "column_name": "refobjid",
+    "index_name": "pg_depend_depender_index",
+    "column_name": "objsubid",
     "is_unique": false,
     "is_primary": false
   },
@@ -1409,16 +1668,16 @@
   {
     "table_name": "pg_depend",
     "index_name": "pg_depend_reference_index",
-    "column_name": "refobjsubid",
+    "column_name": "refobjid",
     "is_unique": false,
     "is_primary": false
   },
   {
-    "table_name": "pg_description",
-    "index_name": "pg_description_o_c_o_index",
-    "column_name": "objoid",
-    "is_unique": true,
-    "is_primary": true
+    "table_name": "pg_depend",
+    "index_name": "pg_depend_reference_index",
+    "column_name": "refobjsubid",
+    "is_unique": false,
+    "is_primary": false
   },
   {
     "table_name": "pg_description",
@@ -1435,6 +1694,13 @@
     "is_primary": true
   },
   {
+    "table_name": "pg_description",
+    "index_name": "pg_description_o_c_o_index",
+    "column_name": "objoid",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
     "table_name": "pg_enum",
     "index_name": "pg_enum_oid_index",
     "column_name": "oid",
@@ -1444,14 +1710,14 @@
   {
     "table_name": "pg_enum",
     "index_name": "pg_enum_typid_label_index",
-    "column_name": "enumtypid",
+    "column_name": "enumlabel",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_enum",
     "index_name": "pg_enum_typid_label_index",
-    "column_name": "enumlabel",
+    "column_name": "enumtypid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1556,21 +1822,14 @@
   {
     "table_name": "pg_inherits",
     "index_name": "pg_inherits_relid_seqno_index",
-    "column_name": "inhrelid",
+    "column_name": "inhseqno",
     "is_unique": true,
     "is_primary": true
   },
   {
     "table_name": "pg_inherits",
     "index_name": "pg_inherits_relid_seqno_index",
-    "column_name": "inhseqno",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "pg_init_privs",
-    "index_name": "pg_init_privs_o_c_o_index",
-    "column_name": "objoid",
+    "column_name": "inhrelid",
     "is_unique": true,
     "is_primary": true
   },
@@ -1585,6 +1844,13 @@
     "table_name": "pg_init_privs",
     "index_name": "pg_init_privs_o_c_o_index",
     "column_name": "classoid",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "pg_init_privs",
+    "index_name": "pg_init_privs_o_c_o_index",
+    "column_name": "objoid",
     "is_unique": true,
     "is_primary": true
   },
@@ -1605,14 +1871,14 @@
   {
     "table_name": "pg_largeobject",
     "index_name": "pg_largeobject_loid_pn_index",
-    "column_name": "loid",
+    "column_name": "pageno",
     "is_unique": true,
     "is_primary": true
   },
   {
     "table_name": "pg_largeobject",
     "index_name": "pg_largeobject_loid_pn_index",
-    "column_name": "pageno",
+    "column_name": "loid",
     "is_unique": true,
     "is_primary": true
   },
@@ -1647,14 +1913,14 @@
   {
     "table_name": "pg_opclass",
     "index_name": "pg_opclass_am_name_nsp_index",
-    "column_name": "opcnamespace",
+    "column_name": "opcmethod",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_opclass",
     "index_name": "pg_opclass_am_name_nsp_index",
-    "column_name": "opcmethod",
+    "column_name": "opcnamespace",
     "is_unique": true,
     "is_primary": false
   },
@@ -1671,6 +1937,13 @@
     "column_name": "oid",
     "is_unique": true,
     "is_primary": true
+  },
+  {
+    "table_name": "pg_operator",
+    "index_name": "pg_operator_oprname_l_r_n_index",
+    "column_name": "oprright",
+    "is_unique": true,
+    "is_primary": false
   },
   {
     "table_name": "pg_operator",
@@ -1694,16 +1967,9 @@
     "is_primary": false
   },
   {
-    "table_name": "pg_operator",
-    "index_name": "pg_operator_oprname_l_r_n_index",
-    "column_name": "oprright",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
     "table_name": "pg_opfamily",
     "index_name": "pg_opfamily_am_name_nsp_index",
-    "column_name": "opfnamespace",
+    "column_name": "opfmethod",
     "is_unique": true,
     "is_primary": false
   },
@@ -1717,7 +1983,7 @@
   {
     "table_name": "pg_opfamily",
     "index_name": "pg_opfamily_am_name_nsp_index",
-    "column_name": "opfmethod",
+    "column_name": "opfnamespace",
     "is_unique": true,
     "is_primary": false
   },
@@ -1850,14 +2116,14 @@
   {
     "table_name": "pg_publication_rel",
     "index_name": "pg_publication_rel_prrelid_prpubid_index",
-    "column_name": "prrelid",
+    "column_name": "prpubid",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_publication_rel",
     "index_name": "pg_publication_rel_prrelid_prpubid_index",
-    "column_name": "prpubid",
+    "column_name": "prrelid",
     "is_unique": true,
     "is_primary": false
   },
@@ -1899,21 +2165,21 @@
   {
     "table_name": "pg_rewrite",
     "index_name": "pg_rewrite_rel_rulename_index",
-    "column_name": "rulename",
+    "column_name": "ev_class",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_rewrite",
     "index_name": "pg_rewrite_rel_rulename_index",
-    "column_name": "ev_class",
+    "column_name": "rulename",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_seclabel",
     "index_name": "pg_seclabel_object_index",
-    "column_name": "objsubid",
+    "column_name": "classoid",
     "is_unique": true,
     "is_primary": true
   },
@@ -1927,7 +2193,7 @@
   {
     "table_name": "pg_seclabel",
     "index_name": "pg_seclabel_object_index",
-    "column_name": "classoid",
+    "column_name": "objsubid",
     "is_unique": true,
     "is_primary": true
   },
@@ -1948,14 +2214,14 @@
   {
     "table_name": "pg_shdepend",
     "index_name": "pg_shdepend_depender_index",
-    "column_name": "dbid",
+    "column_name": "classid",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "pg_shdepend",
     "index_name": "pg_shdepend_depender_index",
-    "column_name": "classid",
+    "column_name": "objid",
     "is_unique": false,
     "is_primary": false
   },
@@ -1969,7 +2235,7 @@
   {
     "table_name": "pg_shdepend",
     "index_name": "pg_shdepend_depender_index",
-    "column_name": "objid",
+    "column_name": "dbid",
     "is_unique": false,
     "is_primary": false
   },
@@ -2025,14 +2291,14 @@
   {
     "table_name": "pg_statistic",
     "index_name": "pg_statistic_relid_att_inh_index",
-    "column_name": "starelid",
+    "column_name": "stainherit",
     "is_unique": true,
     "is_primary": true
   },
   {
     "table_name": "pg_statistic",
     "index_name": "pg_statistic_relid_att_inh_index",
-    "column_name": "stainherit",
+    "column_name": "starelid",
     "is_unique": true,
     "is_primary": true
   },
@@ -2046,14 +2312,14 @@
   {
     "table_name": "pg_statistic_ext",
     "index_name": "pg_statistic_ext_name_index",
-    "column_name": "stxnamespace",
+    "column_name": "stxname",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_statistic_ext",
     "index_name": "pg_statistic_ext_name_index",
-    "column_name": "stxname",
+    "column_name": "stxnamespace",
     "is_unique": true,
     "is_primary": false
   },
@@ -2144,14 +2410,14 @@
   {
     "table_name": "pg_transform",
     "index_name": "pg_transform_type_lang_index",
-    "column_name": "trflang",
+    "column_name": "trftype",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_transform",
     "index_name": "pg_transform_type_lang_index",
-    "column_name": "trftype",
+    "column_name": "trflang",
     "is_unique": true,
     "is_primary": false
   },
@@ -2207,6 +2473,13 @@
   {
     "table_name": "pg_ts_config_map",
     "index_name": "pg_ts_config_map_index",
+    "column_name": "mapseqno",
+    "is_unique": true,
+    "is_primary": true
+  },
+  {
+    "table_name": "pg_ts_config_map",
+    "index_name": "pg_ts_config_map_index",
     "column_name": "maptokentype",
     "is_unique": true,
     "is_primary": true
@@ -2219,23 +2492,16 @@
     "is_primary": true
   },
   {
-    "table_name": "pg_ts_config_map",
-    "index_name": "pg_ts_config_map_index",
-    "column_name": "mapseqno",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
     "table_name": "pg_ts_dict",
     "index_name": "pg_ts_dict_dictname_index",
-    "column_name": "dictnamespace",
+    "column_name": "dictname",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_ts_dict",
     "index_name": "pg_ts_dict_dictname_index",
-    "column_name": "dictname",
+    "column_name": "dictnamespace",
     "is_unique": true,
     "is_primary": false
   },
@@ -2277,14 +2543,14 @@
   {
     "table_name": "pg_ts_template",
     "index_name": "pg_ts_template_tmplname_index",
-    "column_name": "tmplname",
+    "column_name": "tmplnamespace",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_ts_template",
     "index_name": "pg_ts_template_tmplname_index",
-    "column_name": "tmplnamespace",
+    "column_name": "tmplname",
     "is_unique": true,
     "is_primary": false
   },
@@ -2319,14 +2585,14 @@
   {
     "table_name": "pg_user_mapping",
     "index_name": "pg_user_mapping_user_server_index",
-    "column_name": "umuser",
+    "column_name": "umserver",
     "is_unique": true,
     "is_primary": false
   },
   {
     "table_name": "pg_user_mapping",
     "index_name": "pg_user_mapping_user_server_index",
-    "column_name": "umserver",
+    "column_name": "umuser",
     "is_unique": true,
     "is_primary": false
   },
@@ -2373,97 +2639,6 @@
     "is_primary": true
   },
   {
-    "table_name": "promo_code_uses",
-    "index_name": "idx_promo_code_uses_code",
-    "column_name": "promo_code_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_code_uses",
-    "index_name": "idx_promo_code_uses_order",
-    "column_name": "order_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_code_uses",
-    "index_name": "idx_promo_code_uses_user",
-    "column_name": "user_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_code_uses",
-    "index_name": "promo_code_uses_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "promo_code_uses",
-    "index_name": "promo_code_uses_promo_code_id_order_id_key",
-    "column_name": "order_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_code_uses",
-    "index_name": "promo_code_uses_promo_code_id_order_id_key",
-    "column_name": "promo_code_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "idx_promo_codes_active",
-    "column_name": "is_active",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "idx_promo_codes_campaign",
-    "column_name": "campaign_name",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "idx_promo_codes_code",
-    "column_name": "code",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "idx_promo_codes_valid_dates",
-    "column_name": "valid_until",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "idx_promo_codes_valid_dates",
-    "column_name": "valid_from",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "promo_codes_code_key",
-    "column_name": "code",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "promo_codes",
-    "index_name": "promo_codes_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
     "table_name": "refresh_tokens",
     "index_name": "refresh_tokens_instance_id_idx",
     "column_name": "instance_id",
@@ -2473,14 +2648,14 @@
   {
     "table_name": "refresh_tokens",
     "index_name": "refresh_tokens_instance_id_user_id_idx",
-    "column_name": "user_id",
+    "column_name": "instance_id",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "refresh_tokens",
     "index_name": "refresh_tokens_instance_id_user_id_idx",
-    "column_name": "instance_id",
+    "column_name": "user_id",
     "is_unique": false,
     "is_primary": false
   },
@@ -2501,14 +2676,14 @@
   {
     "table_name": "refresh_tokens",
     "index_name": "refresh_tokens_session_id_revoked_idx",
-    "column_name": "revoked",
+    "column_name": "session_id",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "refresh_tokens",
     "index_name": "refresh_tokens_session_id_revoked_idx",
-    "column_name": "session_id",
+    "column_name": "revoked",
     "is_unique": false,
     "is_primary": false
   },
@@ -2529,13 +2704,6 @@
   {
     "table_name": "s3_multipart_uploads",
     "index_name": "idx_multipart_uploads_list",
-    "column_name": "bucket_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "s3_multipart_uploads",
-    "index_name": "idx_multipart_uploads_list",
     "column_name": "created_at",
     "is_unique": false,
     "is_primary": false
@@ -2544,6 +2712,13 @@
     "table_name": "s3_multipart_uploads",
     "index_name": "idx_multipart_uploads_list",
     "column_name": "key",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "s3_multipart_uploads",
+    "index_name": "idx_multipart_uploads_list",
+    "column_name": "bucket_id",
     "is_unique": false,
     "is_primary": false
   },
@@ -2662,14 +2837,14 @@
   {
     "table_name": "sessions",
     "index_name": "user_id_created_at_idx",
-    "column_name": "created_at",
+    "column_name": "user_id",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "sessions",
     "index_name": "user_id_created_at_idx",
-    "column_name": "user_id",
+    "column_name": "created_at",
     "is_unique": false,
     "is_primary": false
   },
@@ -2753,7 +2928,7 @@
   {
     "table_name": "subscription",
     "index_name": "subscription_subscription_id_entity_filters_key",
-    "column_name": "entity",
+    "column_name": "filters",
     "is_unique": true,
     "is_primary": false
   },
@@ -2767,7 +2942,7 @@
   {
     "table_name": "subscription",
     "index_name": "subscription_subscription_id_entity_filters_key",
-    "column_name": "filters",
+    "column_name": "entity",
     "is_unique": true,
     "is_primary": false
   },
@@ -2828,328 +3003,6 @@
     "is_primary": true
   },
   {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "idx_audit_logs_check_type",
-    "column_name": "check_type",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "idx_audit_logs_created",
-    "column_name": "created_at",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "idx_audit_logs_purchase",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "idx_audit_logs_resolved",
-    "column_name": "resolved",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "idx_audit_logs_severity",
-    "column_name": "severity",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_audit_logs",
-    "index_name": "team_purchase_audit_logs_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "idx_bonuses_final_month",
-    "column_name": "month_year",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "idx_bonuses_final_purchase",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "idx_bonuses_final_status",
-    "column_name": "payment_status",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "idx_team_purchase_bonuses_final_payment",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "idx_team_purchase_bonuses_final_payment",
-    "column_name": "payment_status",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "team_purchase_bonuses_final_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "unique_final_bonus",
-    "column_name": "beneficiary_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "unique_final_bonus",
-    "column_name": "team_purchase_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "unique_final_bonus",
-    "column_name": "month_year",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_final",
-    "index_name": "unique_final_bonus",
-    "column_name": "contributor_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "idx_bonuses_preview_beneficiary",
-    "column_name": "beneficiary_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "idx_bonuses_preview_purchase",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "team_purchase_bonuses_preview_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "unique_preview_bonus",
-    "column_name": "beneficiary_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "unique_preview_bonus",
-    "column_name": "contributor_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_bonuses_preview",
-    "index_name": "unique_preview_bonus",
-    "column_name": "team_purchase_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "idx_team_purchase_carts_member",
-    "column_name": "member_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "idx_team_purchase_carts_purchase",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "idx_team_purchase_carts_user",
-    "column_name": "user_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "team_purchase_carts_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "team_purchase_carts_team_purchase_id_user_id_product_id_key",
-    "column_name": "product_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "team_purchase_carts_team_purchase_id_user_id_product_id_key",
-    "column_name": "team_purchase_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_carts",
-    "index_name": "team_purchase_carts_team_purchase_id_user_id_product_id_key",
-    "column_name": "user_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "idx_team_purchase_members_purchase",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "idx_team_purchase_members_status",
-    "column_name": "status",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "idx_team_purchase_members_team_purchase_id",
-    "column_name": "team_purchase_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "idx_team_purchase_members_user",
-    "column_name": "user_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "idx_team_purchase_members_user_id",
-    "column_name": "user_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "team_purchase_members_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "team_purchase_members_team_purchase_id_user_id_key",
-    "column_name": "team_purchase_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_members",
-    "index_name": "team_purchase_members_team_purchase_id_user_id_key",
-    "column_name": "user_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_orders",
-    "index_name": "team_purchase_orders_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
-    "table_name": "team_purchase_orders",
-    "index_name": "team_purchase_orders_team_purchase_id_order_id_key",
-    "column_name": "order_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchase_orders",
-    "index_name": "team_purchase_orders_team_purchase_id_order_id_key",
-    "column_name": "team_purchase_id",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "idx_team_purchases_bonuses_transferred",
-    "column_name": "bonuses_transferred_to_balance",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "idx_team_purchases_initiator",
-    "column_name": "initiator_id",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "idx_team_purchases_invite_code",
-    "column_name": "invite_code",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "idx_team_purchases_status",
-    "column_name": "status",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "team_purchases_invite_code_key",
-    "column_name": "invite_code",
-    "is_unique": true,
-    "is_primary": false
-  },
-  {
-    "table_name": "team_purchases",
-    "index_name": "team_purchases_pkey",
-    "column_name": "id",
-    "is_unique": true,
-    "is_primary": true
-  },
-  {
     "table_name": "user_turnover_audit",
     "index_name": "user_turnover_audit_pkey",
     "column_name": "id",
@@ -3160,13 +3013,6 @@
     "table_name": "user_turnover_current",
     "index_name": "idx_user_turnover_current_bonus",
     "column_name": "bonus_percent",
-    "is_unique": false,
-    "is_primary": false
-  },
-  {
-    "table_name": "user_turnover_current",
-    "index_name": "idx_user_turnover_current_turnover",
-    "column_name": "personal_turnover",
     "is_unique": false,
     "is_primary": false
   },
@@ -3207,8 +3053,15 @@
   },
   {
     "table_name": "users",
-    "index_name": "idx_users_personal_level",
-    "column_name": "personal_level",
+    "index_name": "idx_users_role_admin",
+    "column_name": "id",
+    "is_unique": false,
+    "is_primary": false
+  },
+  {
+    "table_name": "users",
+    "index_name": "idx_users_role_admin",
+    "column_name": "role",
     "is_unique": false,
     "is_primary": false
   },
@@ -3341,14 +3194,14 @@
   {
     "table_name": "withdrawal_requests",
     "index_name": "idx_withdrawal_user_status",
-    "column_name": "user_id",
+    "column_name": "status",
     "is_unique": false,
     "is_primary": false
   },
   {
     "table_name": "withdrawal_requests",
     "index_name": "idx_withdrawal_user_status",
-    "column_name": "status",
+    "column_name": "user_id",
     "is_unique": false,
     "is_primary": false
   },

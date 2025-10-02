@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   ChevronLeft, ChevronRight, Sparkles, Play,
   ShoppingCart, Heart, Share2, Star, Package,
-  Plus, Minus
+  Plus, Minus, Check, ArrowRight, FileText, Award, User,
+  Truck, Shield, Headphones
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase/client';
@@ -37,9 +38,13 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   // Новые стейты для корзины
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [productStock, setProductStock] = useState<number>(0);
   const [loadingStock, setLoadingStock] = useState(true);
+  
+  // Новый стейт для отслеживания товара в корзине
+  const [isInCart, setIsInCart] = useState(false);
+  const [cartItemQuantity, setCartItemQuantity] = useState(0);
+  const [totalCartItems, setTotalCartItems] = useState(0);
 
   // Загрузка данных корзины и остатков при монтировании
   useEffect(() => {
@@ -51,14 +56,25 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     }
   }, [currentUser, product]);
 
+  // Проверяем, есть ли товар в корзине и считаем общее количество
+  useEffect(() => {
+    if (cart.cartItems && product) {
+      const cartItem = cart.cartItems.find(item => item.product_id === product.id);
+      setIsInCart(!!cartItem);
+      setCartItemQuantity(cartItem?.quantity || 0);
+      
+      // Считаем общее количество товаров в корзине
+      const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+      setTotalCartItems(total);
+    }
+  }, [cart.cartItems, product]);
+
   const loadCartData = async () => {
     if (!currentUser) return;
     try {
       await cart.loadUserCart(currentUser.id);
     } catch (error) {
-      // Не блокируем загрузку страницы если корзина не загрузилась
       console.error('Error loading cart:', error);
-      // Корзина будет создана при первом добавлении товара
     }
   };
 
@@ -115,61 +131,15 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
         product.price_dealer || 0
       );
 
-      // Не дублируем toast - он уже показывается в cart.addItem
       setQuantity(1);
       
       // Обновляем остатки после добавления
       await loadProductStock();
 
     } catch (error: any) {
-      // Ошибка уже показана в cart.addItem, просто логируем
       console.error('Error adding to cart:', error);
     } finally {
       setIsAddingToCart(false);
-    }
-  };
-
-  // Купить сейчас
-  const handleBuyNow = async () => {
-    if (!currentUser) {
-      toast.error(t('Необходимо авторизоваться'));
-      router.push('/signin');
-      return;
-    }
-
-    if (!product) return;
-
-    // Проверка наличия товара
-    if (productStock < quantity) {
-      toast.error(t('Недостаточно товара на складе'));
-      return;
-    }
-
-    setIsBuyingNow(true);
-    try {
-      // Сначала убедимся что корзина загружена
-      if (!cart.cart) {
-        await cart.loadUserCart(currentUser.id);
-      }
-
-      await cart.addItem(
-        product.id,
-        quantity,
-        product.price || 0,
-        product.price_dealer || 0
-      );
-
-      // Добавляем небольшую задержку чтобы данные успели сохраниться
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Переходим в корзину
-      router.push('/dealer/cart');
-
-    } catch (error: any) {
-      // Ошибка уже показана в cart.addItem, просто логируем
-      console.error('Error buying now:', error);
-    } finally {
-      setIsBuyingNow(false);
     }
   };
 
@@ -510,19 +480,60 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </div>
                 </div>
 
-                {/* Наличие товара */}
-                {!loadingStock && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">{t('В наличии:')}</span>
-                    <span className={`font-bold ${
-                      productStock === 0 ? 'text-red-600' : 
-                      productStock < 10 ? 'text-orange-600' : 
-                      'text-green-600'
-                    }`}>
-                      {productStock === 0 ? t('Нет в наличии') : 
-                       productStock < 10 ? `${productStock} шт. (мало)` : 
-                       `${productStock} шт.`}
-                    </span>
+                {/* Индикатор корзины - единый дизайн всегда */}
+                <div className="p-4 bg-gradient-to-r from-[#D77E6C]/5 to-[#E09080]/5 border border-[#D77E6C]/20 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <ShoppingCart className="w-6 h-6 text-[#D77E6C]" />
+                        {totalCartItems > 0 && (
+                          <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#D77E6C] text-white text-xs rounded-full flex items-center justify-center font-bold">
+                            {totalCartItems}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        {cart.loading ? (
+                          // Состояние загрузки
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-[#D77E6C] border-t-transparent rounded-full animate-spin" />
+                            <p className="text-gray-500">{t('Загрузка...')}</p>
+                          </div>
+                        ) : totalCartItems > 0 ? (
+                          // Есть товары
+                          <>
+                            <p className="font-semibold text-gray-800">
+                              {t('В корзине:')} {totalCartItems} {t('товар(ов)')}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {t('На сумму')}: {formatPrice(cart.cartItems.reduce((sum, item) => sum + (item.price_dealer * item.quantity), 0))} ₸
+                            </p>
+                          </>
+                        ) : (
+                          // Корзина пуста
+                          <div>
+                            <p className="font-semibold text-gray-800">{t('Корзина пуста')}</p>
+                            <p className="text-sm text-gray-500">{t('Добавьте товары для оформления')}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {!cart.loading && totalCartItems > 0 && (
+                      <button
+                        onClick={() => router.push('/dealer/cart')}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors font-medium"
+                      >
+                        <span>{t('Перейти')}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Наличие товара - упрощенная версия */}
+                {!loadingStock && productStock === 0 && (
+                  <div className="flex items-center justify-center p-3 bg-red-50 text-red-600 rounded-lg font-medium">
+                    {t('Нет в наличии')}
                   </div>
                 )}
 
@@ -548,28 +559,17 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </div>
                 </div>
 
-                {/* Кнопки действий */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={isAddingToCart || productStock === 0 || loadingStock}
-                    className="flex-1 px-6 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-[#D77E6C] text-white hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                    {isAddingToCart ? t('Добавление...') : 
-                     productStock === 0 ? t('Нет в наличии') : 
-                     t('Добавить в корзину')}
-                  </button>
-                  <button
-                    onClick={handleBuyNow}
-                    disabled={isBuyingNow || productStock === 0 || loadingStock}
-                    className="flex-1 border-2 px-6 py-4 rounded-full font-semibold transition-all duration-300 border-[#D77E6C] text-[#D77E6C] hover:bg-[#D77E6C] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isBuyingNow ? t('Переход...') : 
-                     productStock === 0 ? t('Нет в наличии') : 
-                     t('Купить сейчас')}
-                  </button>
-                </div>
+                {/* Кнопка добавления - только одна */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart || productStock === 0 || loadingStock}
+                  className="w-full px-6 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-[#D77E6C] text-white hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {isAddingToCart ? t('Добавление...') : 
+                   productStock === 0 ? t('Нет в наличии') : 
+                   t('Добавить в корзину')}
+                </button>
 
                 {/* Дополнительная информация */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-sm text-gray-600">
@@ -590,7 +590,88 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
             </div>{/* /контент */}
           </div>
         </div>
-      </div>
+
+        {/* Секция с сертификатами и документами */}
+        <div className="mt-8 bg-white rounded-2xl p-4 md:p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-[#D77E6C]" />
+            {t('Сертификаты и документы')}
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Сертификат качества */}
+            <div className="group cursor-pointer">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      {t('Сертификат')}
+                    </p>
+                    <p className="text-xs text-gray-500">PDF</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Декларация соответствия */}
+            <div className="group cursor-pointer">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      {t('Декларация')}
+                    </p>
+                    <p className="text-xs text-gray-500">PDF</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Инструкция по применению */}
+            <div className="group cursor-pointer">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      {t('Инструкция')}
+                    </p>
+                    <p className="text-xs text-gray-500">PDF</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Паспорт безопасности */}
+            <div className="group cursor-pointer">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">
+                      {t('Паспорт')}
+                    </p>
+                    <p className="text-xs text-gray-500">PDF</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Футер с информацией о компании */}
+        <div className="mt-12 border-t border-gray-200 pt-8 pb-4">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">TANNUR</h3>
+            <div className="text-sm text-gray-500">
+              <p>© 2024 TANNUR. {t('Все права защищены.')}</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>{/* /max-w-420 */}
     </div>
   );
 }

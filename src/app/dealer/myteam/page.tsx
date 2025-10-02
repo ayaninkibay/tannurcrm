@@ -6,7 +6,7 @@ import { useTranslate } from '@/hooks/useTranslate'
 import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
 import BonusCard from '@/components/blocks/BonusCard'
-import TeamPurchaseList from '@/components/team/TeamPurchaseList'
+import BonusList from '@/components/bonuses/BonusList'
 import { 
   TreeModule, 
   TeamCardModule,
@@ -44,9 +44,9 @@ export default function TeamPage() {
         {/* Основная сетка */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
           
-          {/* Левая колонка - TeamPurchaseList */}
+          {/* Левая колонка - BonusList */}
           <div className="lg:col-span-5 xl:col-span-4">
-            <TeamPurchaseList userId={user?.id || 'current-user-id'} />
+            <BonusList showViewButton={true} />
           </div>
 
           {/* Правая колонка - TeamCard и BonusCard */}
@@ -62,7 +62,6 @@ export default function TeamPage() {
                 variant="white"
                 showButton={true}
                 showBonusTable={true}
-
               />
 
               {/* BonusCard */}
@@ -72,7 +71,6 @@ export default function TeamPage() {
                   turnover={statsLoading ? 0 : teamStats.totalTurnover} 
                   goal={teamStats.goal} 
                   remaining={statsLoading ? teamStats.goal : teamStats.remaining} 
-                  
                 />
               </div>
               
@@ -92,7 +90,7 @@ export default function TeamPage() {
                     console.log('Открыть видео: Первые шаги к увеличению команды')
                   }}
                   className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/80 backdrop-blur-sm rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer border border-[#DC7C67]/10 hover:border-[#DC7C67]/30 group hover:bg-white"
-                  >
+                >
                   {/* Иконка */}
                   <div className="relative flex-shrink-0">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#DC7C67] to-[#E89380] rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-105">
@@ -128,7 +126,6 @@ export default function TeamPage() {
                   </div>
                 </div>
 
-
               </div>
             </div>
             
@@ -149,7 +146,6 @@ export default function TeamPage() {
 
       </div>
                 
-      
     </div>
   )
 }

@@ -18,11 +18,14 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     currentTurnover: 0,
+    personalTurnover: 0,
+    teamTurnover: 0,
     goalAmount: 1000000,
     previousMonth: 0,
     teamCount: 0,
     currentLevel: null as any,
-    nextLevel: null as any
+    nextLevel: null as any,
+    bonusPercent: 8
   });
 
   useEffect(() => {
@@ -46,55 +49,107 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
           return;
         }
 
-        // Получаем командные закупки
-        const { data: purchases, error } = await supabase
-          .from('team_purchases')
-          .select('id, completed_at, paid_amount, status')
-          .eq('initiator_id', targetUserId)
-          .eq('status', 'completed')
-          .not('completed_at', 'is', null)
-          .order('completed_at', { ascending: false });
-
-        if (error) {
-          console.error('Error loading team purchases:', error);
-        }
-
         // Текущий месяц
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
         
-        // Предыдущий месяц
-        const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        // Получаем текущий товарооборот из user_turnover_current
+        const { data: currentTurnover, error: turnoverError } = await supabase
+          .from('user_turnover_current')
+          .select('*')
+          .eq('user_id', targetUserId)
+          .single();
 
-        let currentMonthTotal = 0;
-        let previousMonthTotal = 0;
-
-        if (purchases && purchases.length > 0) {
-          purchases.forEach(purchase => {
-            if (purchase.completed_at && purchase.paid_amount) {
-              const date = new Date(purchase.completed_at);
-              
-              // Текущий месяц
-              if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                currentMonthTotal += purchase.paid_amount;
-              }
-              // Предыдущий месяц
-              else if (date.getMonth() === prevMonth && date.getFullYear() === prevYear) {
-                previousMonthTotal += purchase.paid_amount;
-              }
-            }
-          });
+        if (turnoverError && turnoverError.code !== 'PGRST116') {
+          console.error('Error loading turnover:', turnoverError);
         }
 
-        // Получаем количество членов команды
-        const { data: teamMembers } = await supabase
+        let currentTotal = 0;
+        let personalTotal = 0;
+        let teamTotal = 0;
+        let bonusPercent = 8;
+
+        if (currentTurnover) {
+          currentTotal = currentTurnover.total_turnover || 0;
+          personalTotal = currentTurnover.personal_turnover || 0;
+          teamTotal = currentTotal - personalTotal;
+          bonusPercent = currentTurnover.bonus_percent || 8;
+        } else {
+          // Если нет записи в user_turnover_current, считаем из orders
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('total_amount')
+            .eq('user_id', targetUserId)
+            .eq('payment_status', 'paid')
+            .gte('created_at', currentMonthStart);
+
+          if (orders) {
+            personalTotal = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+          }
+
+          // Считаем командный товарооборот
+          // Сначала получаем всех членов команды
+          const { data: teamMembers } = await supabase
+            .from('users')
+            .select('id')
+            .eq('parent_id', targetUserId);
+
+          if (teamMembers && teamMembers.length > 0) {
+            const teamMemberIds = teamMembers.map(m => m.id);
+            
+            // Рекурсивно получаем всю команду
+            const getAllTeamMembers = async (memberIds: string[]): Promise<string[]> => {
+              const { data: subMembers } = await supabase
+                .from('users')
+                .select('id')
+                .in('parent_id', memberIds);
+              
+              if (subMembers && subMembers.length > 0) {
+                const subMemberIds = subMembers.map(m => m.id);
+                const deeperMembers = await getAllTeamMembers(subMemberIds);
+                return [...memberIds, ...subMemberIds, ...deeperMembers];
+              }
+              return memberIds;
+            };
+
+            const allTeamIds = await getAllTeamMembers(teamMemberIds);
+            
+            // Получаем заказы всей команды
+            if (allTeamIds.length > 0) {
+              const { data: teamOrders } = await supabase
+                .from('orders')
+                .select('total_amount')
+                .in('user_id', allTeamIds)
+                .eq('payment_status', 'paid')
+                .gte('created_at', currentMonthStart);
+
+              if (teamOrders) {
+                teamTotal = teamOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+              }
+            }
+          }
+
+          currentTotal = personalTotal + teamTotal;
+        }
+
+        // Получаем предыдущий месяц из user_turnover_history
+        const { data: previousTurnover } = await supabase
+          .from('user_turnover_history')
+          .select('total_turnover')
+          .eq('user_id', targetUserId)
+          .eq('month_start', prevMonthStart)
+          .single();
+
+        const previousMonth = previousTurnover?.total_turnover || 0;
+
+        // Получаем количество прямых членов команды
+        const { data: directTeamMembers } = await supabase
           .from('users')
           .select('id')
           .eq('parent_id', targetUserId);
 
-        const teamCount = teamMembers?.length || 0;
+        const teamCount = directTeamMembers?.length || 0;
 
         // Получаем уровни бонусов из БД
         const { data: bonusLevels } = await supabase
@@ -109,17 +164,17 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
         let goalAmount = 1000000; // По умолчанию
 
         if (bonusLevels && bonusLevels.length > 0) {
-          // Находим текущий уровень
+          // Находим текущий уровень на основе общего товарооборота
           for (let i = bonusLevels.length - 1; i >= 0; i--) {
-            if (currentMonthTotal >= bonusLevels[i].min_amount) {
+            if (currentTotal >= bonusLevels[i].min_amount) {
               currentLevel = bonusLevels[i];
               // Следующий уровень
               if (i < bonusLevels.length - 1) {
                 nextLevel = bonusLevels[i + 1];
                 goalAmount = nextLevel.min_amount;
               } else {
-                // Если это максимальный уровень, ставим цель в 2 раза больше
-                goalAmount = currentLevel.min_amount * 2;
+                // Если это максимальный уровень
+                goalAmount = currentLevel.max_amount || currentLevel.min_amount * 2;
               }
               break;
             }
@@ -127,18 +182,22 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
 
           // Если текущий товарооборот меньше минимального уровня
           if (!currentLevel && bonusLevels[0]) {
+            currentLevel = { name: 'Начальный', bonus_percent: 8 };
             nextLevel = bonusLevels[0];
             goalAmount = nextLevel.min_amount;
           }
         }
 
         setData({
-          currentTurnover: currentMonthTotal,
+          currentTurnover: currentTotal,
+          personalTurnover: personalTotal,
+          teamTurnover: teamTotal,
           goalAmount: goalAmount,
-          previousMonth: previousMonthTotal,
+          previousMonth: previousMonth,
           teamCount: teamCount,
           currentLevel: currentLevel,
-          nextLevel: nextLevel
+          nextLevel: nextLevel,
+          bonusPercent: bonusPercent
         });
         
       } catch (error) {
@@ -187,11 +246,11 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
       {/* Header */}
       <div className="flex justify-between items-start mb-4 relative z-10">
         <div>
-          <h3 className="text-xl font-bold text-gray-900">{t('Командный товарооборот')}</h3>
+          <h3 className="text-xl font-bold text-gray-900">{t('Общий товарооборот')}</h3>
           <p className="text-gray-500 text-sm">{t('текущий месяц')}</p>
         </div>
         <div className="w-12 h-12 bg-gradient-to-br from-[#D77E6C]/10 to-[#E89380]/10 rounded-2xl flex items-center justify-center">
-          <Users className="w-6 h-6 text-[#D77E6C]" />
+          <TrendingUp className="w-6 h-6 text-[#D77E6C]" />
         </div>
       </div>
 
@@ -204,7 +263,7 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
           <span className="text-xl font-bold text-gray-400">₸</span>
         </div>
         
-        {/* Stats grid - только 2 колонки */}
+        {/* Stats grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-gray-50 rounded-xl p-3 text-center">
             <Users className="w-5 h-5 mx-auto mb-1 text-[#D77E6C]" />
@@ -214,10 +273,16 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
           <div className="bg-gray-50 rounded-xl p-3 text-center">
             <Award className="w-5 h-5 mx-auto mb-1 text-[#D77E6C]" />
             <div className="text-lg font-bold text-gray-900">
-              {data.currentLevel ? `${data.currentLevel.bonus_percent}%` : '0%'}
+              {data.bonusPercent}%
             </div>
-            <div className="text-xs text-gray-500">{t('уровень бонуса')}</div>
+            <div className="text-xs text-gray-500">{t('бонус')}</div>
           </div>
+        </div>
+
+        {/* Личный и командный */}
+        <div className="flex justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+          <span>{t('Личный')}: <span className="font-semibold text-gray-700">{formatMoney(data.personalTurnover)}</span></span>
+          <span>{t('Командный')}: <span className="font-semibold text-gray-700">{formatMoney(data.teamTurnover)}</span></span>
         </div>
       </div>
 
@@ -246,9 +311,8 @@ export default function BonusCard({ userId, className = '' }: BonusCardProps) {
         <div className="flex justify-between text-xs mt-2 text-gray-500">
           <span>
             {data.currentLevel && (
-              <span className="font-medium">{data.currentLevel.name}: </span>
+              <span className="font-medium">{data.currentLevel.name}</span>
             )}
-            {formatMoney(data.currentTurnover)} ₸
           </span>
           <span className="font-bold text-[#D77E6C]">{Math.round(percentage)}%</span>
           <span>

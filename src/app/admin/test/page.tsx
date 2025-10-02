@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 
 export default function CSVImport() {
-  const router = useRouter();
-  const [session, setSession] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile, user } = useUser();
   const [dealers, setDealers] = useState<any[]>([]);
   const [processing, setProcessing] = useState(false);
   const [stats, setStats] = useState({ 
@@ -20,35 +18,12 @@ export default function CSVImport() {
   const [log, setLog] = useState<string[]>([]);
 
   useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    setIsLoading(true);
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (currentSession) {
-        setSession(currentSession);
-        addLog(`✅ Сессия найдена: ${currentSession.user.email}`);
-        
-        const { data: userProfile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single();
-          
-        if (userProfile) {
-          addLog(`✅ Профиль: роль ${userProfile.role}`);
-        }
-      } else {
-        addLog('❌ Нет активной сессии');
-      }
-    } catch (error: any) {
-      addLog(`❌ Ошибка: ${error.message}`);
+    if (user) {
+      addLog(`✅ Авторизован как: ${user.email} (${profile?.role})`);
+    } else {
+      addLog('⚠️ Ожидание авторизации...');
     }
-    setIsLoading(false);
-  };
+  }, [user, profile]);
 
   const addLog = (msg: string) => {
     setLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
@@ -101,12 +76,6 @@ export default function CSVImport() {
       return { success: false, error: 'Неверный телефон' };
     }
 
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    
-    if (!currentSession?.access_token) {
-      return { success: false, error: 'Сессия истекла' };
-    }
-
     const userData = {
       email: `${dealer.dealer_id.toLowerCase()}@tnba.kz`,
       password: 'tannur1025',
@@ -115,24 +84,34 @@ export default function CSVImport() {
       phone: phone,
       iin: dealer.iin || '',
       instagram: dealer.instagram || '',
+      dealer_id: dealer.dealer_id,
+      sponsor_code: extractSponsorCode(dealer.sponsor_name),
+      // Добавляем поля для Edge Function
       region: '',
       profession: '',
       parent_id: null
     };
 
     try {
+      // Получаем токен из текущей сессии
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        return { success: false, error: 'Нет активной сессии' };
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-dealer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${currentSession.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(userData)
       });
 
       if (response.ok) {
         const result = await response.json();
-        return { success: true, user_id: result.user_id, dealer_id: dealer.dealer_id };
+        return { success: true, user_id: result.user_id, ...userData };
       } else {
         const error = await response.json();
         return { success: false, error: error.error || 'Ошибка создания' };
@@ -143,10 +122,13 @@ export default function CSVImport() {
   };
 
   const startImport = async () => {
-    await checkSession();
-    
-    if (!session) {
+    if (!user || !profile) {
       addLog('❌ Необходимо войти в систему!');
+      return;
+    }
+
+    if (!['admin', 'dealer'].includes(profile.role)) {
+      addLog(`❌ Недостаточно прав! Ваша роль: ${profile.role}, нужна: admin или dealer`);
       return;
     }
 
@@ -179,6 +161,7 @@ export default function CSVImport() {
         }
         
         setStats(prev => ({ ...prev, processed: prev.processed + 1 }));
+        
         await new Promise(r => setTimeout(r, 200));
       }
 
@@ -192,63 +175,50 @@ export default function CSVImport() {
 
   const setParentRelations = async () => {
     addLog('Установка связей parent_id...');
+    
     const imported = JSON.parse(localStorage.getItem('imported_dealers') || '[]');
     addLog(`Найдено ${imported.length} созданных дилеров`);
+    
+    // Здесь можно вызвать SQL функцию через supabase.rpc
+    // или обработать связи вручную
+    
     addLog('✅ Готово');
   };
-
-  if (isLoading) {
-    return (
-      <div className="p-8 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Импорт дилеров из CSV</h1>
-        <div className="text-center">Проверка авторизации...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Импорт дилеров из CSV</h1>
       
-      <div className={`mb-4 p-4 rounded ${session ? 'bg-green-100' : 'bg-red-100'}`}>
-        {session ? (
+      {/* Статус авторизации */}
+      <div className={`mb-4 p-4 rounded ${user ? 'bg-green-100' : 'bg-yellow-100'}`}>
+        {user ? (
           <div>
-            <p className="font-semibold">Активная сессия: {session.user.email}</p>
-            <p className="text-sm">ID: {session.user.id}</p>
-            <p className="text-sm">Токен активен</p>
+            <p className="font-semibold">Пользователь: {user.email}</p>
+            <p className="text-sm">Роль: {profile?.role || 'загрузка...'}</p>
+            {profile?.role && !['admin', 'dealer'].includes(profile.role) && (
+              <p className="text-red-600 text-sm mt-1">⚠️ Недостаточно прав для импорта</p>
+            )}
           </div>
         ) : (
-          <div>
-            <p className="font-semibold text-red-600">Нет активной сессии!</p>
-            <button 
-              onClick={checkSession}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded mr-2"
-            >
-              Проверить сессию
-            </button>
-            <button 
-              onClick={() => router.push('/login')}
-              className="mt-2 px-4 py-2 bg-green-500 text-white rounded"
-            >
-              Перейти к входу
-            </button>
-          </div>
+          <p>Войдите в систему для импорта</p>
         )}
       </div>
-
+      
+      {/* Загрузка файла */}
       <div className="mb-6 p-4 border-2 border-dashed rounded-lg">
         <input
           type="file"
           accept=".csv"
           onChange={handleFileUpload}
           className="mb-2"
-          disabled={processing || !session}
+          disabled={processing || !user}
         />
         <p className="text-sm text-gray-600">
           Выберите CSV файл с колонками: dealer_id, full_name, phone, iin, sponsor_name, instagram
         </p>
       </div>
 
+      {/* Статистика */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-100 p-4 rounded">
           <div className="text-2xl font-bold">{stats.loaded}</div>
@@ -268,10 +238,11 @@ export default function CSVImport() {
         </div>
       </div>
 
+      {/* Кнопки действий */}
       <div className="flex gap-4 mb-6">
         <button
           onClick={startImport}
-          disabled={processing || dealers.length === 0 || !session}
+          disabled={processing || dealers.length === 0 || !user || (profile && !['admin', 'dealer'].includes(profile.role))}
           className="px-6 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
         >
           {processing ? `Импорт... (${stats.processed}/${stats.loaded})` : 'Начать импорт'}
@@ -298,6 +269,7 @@ export default function CSVImport() {
         </button>
       </div>
 
+      {/* Прогресс */}
       {processing && stats.loaded > 0 && (
         <div className="mb-6">
           <div className="w-full bg-gray-200 rounded h-4">
@@ -309,12 +281,14 @@ export default function CSVImport() {
         </div>
       )}
 
+      {/* Лог */}
       <div className="border rounded p-4 h-96 overflow-auto bg-gray-900 text-green-400 font-mono text-xs">
         {log.map((line, i) => (
           <div key={i}>{line}</div>
         ))}
       </div>
 
+      {/* Предпросмотр данных */}
       {dealers.length > 0 && !processing && (
         <div className="mt-6">
           <h3 className="font-semibold mb-2">Предпросмотр (первые 10):</h3>
