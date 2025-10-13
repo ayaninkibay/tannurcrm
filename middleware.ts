@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
+import { hasPageAccess } from './src/lib/permissions/permissions'
+import { isProtectedAdminRoute } from './src/lib/permissions/permissions-config'
 
 export async function middleware(request: NextRequest) {
-  console.log('⏱ middleware start →', request.nextUrl.pathname)
-
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -23,13 +23,12 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Устанавливаем куки с правильными настройками
             const cookieOptions = {
               ...options,
-              httpOnly: false, // Позволяем доступ из JavaScript
-              secure: process.env.NODE_ENV === 'production', // HTTPS только в продакшене
-              sameSite: 'lax' as const, // Защита от CSRF
-              maxAge: 60 * 60 * 24 * 7 // 7 дней
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax' as const,
+              maxAge: 60 * 60 * 24 * 7
             }
             request.cookies.set({ name, value, ...cookieOptions })
             response.cookies.set({ name, value, ...cookieOptions })
@@ -40,14 +39,12 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    // Получаем сессию - Supabase автоматически обновит токен если нужно
     const { data: { session }, error } = await supabase.auth.getSession()
     
     if (error) {
       console.error('Session error in middleware:', error)
     }
 
-    // Получаем пользователя
     const { data: { user } } = await supabase.auth.getUser()
 
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
@@ -57,18 +54,13 @@ export async function middleware(request: NextRequest) {
     const isAuthRoute = request.nextUrl.pathname === '/signin' || 
                        request.nextUrl.pathname === '/signup'
 
-    // Если пользователь не авторизован и пытается попасть на защищенную страницу
+    // 🔒 Если неавторизованный пытается попасть на защищенную страницу - показываем 404
     if (isProtectedRoute && !user) {
-      console.log('middleware → redirecting to /signin (no user)')
-      const url = request.nextUrl.clone()
-      url.pathname = '/signin'
-      url.searchParams.set('redirectTo', request.nextUrl.pathname)
-      return NextResponse.redirect(url)
+      return NextResponse.rewrite(new URL('/not-found', request.url))
     }
 
     // Если пользователь авторизован и находится на странице входа
     if (isAuthRoute && user) {
-      console.log('middleware → redirecting to / (already signed in)')
       const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/'
       const url = request.nextUrl.clone()
       url.pathname = redirectTo
@@ -76,25 +68,35 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    console.log('middleware → allow', { 
-      user: user?.email || 'anonymous',
-      path: request.nextUrl.pathname,
-      sessionExists: !!session
-    })
+    // 🔐 ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНСКИМ СТРАНИЦАМ
+    if (user && isProtectedAdminRoute(request.nextUrl.pathname)) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role, permissions')
+        .eq('id', user.id)
+        .single()
+
+      if (userError) {
+        return NextResponse.rewrite(new URL('/not-found', request.url))
+      }
+
+      const userPermissions = userData?.permissions || []
+      const hasAccess = hasPageAccess(userPermissions, request.nextUrl.pathname)
+
+      if (!hasAccess) {
+        return NextResponse.rewrite(new URL('/not-found', request.url))
+      }
+    }
 
   } catch (error) {
-    console.error('middleware → error:', error)
+    console.error('Middleware error:', error)
     
-    // В случае ошибки, проверяем защищенные маршруты
     const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
                            request.nextUrl.pathname.startsWith('/admin') ||
                            request.nextUrl.pathname.startsWith('/celebrity')
     
     if (isProtectedRoute) {
-      console.log('middleware → redirecting to /signin (auth error)')
-      const url = request.nextUrl.clone()
-      url.pathname = '/signin'
-      return NextResponse.redirect(url)
+      return NextResponse.rewrite(new URL('/not-found', request.url))
     }
   }
 
@@ -103,14 +105,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes that don't need auth
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ]
 }
