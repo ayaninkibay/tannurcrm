@@ -9,7 +9,8 @@ import Lottie from 'lottie-react';
 import hamburgerAnimation from '@/components/lotties/Menu.json';
 import { useUser } from '@/context/UserContext';
 import { useTranslate, type Lang } from '@/hooks/useTranslate';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ChevronDown, X, ShoppingCart } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 interface MoreHeaderDEProps {
   title: string | React.ReactNode;
@@ -24,7 +25,6 @@ type LanguageOption = {
   className?: string;
 };
 
-// Данные языков с флагами
 const languages: LanguageOption[] = [
   { code: 'ru', name: 'Русский', flagSvg: '/icons/ru.svg', short: 'RU', className: 'rounded-full' },
   { code: 'cn', name: 'China',   flagSvg: '/icons/ch.svg', short: 'CN' },
@@ -41,6 +41,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
+  const [cartCount, setCartCount] = useState<number>(0);
 
   const currentLanguage = languages.find(lang => lang.code === language) || languages[0];
 
@@ -48,8 +49,46 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
     if (!loading && profile) {
       setName(`${profile.first_name} ${profile.last_name}`);
       setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
+      loadCartCount();
     }
   }, [profile, loading]);
+
+  // Загрузка количества товаров в корзине
+  const loadCartCount = async () => {
+    if (!profile?.id) return;
+    
+    try {
+      // Получаем корзину пользователя
+      const { data: cart } = await supabase
+        .from('carts')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .single();
+
+      if (!cart) {
+        setCartCount(0);
+        return;
+      }
+
+      // Считаем товары в корзине
+      const { data: items } = await supabase
+        .from('cart_items')
+        .select('quantity')
+        .eq('cart_id', cart.id);
+
+      const total = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+      setCartCount(total);
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      setCartCount(0);
+    }
+  };
+
+  // Перезагружаем при смене страницы
+  useEffect(() => {
+    if (profile?.id) loadCartCount();
+  }, [pathname, profile?.id]);
 
   const handleProfile = () => router.push('/dealer/profile');
 
@@ -75,26 +114,22 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
       router.push('/dealer/stats');
     } else if (pathname.includes('/education/')) {
       router.push('/dealer/education');
-    } else if (pathname.includes('/documents/')) {
-      router.push('/dealer/documents');
     } else {
       router.back();
     }
   };
 
-  // Иконки как в Sidebar (пути должны существовать в /public/icons)
   const menuItems = [
-    { label: t('Tannur Главная') || 'Tannur Главная', href: '/',                 icon: '/icons/company/tannurapp_1.svg' },
     { label: t('Мой дэшборд')    || 'Мой дэшборд',    href: '/dealer/dashboard', icon: '/icons/Icon home gray.png',   activeIcon: '/icons/Icon home white.png' },
     { label: t('Моя команда')    || 'Моя команда',    href: '/dealer/myteam',    icon: '/icons/Icon share gray.png',  activeIcon: '/icons/Icon share white.png' },
     { label: t('Мои финансы')    || 'Мои финансы',    href: '/dealer/stats',     icon: '/icons/IconStatsGray.svg',    activeIcon: '/icons/IconStatsOpacity.svg' },
     { label: t('Tannur Store')   || 'Tannur Store',   href: '/dealer/shop',      icon: '/icons/Icon shop gray.png',   activeIcon: '/icons/Icon shop white.png' },
-    { label: t('Tannur BA')      || 'Tannur BA',      href: '/dealer/education', icon: '/icons/Icon course gray.png', activeIcon: '/icons/Icon course white.png' },
-    { label: t('Файлы')          || 'Файлы',          href: '/dealer/documents', icon: '/icons/Icon docs gray.png',   activeIcon: '/icons/Icon docs white.png' },
+    { label: t('Корзина')        || 'Корзина',        href: '/dealer/shop/cart',      icon: '/icons/Icon shop gray.png',   activeIcon: '/icons/Icon shop white.png', showBadge: true },
+    { label: t('Tannur BA')      || 'Tannur BA',      href: '/dealer/education', icon: '/icons/Icon course gray.png', activeIcon: '/icons/Icon course white.png' }
   ];
 
   const handleLanguageChange = (langCode: Lang) => {
-    changeLanguage(langCode);        // мгновенный ререндер клиентских компонентов
+    changeLanguage(langCode);
     setLanguageMenuOpen(false);
   };
 
@@ -124,69 +159,24 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Переключатель языка */}
-          <div className="relative">
-            <button
-              onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
-              className="flex items-center gap-1 bg-white rounded-lg px-2 py-1.5 border border-gray-200 hover:bg-gray-50 transition-colors"
-              aria-haspopup="menu"
-              aria-expanded={languageMenuOpen}
-            >
-              <Image
-                src={currentLanguage.flagSvg}
-                alt={currentLanguage.name}
-                width={20}
-                height={15}
-                className="object-contain rounded-2xl"
-                unoptimized
-              />
-              <span className="text-sm font-medium text-gray-700 hidden md:block">
-                {currentLanguage.short}
-              </span>
-              <ChevronDown className="w-3 h-3 text-gray-400" />
-            </button>
-
-            {/* Выпадающее меню языков */}
-            <AnimatePresence>
-              {languageMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setLanguageMenuOpen(false)}
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 min-w-[120px]"
-                    role="menu"
-                  >
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang.code)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                          language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                        }`}
-                        role="menuitem"
-                      >
-                        <Image
-                          src={lang.flagSvg}
-                          alt={lang.name}
-                          width={18}
-                          height={13}
-                          className="object-contain"
-                          unoptimized
-                        />
-                        <span className="font-medium">{lang.short}</span>
-                        <span className="hidden md:block text-xs text-gray-500">{lang.name}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Иконка корзины с счетчиком - только для десктопа */}
+          <button
+            onClick={() => router.push('/dealer/shop/cart')}
+            className="hidden lg:flex relative items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors group"
+            title={t('Корзина')}
+            aria-label={t('Корзина')}
+          >
+            <ShoppingCart className="w-5 h-5 text-gray-600 group-hover:text-[#D77E6C] transition-colors" />
+            {cartCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-[#D77E6C] text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md"
+              >
+                {cartCount > 99 ? '99+' : cartCount}
+              </motion.span>
+            )}
+          </button>
 
           <button
             onClick={handleProfile}
@@ -271,7 +261,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                 </div>
                 <div className="w-full h-px bg-gray-300 mt-5 mb-10" />
 
-                {menuItems.map(({ label, href, icon, activeIcon }) => {
+                {menuItems.map(({ label, href, icon, activeIcon, showBadge }) => {
                   const isActive = pathname === href;
                   return (
                     <button
@@ -280,7 +270,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                         setMenuOpen(false);
                         router.push(href);
                       }}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl w-full text-left transition-all ${
+                      className={`flex items-center gap-3 px-4 py-2 rounded-xl w-full text-left transition-all relative ${
                         isActive ? 'bg-[#D77E6C] text-white' : 'text-black hover:bg-[#F4ECEB]'
                       }`}
                     >
@@ -292,6 +282,11 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                         unoptimized
                       />
                       <span className="text-base font-medium">{label}</span>
+                      {showBadge && cartCount > 0 && (
+                        <span className="ml-auto w-6 h-6 bg-[#D77E6C] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -303,35 +298,57 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
                 </p>
                 <div className="flex flex-col gap-2 mt-2">
                   {/* Переключатель языка в мобильном меню */}
-                  <div className="px-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Image src="/icons/buttom/settingsblack.svg" alt={t('Язык')} width={20} height={20} unoptimized />
-                      <span className="text-black font-medium">{t('Язык') || 'Язык'}</span>
-                    </div>
-                    <div className="flex gap-1 ml-7">
-                      {languages.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => handleLanguageChange(lang.code)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                            language === lang.code
-                              ? 'bg-[#D77E6C] text-white'
-                              : 'bg-white text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          <Image
-                            src={lang.flagSvg}
-                            alt={lang.name}
-                            width={16}
-                            height={12}
-                            className="object-contain"
-                            unoptimized
-                          />
-                          <span>{lang.short}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                    className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB] transition-colors"
+                  >
+                    <Image src="/icons/buttom/settingsblack.svg" alt={t('Язык')} width={20} height={20} unoptimized />
+                    <span>{t('Язык') || 'Язык'}</span>
+                    <span className="text-xs text-gray-500">({currentLanguage.short})</span>
+                    <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${languageMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Выпадающий список языков */}
+                  <AnimatePresence>
+                    {languageMenuOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-col gap-1 px-4 py-2 bg-white/50 rounded-lg mx-4">
+                          {languages.map((lang) => (
+                            <button
+                              key={lang.code}
+                              onClick={() => {
+                                handleLanguageChange(lang.code);
+                                setLanguageMenuOpen(false);
+                              }}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                language === lang.code
+                                  ? 'bg-[#D77E6C] text-white'
+                                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                              }`}
+                            >
+                              <div className="w-5 h-5 flex items-center justify-center overflow-hidden rounded-sm flex-shrink-0">
+                                <Image
+                                  src={lang.flagSvg}
+                                  alt={lang.name}
+                                  width={20}
+                                  height={20}
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                              <span className="font-medium">{lang.short}</span>
+                              <span className="text-xs opacity-70">{lang.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <button
                     onClick={handleSignOut}
@@ -345,37 +362,111 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
               <div className="w-full text-[12px] text-gray-400 text-start mt-auto px-4">
                 {t('Tannur Cosmetics (C) 2025.')}<br />
-                {t('Создано в')} <span className="text-red-400 cursor-pointer" onClick={() => setShowInqoInfo(true)}>Inqo Technologies</span>.
+                {t('Создано в')} <span 
+                  className="text-[#D77E6C] cursor-pointer hover:underline font-medium transition-all" 
+                  onClick={() => setShowInqoInfo(true)}
+                >
+                  Inqo Technologies
+                </span>.
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
+      {/* Модальное окно Inqo */}
       <AnimatePresence>
         {showInqoInfo && (
           <motion.div
-            className="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-black/40 px-6"
+            className="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-md bg-black/50 px-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowInqoInfo(false)}
           >
             <motion.div
-              className="bg-white rounded-2xl p-8 text-center text-black shadow-xl"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              className="bg-white rounded-3xl p-8 text-center shadow-2xl max-w-sm w-full relative"
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 rounded-2xl text-center max-w-xs w-full">
-                <Image src="/icons/inqo.svg" alt="Inqo Logo" width={48} height={48} className="mx-auto mb-4" unoptimized />
-                <h2 className="text-md font-semibold mb-2">
-                  {t('Tannur CRM был разработан в')}<br />Inqo Technologies
-                </h2>
-                <p className="text-sm text-gray-500">www.inqo.tech</p>
-              </div>
+              <button
+                onClick={() => setShowInqoInfo(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
+
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring" }}
+                className="mb-6"
+              >
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-[#D77E6C] to-[#C46A5A] rounded-2xl flex items-center justify-center shadow-lg">
+                  <Image 
+                    src="/icons/inqo.svg" 
+                    alt="Inqo Logo" 
+                    width={48} 
+                    height={48}
+                    unoptimized 
+                  />
+                </div>
+              </motion.div>
+
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-xl font-bold text-gray-900 mb-2"
+              >
+                {t('Разработано в')}
+              </motion.h2>
+
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-2xl font-bold bg-gradient-to-r from-[#D77E6C] to-[#C46A5A] bg-clip-text text-transparent mb-4"
+              >
+                Inqo Technologies
+              </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-sm text-gray-500 mb-6"
+              >
+                {t('Платформа Tannur CRM создана с любовью и вниманием к деталям')}
+              </motion.p>
+
+              <motion.a
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                href="https://www.inqo.tech"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#D77E6C] to-[#C46A5A] text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105"
+              >
+                {t('Посетить сайт')}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </motion.a>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-xs text-gray-400 mt-6"
+              >
+                www.inqo.tech
+              </motion.p>
             </motion.div>
           </motion.div>
         )}

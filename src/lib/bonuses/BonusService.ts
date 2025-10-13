@@ -13,11 +13,207 @@ import type {
   BonusStatistics,
   OrderHistory,
   TransactionHistory,
-  TeamTreeNode
+  TeamTreeNode,
+  TeamStatsData,
+  UserDashboardData,
+  BonusStats,
+  MonthStatus,
+  SystemHealth,
+  TurnoverAuditResult,
+  FixResult,
+  MonthFinalizationResult
 } from '@/types/bonus.types';
 
+// ============================================
+// КОНСТАНТЫ
+// ============================================
+
+const BONUS_CONSTANTS = {
+  DEFAULT_GOAL: 1000000,
+  DEFAULT_BONUS_PERCENT: 8,
+  CACHE_TIME: 5 * 60 * 1000, // 5 минут
+} as const;
+
 export class BonusService {
-  // ============= Уровни бонусов =============
+  // ============================================
+  // НОВЫЕ ОПТИМИЗИРОВАННЫЕ МЕТОДЫ
+  // ============================================
+
+  /**
+   * ⭐ НОВЫЙ МЕТОД - Получить статистику команды из SQL
+   * Использует SQL функцию get_team_stats для быстрого получения данных
+   */
+  static async getTeamStats(userId: string): Promise<TeamStatsData> {
+    try {
+      const { data, error } = await supabase.rpc('get_team_stats', {
+        root_user_id: userId
+      });
+
+      if (error) throw error;
+      
+      // Если нет данных, возвращаем пустую статистику
+      if (!data || data.length === 0) {
+        return {
+          totalMembers: 0,
+          directMembers: 0,
+          totalTurnover: 0,
+          activeMembersCount: 0,
+          maxDepth: 0,
+          goal: BONUS_CONSTANTS.DEFAULT_GOAL,
+          remaining: BONUS_CONSTANTS.DEFAULT_GOAL
+        };
+      }
+
+      const stats = data[0];
+      const goal = BONUS_CONSTANTS.DEFAULT_GOAL;
+      const totalMembers = Number(stats.total_members) || 0;
+      
+      return {
+        totalMembers,
+        directMembers: Number(stats.direct_members) || 0,
+        totalTurnover: Number(stats.total_turnover) || 0,
+        activeMembersCount: Number(stats.active_members) || 0,
+        maxDepth: Number(stats.max_depth) || 0,
+        goal,
+        remaining: Math.max(0, goal - totalMembers)
+      };
+    } catch (error) {
+      console.error('Error in getTeamStats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ⭐ НОВЫЙ МЕТОД - Получить все данные для дашборда пользователя
+   * Один оптимизированный запрос вместо множества отдельных
+   */
+  static async getUserDashboardData(userId: string): Promise<UserDashboardData> {
+    try {
+      const currentMonth = this.getCurrentMonth();
+      
+      // Параллельные запросы для максимальной скорости
+      const [levels, turnover, teamStats, bonuses] = await Promise.all([
+        this.getBonusLevels().catch(err => {
+          console.error('Error loading bonus levels:', err);
+          return [];
+        }),
+        this.getUserTurnover(userId).catch(err => {
+          console.error('Error loading user turnover:', err);
+          return null;
+        }),
+        this.getTeamStats(userId).catch(err => {
+          console.error('Error loading team stats:', err);
+          return {
+            totalMembers: 0,
+            directMembers: 0,
+            totalTurnover: 0,
+            activeMembersCount: 0,
+            maxDepth: 0,
+            goal: BONUS_CONSTANTS.DEFAULT_GOAL,
+            remaining: BONUS_CONSTANTS.DEFAULT_GOAL
+          };
+        }),
+        this.getMonthlyBonuses(currentMonth, userId).catch(err => {
+          console.error('Error loading monthly bonuses:', err);
+          return [];
+        })
+      ]);
+
+      // Определяем текущий и следующий уровень
+      let currentLevel: BonusLevel | null = null;
+      let nextLevel: BonusLevel | null = null;
+      
+      if (levels && levels.length > 0 && turnover) {
+        const totalAmount = turnover.total_turnover || 0;
+        
+        // Находим текущий уровень
+        currentLevel = levels.find(
+          l => totalAmount >= l.min_amount && (!l.max_amount || totalAmount <= l.max_amount)
+        ) || levels[0];
+        
+        // Находим следующий уровень
+        const currentIdx = levels.findIndex(l => l.id === currentLevel?.id);
+        if (currentIdx !== -1 && currentIdx < levels.length - 1) {
+          nextLevel = levels[currentIdx + 1];
+        }
+      }
+
+      // Вычисляем статистику бонусов
+      const bonusStats = this.calculateBonusStats(turnover, currentLevel, nextLevel, bonuses, userId);
+
+      return {
+        turnover,
+        bonusLevel: currentLevel,
+        nextLevel,
+        teamStats,
+        monthlyBonuses: bonuses,
+        bonusStats
+      };
+    } catch (error) {
+      console.error('Error in getUserDashboardData:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * ⭐ НОВЫЙ МЕТОД - Вычислить статистику бонусов
+   * Приватный метод для расчета всех показателей
+   */
+  private static calculateBonusStats(
+    turnover: UserTurnover | null,
+    currentLevel: BonusLevel | null,
+    nextLevel: BonusLevel | null,
+    monthlyBonuses: MonthlyBonus[],
+    userId: string
+  ): BonusStats {
+    const personalTurnover = turnover?.personal_turnover || 0;
+    const teamTurnover = turnover?.team_turnover || 0;
+    const totalTurnover = turnover?.total_turnover || 0;
+    const bonusPercent = turnover?.bonus_percent || currentLevel?.bonus_percent || BONUS_CONSTANTS.DEFAULT_BONUS_PERCENT;
+
+    // Расчет бонусов
+    const personalBonus = monthlyBonuses
+      .filter(b => b.bonus_type === 'personal' && b.beneficiary_id === userId)
+      .reduce((sum, b) => sum + (b.bonus_amount || 0), 0);
+      
+    const differentialBonus = monthlyBonuses
+      .filter(b => b.bonus_type === 'differential' && b.beneficiary_id === userId)
+      .reduce((sum, b) => sum + (b.bonus_amount || 0), 0);
+      
+    const totalBonus = personalBonus + differentialBonus;
+    const expectedBonus = personalTurnover * (bonusPercent / 100);
+
+    // Прогресс до следующего уровня
+    let amountToNextLevel = 0;
+    let progressToNextLevel = 0;
+
+    if (currentLevel && nextLevel) {
+      amountToNextLevel = nextLevel.min_amount - totalTurnover;
+      const start = currentLevel.min_amount;
+      const end = nextLevel.min_amount;
+      progressToNextLevel = Math.min(100, ((totalTurnover - start) / (end - start)) * 100);
+    }
+
+    return {
+      personalTurnover,
+      teamTurnover,
+      totalTurnover,
+      bonusPercent,
+      expectedBonus,
+      personalBonus,
+      differentialBonus,
+      totalBonus,
+      currentLevel,
+      nextLevel,
+      amountToNextLevel,
+      progressToNextLevel
+    };
+  }
+
+  // ============================================
+  // УРОВНИ БОНУСОВ
+  // ============================================
+
   static async getBonusLevels(): Promise<BonusLevel[]> {
     const { data, error } = await supabase
       .from('bonus_levels')
@@ -43,7 +239,14 @@ export class BonusService {
     return null;
   }
 
-  // ============= Товарооборот =============
+  // ============================================
+  // ТОВАРООБОРОТ - ОБНОВЛЕННЫЕ МЕТОДЫ
+  // ============================================
+
+  /**
+   * ✅ ОБНОВЛЕНО - Получить товарооборот конкретного пользователя
+   * Убрано лишнее пересчитывание team_turnover (уже есть в БД)
+   */
   static async getUserTurnover(userId: string): Promise<UserTurnover | null> {
     const { data, error } = await supabase
       .from('user_turnover_current')
@@ -52,10 +255,19 @@ export class BonusService {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
+    
+    // ✅ Просто возвращаем данные как есть
+    // team_turnover уже корректно рассчитан в БД
     return data;
   }
 
+  /**
+   * @deprecated Используйте getUserDashboardData() вместо этого
+   * Метод оставлен для обратной совместимости
+   */
   static async getAllUsersTurnover(month?: string): Promise<UserTurnover[]> {
+    console.warn('getAllUsersTurnover is deprecated. Use getUserDashboardData or getTurnoverForMonth instead');
+    
     let query = supabase
       .from('user_turnover_current')
       .select(`
@@ -80,13 +292,13 @@ export class BonusService {
     const { data, error } = await query;
     if (error) throw error;
     
-    return (data || []).map(user => ({
-      ...user,
-      team_turnover: (user.total_turnover || 0) - (user.personal_turnover || 0)
-    }));
+    return data || [];
   }
 
-  // ============= Работа с историческими данными =============
+  // ============================================
+  // РАБОТА С ИСТОРИЧЕСКИМИ ДАННЫМИ
+  // ============================================
+
   static async getTurnoverForMonth(month: string): Promise<{
     data: any[];
     source: 'current' | 'history';
@@ -115,10 +327,7 @@ export class BonusService {
       if (error) throw error;
       
       return {
-        data: (data || []).map(user => ({
-          ...user,
-          team_turnover: (user.total_turnover || 0) - (user.personal_turnover || 0)
-        })),
+        data: data || [],
         source: 'current'
       };
     } else {
@@ -162,7 +371,6 @@ export class BonusService {
     }
   }
 
-  // ОБНОВЛЕННЫЙ МЕТОД ПОИСКА - ищет среди ВСЕХ дилеров
   static async searchUsersWithTurnover(query: string, month: string): Promise<any[]> {
     const turnoverData = await this.getTurnoverForMonth(month);
     
@@ -194,17 +402,7 @@ export class BonusService {
     return filteredData;
   }
 
-  static async getMonthStatus(month: string): Promise<{
-    isCurrentMonth: boolean;
-    isHistorical: boolean;
-    isFuture: boolean;
-    isFinalized: boolean;
-    isPaid: boolean;
-    canCalculate: boolean;
-    canFinalize: boolean;
-    hasData: boolean;
-    dataCount: number;
-  }> {
+  static async getMonthStatus(month: string): Promise<MonthStatus> {
     const currentMonth = this.getCurrentMonth();
     const isCurrentMonth = month === currentMonth;
     const isHistorical = month < currentMonth;
@@ -268,12 +466,7 @@ export class BonusService {
     return data || [];
   }
 
-  static async checkSystemHealthForMonth(month: string): Promise<{
-    hasIssues: boolean;
-    issuesCount: number;
-    canProceed: boolean;
-    message: string;
-  }> {
+  static async checkSystemHealthForMonth(month: string): Promise<SystemHealth> {
     const currentMonth = this.getCurrentMonth();
     
     if (month < currentMonth) {
@@ -298,7 +491,10 @@ export class BonusService {
     };
   }
 
-  // ============= Расчет бонусов =============
+  // ============================================
+  // РАСЧЕТ БОНУСОВ
+  // ============================================
+
   static async calculateMonthlyBonuses(month?: string): Promise<BonusCalculationPreview> {
     const { data, error } = await supabase.rpc('calculate_monthly_bonuses_preview', {
       p_month: month || null
@@ -354,7 +550,10 @@ export class BonusService {
     if (error) throw error;
   }
 
-  // ============= Месячные бонусы =============
+  // ============================================
+  // МЕСЯЧНЫЕ БОНУСЫ
+  // ============================================
+
   static async getMonthlyBonuses(month: string, userId?: string): Promise<MonthlyBonus[]> {
     let query = supabase
       .from('monthly_bonuses')
@@ -384,7 +583,10 @@ export class BonusService {
     return data || [];
   }
 
-  // ============= Иерархия команды =============
+  // ============================================
+  // ИЕРАРХИЯ КОМАНДЫ
+  // ============================================
+
   static async getDealerHierarchy(month?: string): Promise<DealerHierarchy[]> {
     const { data, error } = await supabase.rpc('get_dealer_hierarchy_with_bonuses', {
       p_month: month || null
@@ -421,8 +623,6 @@ export class BonusService {
       turnoverData?.map(t => [t.user_id, t]) || []
     );
 
-    const usersMap = new Map(allUsers.map(u => [u.id, u]));
-    
     const collectTeamMembers = (rootId: string, level: number = 0): TeamMember[] => {
       const result: TeamMember[] = [];
       const directMembers = allUsers.filter(u => u.parent_id === rootId);
@@ -431,24 +631,32 @@ export class BonusService {
         const turnover = turnoverMap.get(member.id);
         const personalTurnover = turnover?.personal_turnover || 0;
         const totalTurnover = turnover?.total_turnover || 0;
+        const teamTurnover = turnover?.team_turnover || 0;
         const bonusPercent = turnover?.bonus_percent || 0;
         
         const teamMember: TeamMember = {
           user_id: member.id,
           email: member.email,
-          full_name: `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email,
+          full_name: `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email || '',
+          first_name: member.first_name,
+          last_name: member.last_name,
           phone: member.phone,
           avatar_url: member.avatar_url,
           parent_id: member.parent_id,
           level: level + 1,
           personal_turnover: personalTurnover,
-          team_turnover: Math.max(0, totalTurnover - personalTurnover),
+          team_turnover: teamTurnover,
           total_turnover: totalTurnover,
           bonus_percent: bonusPercent,
           bonus_amount: personalTurnover * bonusPercent / 100,
           team_size: 0,
           status: member.status,
-          joined_date: member.created_at
+          joined_date: member.created_at,
+          profession: null,
+          role: null,
+          is_confirmed: true,
+          created_at: member.created_at,
+          referral_code: null
         };
         
         result.push(teamMember);
@@ -464,7 +672,13 @@ export class BonusService {
     return collectTeamMembers(userId);
   }
 
+  /**
+   * @deprecated Используйте getTeamStats() для получения счетчиков
+   * Этот метод тяжелый и загружает полное дерево
+   */
   static async buildTeamTree(userId: string): Promise<TeamTreeNode> {
+    console.warn('buildTeamTree is deprecated for counting. Use getTeamStats() instead');
+    
     const { data: allUsers, error: usersError } = await supabase
       .from('users')
       .select(`
@@ -476,7 +690,8 @@ export class BonusService {
         avatar_url,
         parent_id,
         created_at,
-        status
+        status,
+        is_confirmed
       `);
 
     if (usersError) throw usersError;
@@ -503,13 +718,14 @@ export class BonusService {
       const personalTurnover = turnover?.personal_turnover || 0;
       const totalTurnover = turnover?.total_turnover || 0;
       const bonusPercent = turnover?.bonus_percent || 0;
-      const teamTurnover = Math.max(0, totalTurnover - personalTurnover);
+      const teamTurnover = turnover?.team_turnover || 0;
       const bonusAmount = personalTurnover * bonusPercent / 100;
 
       return {
         id: user.id,
-        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+        name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || '',
         email: user.email,
+        avatar_url: user.avatar_url,
         turnover: personalTurnover,
         personal_turnover: personalTurnover,
         team_turnover: teamTurnover,
@@ -518,27 +734,24 @@ export class BonusService {
         bonus_amount: bonusAmount,
         children,
         expanded: false,
-        level: level
+        level: level,
+        status: user.status,
+        is_confirmed: user.is_confirmed,
+        joined_date: user.created_at
       };
     };
 
     return buildNode(rootUser, 0);
   }
 
-  // ============= АУДИТ И ПРОВЕРКА ДАННЫХ =============
+  // ============================================
+  // АУДИТ И ПРОВЕРКА ДАННЫХ
+  // ============================================
+
   static async auditTurnoverCheck(
     userId?: string | null, 
     checkTeam: boolean = false
-  ): Promise<{
-    user_id: string;
-    email: string;
-    full_name: string;
-    check_type: string;
-    stored_value: number;
-    calculated_value: number;
-    difference: number;
-    is_correct: boolean;
-  }[]> {
+  ): Promise<TurnoverAuditResult[]> {
     const { data, error } = await supabase.rpc('audit_turnover_check', {
       p_user_id: userId || null,
       p_check_team: checkTeam
@@ -548,13 +761,7 @@ export class BonusService {
     return data || [];
   }
 
-  static async fixPersonalTurnover(userId: string): Promise<{
-    user_id: string;
-    old_value: number;
-    new_value: number;
-    difference: number;
-    fixed: boolean;
-  }> {
+  static async fixPersonalTurnover(userId: string): Promise<FixResult> {
     const { data, error } = await supabase.rpc('fix_personal_turnover', {
       p_user_id: userId
     });
@@ -603,13 +810,11 @@ export class BonusService {
     return data;
   }
 
-  // ============= Финализация =============
-  static async finalizePreviousMonth(): Promise<{
-    month_finalized: string;
-    users_count: number;
-    total_bonuses: number;
-    status: string;
-  }> {
+  // ============================================
+  // ФИНАЛИЗАЦИЯ
+  // ============================================
+
+  static async finalizePreviousMonth(): Promise<MonthFinalizationResult> {
     const { data, error } = await supabase.rpc('finalize_previous_month');
 
     if (error) throw error;
@@ -622,7 +827,10 @@ export class BonusService {
     };
   }
 
-  // ============= Детальная информация =============
+  // ============================================
+  // ДЕТАЛЬНАЯ ИНФОРМАЦИЯ
+  // ============================================
+
   static async getUserBonusDetails(userId: string): Promise<UserBonusDetails> {
     const { data: userInfo } = await supabase
       .from('users')
@@ -664,7 +872,10 @@ export class BonusService {
     };
   }
 
-  // ============= История =============
+  // ============================================
+  // ИСТОРИЯ
+  // ============================================
+
   static async getUserOrderHistory(userId: string, limit = 50): Promise<OrderHistory[]> {
     const { data, error } = await supabase
       .from('orders')
@@ -701,7 +912,10 @@ export class BonusService {
     return data || [];
   }
 
-  // ============= Статистика =============
+  // ============================================
+  // СТАТИСТИКА
+  // ============================================
+
   static async getUserBonusStatistics(userId: string): Promise<BonusStatistics> {
     const currentMonth = new Date().toISOString().substring(0, 7);
     
@@ -745,7 +959,7 @@ export class BonusService {
     return {
       current_month: {
         personal_turnover: turnover?.personal_turnover || 0,
-        team_turnover: (turnover?.total_turnover || 0) - (turnover?.personal_turnover || 0),
+        team_turnover: turnover?.team_turnover || 0,
         total_turnover: turnover?.total_turnover || 0,
         expected_bonus: turnover 
           ? (turnover.personal_turnover * (turnover.bonus_percent / 100))
@@ -775,7 +989,10 @@ export class BonusService {
     };
   }
 
-  // ============= Поиск =============
+  // ============================================
+  // ПОИСК
+  // ============================================
+
   static async searchUsers(query: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('users')
@@ -799,7 +1016,10 @@ export class BonusService {
     return data || [];
   }
 
-  // ============= Утилиты для UI =============
+  // ============================================
+  // УТИЛИТЫ ДЛЯ UI
+  // ============================================
+
   static async checkSystemHealth(): Promise<{
     hasIssues: boolean;
     issuesCount: number;
@@ -884,7 +1104,10 @@ export class BonusService {
     };
   }
 
-  // ============= Утилиты =============
+  // ============================================
+  // УТИЛИТЫ
+  // ============================================
+
   static formatCurrency(amount: number): string {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',

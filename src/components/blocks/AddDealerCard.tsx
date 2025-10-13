@@ -25,7 +25,7 @@ export default function AddDealerCard({
   const handleAvatarClick = onAvatarClick ?? (() => alert(t('Аватар нажат')))
 
   // Путь для кнопки «Добавить»
-  const addDealerPath = '/dealer/create_dealer'
+  const addDealerPath = '/dealer/myteam/create_dealer'
 
   return (
     <div className="rounded-xl flex-1 flex items-center justify-center bg-neutral-700">

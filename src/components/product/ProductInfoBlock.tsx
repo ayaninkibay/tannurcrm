@@ -1,3 +1,6 @@
+// src/components/product/ProductInfoBlock.tsx
+// ОБНОВЛЕНО: работа с новым CartModule
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -5,8 +8,8 @@ import { useRouter } from 'next/navigation';
 import {
   ChevronLeft, ChevronRight, Sparkles, Play,
   ShoppingCart, Heart, Share2, Star, Package,
-  Plus, Minus, Check, ArrowRight, FileText, Award, User,
-  Truck, Shield, Headphones
+  Plus, Minus, ArrowRight, FileText, Award,
+  Truck, Shield, Loader2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase/client';
@@ -15,7 +18,6 @@ import { useUser } from '@/context/UserContext';
 import { useCartModule } from '@/lib/cart/CartModule';
 import { useTranslate } from '@/hooks/useTranslate';
 
-// Типы
 import { Database } from '@/types/supabase';
 type ProductRow = Database['public']['Tables']['products']['Row'];
 
@@ -35,18 +37,21 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
 
-  // Новые стейты для корзины
+  // Стейты для корзины
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [productStock, setProductStock] = useState<number>(0);
   const [loadingStock, setLoadingStock] = useState(true);
   
-  // Новый стейт для отслеживания товара в корзине
+  // Состояние товара в корзине
   const [isInCart, setIsInCart] = useState(false);
   const [cartItemQuantity, setCartItemQuantity] = useState(0);
   const [totalCartItems, setTotalCartItems] = useState(0);
 
-  // Загрузка данных корзины и остатков при монтировании
+  // ==========================================
+  // ЗАГРУЗКА ДАННЫХ
+  // ==========================================
+  
   useEffect(() => {
     if (currentUser) {
       loadCartData();
@@ -56,14 +61,14 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     }
   }, [currentUser, product]);
 
-  // Проверяем, есть ли товар в корзине и считаем общее количество
+  // Проверяем наличие товара в корзине
   useEffect(() => {
     if (cart.cartItems && product) {
       const cartItem = cart.cartItems.find(item => item.product_id === product.id);
       setIsInCart(!!cartItem);
       setCartItemQuantity(cartItem?.quantity || 0);
       
-      // Считаем общее количество товаров в корзине
+      // Считаем общее количество товаров
       const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
       setTotalCartItems(total);
     }
@@ -74,11 +79,10 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     try {
       await cart.loadUserCart(currentUser.id);
     } catch (error) {
-      console.error('Error loading cart:', error);
+      console.error('❌ Error loading cart:', error);
     }
   };
 
-  // Загрузка остатков товара
   const loadProductStock = async () => {
     if (!product) return;
     
@@ -94,14 +98,17 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
       
       setProductStock(data?.stock || 0);
     } catch (error) {
-      console.error('Error loading stock:', error);
+      console.error('❌ Error loading stock:', error);
       setProductStock(0);
     } finally {
       setLoadingStock(false);
     }
   };
 
-  // Добавить в корзину
+  // ==========================================
+  // ДОБАВИТЬ В КОРЗИНУ
+  // ==========================================
+  
   const handleAddToCart = async () => {
     if (!currentUser) {
       toast.error(t('Необходимо авторизоваться'));
@@ -111,7 +118,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
     if (!product) return;
 
-    // Проверка наличия товара
+    // Проверка наличия
     if (productStock < quantity) {
       toast.error(t('Недостаточно товара на складе'));
       return;
@@ -119,30 +126,32 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
     setIsAddingToCart(true);
     try {
-      // Сначала убедимся что корзина загружена
-      if (!cart.cart) {
-        await cart.loadUserCart(currentUser.id);
-      }
-
+      console.log('➕ Adding to cart:', { productId: product.id, quantity });
+      
+      // Используем НОВЫЙ метод addItem
       await cart.addItem(
+        currentUser.id,
         product.id,
-        quantity,
-        product.price || 0,
-        product.price_dealer || 0
+        quantity
       );
 
       setQuantity(1);
       
-      // Обновляем остатки после добавления
+      // Обновляем остатки
       await loadProductStock();
 
     } catch (error: any) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ Error adding to cart:', error);
+      // toast уже показан в CartModule
     } finally {
       setIsAddingToCart(false);
     }
   };
 
+  // ==========================================
+  // ИЗОБРАЖЕНИЯ
+  // ==========================================
+  
   useEffect(() => {
     if (product) {
       const images: string[] = [];
@@ -156,12 +165,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
         });
       }
       if (images.length === 0) {
-        images.push(
-          'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&h=600&fit=crop'
-        );
+        images.push('/icons/Photo_icon_1.jpg');
       }
       setProductImages(images);
     }
@@ -175,7 +179,10 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     setActiveImage((prev) => (prev === productImages.length - 1 ? 0 : prev + 1));
   };
 
-  // Функция для извлечения ID видео из YouTube URL
+  // ==========================================
+  // YOUTUBE EMBED
+  // ==========================================
+  
   const getYouTubeEmbedUrl = (url: string | null): string | undefined => {
     if (!url) return undefined;
 
@@ -196,32 +203,42 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     return undefined;
   };
 
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#D77E6C] border-t-transparent" />
-      </div>
-    );
-  }
-
-  // Расчет скидки
-  const discount = product.price && product.price_dealer
-    ? Math.round(((product.price - product.price_dealer) / product.price) * 100)
-    : 0;
-
-  // Форматирование цены
+  // ==========================================
+  // ФОРМАТИРОВАНИЕ
+  // ==========================================
+  
   const formatPrice = (price: number | null): string => {
     if (price === null) return '0';
     return price.toLocaleString('ru-RU');
   };
 
-  // Генерируем демо-значения
-  const reviewsCount = Math.floor(Math.random() * 50) + 10;
-  const rating = 4 + Math.random() * 0.5; // 4–4.5
+  const discount = product.price && product.price_dealer
+    ? Math.round(((product.price - product.price_dealer) / product.price) * 100)
+    : 0;
 
+  const reviewsCount = Math.floor(Math.random() * 50) + 10;
+  const rating = 4 + Math.random() * 0.5;
+
+  // ==========================================
+  // LOADING STATE
+  // ==========================================
+  
+  if (!product) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-10 h-10 text-[#D77E6C] animate-spin" />
+      </div>
+    );
+  }
+
+  // ==========================================
+  // РЕНДЕР
+  // ==========================================
+  
   return (
     <div className="w-full h-full">
-      <div className="max-w-420 mx-auto">
+      <div className="max-w-7xl mx-auto">
+        
         {/* Мобильный заголовок */}
         <div className="md:hidden mb-4">
           <h1 className="text-2xl font-bold text-gray-900">{product.name || t('Без названия')}</h1>
@@ -232,14 +249,15 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
               ))}
             </div>
             <span className="text-sm text-gray-600">
-              ({t('{n} отзывов').replace('{n}', String(reviewsCount))})
+              ({reviewsCount} {t('отзывов')})
             </span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
           <div className="flex flex-col lg:flex-row">
-            {/* Блок с изображениями */}
+            
+            {/* ЛЕВАЯ ЧАСТЬ - ИЗОБРАЖЕНИЯ */}
             <div className="w-full lg:w-1/2 p-4 md:p-8">
               <div className="relative">
                 {/* Основное изображение */}
@@ -273,14 +291,12 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                       <button
                         onClick={handlePrev}
                         className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all"
-                        aria-label="Prev"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={handleNext}
                         className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all"
-                        aria-label="Next"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -288,22 +304,28 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   )}
 
                   {/* Бейджи */}
-                  {product.flagman && (
-                    <div className="absolute top-4 left-4 bg-[#D77E6C] text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      {t('Хит продаж')}
-                    </div>
-                  )}
-                  {productStock === 0 && !loadingStock && (
-                    <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      {t('Нет в наличии')}
-                    </div>
-                  )}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    {product.flagman && (
+                      <div className="bg-[#D77E6C] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        {t('Хит продаж')}
+                      </div>
+                    )}
+                    {productStock === 0 && !loadingStock && (
+                      <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        {t('Нет в наличии')}
+                      </div>
+                    )}
+                    {productStock > 0 && productStock <= 10 && !loadingStock && (
+                      <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        {t('Осталось:')} {productStock}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Избранное */}
                   <button
                     onClick={() => setIsFavorite(!isFavorite)}
                     className="absolute top-4 right-4 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-all"
-                    aria-pressed={isFavorite}
                   >
                     <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                   </button>
@@ -340,8 +362,9 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
               </div>
             </div>
 
-            {/* Контент с описанием */}
+            {/* ПРАВАЯ ЧАСТЬ - КОНТЕНТ */}
             <div className="w-full lg:w-1/2 p-4 md:p-8 lg:border-l border-gray-100">
+              
               {/* Десктопный заголовок */}
               <div className="hidden md:block mb-6">
                 <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
@@ -354,7 +377,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                     ))}
                   </div>
                   <span className="text-gray-600">
-                    ({t('{n} отзывов').replace('{n}', String(reviewsCount))})
+                    ({reviewsCount} {t('отзывов')})
                   </span>
                   <button className="text-[#D77E6C] hover:underline flex items-center gap-1">
                     <Share2 className="w-4 h-4" />
@@ -362,7 +385,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </button>
                 </div>
 
-                {/* Категория и статус */}
+                {/* Категория */}
                 <div className="flex items-center gap-3 mt-3">
                   {product.category && (
                     <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
@@ -372,11 +395,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   {product.flagman && (
                     <span className="px-3 py-1 bg-[#D77E6C]/10 text-[#D77E6C] rounded-lg text-sm font-medium">
                       {t('Флагман')}
-                    </span>
-                  )}
-                  {!loadingStock && productStock > 0 && productStock <= 10 && (
-                    <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">
-                      {t('Осталось мало')} ({productStock} шт.)
                     </span>
                   )}
                 </div>
@@ -392,7 +410,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
               {/* Табы */}
               <div className="mb-6">
-                <div className="flex gap-0">
+                <div className="flex gap-0 border-b border-gray-200">
                   <button
                     onClick={() => setActiveTab('composition')}
                     className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all ${
@@ -413,26 +431,17 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                     }`}
                   >
                     <Play className="w-4 h-4" />
-                    {t('Видео инструкция')}
+                    {t('Видео')}
                   </button>
                 </div>
 
-                {/* Контент табов */}
                 <div className="mt-6">
                   {activeTab === 'composition' ? (
-                    <div className="space-y-3">
-                      {product.compound ? (
-                        <div className="text-gray-600 whitespace-pre-line">
-                          {product.compound}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 italic">
-                          {t('Информация о составе отсутствует')}
-                        </p>
-                      )}
+                    <div className="text-gray-600 whitespace-pre-line">
+                      {product.compound || t('Информация о составе отсутствует')}
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div>
                       {product.video_instr ? (
                         <div className="relative w-full overflow-hidden rounded-2xl bg-black" style={{ paddingTop: '56.25%' }}>
                           <iframe
@@ -440,7 +449,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                             src={getYouTubeEmbedUrl(product.video_instr)}
                             title={t('Видео инструкция')}
                             frameBorder={0}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                           />
                         </div>
@@ -455,8 +464,9 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                 </div>
               </div>
 
-              {/* Цены и кнопки */}
-              <div className="mt-8 space-y-4 lg:mt-auto">
+              {/* ЦЕНЫ И ДЕЙСТВИЯ */}
+              <div className="mt-8 space-y-4">
+                
                 {/* Цены */}
                 <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gradient-to-r from-[#FFE8E4] to-[#FFF5F3] rounded-2xl">
                   <div className="flex-1">
@@ -480,7 +490,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </div>
                 </div>
 
-                {/* Индикатор корзины - единый дизайн всегда */}
+                {/* Индикатор корзины */}
                 <div className="p-4 bg-gradient-to-r from-[#D77E6C]/5 to-[#E09080]/5 border border-[#D77E6C]/20 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -494,33 +504,30 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                       </div>
                       <div>
                         {cart.loading ? (
-                          // Состояние загрузки
                           <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-[#D77E6C] border-t-transparent rounded-full animate-spin" />
+                            <Loader2 className="w-4 h-4 text-[#D77E6C] animate-spin" />
                             <p className="text-gray-500">{t('Загрузка...')}</p>
                           </div>
                         ) : totalCartItems > 0 ? (
-                          // Есть товары
                           <>
                             <p className="font-semibold text-gray-800">
-                              {t('В корзине:')} {totalCartItems} {t('товар(ов)')}
+                              {t('В корзине:')} {totalCartItems}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {t('На сумму')}: {formatPrice(cart.cartItems.reduce((sum, item) => sum + (item.price_dealer * item.quantity), 0))} ₸
+                              {formatPrice(cart.calculateTotals().subtotal)} ₸
                             </p>
                           </>
                         ) : (
-                          // Корзина пуста
                           <div>
                             <p className="font-semibold text-gray-800">{t('Корзина пуста')}</p>
-                            <p className="text-sm text-gray-500">{t('Добавьте товары для оформления')}</p>
+                            <p className="text-sm text-gray-500">{t('Добавьте товары')}</p>
                           </div>
                         )}
                       </div>
                     </div>
                     {!cart.loading && totalCartItems > 0 && (
                       <button
-                        onClick={() => router.push('/dealer/cart')}
+                        onClick={() => router.push('/dealer/shop/cart')}
                         className="flex items-center gap-2 px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] transition-colors font-medium"
                       >
                         <span>{t('Перейти')}</span>
@@ -529,13 +536,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                     )}
                   </div>
                 </div>
-
-                {/* Наличие товара - упрощенная версия */}
-                {!loadingStock && productStock === 0 && (
-                  <div className="flex items-center justify-center p-3 bg-red-50 text-red-600 rounded-lg font-medium">
-                    {t('Нет в наличии')}
-                  </div>
-                )}
 
                 {/* Селектор количества */}
                 <div className="flex items-center justify-between">
@@ -551,7 +551,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                     <span className="w-12 text-center font-medium">{quantity}</span>
                     <button
                       onClick={() => setQuantity(Math.min(productStock, quantity + 1))}
-                      disabled={quantity >= productStock}
+                      disabled={quantity >= productStock || loadingStock}
                       className="w-10 h-10 flex items-center justify-center hover:bg-white rounded transition-colors disabled:opacity-50"
                     >
                       <Plus className="w-4 h-4" />
@@ -559,119 +559,82 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                   </div>
                 </div>
 
-                {/* Кнопка добавления - только одна */}
+                {/* Кнопка добавления */}
                 <button
                   onClick={handleAddToCart}
                   disabled={isAddingToCart || productStock === 0 || loadingStock}
-                  className="w-full px-6 py-4 rounded-full font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-[#D77E6C] text-white hover:bg-[#C56D5C] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white hover:from-[#C56D5C] hover:to-[#D77E6C] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ShoppingCart className="w-5 h-5" />
-                  {isAddingToCart ? t('Добавление...') : 
-                   productStock === 0 ? t('Нет в наличии') : 
-                   t('Добавить в корзину')}
+                  {isAddingToCart ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t('Добавление...')}
+                    </>
+                  ) : productStock === 0 ? (
+                    t('Нет в наличии')
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5" />
+                      {t('Добавить в корзину')}
+                    </>
+                  )}
                 </button>
 
                 {/* Дополнительная информация */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-sm text-gray-600">
+                <div className="grid grid-cols-3 gap-3 text-center text-sm">
                   <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="font-semibold text-gray-900">{t('Бесплатная')}</p>
-                    <p>{t('доставка от 50К')}</p>
+                    <Truck className="w-5 h-5 mx-auto mb-1 text-[#D77E6C]" />
+                    <p className="font-semibold text-gray-900 text-xs">{t('Бесплатная')}</p>
+                    <p className="text-xs text-gray-600">{t('доставка')}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="font-semibold text-gray-900">{t('100%')}</p>
-                    <p>{t('оригинал')}</p>
+                    <Shield className="w-5 h-5 mx-auto mb-1 text-[#D77E6C]" />
+                    <p className="font-semibold text-gray-900 text-xs">{t('100%')}</p>
+                    <p className="text-xs text-gray-600">{t('оригинал')}</p>
                   </div>
-                  <div className="col-span-2 sm:col-span-1 p-3 bg-gray-50 rounded-xl">
-                    <p className="font-semibold text-gray-900">{t('Гарантия')}</p>
-                    <p>{t('возврата')}</p>
+                  <div className="p-3 bg-gray-50 rounded-xl">
+                    <Award className="w-5 h-5 mx-auto mb-1 text-[#D77E6C]" />
+                    <p className="font-semibold text-gray-900 text-xs">{t('Гарантия')}</p>
+                    <p className="text-xs text-gray-600">{t('возврата')}</p>
                   </div>
                 </div>
               </div>
-            </div>{/* /контент */}
+            </div>
           </div>
         </div>
 
-        {/* Секция с сертификатами и документами */}
-        <div className="mt-8 bg-white rounded-2xl p-4 md:p-8">
+        {/* Сертификаты */}
+        <div className="mt-8 bg-white rounded-2xl p-4 md:p-8 shadow-sm border border-gray-100">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#D77E6C]" />
+            <FileText className="w-5 h-5 text-[#D77E6C]" />
             {t('Сертификаты и документы')}
           </h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Сертификат качества */}
-            <div className="group cursor-pointer">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">
-                      {t('Сертификат')}
-                    </p>
-                    <p className="text-xs text-gray-500">PDF</p>
+            {['Сертификат', 'Декларация', 'Инструкция', 'Паспорт'].map((doc, idx) => (
+              <div key={idx} className="group cursor-pointer">
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-700 truncate">
+                        {t(doc)}
+                      </p>
+                      <p className="text-xs text-gray-500">PDF</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Декларация соответствия */}
-            <div className="group cursor-pointer">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">
-                      {t('Декларация')}
-                    </p>
-                    <p className="text-xs text-gray-500">PDF</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Инструкция по применению */}
-            <div className="group cursor-pointer">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">
-                      {t('Инструкция')}
-                    </p>
-                    <p className="text-xs text-gray-500">PDF</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Паспорт безопасности */}
-            <div className="group cursor-pointer">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-[#D77E6C] hover:bg-[#D77E6C]/5 transition-all">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#D77E6C]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">
-                      {t('Паспорт')}
-                    </p>
-                    <p className="text-xs text-gray-500">PDF</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Футер с информацией о компании */}
-        <div className="mt-12 border-t border-gray-200 pt-8 pb-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">TANNUR</h3>
-            <div className="text-sm text-gray-500">
-              <p>© 2024 TANNUR. {t('Все права защищены.')}</p>
-            </div>
-          </div>
+        {/* Footer */}
+        <div className="mt-12 border-t border-gray-200 pt-8 pb-4 text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">TANNUR</h3>
+          <p className="text-sm text-gray-500">© 2024 TANNUR. {t('Все права защищены.')}</p>
         </div>
-        
-      </div>{/* /max-w-420 */}
+      </div>
     </div>
   );
 }

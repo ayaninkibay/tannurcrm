@@ -2,7 +2,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   TrendingUp,
@@ -22,10 +22,20 @@ import {
 import { useUser } from '@/context/UserContext'
 import { BonusService } from '@/lib/bonuses/BonusService'
 import { useTranslate } from '@/hooks/useTranslate'
+import type { TeamStatsData, UserDashboardData } from '@/types/bonus.types'
+
+// ===============================
+// ТИПЫ
+// ===============================
 
 interface BonusListProps {
   showViewButton?: boolean
+  teamStats?: TeamStatsData  // ⭐ НОВЫЙ ПРОП - можем получать извне
 }
+
+// ===============================
+// КОНСТАНТЫ
+// ===============================
 
 const LEVEL_COLORS = [
   { from: '#D77E6C', to: '#E89380', percent: 8 },
@@ -34,7 +44,10 @@ const LEVEL_COLORS = [
   { from: '#B85948', to: '#C66B5A', percent: 15 }
 ]
 
-// Полноценный шиммер для блока бонусов
+// ===============================
+// SHIMMER КОМПОНЕНТ
+// ===============================
+
 const BonusBlockShimmer = () => (
   <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50">
     {/* Заголовок шиммер */}
@@ -105,18 +118,29 @@ const BonusBlockShimmer = () => (
   </div>
 )
 
-export default function BonusList({ showViewButton = true }: BonusListProps) {
+// ===============================
+// ОСНОВНОЙ КОМПОНЕНТ
+// ===============================
+
+export default function BonusList({ 
+  showViewButton = true,
+  teamStats: teamStatsProp  // ⭐ Получаем извне (опционально)
+}: BonusListProps) {
   const router = useRouter()
   const { profile, loading: userLoading } = useUser()
   const { t } = useTranslate()
   
+  // ===============================
+  // СОСТОЯНИЕ
+  // ===============================
+  
+  const [dashboardData, setDashboardData] = useState<UserDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [turnoverData, setTurnoverData] = useState<any>(null)
-  const [currentLevel, setCurrentLevel] = useState<any>(null)
-  const [nextLevel, setNextLevel] = useState<any>(null)
-  const [monthlyBonuses, setMonthlyBonuses] = useState<any[]>([])
-  const [teamStats, setTeamStats] = useState({ direct: 0, total: 0 })
   const [hasError, setHasError] = useState(false)
+
+  // ===============================
+  // ЗАГРУЗКА ДАННЫХ
+  // ===============================
 
   useEffect(() => {
     // Проверяем, что профиль загружен и есть id
@@ -127,8 +151,11 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
       setLoading(false)
       setHasError(true)
     }
-  }, [profile, userLoading])
+  }, [profile?.id, userLoading])
 
+  /**
+   * ✅ НОВАЯ ВЕРСИЯ - Один оптимизированный запрос
+   */
   const loadBonusData = async () => {
     if (!profile?.id) {
       setLoading(false)
@@ -138,67 +165,11 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
     try {
       setLoading(true)
       setHasError(false)
-      const currentMonth = BonusService.getCurrentMonth()
       
-      // Загружаем данные с обработкой ошибок для каждого запроса
-      const [levels, turnover, bonuses] = await Promise.all([
-        BonusService.getBonusLevels().catch(() => []),
-        BonusService.getTurnoverForMonth(currentMonth).catch(() => ({ data: [] })),
-        BonusService.getMonthlyBonuses(currentMonth, profile.id).catch(() => [])
-      ])
-
-      // Пробуем загрузить дерево команды отдельно, так как оно может вызвать ошибку
-      let tree = null
-      try {
-        tree = await BonusService.buildTeamTree(profile.id)
-      } catch (error) {
-        console.warn('Could not build team tree:', error)
-        // Продолжаем без дерева команды
-      }
-
-      // Находим данные текущего пользователя
-      const userTurnover = turnover.data?.find(
-        (u: any) => u.user_id === profile.id || u.users?.id === profile.id
-      ) || {
-        personal_turnover: 0,
-        total_turnover: 0,
-        bonus_percent: 8
-      }
-      setTurnoverData(userTurnover)
-
-      // Определяем уровень
-      if (levels && levels.length > 0) {
-        const totalAmount = userTurnover.total_turnover || 0
-        const current = levels.find(
-          l => totalAmount >= l.min_amount && (!l.max_amount || totalAmount <= l.max_amount)
-        ) || levels[0] // Берем первый уровень по умолчанию
-        setCurrentLevel(current)
-        
-        const nextIdx = levels.findIndex(l => l.id === current?.id)
-        if (nextIdx !== -1 && nextIdx < levels.length - 1) {
-          setNextLevel(levels[nextIdx + 1])
-        }
-      }
-
-      // Считаем команду если дерево загрузилось
-      if (tree) {
-        const countMembers = (node: any): { direct: number; total: number } => {
-          if (!node || !node.children) return { direct: 0, total: 0 }
-          
-          let total = node.children.length
-          const direct = node.children.length
-          
-          node.children.forEach((child: any) => {
-            const childCount = countMembers(child)
-            total += childCount.total
-          })
-          
-          return { direct, total }
-        }
-        setTeamStats(countMembers(tree))
-      }
-
-      setMonthlyBonuses(bonuses || [])
+      // ⭐ ОДИН ЗАПРОС ВМЕСТО ПЯТИ
+      const data = await BonusService.getUserDashboardData(profile.id)
+      setDashboardData(data)
+      
     } catch (error) {
       console.error('Error loading bonus data:', error)
       setHasError(true)
@@ -207,17 +178,41 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
     }
   }
 
-  const handleViewDetails = () => {
-    router.push('/dealer/bonuses')
-  }
+  // ===============================
+  // ВЫЧИСЛЕНИЯ (МЕМОИЗИРОВАННЫЕ)
+  // ===============================
 
-  const formatPrice = (price: number) => {
-    if (price >= 1000000) return `${(price / 1000000).toFixed(1)}M`
-    if (price >= 1000) return `${Math.round(price / 1000)}K`
-    return price.toLocaleString('ru-RU')
-  }
+  /**
+   * ✅ Используем teamStats из props ИЛИ из dashboardData
+   */
+  const teamStats = useMemo(() => {
+    return teamStatsProp || dashboardData?.teamStats || {
+      totalMembers: 0,
+      directMembers: 0,
+      totalTurnover: 0,
+      activeMembersCount: 0,
+      maxDepth: 0,
+      goal: 1000000,
+      remaining: 1000000
+    }
+  }, [teamStatsProp, dashboardData])
 
-  const calculateProgress = () => {
+  /**
+   * ✅ Мемоизируем извлечение данных
+   */
+  const { turnoverData, currentLevel, nextLevel, monthlyBonuses } = useMemo(() => {
+    return {
+      turnoverData: dashboardData?.turnover,
+      currentLevel: dashboardData?.bonusLevel,
+      nextLevel: dashboardData?.nextLevel,
+      monthlyBonuses: dashboardData?.monthlyBonuses || []
+    }
+  }, [dashboardData])
+
+  /**
+   * ✅ Мемоизируем расчет прогресса
+   */
+  const progress = useMemo(() => {
     if (!currentLevel || !nextLevel || !turnoverData) return 0
     
     const current = turnoverData.total_turnover || 0
@@ -225,40 +220,87 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
     const end = nextLevel.min_amount
     
     return Math.min(100, ((current - start) / (end - start)) * 100)
-  }
+  }, [currentLevel, nextLevel, turnoverData])
 
-  // Расчет бонусов
-  const personalBonus = monthlyBonuses
-    .filter(b => b.bonus_type === 'personal' && b.beneficiary_id === profile?.id)
-    .reduce((sum, b) => sum + (b.bonus_amount || 0), 0)
-    
-  const differentialBonus = monthlyBonuses
-    .filter(b => b.bonus_type === 'differential' && b.beneficiary_id === profile?.id)
-    .reduce((sum, b) => sum + (b.bonus_amount || 0), 0)
-    
-  const totalBonus = personalBonus + differentialBonus
+  /**
+   * ✅ Мемоизируем расчет бонусов
+   */
+  const bonuses = useMemo(() => {
+    const personalBonus = monthlyBonuses
+      .filter(b => b.bonus_type === 'personal' && b.beneficiary_id === profile?.id)
+      .reduce((sum, b) => sum + (b.bonus_amount || 0), 0)
+      
+    const differentialBonus = monthlyBonuses
+      .filter(b => b.bonus_type === 'differential' && b.beneficiary_id === profile?.id)
+      .reduce((sum, b) => sum + (b.bonus_amount || 0), 0)
+      
+    const totalBonus = personalBonus + differentialBonus
+
+    return { personalBonus, differentialBonus, totalBonus }
+  }, [monthlyBonuses, profile?.id])
+
+  // ===============================
+  // CALLBACK ФУНКЦИИ
+  // ===============================
+
+  /**
+   * ✅ Мемоизируем функцию форматирования
+   */
+  const formatPrice = useCallback((price: number) => {
+    if (price >= 1000000) return `${(price / 1000000).toFixed(1)}M`
+    if (price >= 1000) return `${Math.round(price / 1000)}K`
+    return price.toLocaleString('ru-RU')
+  }, [])
+
+  /**
+   * ✅ Мемоизируем обработчик кнопки
+   */
+  const handleViewDetails = useCallback(() => {
+    router.push('/dealer//myteam/bonuses')
+  }, [router])
+
+  // ===============================
+  // КОНСТАНТЫ
+  // ===============================
+
+  const currentMonth = BonusService.getCurrentMonth()
+
+  // ===============================
+  // РЕНДЕР - LOADING
+  // ===============================
 
   if (loading || userLoading) {
     return <BonusBlockShimmer />
   }
 
-  // Если есть ошибка или нет профиля, показываем заглушку
+  // ===============================
+  // РЕНДЕР - ERROR
+  // ===============================
+
   if (hasError || !profile) {
     return (
       <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50">
         <div className="text-center py-8">
           <Trophy className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-500">{t('Загрузка данных о бонусах...')}</p>
+          <p className="text-gray-500 mb-4">{t('Не удалось загрузить данные о бонусах')}</p>
+          <button 
+            onClick={loadBonusData}
+            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            {t('Попробовать снова')}
+          </button>
         </div>
       </div>
     )
   }
 
-  const progress = calculateProgress()
-  const currentMonth = BonusService.getCurrentMonth()
+  // ===============================
+  // РЕНДЕР - ОСНОВНОЙ КОНТЕНТ
+  // ===============================
 
   return (
     <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-shadow duration-300">
+      
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -275,6 +317,7 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
           <div className="p-2.5 bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white rounded-xl shadow-md">
             <Trophy className="w-5 h-5" />
           </div>
+          
           {/* Процентные индикаторы */}
           <div className="flex -space-x-2">
             {LEVEL_COLORS.map((level, i) => (
@@ -294,6 +337,7 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
 
       {/* Статистика */}
       <div className="grid grid-cols-2 gap-3 mb-4">
+        {/* Текущая ставка */}
         <div className="bg-gradient-to-br from-[#D77E6C]/10 via-[#D77E6C]/5 to-white rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#D77E6C]/20 to-transparent rounded-full -translate-y-8 translate-x-8"></div>
           <div className="relative">
@@ -304,18 +348,19 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
           </div>
         </div>
         
+        {/* К получению */}
         <div className="bg-gradient-to-br from-green-50 via-green-50/50 to-white rounded-2xl p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-100 to-transparent rounded-full -translate-y-8 translate-x-8"></div>
           <div className="relative">
             <div className="text-3xl font-bold text-green-600">
-              {formatPrice(totalBonus)}
+              {formatPrice(bonuses.totalBonus)}
             </div>
             <div className="text-sm text-green-600/70 font-medium">{t('к получению')}</div>
           </div>
         </div>
       </div>
 
-      {/* Текущий уровень */}
+      {/* Текущий уровень и прогресс */}
       <div className="mb-5">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-gray-500">{t('Ваш прогресс')}</span>
@@ -380,7 +425,7 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
                 <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-600">
-                    {t('Команда:')} <span className="font-semibold">{teamStats.total}</span>
+                    {t('Команда:')} <span className="font-semibold">{teamStats.totalMembers}</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -406,6 +451,17 @@ export default function BonusList({ showViewButton = true }: BonusListProps) {
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200 ml-auto" />
         </button>
       )}
+
+      {/* Стили для анимации shimmer */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
     </div>
   )
 }

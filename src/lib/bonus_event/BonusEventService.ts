@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
 
+// =====================================================
+// ИНТЕРФЕЙСЫ
+// =====================================================
+
 export interface BonusEventTarget {
   id?: string;
   event_id?: string;
@@ -23,19 +27,49 @@ export interface BonusEvent {
   targets?: BonusEventTarget[];
 }
 
+// Обновлённый интерфейс с учётом команды
 export interface UserProgress {
   user_id: string;
   full_name: string;
   email: string;
   phone: string;
+  personal_turnover: number;
+  team_turnover: number;
   total_turnover: number;
+  personal_orders: number;
+  team_orders: number;
   total_orders: number;
   last_order_date: string | null;
-  achieved_targets: string[];
+  team_members_count: number;
+  achieved_targets: AchievedTarget[];
+  rank_position?: number;
 }
+
+export interface AchievedTarget {
+  target_id: string;
+  target_amount: number;
+  reward_title: string;
+  reward_description: string | null;  // Может быть null из БД
+  reward_icon: string;
+  is_achieved: boolean;
+  achievement_date: string | null;
+}
+
+export interface LeaderboardEntry extends UserProgress {
+  rank_position: number;
+  role: string;
+}
+
+// =====================================================
+// СЕРВИС
+// =====================================================
 
 export class BonusEventService {
   private supabase = supabase;
+
+  // =====================================================
+  // УПРАВЛЕНИЕ СОБЫТИЯМИ
+  // =====================================================
 
   // Создать новое бонусное событие с целями
   async createBonusEvent(event: BonusEvent, targets: BonusEventTarget[]): Promise<BonusEvent> {
@@ -79,7 +113,7 @@ export class BonusEventService {
     }
   }
 
-  // Получить ВСЕ активные бонусные события (без фильтра по приоритету)
+  // Получить ВСЕ активные бонусные события
   async getActiveBonusEvents(): Promise<BonusEvent[]> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -109,12 +143,11 @@ export class BonusEventService {
     }
   }
 
-  // Получить главное бонусное событие (ТОЛЬКО с priority = 1)
+  // Получить главное бонусное событие (priority = 1)
   async getMainBonusEvent(): Promise<BonusEvent | null> {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Ищем ТОЛЬКО событие с priority = 1
       const { data: priorityEvent, error: priorityError } = await this.supabase
         .from('bonus_events')
         .select(`
@@ -163,145 +196,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить прогресс пользователя в реальном времени
-  async getUserProgress(userId: string, eventId?: string): Promise<UserProgress | null> {
-    try {
-      const { data: userData, error: userError } = await this.supabase
-        .from('users')
-        .select('id, first_name, last_name, email, phone')
-        .eq('id', userId)
-        .single();
-
-      if (userError || !userData) return null;
-
-      let dateFilter = {};
-      if (eventId) {
-        const event = await this.getBonusEventById(eventId);
-        if (event) {
-          dateFilter = {
-            start: event.start_date,
-            end: event.end_date
-          };
-        }
-      }
-
-      const queries = [];
-
-      let ordersQuery = this.supabase
-        .from('orders')
-        .select('total_amount, created_at')
-        .eq('user_id', userId)
-        .eq('payment_status', 'paid');
-
-      let teamOrdersQuery = this.supabase
-        .from('team_purchase_orders')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('payment_status', 'paid');
-
-      if (dateFilter.start && dateFilter.end) {
-        ordersQuery = ordersQuery
-          .gte('created_at', dateFilter.start)
-          .lte('created_at', dateFilter.end + 'T23:59:59');
-        
-        teamOrdersQuery = teamOrdersQuery
-          .gte('created_at', dateFilter.start)
-          .lte('created_at', dateFilter.end + 'T23:59:59');
-      }
-
-      const [ordersResult, teamOrdersResult] = await Promise.all([
-        ordersQuery,
-        teamOrdersQuery
-      ]);
-
-      if (ordersResult.error) throw ordersResult.error;
-      
-      if (teamOrdersResult.error) {
-        console.warn('Team purchase orders error (ignoring):', teamOrdersResult.error);
-      }
-
-      const allOrders = [...(ordersResult.data || [])];
-      
-      if (teamOrdersResult.data && teamOrdersResult.data.length > 0) {
-        teamOrdersResult.data.forEach((order: any) => {
-          const amount = order.order_amount || 0;
-          allOrders.push({
-            total_amount: amount,
-            created_at: order.created_at
-          });
-        });
-      }
-
-      let totalTurnover = 0;
-      let lastOrderDate: string | null = null;
-
-      allOrders.forEach((order) => {
-        const amount = order.total_amount || 0;
-        totalTurnover += amount;
-        if (!lastOrderDate || new Date(order.created_at) > new Date(lastOrderDate)) {
-          lastOrderDate = order.created_at;
-        }
-      });
-
-      const achievedTargets: string[] = [];
-      if (eventId) {
-        const event = await this.getBonusEventById(eventId);
-        if (event?.targets) {
-          event.targets.forEach(target => {
-            if (totalTurnover >= target.target_amount && target.id) {
-              achievedTargets.push(target.id);
-            }
-          });
-        }
-      }
-
-      return {
-        user_id: userId,
-        full_name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Без имени',
-        email: userData.email || '',
-        phone: userData.phone || '',
-        total_turnover: totalTurnover,
-        total_orders: allOrders.length,
-        last_order_date: lastOrderDate,
-        achieved_targets: achievedTargets
-      };
-    } catch (error) {
-      console.error('Error getting user progress:', error);
-      return null;
-    }
-  }
-
-  // Получить рейтинг участников события
-  async getEventLeaderboard(eventId: string, limit: number = 10): Promise<UserProgress[]> {
-    try {
-      const event = await this.getBonusEventById(eventId);
-      if (!event) return [];
-
-      const { data: users, error: usersError } = await this.supabase
-        .from('users')
-        .select('id, first_name, last_name, email, phone, role')
-        .in('role', ['dealer', 'admin']);
-
-      if (usersError || !users) return [];
-
-      const progressPromises = users.map(user => 
-        this.getUserProgress(user.id, eventId)
-      );
-
-      const allProgress = await Promise.all(progressPromises);
-
-      const validProgress = allProgress
-        .filter(p => p !== null && p.total_turnover > 0)
-        .sort((a, b) => b!.total_turnover - a!.total_turnover)
-        .slice(0, limit);
-      
-      return validProgress as UserProgress[];
-    } catch (error) {
-      console.error('[getEventLeaderboard] Error:', error);
-      return [];
-    }
-  }
-
   // Обновить событие
   async updateBonusEvent(eventId: string, updates: Partial<BonusEvent>): Promise<boolean> {
     try {
@@ -326,6 +220,171 @@ export class BonusEventService {
     return this.updateBonusEvent(eventId, { is_active: false });
   }
 
+  // =====================================================
+  // ПРОГРЕСС ПОЛЬЗОВАТЕЛЯ (ОПТИМИЗИРОВАННЫЕ МЕТОДЫ)
+  // =====================================================
+
+  // Получить прогресс пользователя через RPC функцию
+  async getUserProgress(
+    userId: string, 
+    eventId?: string, 
+    includeTeam: boolean = false
+  ): Promise<UserProgress | null> {
+    try {
+      let startDate: string;
+      let endDate: string;
+      let event: BonusEvent | null = null;
+
+      // Определяем период
+      if (eventId) {
+        event = await this.getBonusEventById(eventId);
+        if (!event) return null;
+        startDate = event.start_date;
+        endDate = event.end_date;
+      } else {
+        // По умолчанию - текущий месяц
+        const now = new Date();
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      }
+
+      // Вызываем RPC функцию для получения оборота
+      const { data: turnoverData, error: turnoverError } = await this.supabase
+        .rpc('get_user_bonus_turnover', {
+          p_user_id: userId,
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_include_team: includeTeam
+        })
+        .single();
+
+      if (turnoverError) {
+        console.error('Error getting user turnover:', turnoverError);
+        return null;
+      }
+
+      // Получаем достигнутые цели если есть событие
+      let achievedTargets: AchievedTarget[] = [];
+      if (event?.id) {
+        const { data: targetsData, error: targetsError } = await this.supabase
+          .rpc('get_user_achieved_targets', {
+            p_user_id: userId,
+            p_event_id: event.id,
+            p_turnover: turnoverData.total_turnover
+          });
+
+        if (!targetsError && targetsData) {
+          achievedTargets = targetsData;
+        }
+      }
+
+      return {
+        user_id: turnoverData.user_id,
+        full_name: turnoverData.full_name,
+        email: turnoverData.email,
+        phone: turnoverData.phone,
+        personal_turnover: turnoverData.personal_turnover,
+        team_turnover: turnoverData.team_turnover,
+        total_turnover: turnoverData.total_turnover,
+        personal_orders: turnoverData.personal_orders,
+        team_orders: turnoverData.team_orders,
+        total_orders: turnoverData.total_orders,
+        last_order_date: turnoverData.last_order_date,
+        team_members_count: turnoverData.team_members_count,
+        achieved_targets: achievedTargets
+      };
+    } catch (error) {
+      console.error('Error getting user progress:', error);
+      return null;
+    }
+  }
+
+  // Получить рейтинг участников события (оптимизированный)
+  async getEventLeaderboard(
+    eventId: string, 
+    limit: number = 10,
+    includeTeam: boolean = false
+  ): Promise<LeaderboardEntry[]> {
+    try {
+      const event = await this.getBonusEventById(eventId);
+      if (!event) return [];
+
+      // Используем RPC функцию для массового получения данных
+      const { data: leaderboardData, error } = await this.supabase
+        .rpc('get_all_users_bonus_turnover', {
+          p_start_date: event.start_date,
+          p_end_date: event.end_date,
+          p_include_team: includeTeam,
+          p_limit: limit,
+          p_offset: 0
+        });
+
+      if (error) {
+        console.error('Error getting leaderboard:', error);
+        return [];
+      }
+
+      // Добавляем информацию о достигнутых целях
+      const leaderboardWithTargets = await Promise.all(
+        leaderboardData.map(async (entry: any) => {
+          const { data: targetsData } = await this.supabase
+            .rpc('get_user_achieved_targets', {
+              p_user_id: entry.user_id,
+              p_event_id: eventId,
+              p_turnover: entry.total_turnover
+            });
+
+          return {
+            ...entry,
+            achieved_targets: targetsData || []
+          };
+        })
+      );
+
+      return leaderboardWithTargets;
+    } catch (error) {
+      console.error('Error getting event leaderboard:', error);
+      return [];
+    }
+  }
+
+  // Получить полный рейтинг для админки
+  async getAdminLeaderboard(
+    startDate: string,
+    endDate: string,
+    includeTeam: boolean = true,
+    limit?: number,
+    offset: number = 0
+  ): Promise<LeaderboardEntry[]> {
+    try {
+      const { data: leaderboardData, error } = await this.supabase
+        .rpc('get_all_users_bonus_turnover', {
+          p_start_date: startDate,
+          p_end_date: endDate,
+          p_include_team: includeTeam,
+          p_limit: limit || null,
+          p_offset: offset
+        });
+
+      if (error) {
+        console.error('Error getting admin leaderboard:', error);
+        return [];
+      }
+
+      return leaderboardData.map((entry: any) => ({
+        ...entry,
+        achieved_targets: [] // Админка может не нуждаться в деталях целей
+      }));
+    } catch (error) {
+      console.error('Error getting admin leaderboard:', error);
+      return [];
+    }
+  }
+
+  // =====================================================
+  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+  // =====================================================
+
   // Форматирование суммы
   formatAmount(amount: number): string {
     return new Intl.NumberFormat('ru-RU', {
@@ -346,9 +405,63 @@ export class BonusEventService {
       gift: '🎁',
       trophy: '🏆',
       star: '⭐',
-      vacation: '🏖️'
+      vacation: '🏖️',
+      diamond: '💎',
+      crown: '👑',
+      medal: '🏅',
+      rocket: '🚀'
     };
     return icons[iconType] || '🎯';
+  }
+
+  // Проверить достиг ли пользователь цели
+  isTargetAchieved(turnover: number, targetAmount: number): boolean {
+    return turnover >= targetAmount;
+  }
+
+  // Получить процент прогресса к следующей цели
+  getProgressPercent(currentTurnover: number, targets: BonusEventTarget[]): number {
+    const nextTarget = targets.find(t => currentTurnover < t.target_amount);
+    
+    if (!nextTarget) return 100;
+    
+    const prevTarget = targets
+      .filter(t => t.target_amount < nextTarget.target_amount)
+      .sort((a, b) => b.target_amount - a.target_amount)[0];
+    
+    const startAmount = prevTarget?.target_amount || 0;
+    const progress = ((currentTurnover - startAmount) / (nextTarget.target_amount - startAmount)) * 100;
+    
+    return Math.max(0, Math.min(100, progress));
+  }
+
+  // Получить следующую цель
+  getNextTarget(currentTurnover: number, targets: BonusEventTarget[]): BonusEventTarget | null {
+    return targets.find(t => currentTurnover < t.target_amount) || null;
+  }
+
+  // Получить достигнутые цели
+  getAchievedTargets(turnover: number, targets: BonusEventTarget[]): BonusEventTarget[] {
+    return targets.filter(t => turnover >= t.target_amount);
+  }
+
+  // Форматировать дату
+  formatDate(date: string | null): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  // Получить дни до конца события
+  getDaysRemaining(endDate: string): number {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
   }
 }
 

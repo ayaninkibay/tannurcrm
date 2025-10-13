@@ -3,20 +3,11 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { ZoomIn, ZoomOut, Grid3x3, List, Search, Users, User, Phone, Briefcase, CheckCircle } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import type { TeamMember } from '@/lib/team/TeamModule';
 
-interface TeamMember {
-  id: string;
-  parentId: string | null;
-  name: string;
-  position?: string;
-  profession?: string;
-  role?: string;
-  verified: boolean;
-  teamCount?: number;
-  avatar?: string;
-  phone?: string;
-  referralCode?: string;
-}
+// ===============================
+// ТИПЫ (только внутренние для компонента)
+// ===============================
 
 interface TreeNode extends TeamMember {
   children: TreeNode[];
@@ -33,6 +24,10 @@ interface TeamTreeProps {
   isLoading?: boolean;
 }
 
+// ===============================
+// УТИЛИТЫ ДЛЯ РАБОТЫ С ДЕРЕВОМ
+// ===============================
+
 const findNodeById = (node: TreeNode, id: string): TreeNode | null => {
   if (node.id === id) return node;
   for (const child of node.children) {
@@ -43,27 +38,30 @@ const findNodeById = (node: TreeNode, id: string): TreeNode | null => {
 };
 
 const buildTree = (members: TeamMember[]): TreeNode[] => {
-  if (!members || !Array.isArray(members)) return [];
-  if (members.length === 0) return [];
+  if (!members?.length) return [];
   
   const memberMap = new Map<string, TreeNode>();
   const roots: TreeNode[] = [];
 
+  // Создаем узлы
   members.forEach((member) => {
-    if (member && typeof member === 'object' && member.id && typeof member.id === 'string') {
+    if (member?.id) {
       memberMap.set(member.id, {
         ...member,
         children: [],
-        level: 0,
+        level: member.hierarchyLevel || 0,
         expanded: false
       });
     }
   });
 
+  // Строим иерархию
   members.forEach((member) => {
-    if (!member || !member.id) return;
+    if (!member?.id) return;
+    
     const node = memberMap.get(member.id);
     if (!node) return;
+    
     if (member.parentId && memberMap.has(member.parentId)) {
       const parent = memberMap.get(member.parentId)!;
       parent.children.push(node);
@@ -73,18 +71,111 @@ const buildTree = (members: TeamMember[]): TreeNode[] => {
     }
   });
 
+  // Сортировка детей по имени
   const sortChildren = (nodes: TreeNode[]) => {
     nodes.forEach(node => {
-      if (node.children && node.children.length > 0) {
+      if (node.children.length > 0) {
         node.children.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         sortChildren(node.children);
       }
     });
   };
+  
   sortChildren(roots);
-
   return roots.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 };
+
+// ===============================
+// ХУКИ
+// ===============================
+
+const usePanAndZoom = () => {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: -100 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
+  const zoomIn = useCallback(() => setZoom(prev => Math.min(2, prev + 0.2)), []);
+  const zoomOut = useCallback(() => setZoom(prev => Math.max(0.3, prev - 0.2)), []);
+  const resetPanZoom = useCallback(() => { 
+    setZoom(1); 
+    setOffset({ x: 0, y: -100 }); 
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+  }, [offset]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      setOffset({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y
+      });
+    }
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => setIsDragging(false), []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      dragStart.current = { 
+        x: e.touches[0].clientX - offset.x, 
+        y: e.touches[0].clientY - offset.y 
+      };
+    }
+  }, [offset]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      e.preventDefault();
+      setOffset({
+        x: e.touches[0].clientX - dragStart.current.x,
+        y: e.touches[0].clientY - dragStart.current.y
+      });
+    }
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom(prev => Math.max(0.3, Math.min(2, prev + delta)));
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  return {
+    zoom, 
+    offset, 
+    isDragging,
+    zoomIn, 
+    zoomOut, 
+    resetPanZoom,
+    handleMouseDown, 
+    handleMouseMove, 
+    handleMouseUp,
+    handleTouchStart, 
+    handleTouchMove, 
+    handleTouchEnd,
+    setOffset
+  };
+};
+
+// ===============================
+// КОМПОНЕНТЫ
+// ===============================
 
 interface MemberCardProps {
   member: TreeNode;
@@ -95,7 +186,7 @@ interface MemberCardProps {
   isHighlighted: boolean;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({ 
+const MemberCard: React.FC<MemberCardProps> = React.memo(({ 
   member, 
   onToggle, 
   onSelect, 
@@ -104,7 +195,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
   isHighlighted 
 }) => {
   const { t } = useTranslate();
-  const hasChildren = member.children && member.children.length > 0;
+  const hasChildren = member.children?.length > 0;
 
   return (
     <div className="relative">
@@ -113,15 +204,17 @@ const MemberCard: React.FC<MemberCardProps> = ({
         className={`w-40 sm:w-48 md:w-56 rounded-xl shadow-sm border cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 ${
           isCurrentUser 
             ? 'bg-white border-[#DC7C67] border-2' 
+            : isHighlighted
+            ? 'bg-yellow-50 border-yellow-400 border-2'
             : 'bg-white border-gray-200 hover:border-gray-300'
         }`}
         role="button"
         tabIndex={0}
-        aria-label={t('Карточка сотрудника {name}').replace('{name}', member.name || '')}
+        aria-label={`${t('Карточка сотрудника')} ${member.name || ''}`}
       >
         <div className="flex items-center justify-between p-2 pb-1">
           <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${member.verified ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+            <div className={`w-1.5 h-1.5 rounded-full ${member.verified ? 'bg-green-500' : 'bg-gray-400'}`} />
             <span className="text-xs text-gray-500 font-medium truncate">
               {member.referralCode || member.id.substring(0, 6)}
             </span>
@@ -138,7 +231,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
             {member.avatar ? (
               <img 
                 src={member.avatar} 
-                alt={t('Аватар {name}').replace('{name}', member.name || '')}
+                alt={member.name || ''}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -212,14 +305,16 @@ const MemberCard: React.FC<MemberCardProps> = ({
 
       {member.expanded && hasChildren && (
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 -z-10">
-          <div className="w-0.5 h-6 bg-gray-300"></div>
+          <div className="w-0.5 h-6 bg-gray-300" />
         </div>
       )}
     </div>
   );
-};
+});
 
-interface TreeNodeProps {
+MemberCard.displayName = 'MemberCard';
+
+interface TreeNodeComponentProps {
   node: TreeNode;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
@@ -230,7 +325,7 @@ interface TreeNodeProps {
   level?: number;
 }
 
-const TreeNodeComponent: React.FC<TreeNodeProps> = ({ 
+const TreeNodeComponent: React.FC<TreeNodeComponentProps> = React.memo(({ 
   node, 
   expandedNodes, 
   onToggle, 
@@ -244,7 +339,7 @@ const TreeNodeComponent: React.FC<TreeNodeProps> = ({
   const isCurrentUser = node.id === currentUserId;
   const isSelected = selectedId === node.id;
   const isHighlighted = highlightedId === node.id;
-  const hasChildren = node.children && node.children.length > 0;
+  const hasChildren = node.children?.length > 0;
 
   return (
     <div className="flex flex-col items-center">
@@ -293,83 +388,9 @@ const TreeNodeComponent: React.FC<TreeNodeProps> = ({
       )}
     </div>
   );
-};
+});
 
-const usePanAndZoom = () => {
-  const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: -100 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-
-  const zoomIn = useCallback(() => setZoom(prev => Math.min(2, prev + 0.2)), []);
-  const zoomOut = useCallback(() => setZoom(prev => Math.max(0.3, prev - 0.2)), []);
-  const resetPanZoom = useCallback(() => { 
-    setZoom(1); 
-    setOffset({ x: 0, y: 0 }); 
-  }, []);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
-  }, [offset]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isDragging) {
-      setOffset({
-        x: e.clientX - dragStart.current.x,
-        y: e.clientY - dragStart.current.y
-      });
-    }
-  }, [isDragging]);
-
-  const handleMouseUp = useCallback(() => setIsDragging(false), []);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      dragStart.current = { 
-        x: e.touches[0].clientX - offset.x, 
-        y: e.touches[0].clientY - offset.y 
-      };
-    }
-  }, [offset]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isDragging && e.touches.length === 1) {
-      e.preventDefault();
-      setOffset({
-        x: e.touches[0].clientX - dragStart.current.x,
-        y: e.touches[0].clientY - dragStart.current.y
-      });
-    }
-  }, [isDragging]);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom(prev => Math.max(0.3, Math.min(2, prev + delta)));
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
-  }, []);
-
-  return {
-    zoom, offset, isDragging,
-    zoomIn, zoomOut, resetPanZoom,
-    handleMouseDown, handleMouseMove, handleMouseUp,
-    handleTouchStart, handleTouchMove, handleTouchEnd,
-    setOffset
-  };
-};
+TreeNodeComponent.displayName = 'TreeNodeComponent';
 
 interface TableViewProps {
   members: TeamMember[];
@@ -378,68 +399,225 @@ interface TableViewProps {
   currentUserId?: string;
 }
 
-const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMember, currentUserId }) => {
+const TableView: React.FC<TableViewProps> = React.memo(({ 
+  members, 
+  selectedId, 
+  onSelectMember, 
+  currentUserId 
+}) => {
   const { t } = useTranslate();
   const [sortField, setSortField] = useState<keyof TeamMember>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // НОВОЕ: Сортировка с текущим пользователем первым
   const filteredAndSortedMembers = useMemo(() => {
     let filtered = members;
+    
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = members.filter(member => 
-        (member.name && member.name.toLowerCase().includes(query)) ||
-        (member.id && member.id.toLowerCase().includes(query)) ||
-        (member.position && member.position.toLowerCase().includes(query)) ||
-        (member.profession && member.profession.toLowerCase().includes(query)) ||
-        (member.referralCode && member.referralCode.toLowerCase().includes(query))
+        (member.name?.toLowerCase().includes(query)) ||
+        (member.id?.toLowerCase().includes(query)) ||
+        (member.position?.toLowerCase().includes(query)) ||
+        (member.profession?.toLowerCase().includes(query)) ||
+        (member.referralCode?.toLowerCase().includes(query)) ||
+        (member.phone?.includes(query))
       );
     }
-    return [...filtered].sort((a, b) => {
+    
+    // Разделяем на текущего пользователя и остальных
+    const currentUser = filtered.find(m => m.id === currentUserId);
+    const otherMembers = filtered.filter(m => m.id !== currentUserId);
+    
+    // Сортируем остальных
+    const sorted = [...otherMembers].sort((a, b) => {
       const aVal = a[sortField] || '';
       const bVal = b[sortField] || '';
       const comparison = aVal.toString().localeCompare(bVal.toString());
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [members, sortField, sortDirection, searchQuery]);
+    
+    // Текущий пользователь всегда первый
+    return currentUser ? [currentUser, ...sorted] : sorted;
+  }, [members, sortField, sortDirection, searchQuery, currentUserId]);
 
-  const handleSort = (field: keyof TeamMember) => {
-    if (sortField === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDirection('asc'); }
-  };
+  const handleSort = useCallback((field: keyof TeamMember) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  }, [sortField]);
+
+  if (filteredAndSortedMembers.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center py-12">
+        <Users className="w-10 h-10 text-gray-300 mb-4" />
+        <h3 className="text-base font-medium text-gray-900 mb-2">
+          {searchQuery ? t('Ничего не найдено') : t('Нет участников команды')}
+        </h3>
+        <p className="text-sm text-gray-500">
+          {searchQuery 
+            ? t('Попробуйте изменить поисковый запрос') 
+            : t('Пригласите участников для отображения команды')
+          }
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
+      {/* Поисковая строка */}
+      <div className="p-3 border-b border-gray-200">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder={t('Поиск по имени, ID, телефону...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#DC7C67] focus:border-transparent"
+          />
+        </div>
+      </div>
+
       <div className="flex-1 overflow-auto">
-        {filteredAndSortedMembers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <Users className="w-10 h-10 text-gray-300 mb-4" />
-            <h3 className="text-base font-medium text-gray-900 mb-2">
-              {searchQuery ? t('Ничего не найдено') : t('Нет участников команды')}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {searchQuery 
-                ? t('Попробуйте изменить поисковый запрос') 
-                : t('Пригласите участников для отображения команды')
-              }
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Мобильные карточки */}
-            <div className="block sm:hidden">
-              <div className="p-3 space-y-3">
-                {filteredAndSortedMembers.map(member => (
-                  <div
-                    key={member.id}
-                    onClick={() => onSelectMember(member)}
-                    className={`bg-white border rounded-lg p-4 cursor-pointer transition-colors ${
-                      member.id === currentUserId ? 'border-[#DC7C67] bg-orange-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+        {/* Мобильные карточки */}
+        <div className="block sm:hidden p-3 space-y-3">
+          {filteredAndSortedMembers.map(member => (
+            <div
+              key={member.id}
+              onClick={() => onSelectMember(member)}
+              className={`bg-white border rounded-lg p-4 cursor-pointer transition-colors ${
+                member.id === currentUserId 
+                  ? 'border-[#DC7C67] border-2 bg-orange-50' 
+                  : 'border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {member.avatar ? (
+                    <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="font-bold text-gray-600 text-sm">
+                      {member.name ? member.name.charAt(0).toUpperCase() : '?'}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-medium text-gray-900 text-sm truncate">
+                      {member.name || t('Без имени')}
+                    </h3>
+                    {member.verified && (
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    )}
+                    {member.id === currentUserId && (
+                      <span className="px-2 py-0.5 bg-[#DC7C67] text-white text-xs rounded-full flex-shrink-0">
+                        {t('Вы')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-gray-500 mb-2 font-mono">
+                    {t('ID')}: {member.referralCode || member.id.substring(0, 8)}
+                  </div>
+                  
+                  {member.phone && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+                      <Phone className="w-3 h-3" />
+                      <span className="truncate">{member.phone}</span>
+                    </div>
+                  )}
+                  
+                  {(member.position || member.profession) && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
+                      <Briefcase className="w-3 h-3" />
+                      <span className="truncate">{member.position || member.profession}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between mt-2">
+                    {member.teamCount !== undefined && member.teamCount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3 text-[#DC7C67]" />
+                        <span className="font-semibold text-[#DC7C67] text-xs">
+                          {member.teamCount}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div>
+                      {member.verified ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="w-3 h-3" />
+                          {t('Проверен')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {t('Не проверен')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Десктопная таблица */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full min-w-[600px]">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
+                {[
+                  { key: 'name' as keyof TeamMember, label: t('Участник'), width: 'w-48' },
+                  { key: 'id' as keyof TeamMember, label: t('ID'), width: 'w-24' },
+                  { key: 'profession' as keyof TeamMember, label: t('Профессия'), width: 'w-32' },
+                  { key: 'teamCount' as keyof TeamMember, label: t('Команда'), width: 'w-20' },
+                  { key: 'verified' as keyof TeamMember, label: t('Статус'), width: 'w-24' }
+                ].map(({ key, label, width }) => (
+                  <th 
+                    key={key}
+                    onClick={() => handleSort(key)}
+                    className={`${width} px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                      <span className="truncate">{label}</span>
+                      {sortField === key && (
+                        <svg 
+                          className={`w-3 h-3 flex-shrink-0 transform transition-transform ${
+                            sortDirection === 'asc' ? 'rotate-0' : 'rotate-180'
+                          }`}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
+                        </svg>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredAndSortedMembers.map(member => (
+                <tr
+                  key={member.id}
+                  onClick={() => onSelectMember(member)}
+                  className={`hover:bg-gray-50 cursor-pointer transition-colors ${
+                    member.id === currentUserId ? 'bg-orange-50' : ''
+                  }`}
+                >
+                  <td className="w-48 px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                         {member.avatar ? (
                           <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                         ) : (
@@ -448,12 +626,11 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                           </span>
                         )}
                       </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium text-gray-900 text-sm truncate">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 truncate text-sm">
                             {member.name || t('Без имени')}
-                          </h3>
+                          </span>
                           {member.verified && (
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                           )}
@@ -463,204 +640,95 @@ const TableView: React.FC<TableViewProps> = ({ members, selectedId, onSelectMemb
                             </span>
                           )}
                         </div>
-                        
-                        <div className="text-xs text-gray-500 mb-2 font-mono">
-                          {t('ID')}: {member.referralCode || member.id.substring(0, 8)}
-                        </div>
-                        
                         {member.phone && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                             <Phone className="w-3 h-3" />
                             <span className="truncate">{member.phone}</span>
                           </div>
                         )}
-                        
-                        {(member.position || member.profession) && (
-                          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-                            <Briefcase className="w-3 h-3" />
-                            <span className="truncate">{member.position || member.profession}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-3">
-                            {member.teamCount !== undefined && member.teamCount > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Users className="w-3 h-3 text-[#DC7C67]" />
-                                <span className="font-semibold text-[#DC7C67] text-xs">{member.teamCount}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div>
-                            {member.verified ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <CheckCircle className="w-3 h-3" />
-                                {t('Проверен')}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                {t('Не проверен')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Десктопная таблица */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
-                    {[
-                      { key: 'name', label: t('Участник'), width: 'w-48' },
-                      { key: 'id', label: t('ID'), width: 'w-24' },
-                      { key: 'position', label: t('Профессия'), width: 'w-32' },
-                      { key: 'teamCount', label: t('Команда'), width: 'w-20' },
-                      { key: 'verified', label: t('Статус'), width: 'w-24' }
-                    ].map(({ key, label, width }) => (
-                      <th 
-                        key={key as string}
-                        onClick={() => handleSort(key as keyof TeamMember)}
-                        className={`${width} px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="truncate">{label}</span>
-                          <svg 
-                            className={`w-3 h-3 flex-shrink-0 transform transition-transform ${
-                              sortField === key ? (sortDirection === 'asc' ? 'rotate-0' : 'rotate-180') : ''
-                            }`}
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4" />
-                          </svg>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAndSortedMembers.map(member => (
-                    <tr
-                      key={member.id}
-                      onClick={() => onSelectMember(member)}
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                        member.id === currentUserId ? 'bg-orange-50' : ''
-                      }`}
-                    >
-                      <td className="w-48 px-4 py-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {member.avatar ? (
-                              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="font-bold text-gray-600 text-sm">
-                                {member.name ? member.name.charAt(0).toUpperCase() : '?'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900 truncate text-sm">
-                                {member.name || t('Без имени')}
-                              </span>
-                              {member.verified && (
-                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              )}
-                              {member.id === currentUserId && (
-                                <span className="px-2 py-0.5 bg-[#DC7C67] text-white text-xs rounded-full flex-shrink-0">
-                                  {t('Вы')}
-                                </span>
-                              )}
-                            </div>
-                            {member.phone && (
-                              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                <Phone className="w-3 h-3" />
-                                <span className="truncate">{member.phone}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="w-24 px-4 py-3">
-                        <span className="text-sm text-gray-600 font-mono truncate block">
-                          {member.referralCode || member.id.substring(0, 6)}
-                        </span>
-                      </td>
-                      <td className="w-32 px-4 py-3">
-                        <div className="flex items-center gap-1 text-sm text-gray-600 min-w-0">
-                          <Briefcase className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{member.position || member.profession || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="w-20 px-4 py-3">
-                        {member.teamCount !== undefined && member.teamCount > 0 ? (
-                          <div className="flex items-center gap-1 justify-center">
-                            <Users className="w-4 h-4 text-[#DC7C67]" />
-                            <span className="font-semibold text-[#DC7C67] text-sm">{member.teamCount}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm block text-center">—</span>
-                        )}
-                      </td>
-                      <td className="w-24 px-4 py-3">
-                        {member.verified ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <CheckCircle className="w-3 h-3" />
-                            {t('Проверен')}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {t('Не проверен')}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                  </td>
+                  <td className="w-24 px-4 py-3">
+                    <span className="text-sm text-gray-600 font-mono truncate block">
+                      {member.referralCode || member.id.substring(0, 6)}
+                    </span>
+                  </td>
+                  <td className="w-32 px-4 py-3">
+                    <div className="flex items-center gap-1 text-sm text-gray-600 min-w-0">
+                      <Briefcase className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{member.position || member.profession || '—'}</span>
+                    </div>
+                  </td>
+                  <td className="w-20 px-4 py-3">
+                    {member.teamCount !== undefined && member.teamCount > 0 ? (
+                      <div className="flex items-center gap-1 justify-center">
+                        <Users className="w-4 h-4 text-[#DC7C67]" />
+                        <span className="font-semibold text-[#DC7C67] text-sm">{member.teamCount}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm block text-center">—</span>
+                    )}
+                  </td>
+                  <td className="w-24 px-4 py-3">
+                    {member.verified ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3" />
+                        {t('Проверен')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {t('Не проверен')}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
-};
+});
+
+TableView.displayName = 'TableView';
 
 // Шиммеры
-const ListShimmer = () => (
+const ListShimmer = React.memo(() => (
   <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 animate-pulse">
     {[...Array(5)].map((_, i) => (
       <div key={i} className="flex items-center space-x-2 sm:space-x-4">
-        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg"></div>
+        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-lg" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2" />
         </div>
       </div>
     ))}
   </div>
-);
+));
 
-const TreeShimmer = () => (
+ListShimmer.displayName = 'ListShimmer';
+
+const TreeShimmer = React.memo(() => (
   <div className="flex items-center justify-center h-full animate-pulse p-4">
     <div className="flex flex-col items-center">
-      <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
-      <div className="w-0.5 h-12 sm:h-16 bg-gray-300"></div>
+      <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl" />
+      <div className="w-0.5 h-12 sm:h-16 bg-gray-300" />
       <div className="flex justify-center gap-4 sm:gap-8 mt-4">
-        <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
-        <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl"></div>
+        <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl" />
+        <div className="w-40 h-28 sm:w-48 sm:h-32 bg-gray-200 rounded-xl" />
       </div>
     </div>
   </div>
-);
+));
+
+TreeShimmer.displayName = 'TreeShimmer';
+
+// ===============================
+// ГЛАВНЫЙ КОМПОНЕНТ
+// ===============================
 
 const TeamTree: React.FC<TeamTreeProps> = ({ 
   members = [], 
@@ -673,8 +741,8 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   const { t } = useTranslate();
 
   const validMembers = useMemo(() => {
-    if (!members || !Array.isArray(members)) return [];
-    return members.filter((m) => m && typeof m === 'object' && m.id && typeof m.id === 'string');
+    if (!members?.length) return [];
+    return members.filter(m => m?.id && typeof m.id === 'string');
   }, [members]);
   
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
@@ -703,8 +771,11 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   const handleToggle = useCallback((nodeId: string) => {
     setExpandedNodes(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(nodeId)) newSet.delete(nodeId);
-      else newSet.add(nodeId);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
       return newSet;
     });
   }, []);
@@ -715,16 +786,25 @@ const TeamTree: React.FC<TeamTreeProps> = ({
   }, [onSelectMember]);
 
   const handleSearch = useCallback((query: string) => {
+    if (!query.trim()) {
+      setHighlightedMemberId(null);
+      return;
+    }
+
+    const lowerQuery = query.toLowerCase();
     const foundMember = validMembers.find(m =>
-      (m.name && m.name.toLowerCase().includes(query.toLowerCase())) ||
-      (m.id && m.id.toLowerCase().includes(query.toLowerCase())) ||
-      (m.position && m.position.toLowerCase().includes(query.toLowerCase())) ||
-      (m.profession && m.profession.toLowerCase().includes(query.toLowerCase())) ||
-      (m.role && m.role.toLowerCase().includes(query.toLowerCase()))
+      (m.name?.toLowerCase().includes(lowerQuery)) ||
+      (m.id?.toLowerCase().includes(lowerQuery)) ||
+      (m.position?.toLowerCase().includes(lowerQuery)) ||
+      (m.profession?.toLowerCase().includes(lowerQuery)) ||
+      (m.role?.toLowerCase().includes(lowerQuery)) ||
+      (m.phone?.includes(query))
     );
+    
     setHighlightedMemberId(foundMember?.id || null);
 
     if (foundMember) {
+      // Раскрываем путь к найденному участнику
       const expandPath = (memberId: string) => {
         const member = validMembers.find(m => m.id === memberId);
         if (member?.parentId) {
@@ -741,26 +821,30 @@ const TeamTree: React.FC<TeamTreeProps> = ({
     setSearchQuery('');
   }, []);
 
+  // Автоматически раскрываем корневые узлы
   useEffect(() => {
-    if (treeRoots && treeRoots.length > 0) {
+    if (treeRoots.length > 0) {
       const rootIds = treeRoots.map(root => root.id);
       setExpandedNodes(new Set(rootIds));
     }
   }, [treeRoots]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    if (value.trim()) handleSearch(value);
-    else handleClearSearch();
-  };
+    if (value.trim()) {
+      handleSearch(value);
+    } else {
+      handleClearSearch();
+    }
+  }, [handleSearch, handleClearSearch]);
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setSearchQuery('');
       handleClearSearch();
     }
-  };
+  }, [handleClearSearch]);
 
   if (isLoading) {
     return (
@@ -777,8 +861,12 @@ const TeamTree: React.FC<TeamTreeProps> = ({
           <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
           </div>
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{t('Нет данных о команде')}</h3>
-          <p className="text-sm text-gray-500">{t('Добавьте участников для отображения структуры')}</p>
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+            {t('Нет данных о команде')}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {t('Добавьте участников для отображения структуры')}
+          </p>
         </div>
       </div>
     );
@@ -786,6 +874,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
 
   return (
     <div className={`flex flex-col w-full ${viewMode === 'list' ? 'min-h-0 h-full' : 'h-screen'} ${className}`}>
+      {/* Шапка с управлением */}
       <div className="flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white z-50 gap-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <h1 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -798,6 +887,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          {/* Поиск */}
           <div className="border border-gray-300 rounded-lg flex-1 sm:flex-initial min-w-0 sm:w-40 md:w-48">
             <div className="flex items-center">
               <div className="p-2 flex-shrink-0">
@@ -815,6 +905,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Зум для древовидного вида */}
             {viewMode === 'tree' && (
               <div className="flex items-center border border-gray-300 rounded-lg">
                 <button 
@@ -839,6 +930,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
               </div>
             )}
 
+            {/* Переключатель вида */}
             <div className="flex border border-gray-300 rounded-lg">
               <button
                 onClick={() => setViewMode('list')}
@@ -863,6 +955,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
         </div>
       </div>
 
+      {/* Контент */}
       <div className={`flex-1 relative overflow-hidden ${viewMode === 'list' ? 'h-full' : ''}`}>
         {viewMode === 'list' ? (
           <TableView
@@ -873,6 +966,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
           />
         ) : (
           <>
+            {/* Фон для древа */}
             <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100">
               <div className="absolute inset-0 opacity-30">
                 <div 
@@ -888,6 +982,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
               </div>
             </div>
 
+            {/* Интерактивный канвас с деревом */}
             <div
               className="absolute inset-0 cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y"
               onMouseDown={handleMouseDown}
@@ -909,6 +1004,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                 }}
               >
                 <div className="flex flex-col items-center gap-8 sm:gap-10 md:gap-20 p-8 sm:p-10 md:p-20">
+                  {/* Показываем родителя если текущий пользователь не корень */}
                   {currentUserId && (() => {
                     const currentUser = validMembers.find(m => m.id === currentUserId);
                     const parent = currentUser?.parentId ? validMembers.find(m => m.id === currentUser.parentId) : null;
@@ -916,7 +1012,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                     if (parent) {
                       const parentNode = treeRoots.find(root => findNodeById(root, parent.id));
                       if (!parentNode) {
-                        const tempParentNode = {
+                        const tempParentNode: TreeNode = {
                           ...parent,
                           children: [],
                           level: 0,
@@ -940,6 +1036,7 @@ const TeamTree: React.FC<TeamTreeProps> = ({
                     return null;
                   })()}
                   
+                  {/* Корневые узлы дерева */}
                   {treeRoots.map(root => (
                     <TreeNodeComponent
                       key={root.id}

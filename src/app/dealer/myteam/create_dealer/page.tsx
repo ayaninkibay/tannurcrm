@@ -73,20 +73,7 @@ export default function CreateDealer() {
       
       if (!session.session?.access_token) {
         throw new Error('Нет активной сессии');
-      }
-
-      console.log('Sending data to Edge Function:', {
-        email: formData.email,
-        password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone: formData.phone,
-        iin: formData.iin,
-        region: formData.region,
-        instagram: formData.instagram,
-        profession: formData.profession,
-        parent_id: profile.id
-      });
+      };
 
       // Вызываем Edge Function с полными данными формы
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-dealer`, {
@@ -132,7 +119,7 @@ export default function CreateDealer() {
       console.log('Dealer created with ID:', newDealerId);
 
       // Данные уже заполнены в Edge Function, поэтому редиректим сразу
-      router.push(`/dealer/dealer_payment?dealer_id=${newDealerId}&sponsor_id=${profile.id}`);
+      router.push(`/dealer/myteam/create_dealer/dealer_payment?dealer_id=${newDealerId}&sponsor_id=${profile.id}`);
 
     } catch (err) {
       console.error('Error creating dealer:', err);

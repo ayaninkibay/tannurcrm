@@ -13,24 +13,47 @@ import {
   CheckCircle, XCircle
 } from 'lucide-react';
 import { BonusService } from '@/lib/bonuses/BonusService';
+import { TeamService } from '@/lib/team/TeamService';
+import type { TeamMember } from '@/lib/team/TeamService';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
+
+// ============================================
+// ТИПЫ
+// ============================================
+interface TeamTreeNode {
+  id: string;
+  name: string;
+  email: string;
+  personal_turnover: number;
+  team_turnover: number;
+  total_turnover: number;
+  bonus_percent: number;
+  children: TeamTreeNode[];
+  teamCount: number;
+}
 
 export default function DealerBonusesPage() {
   const { profile, loading: userLoading } = useUser();
   const router = useRouter();
   
+  // ============================================
+  // STATE
+  // ============================================
   const [selectedMonth, setSelectedMonth] = useState(BonusService.getCurrentMonth());
   const [turnoverData, setTurnoverData] = useState<any>(null);
   const [bonusLevels, setBonusLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<any>(null);
   const [nextLevel, setNextLevel] = useState<any>(null);
-  const [teamTree, setTeamTree] = useState<any>(null);
+  const [teamTree, setTeamTree] = useState<TeamTreeNode | null>(null);
   const [monthlyBonuses, setMonthlyBonuses] = useState<any[]>([]);
   const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [activeTab, setActiveTab] = useState('overview');
 
+  // ============================================
+  // ЗАГРУЗКА ДАННЫХ (ОПТИМИЗИРОВАННАЯ)
+  // ============================================
   useEffect(() => {
     if (profile && !userLoading) {
       loadData();
@@ -43,13 +66,13 @@ export default function DealerBonusesPage() {
     try {
       setLoading(true);
       
-      // Загружаем все данные
-      const [levels, turnover, tree, bonuses, transactions] = await Promise.all([
+      // ✅ ШАГ 1: Все запросы параллельно
+      const [levels, turnover, bonuses, transactions, teamMembers] = await Promise.all([
         BonusService.getBonusLevels(),
         BonusService.getTurnoverForMonth(selectedMonth),
-        BonusService.buildTeamTree(profile.id),
         BonusService.getMonthlyBonuses(selectedMonth, profile.id),
-        BonusService.getUserTransactionHistory(profile.id)
+        BonusService.getUserTransactionHistory(profile.id),
+        TeamService.getMyTeam(profile.id, true) // ✅ Используем оптимизированный метод с кэшем
       ]);
 
       setBonusLevels(levels);
@@ -76,17 +99,17 @@ export default function DealerBonusesPage() {
         }
       }
 
-      // Обновляем дерево команды с данными за месяц
-      const updatedTree = await updateTreeWithMonthData(tree, turnover.data);
-      setTeamTree(updatedTree);
+      // ✅ ШАГ 2: Обогащаем команду оборотами за выбранный месяц
+      const tree = buildTreeWithTurnover(teamMembers, turnover.data, profile.id);
+      setTeamTree(tree);
       
       setMonthlyBonuses(bonuses);
       setTransactionHistory(transactions);
       
       // Автоматически раскрываем первый уровень
-      if (updatedTree && updatedTree.children) {
+      if (tree && tree.children) {
         const initialExpanded = new Set<string>();
-        initialExpanded.add(updatedTree.id);
+        initialExpanded.add(tree.id);
         setExpandedNodes(initialExpanded);
       }
       
@@ -97,32 +120,71 @@ export default function DealerBonusesPage() {
     }
   };
 
-  const updateTreeWithMonthData = async (tree: any, monthData: any[]) => {
-    if (!tree) return null;
-    
-    const updateNode = (node: any) => {
-      const data = monthData.find(u => u.user_id === node.id || u.users?.id === node.id);
-      if (data) {
-        node.personal_turnover = data.personal_turnover || 0;
-        node.team_turnover = (data.total_turnover || 0) - (data.personal_turnover || 0);
-        node.total_turnover = data.total_turnover || 0;
-        node.bonus_percent = data.bonus_percent || 0;
-      } else {
-        node.personal_turnover = 0;
-        node.team_turnover = 0;
-        node.total_turnover = 0;
-        node.bonus_percent = 0;
-      }
-      
-      if (node.children) {
-        node.children.forEach(updateNode);
-      }
+  /**
+   * ✅ НОВАЯ ФУНКЦИЯ: Построение дерева с оборотом
+   * Принимает плоский массив от TeamService и строит дерево с данными оборота
+   */
+  const buildTreeWithTurnover = (
+    members: TeamMember[], 
+    turnoverData: any[], 
+    rootId: string
+  ): TeamTreeNode | null => {
+    if (!members || members.length === 0) return null;
+
+    // Создаем Map для быстрого доступа к данным оборота
+    const turnoverMap = new Map(
+      turnoverData.map((t: any) => [
+        t.user_id || t.users?.id, 
+        {
+          personal_turnover: t.personal_turnover || 0,
+          team_turnover: t.team_turnover || 0,
+          total_turnover: t.total_turnover || 0,
+          bonus_percent: t.bonus_percent || 0
+        }
+      ])
+    );
+
+    // Создаем Map участников для быстрого поиска
+    const membersMap = new Map(members.map(m => [m.id, m]));
+
+    // Рекурсивная функция построения узла
+    const buildNode = (userId: string): TeamTreeNode | null => {
+      const member = membersMap.get(userId);
+      if (!member) return null;
+
+      const turnover = turnoverMap.get(userId) || {
+        personal_turnover: 0,
+        team_turnover: 0,
+        total_turnover: 0,
+        bonus_percent: 0
+      };
+
+      // Находим детей
+      const children = members
+        .filter(m => m.parentId === userId)
+        .map(child => buildNode(child.id))
+        .filter((node): node is TeamTreeNode => node !== null);
+
+      return {
+        id: userId,
+        name: member.name,
+        email: member.email || '',
+        personal_turnover: turnover.personal_turnover,
+        team_turnover: turnover.team_turnover,
+        total_turnover: turnover.total_turnover,
+        bonus_percent: turnover.bonus_percent,
+        children,
+        teamCount: member.teamCount || 0
+      };
     };
-    
-    updateNode(tree);
-    return tree;
+
+    return buildNode(rootId);
   };
 
+  // ============================================
+  // ОБРАБОТЧИКИ ДЕРЕВА
+  // ============================================
+  
   const toggleNode = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
     if (newExpanded.has(nodeId)) {
@@ -135,10 +197,10 @@ export default function DealerBonusesPage() {
 
   const expandAll = () => {
     const allNodes = new Set<string>();
-    const collectNodeIds = (node: any) => {
+    const collectNodeIds = (node: TeamTreeNode) => {
       allNodes.add(node.id);
       if (node.children) {
-        node.children.forEach((child: any) => collectNodeIds(child));
+        node.children.forEach((child: TeamTreeNode) => collectNodeIds(child));
       }
     };
     if (teamTree) {
@@ -151,7 +213,7 @@ export default function DealerBonusesPage() {
     setExpandedNodes(new Set());
   };
 
-  const renderTeamNode = (node: any, level = 0) => {
+  const renderTeamNode = (node: TeamTreeNode, level = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
     const directChildren = node.children?.length || 0;
@@ -229,13 +291,17 @@ export default function DealerBonusesPage() {
         
         {hasChildren && isExpanded && (
           <div className="border-l-2 border-gray-200" style={{ marginLeft: `${level * 24 + 12}px` }}>
-            {node.children.map((child: any) => renderTeamNode(child, level + 1))}
+            {node.children.map((child: TeamTreeNode) => renderTeamNode(child, level + 1))}
           </div>
         )}
       </div>
     );
   };
 
+  // ============================================
+  // ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ
+  // ============================================
+  
   // Расчет прогресса
   const calculateProgress = () => {
     if (!currentLevel || !nextLevel || !turnoverData) return 0;
@@ -259,13 +325,13 @@ export default function DealerBonusesPage() {
   const totalBonus = personalBonus + differentialBonus;
 
   // Подсчет команды
-  const countTeamMembers = (node: any): { direct: number; total: number } => {
+  const countTeamMembers = (node: TeamTreeNode): { direct: number; total: number } => {
     if (!node || !node.children) return { direct: 0, total: 0 };
     
     let total = node.children.length;
     const direct = node.children.length;
     
-    node.children.forEach((child: any) => {
+    node.children.forEach((child: TeamTreeNode) => {
       const childCount = countTeamMembers(child);
       total += childCount.total;
     });
@@ -275,6 +341,10 @@ export default function DealerBonusesPage() {
 
   const teamStats = teamTree ? countTeamMembers(teamTree) : { direct: 0, total: 0 };
 
+  // ============================================
+  // RENDER
+  // ============================================
+  
   if (userLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -289,7 +359,7 @@ export default function DealerBonusesPage() {
       
       <div className="mt-4">
         {/* Селектор месяца */}
-        <div className="bg-white rounded-2xl  p-6 mb-6 border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-100">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <Calendar className="h-6 w-6 text-[#D77E6C]" />
@@ -416,9 +486,7 @@ export default function DealerBonusesPage() {
               <div>
                 <p className="text-xs text-gray-600">Командный оборот</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {BonusService.formatCurrency(
-                    turnoverData ? (turnoverData.total_turnover - turnoverData.personal_turnover) : 0
-                  )}
+                  {BonusService.formatCurrency(turnoverData?.team_turnover || 0)}
                 </p>
               </div>
               <Users className="h-6 w-6 text-green-500" />
@@ -471,7 +539,7 @@ export default function DealerBonusesPage() {
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               {[
                 { id: 'overview', name: 'Обзор', icon: TrendingUp },
-                { id: 'bonuses', name: `Бонусы`, icon: DollarSign },
+                { id: 'bonuses', name: 'Бонусы', icon: DollarSign },
                 { id: 'team', name: `Команда (${teamStats.total})`, icon: Users },
                 { id: 'history', name: 'История', icon: Clock }
               ].map((tab) => (
@@ -494,7 +562,7 @@ export default function DealerBonusesPage() {
           </div>
 
           <div className="p-6">
-            {/* Обзор - показываем ВСЕХ прямых партнеров */}
+            {/* Обзор - показываем прямых партнеров */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 {teamTree && teamTree.children && (
@@ -505,8 +573,8 @@ export default function DealerBonusesPage() {
                     <div className="space-y-2">
                       {teamTree.children.length > 0 ? (
                         teamTree.children
-                          .sort((a: any, b: any) => b.total_turnover - a.total_turnover)
-                          .map((partner: any, index: number) => (
+                          .sort((a: TeamTreeNode, b: TeamTreeNode) => b.total_turnover - a.total_turnover)
+                          .map((partner: TeamTreeNode, index: number) => (
                             <div key={partner.id} className={`flex items-center justify-between p-4 rounded-lg transition-colors
                               ${partner.total_turnover > 0 ? 'bg-gray-50 hover:bg-gray-100' : 'bg-gray-50/50'}`}>
                               <div className="flex items-center gap-4">
@@ -543,11 +611,10 @@ export default function DealerBonusesPage() {
               </div>
             )}
 
-           
-            {/* Бонусы - без путающей информации */}
+            {/* Бонусы */}
             {activeTab === 'bonuses' && (
               <div className="space-y-6">
-                {/* Сводка без лишней информации в итоговом блоке */}
+                {/* Сводка */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -580,13 +647,8 @@ export default function DealerBonusesPage() {
                     <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">От команды:</span>
-                        <span className="font-medium">{BonusService.formatCurrency((turnoverData?.total_turnover || 0) - (turnoverData?.personal_turnover || 0))}</span>
+                        <span className="font-medium">{BonusService.formatCurrency(turnoverData?.team_turnover || 0)}</span>
                       </div>
-                      {differentialBonus === 0 && turnoverData && ((turnoverData.total_turnover - turnoverData.personal_turnover) > 0) && (
-                        <p className="text-xs text-yellow-700 mt-1">
-                          Партнеры ≥ {turnoverData.bonus_percent}%
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -604,17 +666,6 @@ export default function DealerBonusesPage() {
                       </p>
                     </div>
                   </div>
-                </div>
-
-                {/* Объяснение как отдельный блок */}
-                <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                  <p className="font-medium mb-1">Как рассчитывается ваш процент:</p>
-                  <p className="text-xs">
-                    Личный оборот ({BonusService.formatCurrency(turnoverData?.personal_turnover || 0)}) + 
-                    Командный оборот ({BonusService.formatCurrency((turnoverData?.total_turnover || 0) - (turnoverData?.personal_turnover || 0))}) = 
-                    Общий оборот ({BonusService.formatCurrency(turnoverData?.total_turnover || 0)}) → 
-                    <span className="font-medium text-[#D77E6C]"> {turnoverData?.bonus_percent || 0}% ({currentLevel?.name})</span>
-                  </p>
                 </div>
 
                 {/* Детализация */}
@@ -689,7 +740,7 @@ export default function DealerBonusesPage() {
               </div>
             )}
 
-            {/* Команда */}
+            {/* Команда - ПОЛНОЕ ДЕРЕВО */}
             {activeTab === 'team' && (
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -724,7 +775,7 @@ export default function DealerBonusesPage() {
                       </div>
                     </div>
                     
-                    {teamTree.children.map((child: any) => renderTeamNode(child, 0))}
+                    {teamTree.children.map((child: TeamTreeNode) => renderTeamNode(child, 0))}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-lg">
@@ -735,7 +786,7 @@ export default function DealerBonusesPage() {
               </div>
             )}
 
-            {/* История без колонки "Перевод" */}
+            {/* История */}
             {activeTab === 'history' && (
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-4">История транзакций</h3>

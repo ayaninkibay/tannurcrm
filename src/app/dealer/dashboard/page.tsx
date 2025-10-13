@@ -60,10 +60,12 @@ export default function DashboardPage() {
       {/* График и новости */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="h-full">
-          <TurnoverChart 
-            title="Личный товарооборот"
-            dataType="personal"
-          />
+        <TurnoverChart
+          userId={user?.id}
+          includeTeam={false} // Без команды
+          title="Мой товарооборот"
+          subtitle="Личные продажи"
+        />
         </div>
         <div className="min-h-[400px] overflow-hidden flex flex-col">
           <NewsEventsCard />

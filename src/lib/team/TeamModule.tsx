@@ -1,19 +1,25 @@
 // lib/team/TeamModule.tsx
+// Модуль с хуками для работы с командой (БЕЗ UI компонентов)
 
-import React, { useEffect, useState } from 'react';
-import { TeamService, type TeamMember, type TeamStats } from './TeamService';
-import TeamTree from '@/components/team/TeamTree';
-import TeamCard from '@/components/blocks/TeamCard';
-import { Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TeamService, type TeamMember } from './TeamService';
+import type { TeamStatsData } from '@/types/team.types';  // ⭐ ИМПОРТИРУЕМ ПРАВИЛЬНЫЙ ТИП
 
 // ===============================
 // ХУКИ ДЛЯ РАБОТЫ С КОМАНДОЙ
 // ===============================
 
 /**
- * Хук для работы с древом команды пользователя
+ * Хук для работы с командой пользователя
+ * Загружает всю иерархию команды через оптимизированный RPC
+ * 
+ * @param userId - ID пользователя
+ * @param useCache - Использовать кэш (по умолчанию true)
+ * 
+ * @example
+ * const { members, loading, error, refreshTree } = useTeamTree(userId);
  */
-export function useTeamTree(userId?: string) {
+export function useTeamTree(userId?: string, useCache: boolean = true) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +39,10 @@ export function useTeamTree(userId?: string) {
       setLoading(true);
       setError(null);
       
-      const data = await TeamService.getMyTeam(userId);
+      const data = await TeamService.getMyTeam(userId, useCache);
       setMembers(data);
     } catch (err) {
-      console.error('Ошибка загрузки членов команды:', err);
+      console.error('❌ Ошибка загрузки команды:', err);
       setError('Не удалось загрузить данные команды');
       setMembers([]);
     } finally {
@@ -45,6 +51,7 @@ export function useTeamTree(userId?: string) {
   };
 
   const refreshTree = () => {
+    TeamService.clearCache(userId);
     loadTeamMembers();
   };
 
@@ -57,102 +64,126 @@ export function useTeamTree(userId?: string) {
 }
 
 /**
- * Хук для получения команды дилера (для админов)
+ * Хук для получения только прямых рефералов (быстрый запрос)
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { members, loading, refreshReferrals } = useDirectReferrals(userId);
  */
-export function useDealerTeam(dealerId?: string) {
+export function useDirectReferrals(userId?: string) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (dealerId) {
-      loadDealerTeam();
+    if (userId) {
+      loadDirectReferrals();
     } else {
       setLoading(false);
     }
-  }, [dealerId]);
+  }, [userId]);
 
-  const loadDealerTeam = async () => {
-    if (!dealerId) return;
+  const loadDirectReferrals = async () => {
+    if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
       
-      const data = await TeamService.getDealerTeam(dealerId);
+      const data = await TeamService.getDirectReferrals(userId);
       setMembers(data);
     } catch (err) {
-      console.error('Ошибка загрузки команды дилера:', err);
-      setError('Не удалось загрузить команду дилера');
+      console.error('❌ Ошибка загрузки прямых рефералов:', err);
+      setError('Не удалось загрузить рефералов');
       setMembers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshTeam = () => {
-    loadDealerTeam();
+  const refreshReferrals = () => {
+    loadDirectReferrals();
   };
 
   return {
     members,
     loading,
     error,
-    refreshTeam
+    refreshReferrals
   };
 }
 
 /**
- * Хук для получения всех пользователей (для админской панели)
+ * Хук для получения прямых рефералов с их статистикой
+ * Включает размер команды каждого реферала и их оборот
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { referrals, loading } = useDirectReferralsWithStats(userId);
  */
-export function useAllMembers() {
-  const [members, setMembers] = useState<TeamMember[]>([]);
+export function useDirectReferralsWithStats(userId?: string) {
+  const [referrals, setReferrals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadAllMembers();
-  }, []);
+    if (userId) {
+      loadReferralsWithStats();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
 
-  const loadAllMembers = async () => {
+  const loadReferralsWithStats = async () => {
+    if (!userId) return;
+
     try {
       setLoading(true);
       setError(null);
       
-      const data = await TeamService.getAllMembers();
-      setMembers(data);
+      const data = await TeamService.getDirectReferralsWithStats(userId);
+      setReferrals(data);
     } catch (err) {
-      console.error('Ошибка загрузки всех пользователей:', err);
-      setError('Не удалось загрузить список пользователей');
-      setMembers([]);
+      console.error('❌ Ошибка загрузки статистики рефералов:', err);
+      setError('Не удалось загрузить статистику');
+      setReferrals([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshMembers = () => {
-    loadAllMembers();
+  const refreshReferrals = () => {
+    loadReferralsWithStats();
   };
 
   return {
-    members,
+    referrals,
     loading,
     error,
-    refreshMembers
+    refreshReferrals
   };
 }
 
 /**
- * Хук для получения статистики команды
+ * ⭐ ОБНОВЛЕННЫЙ ХУК - Получить статистику команды
+ * Теперь возвращает TeamStatsData вместо TeamStats
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { stats, loading, refreshStats } = useTeamStats(userId);
  */
 export function useTeamStats(userId?: string) {
-  const [stats, setStats] = useState<TeamStats>({
+  const [stats, setStats] = useState<TeamStatsData>({  // ⭐ ИСПОЛЬЗУЕМ TeamStatsData
     totalMembers: 0,
     directMembers: 0,
     totalTurnover: 0,
     activeMembersCount: 0,
-    goal: 9800000,
-    remaining: 9800000
+    maxDepth: 0,
+    goal: 10,
+    remaining: 10
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,11 +203,23 @@ export function useTeamStats(userId?: string) {
       setLoading(true);
       setError(null);
       
+      // ⭐ ИСПОЛЬЗУЕМ getTeamStats из TeamService
       const data = await TeamService.getTeamStats(userId);
       setStats(data);
     } catch (err) {
-      console.error('Ошибка загрузки статистики:', err);
+      console.error('❌ Ошибка загрузки статистики:', err);
       setError('Не удалось загрузить статистику');
+      
+      // ⭐ В случае ошибки оставляем дефолтные значения
+      setStats({
+        totalMembers: 0,
+        directMembers: 0,
+        totalTurnover: 0,
+        activeMembersCount: 0,
+        maxDepth: 0,
+        goal: 10,
+        remaining: 10
+      });
     } finally {
       setLoading(false);
     }
@@ -194,201 +237,351 @@ export function useTeamStats(userId?: string) {
   };
 }
 
-// ===============================
-// КОМПОНЕНТЫ-ОБЕРТКИ
-// ===============================
-
 /**
- * Компонент-обертка для древа команды
+ * Хук для получения команды определенного уровня иерархии
+ * 
+ * @param userId - ID пользователя
+ * @param level - Уровень иерархии (0 = сам пользователь, 1 = прямые рефералы, и т.д.)
+ * 
+ * @example
+ * const { members, loading } = useTeamByLevel(userId, 2); // 2-й уровень
  */
-interface TreeModuleProps {
-  userId?: string;
-  currentUserId?: string;
-  onSelectMember?: (member: TeamMember) => void;
-  onEditMember?: (member: TeamMember) => void;
-  className?: string;
-  mode?: 'user' | 'dealer' | 'admin';
+export function useTeamByLevel(userId?: string, level: number = 1) {
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId) {
+      loadTeamByLevel();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, level]);
+
+  const loadTeamByLevel = async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await TeamService.getTeamByLevel(userId, level);
+      setMembers(data);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки команды по уровню:', err);
+      setError(`Не удалось загрузить команду ${level} уровня`);
+      setMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshTeam = () => {
+    loadTeamByLevel();
+  };
+
+  return {
+    members,
+    loading,
+    error,
+    refreshTeam
+  };
 }
 
-export const TreeModule: React.FC<TreeModuleProps> = ({
-  userId,
-  currentUserId,
-  onSelectMember,
-  onEditMember,
-  className,
-  mode = 'user'
-}) => {
-  // Выбираем нужный хук в зависимости от режима
-  const userTeam = useTeamTree(mode === 'user' ? userId : undefined);
-  const dealerTeam = useDealerTeam(mode === 'dealer' ? userId : undefined);
-  const allMembers = useAllMembers();
-
-  // Определяем активные данные
-  const activeData = mode === 'admin' ? allMembers : mode === 'dealer' ? dealerTeam : userTeam;
-  const { members, loading, error } = activeData;
-  const refreshFunction = 'refreshTree' in activeData ? activeData.refreshTree : 
-                         'refreshTeam' in activeData ? activeData.refreshTeam : 
-                         activeData.refreshMembers;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#DC7C67] mb-4"></div>
-          <p className="text-gray-600">Загрузка данных команды...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-red-500" />
-          </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={refreshFunction}
-            className="px-6 py-2.5 bg-gradient-to-r from-[#DC7C67] to-[#E89380] text-white rounded-xl hover:shadow-lg transition-all duration-300 text-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Повторить попытку
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (members.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#DC7C67]/10 to-[#E89380]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-[#DC7C67]" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {mode === 'admin' ? 'Нет пользователей' : 'Команда пуста'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {mode === 'admin' 
-              ? 'В системе пока нет зарегистрированных пользователей' 
-              : 'Пригласите участников для отображения структуры команды'
-            }
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <TeamTree
-      members={members}
-      currentUserId={currentUserId}
-      onSelectMember={onSelectMember}
-      onEditMember={onEditMember}
-      className={className}
-      isLoading={loading}
-    />
-  );
-};
-
 /**
- * Компонент-обертка для карточки команды
- * ОБНОВЛЕНО: добавлена поддержка showBonusTable
+ * Хук для получения статистики по уровням иерархии
+ * Возвращает количество участников и оборот на каждом уровне
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { levelStats, loading } = useTeamStatsByLevel(userId);
  */
-interface TeamCardModuleProps {
-  userId?: string;
-  title?: string;
-  variant?: 'color' | 'white';
-  showButton?: boolean;
-  showBonusTable?: boolean; // НОВЫЙ ПРОП!
-  className?: string;
+export function useTeamStatsByLevel(userId?: string) {
+  const [levelStats, setLevelStats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId) {
+      loadLevelStats();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  const loadLevelStats = async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await TeamService.getTeamStatsByLevel(userId);
+      setLevelStats(data);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки статистики по уровням:', err);
+      setError('Не удалось загрузить статистику по уровням');
+      setLevelStats([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshStats = () => {
+    loadLevelStats();
+  };
+
+  return {
+    levelStats,
+    loading,
+    error,
+    refreshStats
+  };
 }
 
-export const TeamCardModule: React.FC<TeamCardModuleProps> = ({
-  userId,
-  title = 'Моя команда',
-  variant = 'white',
-  showButton = true,
-  showBonusTable = false, // По умолчанию false
-  className
-}) => {
-  const { stats, loading } = useTeamStats(userId);
-
-  return (
-    <div className={className}>
-      <TeamCard
-        title={title}
-        count={loading ? 0 : stats.totalMembers}
-        goal={loading ? 10 : stats.goal}  // Используем динамическую цель из статистики
-        showButton={showButton}
-        showBonusTable={showBonusTable} // ПЕРЕДАЕМ НОВЫЙ ПРОП!
-        variant={variant}
-      />
-    </div>
-  );
-};
-
 /**
- * Компонент для отображения статистики команды
+ * Хук для поиска в команде
+ * Поиск по имени, email, телефону через оптимизированный SQL запрос
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { results, loading, search, clearSearch } = useTeamSearch(userId);
+ * search('Айгерим'); // Поиск
  */
-interface TeamStatsModuleProps {
-  userId?: string;
-  className?: string;
+export function useTeamSearch(userId?: string) {
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const search = async (query: string) => {
+    if (!userId || !query || query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await TeamService.searchTeam(userId, query);
+      setResults(data);
+    } catch (err) {
+      console.error('❌ Ошибка поиска:', err);
+      setError('Ошибка поиска');
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setResults([]);
+    setError(null);
+  };
+
+  return {
+    results,
+    loading,
+    error,
+    search,
+    clearSearch
+  };
 }
 
-export const TeamStatsModule: React.FC<TeamStatsModuleProps> = ({
-  userId,
-  className
-}) => {
-  const { stats, loading, error } = useTeamStats(userId);
+/**
+ * Хук для получения топ участников команды по обороту
+ * 
+ * @param userId - ID пользователя
+ * @param limit - Количество участников (по умолчанию 10)
+ * 
+ * @example
+ * const { performers, loading } = useTopPerformers(userId, 5); // Топ-5
+ */
+export function useTopPerformers(userId?: string, limit: number = 10) {
+  const [performers, setPerformers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (loading) {
-    return (
-      <div className={`animate-pulse ${className}`}>
-        <div className="bg-gray-200 h-4 rounded mb-2"></div>
-        <div className="bg-gray-200 h-4 rounded mb-1"></div>
-        <div className="bg-gray-200 h-4 rounded"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (userId) {
+      loadTopPerformers();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, limit]);
 
-  if (error) {
-    return (
-      <div className={`text-red-500 text-sm ${className}`}>
-        {error}
-      </div>
-    );
-  }
+  const loadTopPerformers = async () => {
+    if (!userId) return;
 
-  return (
-    <div className={className}>
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Всего участников:</span>
-          <span className="font-semibold">{stats.totalMembers}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Прямых подчиненных:</span>
-          <span className="font-semibold">{stats.directMembers}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Активных участников:</span>
-          <span className="font-semibold">{stats.activeMembersCount}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Общий оборот:</span>
-          <span className="font-semibold">{stats.totalTurnover.toLocaleString()} ₸</span>
-        </div>
-      </div>
-    </div>
-  );
-};
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await TeamService.getTopPerformers(userId, limit);
+      setPerformers(data);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки топ участников:', err);
+      setError('Не удалось загрузить топ участников');
+      setPerformers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshPerformers = () => {
+    loadTopPerformers();
+  };
+
+  return {
+    performers,
+    loading,
+    error,
+    refreshPerformers
+  };
+}
+
+/**
+ * Хук для получения информации о целях пользователя
+ * 
+ * @param userId - ID пользователя
+ * 
+ * @example
+ * const { goalInfo, loading } = useUserGoalInfo(userId);
+ */
+export function useUserGoalInfo(userId?: string) {
+  const [goalInfo, setGoalInfo] = useState({
+    currentGoal: 10,
+    progress: 0,
+    isConfirmed: false,
+    goalDescription: 'Пригласите 10 участников для подтверждения статуса'
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId) {
+      loadGoalInfo();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  const loadGoalInfo = async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await TeamService.getUserGoalInfo(userId);
+      setGoalInfo(data);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки информации о целях:', err);
+      setError('Не удалось загрузить информацию о целях');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshGoalInfo = () => {
+    loadGoalInfo();
+  };
+
+  return {
+    goalInfo,
+    loading,
+    error,
+    refreshGoalInfo
+  };
+}
+
+/**
+ * Хук для пагинации команды
+ * 
+ * @param userId - ID пользователя
+ * @param pageSize - Размер страницы (по умолчанию 50)
+ * 
+ * @example
+ * const { data, total, page, setPage, loading } = useTeamPagination(userId, 20);
+ */
+export function useTeamPagination(userId?: string, pageSize: number = 50) {
+  const [data, setData] = useState<TeamMember[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId) {
+      loadPage();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, page, pageSize]);
+
+  const loadPage = async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await TeamService.getTeamPaginated(userId, page, pageSize);
+      setData(result.data);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+    } catch (err) {
+      console.error('❌ Ошибка загрузки страницы:', err);
+      setError('Не удалось загрузить данные');
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+
+  const goToPage = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
+
+  const refreshPage = () => {
+    loadPage();
+  };
+
+  return {
+    data,
+    total,
+    totalPages,
+    page,
+    loading,
+    error,
+    setPage: goToPage,
+    nextPage,
+    prevPage,
+    refreshPage
+  };
+}
 
 // ===============================
 // ЭКСПОРТЫ
 // ===============================
 
-export { TeamService, type TeamMember, type TeamStats } from './TeamService';
-export default TreeModule;
+export { TeamService, type TeamMember } from './TeamService';
+export type { TeamStatsData } from '@/types/team.types';  // ⭐ ЭКСПОРТИРУЕМ НОВЫЙ ТИП

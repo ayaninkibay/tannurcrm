@@ -36,19 +36,16 @@ export default function StatsContent() {
               variant="light"       // Светлая тема
             />
           </div>
-
-          {/* CooperationTerms */}
-          <div className="bg-white rounded-2xl">
-            <CooperationTerms variant="light" />
-          </div>
         </div>
 
         {/* Правая колонка - График */}
         <div className="col-span-8 md:col-span-4 xl:col-span-5 bg-white p-2 rounded-2xl">
-          <TurnoverChart 
-            title="Личный товарооборот"
-            dataType="personal"
-          />
+        <TurnoverChart
+          userId={user?.id}
+          includeTeam={false} // Без команды
+          title="Мой товарооборот"
+          subtitle="Личные продажи"
+        />
         </div>
       </section>
 

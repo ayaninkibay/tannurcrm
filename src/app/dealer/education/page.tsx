@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { 
   Grid3x3, 
@@ -10,75 +11,130 @@ import {
   ArrowRight,
   Play,
   Clock,
-  Award,
-  BookMarked
+  BookMarked,
+  FileText,
+  Download,
+  FolderOpen,
+  File,
+  FileVideo,
+  FileImage,
+  FilePlus
 } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { AcademyProvider, useAcademyModule } from '@/lib/academy/AcademyModule';
+import { useDocumentModule } from '@/lib/documents/useDocumentModule';
+
+// Кэш данных вне компонента для сохранения между ре-рендерами
+const dataCache = {
+  courses: null as any[] | null,
+  lessons: null as any[] | null,
+  categories: null as any[] | null,
+  introCourseId: null as string | null,
+  timestamp: 0,
+  CACHE_DURATION: 5 * 60 * 1000 // 5 минут
+};
 
 function EducationContent() {
   const { t } = useTranslate();
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
   
   const { courses, lessons, loading, loadCourses, loadLessons } = useAcademyModule();
-  const [introLessons, setIntroLessons] = useState<any[]>([]);
-  const [introCourseId, setIntroCourseId] = useState<string | null>(null);
-  const [coursesLoaded, setCoursesLoaded] = useState(false);
+  const {
+    categories,
+    loading: docsLoading,
+    loadDocuments,
+    downloadDocument
+  } = useDocumentModule();
 
-  // Загружаем курсы только один раз
+  const [introLessons, setIntroLessons] = useState<any[]>(dataCache.lessons || []);
+  const [introCourseId, setIntroCourseId] = useState<string | null>(dataCache.introCourseId);
+  const [coursesLoaded, setCoursesLoaded] = useState(false);
+  const [displayCourses, setDisplayCourses] = useState<any[]>(dataCache.courses || []);
+  const [displayCategories, setDisplayCategories] = useState<any[]>(dataCache.categories || []);
+  const isInitialMount = useRef(true);
+
+  // Проверяем актуальность кэша
+  const isCacheValid = () => {
+    const now = Date.now();
+    return dataCache.timestamp && (now - dataCache.timestamp) < dataCache.CACHE_DURATION;
+  };
+
+  // Загружаем данные с учетом кэша
   useEffect(() => {
-    if (!coursesLoaded) {
-      loadCourses({ isPublished: true }).then(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      
+      // Если кэш валиден, используем его
+      if (isCacheValid() && dataCache.courses && dataCache.categories) {
+        setDisplayCourses(dataCache.courses);
+        setDisplayCategories(dataCache.categories);
+        if (dataCache.lessons) {
+          setIntroLessons(dataCache.lessons);
+        }
         setCoursesLoaded(true);
+        // Все равно загружаем документы для обновления
+        loadDocuments();
+        return;
+      }
+      
+      // Иначе загружаем свежие данные
+      Promise.all([
+        loadCourses({ isPublished: true }),
+        loadDocuments()
+      ]).then(() => {
+        setCoursesLoaded(true);
+        dataCache.timestamp = Date.now();
       });
     }
-  }, []);
+  }, [loadCourses, loadDocuments]);
+
+  // Сохраняем курсы в кэш и обновляем отображаемые курсы
+  useEffect(() => {
+    if (courses.length > 0 && coursesLoaded) {
+      dataCache.courses = courses;
+      setDisplayCourses(courses);
+    }
+  }, [courses, coursesLoaded]);
+
+  // Сохраняем категории в кэш и обновляем отображаемые категории
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      dataCache.categories = categories;
+      setDisplayCategories(categories);
+    }
+  }, [categories]);
+
+  // Убираем лишний useEffect для синхронизации - он не нужен
 
   // Загружаем уроки только когда найден курс
   useEffect(() => {
     if (!coursesLoaded) return;
     
-    const introCourse = courses.find(course => 
+    const introCourse = displayCourses.find(course => 
       course.title === 'Знакомство c Tannur' || 
       course.title === 'Знакомство с Tannur'
     );
     
     if (introCourse && introCourse.id !== introCourseId) {
       setIntroCourseId(introCourse.id);
-      loadLessons(introCourse.id);
+      dataCache.introCourseId = introCourse.id;
+      
+      // Если кэш валиден и уроки есть, не перезагружаем
+      if (isCacheValid() && dataCache.lessons && dataCache.lessons.length > 0) {
+        setIntroLessons(dataCache.lessons);
+      } else {
+        loadLessons(introCourse.id);
+      }
     }
-  }, [coursesLoaded, courses, introCourseId, loadLessons]);
+  }, [coursesLoaded, displayCourses, introCourseId, loadLessons]);
 
-  // Обновляем уроки только когда они загружены
+  // Обновляем уроки и сохраняем в кэш
   useEffect(() => {
     if (introCourseId && lessons.length > 0) {
       setIntroLessons(lessons);
+      dataCache.lessons = lessons;
     }
   }, [lessons, introCourseId]);
-
-  // Подсчет общего количества часов
-  const calculateTotalHours = () => {
-    let totalHours = 0;
-    
-    courses.forEach(course => {
-      if (course.duration_hours) {
-        totalHours += course.duration_hours;
-      }
-    });
-    
-    if (totalHours > 0) {
-      return `${Math.round(totalHours)}+ часов`;
-    }
-    return 'Доступно';
-  };
-
-  const formatDuration = (hours: number | null) => {
-    if (!hours) return '—';
-    if (hours < 1) return `${Math.round(hours * 60)} мин`;
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return m > 0 ? `${h} ч ${m} мин` : `${h} ч`;
-  };
 
   const formatLessonDuration = (minutes: number | null) => {
     if (!minutes) return '—';
@@ -88,7 +144,56 @@ function EducationContent() {
     return mins ? `${hours} ч ${mins} мин` : `${hours} ч`;
   };
 
-  if (loading && !coursesLoaded) {
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    if (['pdf', 'doc', 'docx', 'txt'].includes(extension || '')) {
+      return <FileText className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) {
+      return <FileVideo className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '')) {
+      return <FileImage className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    return <File className="w-5 h-5 text-[#D77E6C]" />;
+  };
+
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка при скачивании файла:', error);
+      // Fallback на прямую загрузку
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  if ((loading || !coursesLoaded) && !isCacheValid()) {
     return (
       <div className="p-2 md:p-6">
         <MoreHeaderDE title={t('Академия TNBA')} />
@@ -99,10 +204,76 @@ function EducationContent() {
     );
   }
 
+  const DocumentCard = ({ category }: { category: any }) => (
+    <div className="bg-white rounded-2xl hover:shadow-sm transition-all duration-300 overflow-hidden border border-gray-100">
+      <div className="bg-gradient-to-r from-[#D77E6C] to-[#E89380] p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+            {category.icon_src ? (
+              <Image src={category.icon_src} alt="icon" width={20} height={20} />
+            ) : (
+              <FolderOpen className="w-5 h-5 text-white" />
+            )}
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-semibold text-sm md:text-base">
+              {t(category.name)}
+            </h3>
+            <p className="text-white/80 text-xs">
+              {category.files.length} {t('файлов')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-5 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+        {category.files.length > 0 ? (
+          category.files.map((file: any) => (
+            <div
+              key={file.id}
+              className="group flex items-center justify-between p-3 bg-gray-50 hover:bg-orange-50 rounded-xl transition-all duration-200 cursor-pointer"
+              onClick={() => handleDownload(file.public_url, file.name)}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-2 bg-white rounded-lg group-hover:bg-orange-100 transition-colors">
+                  {getFileIcon(file.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-800 truncate group-hover:text-[#D77E6C] transition-colors">
+                    {file.name}
+                  </p>
+                  {file.size > 0 && (
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button 
+                className="p-2 hover:bg-white rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
+                aria-label="download"
+                title={t('Скачать файл')}
+              >
+                <Download className="w-4 h-4 text-[#D77E6C]" />
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12">
+            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
+              <FilePlus className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">{t('В этой категории пока нет файлов')}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="p-2 md:p-6">
       <MoreHeaderDE title={t('Академия TNBA')} />
-
 
       {/* Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 mt-5 gap-4">
@@ -138,10 +309,10 @@ function EducationContent() {
       {activeTab === 'all' ? (
         <>
           {/* Courses Grid */}
-          {courses.length > 0 && (
+          {displayCourses.length > 0 && (
             <div className="mb-8">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {courses.slice(0, 4).map((course) => (
+                {displayCourses.slice(0, 4).map((course) => (
                   <Link
                     key={course.id}
                     href={`/dealer/education/course-preview?id=${course.id}`}
@@ -161,7 +332,7 @@ function EducationContent() {
             </div>
           )}
 
-          {/* Lessons Section Header */}
+          {/* Lessons Section */}
           {introCourseId && (
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">{t('Популярные уроки')}</h2>
@@ -177,7 +348,7 @@ function EducationContent() {
 
           {/* Lessons Grid */}
           {introLessons.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
               {introLessons.slice(0, 4).map((lesson: any, index) => (
                 <Link
                   key={lesson.id}
@@ -226,19 +397,46 @@ function EducationContent() {
               ))}
             </div>
           ) : introCourseId ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center mb-12">
               <Play className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">{t('В этом курсе пока нет уроков')}</p>
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-              <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">{t('Создайте курс "Знакомство c Tannur" для отображения уроков')}</p>
+          ) : null}
+
+          {/* Documents Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-6">
+              <FileText className="w-5 h-5 text-gray-600" />
+              <h2 className="text-xl font-semibold text-gray-900">{t('Документы')}</h2>
             </div>
-          )}
+
+            {docsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#D77E6C] border-t-transparent"></div>
+              </div>
+            ) : categories.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {categories.map((category) => (
+                  <DocumentCard key={category.id} category={category} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+                <div className="inline-flex p-6 bg-gradient-to-br from-orange-100 to-orange-50 rounded-full mb-6">
+                  <FolderOpen className="w-12 h-12 text-[#D77E6C]" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                  {t('Документы пока не загружены')}
+                </h3>
+                <p className="text-sm text-gray-500 max-w-md mx-auto">
+                  {t('Обратитесь к администратору для получения необходимых документов')}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Empty state for no courses */}
-          {courses.length === 0 && (
+          {displayCourses.length === 0 && coursesLoaded && (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
               <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('Курсы появятся здесь')}</h3>
@@ -265,6 +463,24 @@ function EducationContent() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #D77E6C;
+          border-radius: 10px;
+          opacity: 0.6;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #C66B5A;
+        }
+      `}</style>
     </div>
   );
 }

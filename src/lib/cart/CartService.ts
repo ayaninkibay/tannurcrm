@@ -3,23 +3,56 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Cart, CartItem, CartItemView } from '@/types';
 
+// ==========================================
+// ТИПЫ (СИНХРОНИЗИРОВАНЫ С ORDERS)
+// ==========================================
+
+export type DeliveryMethod = 'pickup' | 'delivery';
+
+export interface ServiceResult<T = void> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+export interface CartValidation {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Стоимость доставки (пока 0 для самовывоза)
+export const DELIVERY_COSTS: Record<DeliveryMethod, number> = {
+  pickup: 0,
+  delivery: 0 // Пока доставка недоступна
+};
+
+// ==========================================
+// СЕРВИС
+// ==========================================
+
 class CartService {
+  
   /**
-   * Получить или создать корзину пользователя через функцию БД
+   * Получить или создать корзину пользователя
+   * Использует существующую RPC функцию get_or_create_cart
    */
   async getOrCreateCart(userId: string): Promise<string> {
     const { data, error } = await supabase
       .rpc('get_or_create_cart', { p_user_id: userId });
     
     if (error) {
-      console.error('Error in get_or_create_cart:', error);
+      console.error('❌ Error in get_or_create_cart:', error);
       throw new Error(error.message);
     }
+    
     return data;
   }
 
   /**
-   * Загрузить корзину с товарами через join
+   * Загрузить корзину с товарами
+   * Использует JOIN для получения актуальных данных товаров
    */
   async loadCart(cartId: string): Promise<{ cart: Cart; items: CartItemView[] }> {
     // Загружаем корзину
@@ -31,7 +64,14 @@ class CartService {
 
     if (cartError) throw new Error(cartError.message);
 
-    // Загружаем товары корзины с join на products для получения актуальных данных
+    // Проверяем и устанавливаем дефолтные значения если их нет
+    if (!cartData.delivery_method) {
+      await this.updateDeliveryMethod(cartId, 'pickup');
+      cartData.delivery_method = 'pickup';
+      cartData.delivery_cost = 0;
+    }
+
+    // Загружаем товары с JOIN на products
     const { data: cartItemsData, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
@@ -47,7 +87,8 @@ class CartService {
           image_url,
           price,
           price_dealer,
-          stock
+          stock,
+          is_active
         )
       `)
       .eq('cart_id', cartId)
@@ -55,237 +96,291 @@ class CartService {
 
     if (itemsError) throw new Error(itemsError.message);
 
-    // Преобразуем данные в нужный формат CartItemView
-    const items: CartItemView[] = (cartItemsData || []).map(item => ({
-      id: item.id,
-      cart_id: item.cart_id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-      // Данные из products
-      name: item.products?.name || 'Товар',
-      category: item.products?.category || '',
-      image: item.products?.image_url || null,
-      price: item.products?.price || 0,
-      price_dealer: item.products?.price_dealer || 0,
-      stock: item.products?.stock || 0
-    }));
+    // Преобразуем данные
+    const items: CartItemView[] = (cartItemsData || [])
+      .filter(item => item.products) // Фильтруем удаленные товары
+      .map(item => ({
+        id: item.id,
+        cart_id: item.cart_id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        name: item.products.name || 'Товар',
+        category: item.products.category || '',
+        image: item.products.image_url || null,
+        price: item.products.price || 0,
+        price_dealer: item.products.price_dealer || 0,
+        stock: item.products.stock || 0
+      }));
 
-    return { 
-      cart: cartData, 
-      items
-    };
+    return { cart: cartData, items };
   }
 
   /**
-   * Добавить товар в корзину через функцию БД
-   * Использует add_to_cart которая проверяет остатки и обновляет количество если товар уже есть
+   * Добавить товар в корзину
+   * Использует существующую RPC функцию add_to_cart
    */
-  async addItemToCart(userId: string, productId: string, quantity: number): Promise<any> {
-    const { data, error } = await supabase
-      .rpc('add_to_cart', {
+  async addItemToCart(
+    userId: string,
+    productId: string,
+    quantity: number
+  ): Promise<ServiceResult> {
+    try {
+      const { data, error } = await supabase.rpc('add_to_cart', {
         p_user_id: userId,
         p_product_id: productId,
         p_quantity: quantity
       });
 
-    if (error) {
-      console.error('Error in add_to_cart:', error);
-      throw new Error(error.message);
-    }
-
-    // Проверяем результат
-    if (data && typeof data === 'object' && 'success' in data) {
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to add item to cart');
+      if (error) {
+        console.error('❌ Error in add_to_cart:', error);
+        throw error;
       }
-    }
 
-    return data;
+      // Проверяем результат
+      if (data && typeof data === 'object' && 'success' in data) {
+        if (!data.success) {
+          return {
+            success: false,
+            error: data.message || 'Не удалось добавить товар'
+          };
+        }
+        return {
+          success: true,
+          message: data.message || 'Товар добавлен в корзину'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Товар добавлен в корзину'
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error adding item to cart:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка добавления товара'
+      };
+    }
   }
 
   /**
-   * Добавить новый товар в корзину (старый метод для совместимости)
-   * НЕ РЕКОМЕНДУЕТСЯ - используйте addItemToCart
+   * Обновить количество товара в корзине
+   * Использует RPC функцию update_cart_item_quantity (защита от race condition)
    */
-  async addNewItem(cartId: string, productId: string, quantity: number): Promise<void> {
-    // Сначала проверяем остатки
-    const { data: product, error: stockError } = await supabase
-      .from('products')
-      .select('stock')
-      .eq('id', productId)
-      .single();
-
-    if (stockError) throw new Error(stockError.message);
-    
-    if (!product || product.stock < quantity) {
-      throw new Error('Недостаточно товара на складе');
-    }
-
-    // Проверяем, есть ли уже этот товар в корзине
-    const { data: existingItem, error: checkError } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('cart_id', cartId)
-      .eq('product_id', productId)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      throw new Error(checkError.message);
-    }
-
-    if (existingItem) {
-      // Если товар уже есть, обновляем количество
-      const newQuantity = existingItem.quantity + quantity;
-      if (newQuantity > product.stock) {
-        throw new Error('Недостаточно товара на складе');
-      }
-
-      const { error: updateError } = await supabase
-        .from('cart_items')
-        .update({
-          quantity: newQuantity,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingItem.id);
-
-      if (updateError) throw new Error(updateError.message);
-    } else {
-      // Добавляем новый товар
-      const { error } = await supabase
-        .from('cart_items')
-        .insert({
-          cart_id: cartId,
-          product_id: productId,
-          quantity: quantity,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+  async updateItemQuantity(itemId: string, quantity: number): Promise<ServiceResult> {
+    try {
+      const { data, error } = await supabase.rpc('update_cart_item_quantity', {
+        p_item_id: itemId,
+        p_quantity: quantity
+      });
 
       if (error) {
-        console.error('Error adding item to cart:', error);
-        throw new Error(error.message);
+        console.error('❌ Error in update_cart_item_quantity:', error);
+        throw error;
       }
+
+      if (!data || !data.success) {
+        return {
+          success: false,
+          error: data?.message || 'Не удалось обновить количество'
+        };
+      }
+
+      return {
+        success: true,
+        message: data.message || 'Количество обновлено',
+        data: {
+          new_quantity: data.new_quantity
+        }
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error updating quantity:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка обновления количества'
+      };
     }
-
-    // Обновляем время изменения корзины
-    await supabase
-      .from('carts')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', cartId);
-  }
-
-  /**
-   * Обновить метод доставки
-   */
-  async updateDeliveryMethod(cartId: string, method: 'pickup' | 'delivery'): Promise<void> {
-    const { error } = await supabase
-      .from('carts')
-      .update({ 
-        delivery_method: method,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cartId);
-
-    if (error) throw new Error(error.message);
-  }
-
-  /**
-   * Обновить количество товара
-   */
-  async updateItemQuantity(itemId: string, quantity: number): Promise<void> {
-    // Сначала получаем информацию о товаре
-    const { data: item, error: itemError } = await supabase
-      .from('cart_items')
-      .select('product_id')
-      .eq('id', itemId)
-      .single();
-
-    if (itemError) throw new Error(itemError.message);
-
-    // Проверяем остатки
-    const { data: product, error: stockError } = await supabase
-      .from('products')
-      .select('stock')
-      .eq('id', item.product_id)
-      .single();
-
-    if (stockError) throw new Error(stockError.message);
-    
-    if (!product || product.stock < quantity) {
-      throw new Error('Недостаточно товара на складе');
-    }
-
-    // Обновляем количество
-    const { error } = await supabase
-      .from('cart_items')
-      .update({ 
-        quantity,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', itemId);
-
-    if (error) throw new Error(error.message);
   }
 
   /**
    * Удалить товар из корзины
    */
-  async removeItem(itemId: string): Promise<void> {
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('id', itemId);
+  async removeItem(itemId: string): Promise<ServiceResult> {
+    try {
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', itemId);
 
-    if (error) throw new Error(error.message);
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Товар удален из корзины'
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error removing item:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка удаления товара'
+      };
+    }
   }
 
   /**
-   * Очистить выбранные товары
+   * Валидировать корзину перед оформлением
+   * Использует RPC функцию validate_cart_for_checkout
    */
-  async clearSelectedItems(itemIds: string[]): Promise<void> {
-    if (itemIds.length === 0) return;
-    
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .in('id', itemIds);
+  async validateCartForCheckout(cartId: string): Promise<ServiceResult<CartValidation>> {
+    try {
+      const { data, error } = await supabase.rpc('validate_cart_for_checkout', {
+        p_cart_id: cartId
+      });
 
-    if (error) throw new Error(error.message);
+      if (error) {
+        console.error('❌ Error in validate_cart_for_checkout:', error);
+        throw error;
+      }
+
+      return {
+        success: true,
+        data: {
+          valid: data.valid || false,
+          errors: data.errors || [],
+          warnings: data.warnings || []
+        }
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error validating cart:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка валидации корзины'
+      };
+    }
   }
 
   /**
-   * Обновить статус корзины после заказа
+   * Очистить выбранные товары из корзины
+   * Использует RPC функцию clear_cart_items
    */
-  async markAsOrdered(cartId: string): Promise<void> {
-    const { error } = await supabase
-      .from('carts')
-      .update({ 
-        status: 'completed',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cartId);
+  async clearSelectedItems(cartId: string, itemIds: string[]): Promise<ServiceResult> {
+    try {
+      if (itemIds.length === 0) {
+        return {
+          success: true,
+          message: 'Нет товаров для удаления'
+        };
+      }
 
-    if (error) throw new Error(error.message);
+      const { data, error } = await supabase.rpc('clear_cart_items', {
+        p_cart_id: cartId,
+        p_item_ids: itemIds
+      });
+
+      if (error) {
+        console.error('❌ Error in clear_cart_items:', error);
+        throw error;
+      }
+
+      return {
+        success: true,
+        message: data?.message || 'Корзина очищена',
+        data: {
+          deleted_count: data?.deleted_count || 0
+        }
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error clearing cart items:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка очистки корзины'
+      };
+    }
   }
 
   /**
-   * Сохранить промокод в корзине
+   * Обновить способ доставки и стоимость
+   * ВАЖНО: Пока только самовывоз ('pickup')
    */
-  async savePromoCode(cartId: string, code: string | null, discount: number | null): Promise<void> {
-    const { error } = await supabase
-      .from('carts')
-      .update({ 
-        promo_code: code,
-        promo_discount: discount,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cartId);
+  async updateDeliveryMethod(cartId: string, method: DeliveryMethod): Promise<ServiceResult> {
+    try {
+      // Пока принудительно устанавливаем только pickup
+      const finalMethod: DeliveryMethod = 'pickup';
+      const deliveryCost = DELIVERY_COSTS[finalMethod];
+      
+      const { error } = await supabase
+        .from('carts')
+        .update({ 
+          delivery_method: finalMethod,
+          delivery_cost: deliveryCost,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cartId);
 
-    if (error) throw new Error(error.message);
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Способ доставки обновлен',
+        data: {
+          delivery_method: finalMethod,
+          delivery_cost: deliveryCost
+        }
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error updating delivery method:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка обновления способа доставки'
+      };
+    }
+  }
+
+  /**
+   * Обновить адрес доставки
+   * Для самовывоза сохраняем "Самовывоз"
+   */
+  async updateDeliveryAddress(cartId: string, address: string): Promise<ServiceResult> {
+    try {
+      const { error } = await supabase
+        .from('carts')
+        .update({ 
+          delivery_address: address,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cartId);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Адрес доставки обновлен'
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error updating delivery address:', error);
+      return {
+        success: false,
+        error: error.message || 'Ошибка обновления адреса'
+      };
+    }
+  }
+
+  /**
+   * Рассчитать стоимость доставки
+   */
+  calculateDeliveryCost(method: DeliveryMethod): number {
+    return DELIVERY_COSTS[method];
   }
 }
 
-// ВАЖНО: Экспортируем инстанс сервиса
+// Экспортируем singleton экземпляр
 export const cartService = new CartService();

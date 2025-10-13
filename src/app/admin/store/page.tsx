@@ -1,150 +1,109 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Check,
   Package,
-  Truck,
+  Clock,
   CheckCircle,
   XCircle,
-  ShoppingBag,
-  Users,
-  Star,
-  Clock,
-  Calendar,
+  Hash,
   Phone,
   MapPin,
-  Hash,
-  ChevronDown,
-  CalendarDays,
-  AlertTriangle,
-  MoreVertical
+  Loader2,
+  ShoppingBag,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  RefreshCw
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
-import { useOrderModule } from '@/lib/orders/useOrderModule';
+import { useOrderModule } from '@/lib/admin_orders/useOrderModule';
 
-// Типы
-type OrderStatus = 'new' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
-type OrderType = 'shop' | 'dealers' | 'star';
-type DateFilter = 'week' | 'month' | 'custom';
-
-// Стат карточка
-const StatCard = ({
-  icon: Icon, title, count, amount, subtitle, iconColor, iconBg
-}: {
-  icon: React.ElementType; title: string; count: number; amount?: number; subtitle: string; iconColor: string; iconBg: string;
-}) => {
-  const { t } = useTranslate();
-  return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 md:p-6 border border-gray-100 relative overflow-hidden">
-      <div className="flex items-start justify-between">
-        <div className={`flex items-center gap-2 md:gap-3 mb-3 md:mb-4 ${iconColor}`}>
-          <Icon className="w-4 h-4 md:w-5 md:h-5" />
-          <span className="text-xs sm:text-sm font-medium text-gray-700">{title}</span>
-        </div>
-        <div className="absolute top-3 right-3 md:top-4 md:right-4">
-          <div className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-full`} />
-        </div>
-      </div>
-      <div className="flex items-end justify-between">
-        <div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-            {count}
-            <span className="text-xs sm:text-sm font-normal text-gray-600 ml-2">
-              {t(count === 1 ? 'заказ' : 'заказов')}
-            </span>
-          </div>
-          {amount !== undefined && amount > 0 && (
-            <div className="text-base sm:text-lg font-semibold text-gray-900">
-              {amount.toLocaleString()} ₸
-            </div>
-          )}
-          <div className="text-xs text-gray-500 mt-1">{subtitle}</div>
-        </div>
-        <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 gap-1 opacity-10">
-          {[...Array(12)].map((_, i) => (
-            <div key={i} className={`w-1.5 h-1.5 md:w-2 md:h-2 ${iconBg} rounded-sm`} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+type TabType = 'new' | 'processing' | 'ready_for_pickup' | 'completed';
 
 const OrdersManagementPage = () => {
   const router = useRouter();
   const { t } = useTranslate();
 
   const {
-    orders,
-    stats,
+    activeOrders,
+    completedOrders,
     loading,
+    loadingCompleted,
     error,
-    loadActiveOrders,
-    loadOrdersStats,
-    clearError
+    completedPagination,
+    loadAllActiveOrders,
+    loadCompletedOrders,
+    clearError,
+    refreshOrders
   } = useOrderModule();
 
-  const [activeTab, setActiveTab] = useState<OrderType>('shop');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('week');
-  const [showDateDropdown, setShowDateDropdown] = useState(false);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [confirmModal, setConfirmModal] = useState<{ 
-    isOpen: boolean; 
-    orderId: string; 
-    newStatus: OrderStatus; 
-    action: string; 
-  }>({
-    isOpen: false, 
-    orderId: '', 
-    newStatus: 'new', 
-    action: ''
-  });
+  const [activeTab, setActiveTab] = useState<TabType>('new');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [completedOrdersLoaded, setCompletedOrdersLoaded] = useState(false);
 
-  // Загружаем данные при монтировании
+  // 🚀 При загрузке страницы - загружаем ВСЕ активные заказы
   useEffect(() => {
-    loadActiveOrders();
-    loadOrdersStats();
-  }, [loadActiveOrders, loadOrdersStats]);
+    loadAllActiveOrders();
+  }, [loadAllActiveOrders]);
 
-  // переход на просмотр
- const openOrder = (order: any) => {
-  try {
-    console.log('Saving order to localStorage:', order.id);
-    localStorage.setItem('selected_order', JSON.stringify(order));
-  } catch (e) {
-    console.error('Error saving order:', e);
-  }
-  router.push('/admin/store/view_order');
-};
+  // 🚀 При переходе на вкладку завершенных - загружаем их
+  useEffect(() => {
+    if (activeTab === 'completed' && !completedOrdersLoaded) {
+      loadCompletedOrders(1, 50);
+      setCompletedOrdersLoaded(true);
+    }
+  }, [activeTab, completedOrdersLoaded, loadCompletedOrders]);
 
-  // Вспомогательные функции для работы со статусами
-  const getStatusColor = (status: string | null) => {
-    const statusMap = {
-      new: 'bg-yellow-100 text-yellow-700',
-      confirmed: 'bg-blue-100 text-blue-700',
-      processing: 'bg-purple-100 text-purple-700',
-      shipped: 'bg-orange-100 text-orange-700',
-      delivered: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700',
-      returned: 'bg-gray-100 text-gray-700'
+  const getStatusConfig = (status: string | null) => {
+    const configs: any = {
+      'new': {
+        label: t('Новый'),
+        color: 'text-blue-700',
+        bg: 'bg-blue-50',
+        border: 'border-blue-200'
+      },
+      'confirmed': {
+        label: t('Подтвержден'),
+        color: 'text-blue-700',
+        bg: 'bg-blue-50',
+        border: 'border-blue-200'
+      },
+      'processing': {
+        label: t('В обработке'),
+        color: 'text-yellow-700',
+        bg: 'bg-yellow-50',
+        border: 'border-yellow-200'
+      },
+      'ready_for_pickup': {
+        label: t('Готов к получению'),
+        color: 'text-green-700',
+        bg: 'bg-green-50',
+        border: 'border-green-200'
+      },
+      'delivered': {
+        label: t('Доставлен'),
+        color: 'text-emerald-700',
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200'
+      },
+      'cancelled': {
+        label: t('Отменен'),
+        color: 'text-red-700',
+        bg: 'bg-red-50',
+        border: 'border-red-200'
+      },
+      'returned': {
+        label: t('Возврат'),
+        color: 'text-gray-700',
+        bg: 'bg-gray-50',
+        border: 'border-gray-200'
+      }
     };
-    return statusMap[status as keyof typeof statusMap] || 'bg-gray-100 text-gray-700';
-  };
-
-  const getStatusText = (status: string | null) => {
-    const statusMap = {
-      new: t('Новый'),
-      confirmed: t('Подтвержден'),
-      processing: t('Обработка'),
-      shipped: t('Отправлен'),
-      delivered: t('Доставлен'),
-      cancelled: t('Отменен'),
-      returned: t('Возврат')
-    };
-    return statusMap[status as keyof typeof statusMap] || t('Неизвестно');
+    return configs[status as string] || configs['new'];
   };
 
   const formatDate = (dateStr: string) => {
@@ -158,162 +117,131 @@ const OrdersManagementPage = () => {
     });
   };
 
-  // Фильтрация заказов
-  const activeOrders = orders.filter(o => {
-    const status = o.order_status;
-    return status && !['delivered', 'cancelled'].includes(status);
-  });
-  
-  const completedOrders = orders.filter(o => {
-    const status = o.order_status;
-    return status && ['delivered', 'cancelled'].includes(status);
-  });
-
-  // Статистика
-  const todayOrders = orders.filter(o => {
-    const today = new Date().toISOString().split('T')[0];
-    return o.created_at.startsWith(today);
-  });
-  const todayTotal = todayOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-  
-  const shippedOrders = orders.filter(o => o.order_status === 'shipped');
-  const shippedTotal = shippedOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-  
-  const newOrders = orders.filter(o => o.order_status === 'new');
-  const newTotal = newOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-
-  // Обновление статуса заказа
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-    console.log(`Updating order ${orderId} to status ${newStatus}`);
-    setConfirmModal({ isOpen: false, orderId: '', newStatus: 'new', action: '' });
-    await loadActiveOrders();
+  const openOrder = (order: any) => {
+    try {
+      router.push(`/admin/store/view_order/${order.id}`);
+    } catch (e) {
+      console.error('Error opening order:', e);
+    }
   };
 
-  const openConfirmModal = (orderId: string, newStatus: OrderStatus, action: string) => {
-    setConfirmModal({ isOpen: true, orderId, newStatus, action });
+  // 📊 Статистика вычисляется из всех заказов
+  const stats = useMemo(() => {
+    const newOrders = activeOrders.filter(o => o.order_status === 'new' || o.order_status === 'confirmed');
+    const processingOrders = activeOrders.filter(o => o.order_status === 'processing');
+    const readyOrders = activeOrders.filter(o => o.order_status === 'ready_for_pickup');
+    
+    // Для завершенных используем пагинацию total (если загружены)
+    const completedCount = completedOrdersLoaded ? completedPagination.total : 0;
+    
+    return {
+      new: { count: newOrders.length },
+      processing: { count: processingOrders.length },
+      ready_for_pickup: { count: readyOrders.length },
+      completed: { count: completedCount }
+    };
+  }, [activeOrders, completedOrdersLoaded, completedPagination.total]);
+
+  // Фильтрация по вкладкам
+  const getTabOrders = (tab: TabType) => {
+    switch(tab) {
+      case 'new':
+        return activeOrders.filter(o => o.order_status === 'new' || o.order_status === 'confirmed');
+      case 'processing':
+        return activeOrders.filter(o => o.order_status === 'processing');
+      case 'ready_for_pickup':
+        return activeOrders.filter(o => o.order_status === 'ready_for_pickup');
+      case 'completed':
+        return completedOrders;
+      default:
+        return [];
+    }
   };
 
-  // Мобильная карточка
-  const MobileOrderCard = ({
-    order,
-    onStatusChange,
-    type,
-    onOpen,
-  }: {
-    order: any;
-    onStatusChange: (orderId: string, newStatus: OrderStatus, action: string) => void;
-    type: 'active' | 'completed';
-    onOpen: (o: any) => void;
-  }) => {
-    const [showActions, setShowActions] = useState(false);
+  // Поиск
+  const filteredOrders = useMemo(() => {
+    let result = getTabOrders(activeTab);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order => {
+        const fullName = `${order.user?.first_name || ''} ${order.user?.last_name || ''}`.toLowerCase();
+        const phone = (order.user?.phone || '').toLowerCase();
+        const email = (order.user?.email || '').toLowerCase();
+        const orderNumber = (order.order_number || order.id).toLowerCase();
+        
+        return (
+          fullName.includes(query) ||
+          phone.includes(query) ||
+          email.includes(query) ||
+          orderNumber.includes(query)
+        );
+      });
+    }
+
+    return result;
+  }, [activeOrders, completedOrders, activeTab, searchQuery]);
+
+  const MobileOrderCard = ({ order }: { order: any }) => {
+    const config = getStatusConfig(order.order_status);
 
     return (
-      <div
-        className="bg-white rounded-xl border border-gray-100 p-4 mb-3 cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => onOpen(order)}
-        role="button"
-        aria-label={`${t('Открыть заказ')} ${order.id}`}
+      <div 
+        className="bg-white rounded-xl border border-gray-200 p-3 mb-2 hover:shadow-md transition-all cursor-pointer"
+        onClick={() => openOrder(order)}
       >
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-xs text-gray-500">#{order.id.slice(-8)}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
-                {getStatusText(order.order_status)}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className="font-mono text-xs font-semibold text-gray-700">
+                #{order.order_number || order.id.slice(-8)}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.color} border ${config.border}`}>
+                {config.label}
               </span>
             </div>
-            <p className="font-medium text-sm">{order.user?.first_name} {order.user?.last_name}</p>
-            <p className="text-xs text-gray-500">{order.user?.email}</p>
+            <p className="font-semibold text-sm text-gray-900">
+              {order.user?.first_name} {order.user?.last_name}
+            </p>
           </div>
-          {type === 'active' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowActions(!showActions); }}
-              className="p-1.5 hover:bg-gray-100 rounded-lg"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
-        <div className="space-y-2 text-xs">
+        <div className="space-y-1.5 text-xs text-gray-600">
           <div className="flex items-center gap-2">
-            <Phone className="w-3 h-3 text-gray-400" />
-            <span>{order.user?.phone || 'Не указан'}</span>
+            <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span>{order.user?.phone || t('Не указан')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="w-3 h-3 text-gray-400" />
+            <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
             <span>{formatDate(order.created_at)}</span>
           </div>
           {order.delivery_address && (
             <div className="flex items-start gap-2">
-              <MapPin className="w-3 h-3 text-gray-400 mt-0.5" />
-              <span>{order.delivery_address}</span>
+              <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <span className="line-clamp-2">{order.delivery_address}</span>
             </div>
           )}
         </div>
 
-        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+        <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between items-center">
           <div className="text-xs text-gray-600">
             {order.order_items?.length || 0} {t('товаров')}
           </div>
-          <div className="font-semibold text-sm">{(order.total_amount || 0).toLocaleString()} ₸</div>
+          <div className="font-bold text-sm text-[#D77E6C]">
+            {(order.total_amount || 0).toLocaleString()} ₸
+          </div>
         </div>
-
-        {showActions && type === 'active' && (
-          <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => onStatusChange(order.id, 'confirmed', t('подтвердить'))} className="flex flex-col items-center gap-1 p-2 hover:bg-blue-50 rounded-lg text-xs">
-              <Check className="w-4 h-4 text-blue-600" />
-              <span>{t('Подтвердить')}</span>
-            </button>
-            <button onClick={() => onStatusChange(order.id, 'shipped', t('отправить'))} className="flex flex-col items-center gap-1 p-2 hover:bg-orange-50 rounded-lg text-xs">
-              <Truck className="w-4 h-4 text-orange-600" />
-              <span>{t('Отправить')}</span>
-            </button>
-            <button onClick={() => onStatusChange(order.id, 'cancelled', t('отменить'))} className="flex flex-col items-center gap-1 p-2 hover:bg-red-50 rounded-lg text-xs">
-              <XCircle className="w-4 h-4 text-red-600" />
-              <span>{t('Отменить')}</span>
-            </button>
-          </div>
-        )}
       </div>
     );
   };
 
-  // Кнопки действий (десктоп)
-  const ActionButtons = ({ order }: { order: any }) => {
-    const buttons = [
-      { icon: Check, status: 'confirmed' as OrderStatus, tooltip: t('Подтвердить заказ'), action: t('подтвердить'), color: 'hover:bg-blue-50 hover:text-blue-600' },
-      { icon: Package, status: 'processing' as OrderStatus, tooltip: t('Начать обработку'), action: t('начать обработку'), color: 'hover:bg-purple-50 hover:text-purple-600' },
-      { icon: Truck, status: 'shipped' as OrderStatus, tooltip: t('Отправить'), action: t('отправить'), color: 'hover:bg-orange-50 hover:text-orange-600' },
-      { icon: CheckCircle, status: 'delivered' as OrderStatus, tooltip: t('Отметить доставленным'), action: t('отметить доставленным'), color: 'hover:bg-green-50 hover:text-green-600' },
-      { icon: XCircle, status: 'cancelled' as OrderStatus, tooltip: t('Отменить заказ'), action: t('отменить'), color: 'hover:bg-red-50 hover:text-red-600' }
-    ];
-
-    return (
-      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-        {buttons.map(({ icon: Icon, status, tooltip, action, color }) => (
-          <div key={status} className="relative group">
-            <button
-              onClick={() => openConfirmModal(order.id, status, action)}
-              className={`p-2 rounded-lg transition-all ${color} ${order.order_status === status ? 'bg-gray-100' : ''}`}
-              disabled={order.order_status === status}
-              title={tooltip}
-            >
-              <Icon className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
+  if (loading && activeOrders.length === 0) {
     return (
       <div className="flex">
         <div className="grid w-full h-full">
           <MoreHeaderAD title={t('Управление заказами')} />
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#DC7C67] border-t-transparent"></div>
+            <Loader2 className="w-10 h-10 text-[#D77E6C] animate-spin" />
           </div>
         </div>
       </div>
@@ -322,296 +250,319 @@ const OrdersManagementPage = () => {
 
   return (
     <div className="flex">
-
-
       <div className="grid w-full h-full">
         <MoreHeaderAD title={t('Управление заказами')} />
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between mt-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between mt-6 md:mx-0">
             <span className="text-red-700">{error}</span>
-            <button onClick={clearError} className="text-red-500 hover:text-red-700">×</button>
+            <button onClick={clearError} className="text-red-500 hover:text-red-700 text-xl">×</button>
           </div>
         )}
 
-        {/* Статистика */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-6 md:mt-10 mb-4 md:mb-6">
-          <StatCard 
-            icon={Calendar} 
-            title={t('Заказы за сегодня')} 
-            count={todayOrders.length} 
-            amount={todayTotal} 
-            subtitle={t('Заказы за сегодня')} 
-            iconColor="text-[#D77E6C]" 
-            iconBg="bg-[#D77E6C]" 
-          />
-          <StatCard 
-            icon={Truck} 
-            title={t('Отправлены')} 
-            count={shippedOrders.length} 
-            amount={shippedTotal} 
-            subtitle={t('В пути к клиентам')} 
-            iconColor="text-[#D77E6C]" 
-            iconBg="bg-[#D77E6C]" 
-          />
-          <StatCard 
-            icon={AlertTriangle} 
-            title={t('Требуют внимания')} 
-            count={newOrders.length} 
-            amount={newTotal} 
-            subtitle={t('Новые заказы')} 
-            iconColor="text-[#D77E6C]" 
-            iconBg="bg-[#D77E6C]" 
-          />
+        {/* КНОПКА ОБНОВЛЕНИЯ */}
+        <div className="mt-6 md:mt-10 mb-6 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">{t('Статистика заказов')}</h2>
+          <button
+            onClick={refreshOrders}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-sm font-medium">{t('Обновить')}</span>
+          </button>
         </div>
 
-        {/* Табы */}
-        <div className="overflow-x-auto mb-4 md:mb-6">
-          <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 inline-flex min-w-full sm:min-w-0">
+        {/* МИНИМАЛЬНЫЙ БЛОК СТАТУСОВ */}
+        <div className="mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            
+            {/* Новые */}
+            <div className="bg-white rounded-xl p-3 border border-blue-200 hover:shadow-md transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-blue-50 rounded-lg">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{t('Новые')}</span>
+              </div>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.new.count}
+              </div>
+            </div>
+
+            {/* В обработке */}
+            <div className="bg-white rounded-xl p-3 border border-yellow-200 hover:shadow-md transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-yellow-50 rounded-lg">
+                  <Package className="w-4 h-4 text-yellow-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{t('Обработка')}</span>
+              </div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats.processing.count}
+              </div>
+            </div>
+
+            {/* Готовы */}
+            <div className="bg-white rounded-xl p-3 border border-green-200 hover:shadow-md transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-green-50 rounded-lg">
+                  <Check className="w-4 h-4 text-green-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{t('Готовы')}</span>
+              </div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.ready_for_pickup.count}
+              </div>
+            </div>
+
+            {/* Завершены */}
+            <div className="bg-white rounded-xl p-3 border border-gray-200 hover:shadow-md transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-gray-50 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-gray-600" />
+                </div>
+                <span className="text-xs font-semibold text-gray-700">{t('Завершены')}</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-600">
+                {stats.completed.count}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ТАБЫ - убираем текст на мобилке, оставляем только иконки и счетчики */}
+        <div className="mb-4 md:mb-6">
+          <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 inline-flex w-full sm:w-auto overflow-x-auto">
             <button 
-              onClick={() => setActiveTab('shop')} 
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap ${
-                activeTab === 'shop' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              onClick={() => setActiveTab('new')} 
+              className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'new' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-base font-medium">{t('Все заказы')}</span>
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-base font-medium">
+                <span className="hidden sm:inline">{t('Новые')}</span>
+                <span className="inline sm:hidden">({stats.new.count})</span>
+                <span className="hidden sm:inline"> ({stats.new.count})</span>
+              </span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('processing')} 
+              className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'processing' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-base font-medium">
+                <span className="hidden sm:inline">{t('В обработке')}</span>
+                <span className="inline sm:hidden">({stats.processing.count})</span>
+                <span className="hidden sm:inline"> ({stats.processing.count})</span>
+              </span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('ready_for_pickup')} 
+              className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'ready_for_pickup' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-base font-medium">
+                <span className="hidden sm:inline">{t('Готовы')}</span>
+                <span className="inline sm:hidden">({stats.ready_for_pickup.count})</span>
+                <span className="hidden sm:inline"> ({stats.ready_for_pickup.count})</span>
+              </span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('completed')} 
+              className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'completed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-base font-medium">
+                <span className="hidden sm:inline">{t('Завершенные')}</span>
+                {completedOrdersLoaded ? (
+                  <>
+                    <span className="inline sm:hidden">({stats.completed.count})</span>
+                    <span className="hidden sm:inline"> ({stats.completed.count})</span>
+                  </>
+                ) : ''}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Активные — мобильные */}
-        <div className="md:hidden">
-          <div className="mb-4">
-            <h2 className="text-base font-medium mb-3">{t('Активные заказы')} ({activeOrders.length})</h2>
-            {activeOrders.length > 0 ? (
-              activeOrders.map((order) => (
-                <MobileOrderCard
-                  key={order.id}
-                  order={order}
-                  onStatusChange={(id, st, act) => setConfirmModal({ isOpen: true, orderId: id, newStatus: st, action: act })}
-                  type="active"
-                  onOpen={openOrder}
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-8 bg-white rounded-xl">{t('Нет активных заказов')}</div>
+        {/* ПОИСК */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('Поиск по имени, телефону, номеру заказа...')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent transition-all text-sm shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Активные — десктоп */}
-        <div className="hidden md:block bg-white rounded-2xl border border-gray-100 mb-6">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-medium">{t('Активные заказы')}</h2>
+        {/* Для завершенных заказов показываем загрузчик */}
+        {activeTab === 'completed' && loadingCompleted && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-10 h-10 text-[#D77E6C] animate-spin" />
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-3 px-6 text-sm font-medium text-gray-700">ID</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Клиент')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Дата')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Товары')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Сумма')}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Статус')}</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-700">{t('Действия')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeOrders.length > 0 ? (
-                  activeOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => openOrder(order)}
-                      role="button"
-                      aria-label={`${t('Открыть заказ')} ${order.id}`}
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <Hash className="w-4 h-4 text-gray-400" />
-                          <span className="font-mono text-sm">{order.id.slice(-8)}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium">{order.user?.first_name} {order.user?.last_name}</p>
-                          <p className="text-xs text-gray-500">{order.user?.email}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{formatDate(order.created_at)}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="text-sm">
-                          {order.order_items?.length || 0} {t('товаров')}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="font-semibold">{(order.total_amount || 0).toLocaleString()} ₸</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
-                          {getStatusText(order.order_status)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4" onClick={(e) => e.stopPropagation()}>
-                        <ActionButtons order={order} />
-                      </td>
+        )}
+
+        {/* МОБИЛЬНАЯ ВЕРСИЯ */}
+        <div className="md:hidden mb-6">
+          {!loadingCompleted && filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <MobileOrderCard key={order.id} order={order} />
+            ))
+          ) : !loadingCompleted ? (
+            <div className="text-center text-gray-500 py-12 bg-white rounded-xl border border-gray-200">
+              <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="font-medium">{t('Заказов не найдено')}</p>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ДЕСКТОПНАЯ ТАБЛИЦА */}
+        <div className="hidden md:block mb-6">
+          {!loadingCompleted && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-3 px-6 text-sm font-semibold text-gray-700">{t('Номер')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Клиент')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Дата')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Адрес')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Товары')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Сумма')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Статус')}</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-500">
-                      {t('Нет активных заказов')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* ЗАВЕРШЕННЫЕ — мобильные */}
-        <div className="md:hidden">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-base font-medium">
-              {t('Завершенные заказы')}
-              <span className="ml-2 text-gray-500">({completedOrders.length})</span>
-            </h2>
-            <button
-              onClick={() => setShowCompleted(v => !v)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
-            >
-              <span>{showCompleted ? t('Свернуть') : t('Показать')}</span>
-              <ChevronDown className={`w-3 h-3 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-
-          {showCompleted && (
-            <>
-              {completedOrders.length > 0 ? (
-                completedOrders.map((order) => (
-                  <MobileOrderCard
-                    key={order.id}
-                    order={order}
-                    onStatusChange={(id, st, act) => setConfirmModal({ isOpen: true, orderId: id, newStatus: st, action: act })}
-                    type="completed"
-                    onOpen={openOrder}
-                  />
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-8 bg-white rounded-xl">
-                  {t('Нет завершенных заказов')}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ЗАВЕРШЕННЫЕ — десктоп */}
-        <div className="hidden md:block bg-white rounded-2xl border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-medium">
-                {t('Завершенные заказы')}
-                <span className="ml-2 text-gray-500 text-base">({completedOrders.length})</span>
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCompleted(v => !v)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-              >
-                <span>{showCompleted ? t('Свернуть') : t('Показать')}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-          </div>
-
-          {showCompleted && (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-6 text-sm font-medium text-gray-700">{t('ID')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Клиент')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Дата')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Товары')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Сумма')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">{t('Статус')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {completedOrders.length > 0 ? (
-                    completedOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
-                        onClick={() => openOrder(order)}
-                        role="button"
-                        aria-label={`${t('Открыть заказ')} ${order.id}`}
-                      >
-                        <td className="py-4 px-6"><span className="font-mono text-sm">{order.id.slice(-8)}</span></td>
-                        <td className="py-4 px-4 font-medium">{order.user?.first_name} {order.user?.last_name}</td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm">{formatDate(order.created_at)}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-sm">{order.order_items?.length || 0} {t('товаров')}</td>
-                        <td className="py-4 px-4 font-semibold">{(order.total_amount || 0).toLocaleString()} ₸</td>
-                        <td className="py-4 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
-                            {getStatusText(order.order_status)}
-                          </span>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.length > 0 ? (
+                      filteredOrders.map((order) => {
+                        const config = getStatusConfig(order.order_status);
+                        
+                        return (
+                          <tr
+                            key={order.id}
+                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => openOrder(order)}
+                          >
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                <Hash className="w-4 h-4 text-gray-400" />
+                                <span className="font-mono text-sm font-semibold text-gray-900">
+                                  {order.order_number || order.id.slice(-8)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div>
+                                <p className="font-semibold text-gray-900 text-sm">
+                                  {order.user?.first_name} {order.user?.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500">{order.user?.phone}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Clock className="w-4 h-4 text-gray-400" />
+                                {formatDate(order.created_at)}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-start gap-2 max-w-xs">
+                                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-gray-600 line-clamp-1">
+                                  {order.delivery_address || t('Не указан')}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="text-sm font-medium text-gray-900">
+                                {order.order_items?.length || 0} {t('шт')}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="font-bold text-[#D77E6C]">
+                                {(order.total_amount || 0).toLocaleString()} ₸
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${config.bg} ${config.color} border ${config.border}`}
+                              >
+                                {config.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center">
+                          <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500 font-medium">{t('Заказов не найдено')}</p>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-500">
-                        {t('Нет завершенных заказов')}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Модалка подтверждения */}
-        {confirmModal.isOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-              <div className="flex items-center justify-center w-12 h-12 bg-[#D77E6C]/10 rounded-full mb-4 mx-auto">
-                <AlertTriangle className="w-6 h-6 text-[#D77E6C]" />
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2">{t('Подтверждение действия')}</h3>
-              <p className="text-gray-600 text-center mb-6">
-                {t('Вы действительно хотите')} <strong>{confirmModal.action}</strong> {t('заказ')}{' '}
-                <span className="font-mono text-sm">#{confirmModal.orderId.slice(-8)}</span>?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmModal({ isOpen: false, orderId: '', newStatus: 'new', action: '' })}
-                  className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-                >
-                  {t('Отмена')}
-                </button>
-                <button
-                  onClick={() => updateOrderStatus(confirmModal.orderId, confirmModal.newStatus)}
-                  className="flex-1 py-2.5 px-4 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-lg font-medium transition-colors"
-                >
-                  {t('Подтвердить')}
-                </button>
-              </div>
+        {/* ПАГИНАЦИЯ ДЛЯ ЗАВЕРШЕННЫХ ЗАКАЗОВ */}
+        {activeTab === 'completed' && completedPagination.totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mb-6">
+            <button
+              onClick={() => {
+                const prevPage = Math.max(1, completedPagination.page - 1);
+                loadCompletedOrders(prevPage, completedPagination.pageSize);
+              }}
+              disabled={completedPagination.page === 1 || loadingCompleted}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {t('Страница')} {completedPagination.page} {t('из')} {completedPagination.totalPages}
+              </span>
+            </div>
+            
+            <button
+              onClick={() => {
+                const nextPage = Math.min(completedPagination.totalPages, completedPagination.page + 1);
+                loadCompletedOrders(nextPage, completedPagination.pageSize);
+              }}
+              disabled={completedPagination.page === completedPagination.totalPages || loadingCompleted}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            <div className="ml-4 text-sm text-gray-400">
+              ({completedPagination.total} {t('всего')})
             </div>
           </div>
         )}

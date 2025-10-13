@@ -4,10 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { bonusEventService, BonusEvent, UserProgress } from '@/lib/bonus_event/BonusEventService';
 import { useTranslate } from '@/hooks/useTranslate';
-import { Trophy, Sparkles, ArrowRight, Gift, Target } from 'lucide-react';
+import { Trophy, Sparkles, ArrowRight, Gift, Target, Users, TrendingUp } from 'lucide-react';
 
 interface BonusProgressCardProps {
   userId?: string;
+  includeTeam?: boolean; // Новый проп для включения команды
 }
 
 const CardShimmer = () => (
@@ -30,7 +31,7 @@ const CardShimmer = () => (
   </div>
 );
 
-export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) => {
+export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId, includeTeam = true }) => {
   const { t } = useTranslate();
   const router = useRouter();
   const [mainEvent, setMainEvent] = useState<BonusEvent | null>(null);
@@ -46,14 +47,17 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
       }
       
       try {
+        // Получаем главное событие (priority = 1)
         const main = await bonusEventService.getMainBonusEvent();
         setMainEvent(main);
 
+        // Получаем все активные события
         const allEvents = await bonusEventService.getActiveBonusEvents();
         setTotalEvents(allEvents.length);
 
+        // Получаем прогресс пользователя через оптимизированную RPC функцию
         if (main?.id) {
-          const progress = await bonusEventService.getUserProgress(userId, main.id);
+          const progress = await bonusEventService.getUserProgress(userId, main.id, includeTeam);
           setMainProgress(progress);
         }
       } catch (error) {
@@ -64,7 +68,7 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
     };
 
     loadData();
-  }, [userId]);
+  }, [userId, includeTeam]);
 
   const handleViewAll = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -81,7 +85,7 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
 
   if (!mainEvent) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all duration-300">
+      <div className="bg-white rounded-2xl p-6 shadow-sm shadow-gray-200/50 transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium text-gray-500 mb-1">{t('Бонусная программа')}</p>
@@ -95,36 +99,23 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
     );
   }
 
+  // Используем total_turnover (который включает личный + команда если includeTeam = true)
   const currentTurnover = mainProgress?.total_turnover || 0;
-  const nextTarget = mainEvent.targets?.find(target => currentTurnover < target.target_amount);
-  const achievedTargets = mainEvent.targets?.filter(target => currentTurnover >= target.target_amount) || [];
+  const personalTurnover = mainProgress?.personal_turnover || 0;
+  const teamTurnover = mainProgress?.team_turnover || 0;
+  const teamMembersCount = mainProgress?.team_members_count || 0;
   
-  let progressPercent = 0;
-  let amountToNext = 0;
-  
-  if (nextTarget) {
-    const prevTarget = mainEvent.targets
-      ?.filter(t => t.target_amount < nextTarget.target_amount)
-      ?.sort((a, b) => b.target_amount - a.target_amount)[0];
-    
-    const startAmount = prevTarget?.target_amount || 0;
-    progressPercent = ((currentTurnover - startAmount) / (nextTarget.target_amount - startAmount)) * 100;
-    progressPercent = Math.max(0, Math.min(100, progressPercent));
-    amountToNext = nextTarget.target_amount - currentTurnover;
-  } else if (mainEvent.targets && mainEvent.targets.length > 0) {
-    progressPercent = 100;
-  }
-
-  // Убрал функцию formatPrice - теперь используем полные числа с toLocaleString
+  // Получаем следующую цель и достигнутые цели
+  const nextTarget = bonusEventService.getNextTarget(currentTurnover, mainEvent.targets || []);
+  const achievedTargets = bonusEventService.getAchievedTargets(currentTurnover, mainEvent.targets || []);
+  const progressPercent = bonusEventService.getProgressPercent(currentTurnover, mainEvent.targets || []);
 
   const allTargetsAchieved = progressPercent === 100 && !nextTarget;
-  const daysLeft = Math.ceil(
-    (new Date(mainEvent.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysLeft = bonusEventService.getDaysRemaining(mainEvent.end_date);
 
   return (
     <div 
-      className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 hover:shadow-xl transition-all duration-300 cursor-pointer"
+      className="bg-white rounded-2xl p-6 shadow-sm shadow-gray-200/50  transition-all duration-300 cursor-pointer"
       onClick={handleCardClick}
     >
       {/* Заголовок с названием события */}
@@ -141,6 +132,7 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
           <h3 className="text-lg font-bold text-gray-900 leading-tight">
             {mainEvent.title}
           </h3>
+          
         </div>
         
         <div className="relative">
@@ -192,10 +184,15 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
               )}
             </div>
             
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm mt-3">
               <span className="text-gray-600">
-                {t('Ваш оборот:')} 
+                {includeTeam ? t('Общий оборот:') : t('Ваш оборот:')} 
                 <span className="font-bold text-gray-900 ml-1">{currentTurnover.toLocaleString('ru-RU')} ₸</span>
+                {includeTeam && personalTurnover !== currentTurnover && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({t('личный')}: {personalTurnover.toLocaleString('ru-RU')})
+                  </span>
+                )}
               </span>
               <span className="text-gray-600">
                 {t('Цель:')} 
@@ -224,6 +221,7 @@ export const BonusProgressCard: React.FC<BonusProgressCardProps> = ({ userId }) 
           </div>
         </div>
       )}
+
 
       {/* Кнопка только если есть больше одного события */}
       {totalEvents > 1 && (

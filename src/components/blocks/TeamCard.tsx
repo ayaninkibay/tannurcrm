@@ -1,34 +1,69 @@
+// src/components/blocks/TeamCard.tsx
+
 'use client'
 
 import React, { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Plus, Sparkles, Trophy, ChevronRight, X } from 'lucide-react'
 import { useTranslate } from '@/hooks/useTranslate'
-import BonusTableBlock from '@/components/blocks/BonusTableBlock' // ИМПОРТ ВАШЕГО КОМПОНЕНТА
+import BonusTableBlock from '@/components/blocks/BonusTableBlock'
+import type { TeamStatsData } from '@/types/team.types'
+
+// ===============================
+// ТИПЫ
+// ===============================
 
 interface TeamCardProps {
+  stats: TeamStatsData | null  // ⭐ Разрешаем null
   title?: string
-  count: number
-  goal?: number
   showButton?: boolean
   variant?: 'color' | 'white'
   showBonusTable?: boolean
 }
 
+// ===============================
+// КОМПОНЕНТ
+// ===============================
+
 export default function TeamCard({
+  stats,
   title = 'Моя команда',
-  count,
-  goal = 100,
   showButton = true,
   variant = 'color',
   showBonusTable = false,
 }: TeamCardProps) {
   const { t } = useTranslate()
   const [bonusTableOpen, setBonusTableOpen] = useState(false)
-  const percentage = Math.min((count / goal) * 100, 100)
-  const remaining = Math.max(goal - count, 0)
+  
+  // ⭐ ПРОВЕРКА НА NULL - если нет данных, не рендерим
+  if (!stats) {
+    return null
+  }
+  
+  // ===============================
+  // ДЕСТРУКТУРИЗАЦИЯ ВНУТРИ КОМПОНЕНТА
+  // ===============================
+  
+  const {
+    totalMembers,
+    goal,
+    remaining,
+    directMembers,
+    activeMembersCount,
+    maxDepth,
+    totalTurnover
+  } = stats
+  
+  // ===============================
+  // ВЫЧИСЛЕНИЯ
+  // ===============================
+  
+  const percentage = Math.min((totalMembers / goal) * 100, 100)
   const isColor = variant === 'color'
+
+  // ===============================
+  // РЕНДЕР
+  // ===============================
 
   return (
     <>
@@ -39,15 +74,13 @@ export default function TeamCard({
             : 'bg-white border border-gray-100 text-gray-900'
         }`}
       >
-        {/* Декоративные шейпы */}
+        {/* Декоративные элементы */}
         <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-10">
           <div className={`w-full h-full rounded-full ${isColor ? 'bg-white' : 'bg-[#DC7C67]'}`} />
         </div>
         <div className="absolute bottom-0 left-0 w-16 h-16 -translate-x-8 translate-y-8">
           <div className={`w-full h-full rounded-full opacity-10 ${isColor ? 'bg-white' : 'bg-[#E89380]'}`} />
         </div>
-
-        {/* Мини-декор в углу */}
         <div className="absolute top-3 right-3">
           <Sparkles className={`w-4 h-4 ${isColor ? 'text-white/30' : 'text-[#DC7C67]/30'}`} />
         </div>
@@ -64,7 +97,7 @@ export default function TeamCard({
           <div className="flex items-baseline justify-between">
             <div>
               <span className={`text-3xl font-bold ${isColor ? 'text-white' : 'text-gray-900'}`}>
-                {count}
+                {totalMembers}
               </span>
               <span className={`text-sm ml-1 ${isColor ? 'text-white/70' : 'text-gray-500'}`}>
                 / {goal}
@@ -103,7 +136,7 @@ export default function TeamCard({
           </div>
         </div>
 
-        {/* КНОПКА ТАБЛИЦЫ БОНУСОВ */}
+        {/* Кнопка таблицы бонусов */}
         {showBonusTable && (
           <button
             onClick={() => setBonusTableOpen(true)}
@@ -135,16 +168,59 @@ export default function TeamCard({
               </div>
             </div>
             
-            {/* Декоративная полоска снизу */}
+            {/* Декоративная полоска */}
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
           </button>
         )}
 
-        {/* Нижняя секция с аватарами и кнопкой добавления дилера */}
+        {/* Дополнительная статистика */}
+        {(directMembers > 0 || activeMembersCount > 0 || maxDepth > 0) && (
+          <div className={`relative z-10 mb-3 p-2.5 rounded-lg ${
+            isColor ? 'bg-white/10' : 'bg-gray-50'
+          }`}>
+            {/* Прямых рефералов */}
+            {directMembers > 0 && (
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className={isColor ? 'text-white/70' : 'text-gray-600'}>
+                  {t('Прямых рефералов')}:
+                </span>
+                <span className={`font-bold ${isColor ? 'text-white' : 'text-[#DC7C67]'}`}>
+                  {directMembers}
+                </span>
+              </div>
+            )}
+            
+            {/* Активных */}
+            {activeMembersCount > 0 && (
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className={isColor ? 'text-white/70' : 'text-gray-600'}>
+                  {t('Активных')}:
+                </span>
+                <span className={`font-bold ${isColor ? 'text-white' : 'text-[#DC7C67]'}`}>
+                  {activeMembersCount}
+                </span>
+              </div>
+            )}
+            
+            {/* Глубина сети */}
+            {maxDepth > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <span className={isColor ? 'text-white/70' : 'text-gray-600'}>
+                  {t('Глубина сети')}:
+                </span>
+                <span className={`font-bold ${isColor ? 'text-white' : 'text-[#DC7C67]'}`}>
+                  {maxDepth} {t('ур.')}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Нижняя секция с аватарами и кнопкой */}
         <div className="mt-auto relative z-10">
           <div className={`${isColor ? 'bg-white/10 backdrop-blur-sm' : 'bg-gray-50'} rounded-xl p-3`}>
             <div className="flex items-center justify-between">
-              {/* Memoji аватары */}
+              {/* Аватары участников команды */}
               <div className="flex -space-x-2">
                 {[1, 2, 3].map((i) => (
                   <div
@@ -160,13 +236,12 @@ export default function TeamCard({
                       } 100%)`,
                     }}
                   >
-                    {/* Заглушка для memoji */}
                     <div className="w-full h-full flex items-center justify-center text-lg">
                       {['🧑', '👩', '👨'][i - 1]}
                     </div>
                   </div>
                 ))}
-                {count > 3 && (
+                {totalMembers > 3 && (
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ${
                       isColor
@@ -174,17 +249,19 @@ export default function TeamCard({
                         : 'bg-white text-gray-700 ring-white border border-gray-200'
                     }`}
                   >
-                    +{count - 3}
+                    +{totalMembers - 3}
                   </div>
                 )}
               </div>
 
               {/* Кнопка добавления дилера */}
               {showButton && (
-                <Link href="/dealer/create_dealer">
+                <Link href="/dealer/myteam/create_dealer">
                   <button
                     className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 ${
-                      isColor ? 'bg-white text-[#DC7C67] hover:bg-white/95' : 'bg-[#DC7C67] hover:bg-[#C66B5A] text-white'
+                      isColor 
+                        ? 'bg-white text-[#DC7C67] hover:bg-white/95' 
+                        : 'bg-[#DC7C67] hover:bg-[#C66B5A] text-white'
                     }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -215,13 +292,13 @@ export default function TeamCard({
               <button
                 onClick={() => setBonusTableOpen(false)}
                 className="p-2 hover:bg-white/80 rounded-xl transition-all duration-200 group"
-                aria-label="Закрыть"
+                aria-label={t('Закрыть')}
               >
                 <X className="w-6 h-6 text-gray-500 group-hover:text-gray-700 transition-colors" />
               </button>
             </div>
             
-            {/* ВАШ КОМПОНЕНТ BonusTableBlock */}
+            {/* Компонент BonusTableBlock */}
             <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto bg-gray-50">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 <BonusTableBlock />
