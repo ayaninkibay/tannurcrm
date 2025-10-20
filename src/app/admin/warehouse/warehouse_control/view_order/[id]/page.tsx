@@ -1,3 +1,5 @@
+// src/app/admin/warehouse/warehouse_control/view_order/[id]/page.tsx
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -6,7 +8,7 @@ import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import {
   Hash, Phone, MapPin, Clock, Package, Check, CheckCircle2, Truck, XCircle,
   CreditCard, User, Receipt, Printer, MessageSquareText, Copy, MapPinned,
-  BadgeCheck, AlertTriangle, Save, Edit2, X, FileText, Warehouse, Building2, DollarSign
+  BadgeCheck, AlertTriangle, Save, Edit2, X, FileText, Warehouse, Building2, DollarSign, Box
 } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useOrderModule } from '@/lib/admin_orders/useOrderModule';
@@ -18,6 +20,7 @@ const statusColor: Record<string, string> = {
   confirmed: 'bg-blue-100 text-blue-700',
   processing: 'bg-purple-100 text-purple-700',
   transferred_to_warehouse: 'bg-indigo-100 text-indigo-700',
+  packed: 'bg-teal-100 text-teal-700',  // 👈 НОВЫЙ ЦВЕТ
   shipped: 'bg-orange-100 text-orange-700',
   delivered: 'bg-green-100 text-green-700',
   cancelled: 'bg-red-100 text-red-700',
@@ -25,8 +28,9 @@ const statusColor: Record<string, string> = {
   ready_for_pickup: 'bg-green-100 text-green-700'
 };
 
-const pickupStatusFlow: string[] = ['new', 'processing', 'transferred_to_warehouse', 'ready_for_pickup', 'delivered'];
-const deliveryStatusFlow: string[] = ['new', 'processing', 'transferred_to_warehouse', 'shipped', 'delivered'];
+// 🔥 ОБНОВЛЕННЫЕ СТАТУС-ФЛОУ
+const pickupStatusFlow: string[] = ['new', 'processing', 'transferred_to_warehouse', 'packed', 'ready_for_pickup', 'delivered'];
+const deliveryStatusFlow: string[] = ['new', 'processing', 'transferred_to_warehouse', 'packed', 'shipped', 'delivered'];
 
 /* ===== Утилиты ===== */
 const money = (n: number) => `${n.toLocaleString('ru-RU')} ₸`;
@@ -114,11 +118,12 @@ export default function ViewOrderPage() {
     confirmed: t('Подтвержден'),
     processing: t('В обработке'),
     transferred_to_warehouse: t('Передан в склад'),
+    packed: t('Упакован'),  // 👈 НОВЫЙ СТАТУС
+    ready_for_pickup: t('Готов к выдаче'),
     shipped: t('Отправлен'),
     delivered: t('Завершен'),
     cancelled: t('Отменен'),
-    returned: t('Возврат'),
-    ready_for_pickup: t('Готов к выдаче')
+    returned: t('Возврат')
   }), [t]);
 
   const actionTypeText = useMemo<Record<string, string>>(() => ({
@@ -130,6 +135,7 @@ export default function ViewOrderPage() {
     department_note_updated: t('Обновлена заметка между отделами'),
     department_note_deleted: t('Удалена заметка между отделами'),
     transferred_to_warehouse: t('Передан в склад'),
+    packed: t('Заказ упакован'),  // 👈 НОВОЕ ДЕЙСТВИЕ
     delivery_address_updated: t('Адрес доставки обновлен'),
     delivery_date_updated: t('Дата доставки обновлена'),
     delivery_method_updated: t('Тип доставки изменен'),
@@ -174,7 +180,6 @@ export default function ViewOrderPage() {
     
     if (success) {
       console.log('✅ Status changed, reloading action log...');
-      // 🔥 ПЕРЕЗАГРУЖАЕМ ЖУРНАЛ ПОСЛЕ ИЗМЕНЕНИЯ СТАТУСА
       await loadActionLog(orderId);
     }
     
@@ -386,6 +391,7 @@ export default function ViewOrderPage() {
               >
                 {nextAllowed === 'processing' && <Package className="w-4 h-4" />}
                 {nextAllowed === 'transferred_to_warehouse' && <Warehouse className="w-4 h-4" />}
+                {nextAllowed === 'packed' && <Box className="w-4 h-4" />}
                 {nextAllowed === 'ready_for_pickup' && <Check className="w-4 h-4" />}
                 {nextAllowed === 'shipped' && <Truck className="w-4 h-4" />}
                 {nextAllowed === 'delivered' && <CheckCircle2 className="w-4 h-4" />}

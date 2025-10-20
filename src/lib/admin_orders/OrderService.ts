@@ -2,7 +2,17 @@
 
 import { supabase } from '@/lib/supabase/client';
 
-export type OrderStatus = 'new' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned' | 'ready_for_pickup';
+export type OrderStatus = 
+  | 'new' 
+  | 'confirmed' 
+  | 'processing' 
+  | 'transferred_to_warehouse'
+  | 'packed'  // 👈 НОВЫЙ СТАТУС
+  | 'ready_for_pickup'
+  | 'shipped' 
+  | 'delivered' 
+  | 'cancelled' 
+  | 'returned';
 
 export interface OrderWithItems {
   id: string;
@@ -18,6 +28,7 @@ export interface OrderWithItems {
   delivery_method: string | null;
   delivery_cost: number | null;
   notes: string | null;
+  department_notes: string | null;
   updated_at: string | null;
   user_id: string;
   user?: {
@@ -70,7 +81,6 @@ export class OrderService {
     try {
       console.log('📦 Loading ALL active orders...');
 
-      // Загружаем ВСЕ заказы, кроме delivered, cancelled и returned
       const { data: orders, error } = await supabase
         .from('orders')
         .select(`
@@ -102,7 +112,6 @@ export class OrderService {
         return { success: false, error: error.message };
       }
 
-      // Обрабатываем данные
       const processedOrders: OrderWithItems[] = orders?.map((order: any) => ({
         ...order,
         user: order.users ? {
@@ -159,7 +168,6 @@ export class OrderService {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Загружаем завершенные заказы с пагинацией
       const { data: orders, error, count } = await supabase
         .from('orders')
         .select(`
@@ -192,7 +200,6 @@ export class OrderService {
         return { success: false, error: error.message };
       }
 
-      // Обрабатываем данные
       const processedOrders: OrderWithItems[] = orders?.map((order: any) => ({
         ...order,
         user: order.users ? {
@@ -338,11 +345,13 @@ export class OrderService {
         'new': 'Новый',
         'confirmed': 'Подтвержден',
         'processing': 'В обработке',
+        'transferred_to_warehouse': 'Передан в склад',
+        'packed': 'Упакован',  // 👈 НОВЫЙ СТАТУС
+        'ready_for_pickup': 'Готов к получению',
         'shipped': 'Отправлен',
         'delivered': 'Доставлен',
         'cancelled': 'Отменен',
-        'returned': 'Возврат',
-        'ready_for_pickup': 'Готов к получению'
+        'returned': 'Возврат'
       };
 
       const { error: updateError } = await supabase
@@ -381,7 +390,143 @@ export class OrderService {
   }
 
   /**
-   * Обновление заметок заказа
+   * 🆕 Быстрый перевод заказа в статус "Передан в склад"
+   */
+  async transferToWarehouse(
+    orderId: string,
+    userId: string,
+    departmentNotes?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('📦 Transferring order to warehouse...', { orderId, userId });
+
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('order_status, department_notes')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) {
+        return { success: false, error: fetchError.message };
+      }
+
+      const oldStatus = currentOrder.order_status;
+      const oldNotes = currentOrder.department_notes;
+
+      const updateData: any = {
+        order_status: 'transferred_to_warehouse',
+        updated_at: new Date().toISOString()
+      };
+
+      if (departmentNotes !== undefined) {
+        updateData.department_notes = departmentNotes.trim() || null;
+      }
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      await this.logAction({
+        orderId,
+        userId,
+        actionType: 'transferred_to_warehouse',
+        oldValue: oldStatus,
+        newValue: 'transferred_to_warehouse',
+        description: 'Заказ передан в склад'
+      });
+
+      if (departmentNotes && departmentNotes.trim()) {
+        await this.logAction({
+          orderId,
+          userId,
+          actionType: 'department_note_added',
+          oldValue: oldNotes,
+          newValue: departmentNotes,
+          description: 'Добавлена заметка для склада при передаче заказа'
+        });
+      }
+
+      console.log('✅ Order transferred to warehouse successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error transferring to warehouse:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Ошибка передачи в склад'
+      };
+    }
+  }
+
+  /**
+   * 🆕 Обновление заметок между отделами
+   */
+  async updateDepartmentNotes(
+    orderId: string,
+    departmentNotes: string,
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('📝 Updating department notes:', { orderId, userId });
+
+      const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('department_notes')
+        .eq('id', orderId)
+        .single();
+
+      const oldNotes = currentOrder?.department_notes || '';
+      const newNotes = departmentNotes.trim();
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ 
+          department_notes: newNotes || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (updateError) {
+        return { success: false, error: updateError.message };
+      }
+
+      let actionType = 'department_note_updated';
+      let description = 'Заметка между отделами обновлена';
+      
+      if (!oldNotes && newNotes) {
+        actionType = 'department_note_added';
+        description = 'Добавлена заметка между отделами';
+      } else if (oldNotes && !newNotes) {
+        actionType = 'department_note_deleted';
+        description = 'Заметка между отделами удалена';
+      }
+
+      await this.logAction({
+        orderId,
+        userId,
+        actionType,
+        oldValue: oldNotes,
+        newValue: newNotes,
+        description
+      });
+
+      console.log('✅ Department notes updated successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating department notes:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Ошибка обновления заметок'
+      };
+    }
+  }
+
+  /**
+   * Обновление заметок заказа (клиентских заметок)
    */
   async updateOrderNotes(
     orderId: string,

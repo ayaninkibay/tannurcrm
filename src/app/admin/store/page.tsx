@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package,
@@ -16,13 +16,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  RefreshCw
+  RefreshCw,
+  Warehouse,
+  PackageCheck
 } from 'lucide-react';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useOrderModule } from '@/lib/admin_orders/useOrderModule';
 
-type TabType = 'new' | 'processing' | 'ready_for_pickup' | 'completed';
+type TabType = 'new' | 'processing' | 'transferred_to_warehouse' | 'completed';
 
 const OrdersManagementPage = () => {
   const router = useRouter();
@@ -44,11 +46,19 @@ const OrdersManagementPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('new');
   const [searchQuery, setSearchQuery] = useState('');
   const [completedOrdersLoaded, setCompletedOrdersLoaded] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false); // 🔥 НОВЫЙ ФЛАГ
+  
+  const initialLoadStarted = useRef(false);
 
   // 🚀 При загрузке страницы - загружаем ВСЕ активные заказы
   useEffect(() => {
-    loadAllActiveOrders();
-  }, [loadAllActiveOrders]);
+    if (!initialLoadStarted.current) {
+      initialLoadStarted.current = true;
+      loadAllActiveOrders().then(() => {
+        setInitialLoadDone(true); // 🔥 Отмечаем что первая загрузка завершена
+      });
+    }
+  }, []);
 
   // 🚀 При переходе на вкладку завершенных - загружаем их
   useEffect(() => {
@@ -68,9 +78,9 @@ const OrdersManagementPage = () => {
       },
       'confirmed': {
         label: t('Подтвержден'),
-        color: 'text-blue-700',
-        bg: 'bg-blue-50',
-        border: 'border-blue-200'
+        color: 'text-green-700',
+        bg: 'bg-green-50',
+        border: 'border-green-200'
       },
       'processing': {
         label: t('В обработке'),
@@ -78,11 +88,23 @@ const OrdersManagementPage = () => {
         bg: 'bg-yellow-50',
         border: 'border-yellow-200'
       },
+      'transferred_to_warehouse': {
+        label: t('Передан в склад'),
+        color: 'text-purple-700',
+        bg: 'bg-purple-50',
+        border: 'border-purple-200'
+      },
       'ready_for_pickup': {
         label: t('Готов к получению'),
-        color: 'text-green-700',
-        bg: 'bg-green-50',
-        border: 'border-green-200'
+        color: 'text-indigo-700',
+        bg: 'bg-indigo-50',
+        border: 'border-indigo-200'
+      },
+      'shipped': {
+        label: t('Отправлен'),
+        color: 'text-cyan-700',
+        bg: 'bg-cyan-50',
+        border: 'border-cyan-200'
       },
       'delivered': {
         label: t('Доставлен'),
@@ -98,9 +120,9 @@ const OrdersManagementPage = () => {
       },
       'returned': {
         label: t('Возврат'),
-        color: 'text-gray-700',
-        bg: 'bg-gray-50',
-        border: 'border-gray-200'
+        color: 'text-orange-700',
+        bg: 'bg-orange-50',
+        border: 'border-orange-200'
       }
     };
     return configs[status as string] || configs['new'];
@@ -125,32 +147,40 @@ const OrdersManagementPage = () => {
     }
   };
 
-  // 📊 Статистика вычисляется из всех заказов
+  // 📊 Статистика по новым статусам
   const stats = useMemo(() => {
-    const newOrders = activeOrders.filter(o => o.order_status === 'new' || o.order_status === 'confirmed');
-    const processingOrders = activeOrders.filter(o => o.order_status === 'processing');
-    const readyOrders = activeOrders.filter(o => o.order_status === 'ready_for_pickup');
+    const newOrders = activeOrders.filter(o => 
+      o.order_status === 'new' || o.order_status === 'confirmed'
+    );
     
-    // Для завершенных используем пагинацию total (если загружены)
+    const processingOrders = activeOrders.filter(o => 
+      o.order_status === 'processing'
+    );
+    
+    const warehouseOrders = activeOrders.filter(o => 
+      o.order_status === 'transferred_to_warehouse'
+    );
+    
     const completedCount = completedOrdersLoaded ? completedPagination.total : 0;
     
     return {
       new: { count: newOrders.length },
       processing: { count: processingOrders.length },
-      ready_for_pickup: { count: readyOrders.length },
+      transferred_to_warehouse: { count: warehouseOrders.length },
       completed: { count: completedCount }
     };
   }, [activeOrders, completedOrdersLoaded, completedPagination.total]);
 
-  // Фильтрация по вкладкам
   const getTabOrders = (tab: TabType) => {
     switch(tab) {
       case 'new':
-        return activeOrders.filter(o => o.order_status === 'new' || o.order_status === 'confirmed');
+        return activeOrders.filter(o => 
+          o.order_status === 'new' || o.order_status === 'confirmed'
+        );
       case 'processing':
         return activeOrders.filter(o => o.order_status === 'processing');
-      case 'ready_for_pickup':
-        return activeOrders.filter(o => o.order_status === 'ready_for_pickup');
+      case 'transferred_to_warehouse':
+        return activeOrders.filter(o => o.order_status === 'transferred_to_warehouse');
       case 'completed':
         return completedOrders;
       default:
@@ -158,7 +188,6 @@ const OrdersManagementPage = () => {
     }
   };
 
-  // Поиск
   const filteredOrders = useMemo(() => {
     let result = getTabOrders(activeTab);
 
@@ -235,13 +264,15 @@ const OrdersManagementPage = () => {
     );
   };
 
-  if (loading && activeOrders.length === 0) {
+  // 🔥 ПОКАЗЫВАЕМ ЛОАДИНГ ПОКА НЕ ЗАГРУЗИЛИСЬ ДАННЫЕ В ПЕРВЫЙ РАЗ
+  if (!initialLoadDone && loading) {
     return (
       <div className="flex">
         <div className="grid w-full h-full">
           <MoreHeaderAD title={t('Управление заказами')} />
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="w-10 h-10 text-[#D77E6C] animate-spin" />
+          <div className="flex flex-col justify-center items-center py-20">
+            <Loader2 className="w-12 h-12 text-[#D77E6C] animate-spin mb-4" />
+            <p className="text-gray-600 font-medium">{t('Загрузка заказов...')}</p>
           </div>
         </div>
       </div>
@@ -273,7 +304,7 @@ const OrdersManagementPage = () => {
           </button>
         </div>
 
-        {/* МИНИМАЛЬНЫЙ БЛОК СТАТУСОВ */}
+        {/* СТАТИСТИКА - 4 КАРТОЧКИ */}
         <div className="mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             
@@ -296,33 +327,33 @@ const OrdersManagementPage = () => {
                 <div className="p-1.5 bg-yellow-50 rounded-lg">
                   <Package className="w-4 h-4 text-yellow-600" />
                 </div>
-                <span className="text-xs font-semibold text-gray-700">{t('Обработка')}</span>
+                <span className="text-xs font-semibold text-gray-700">{t('В обработке')}</span>
               </div>
               <div className="text-2xl font-bold text-yellow-600">
                 {stats.processing.count}
               </div>
             </div>
 
-            {/* Готовы */}
-            <div className="bg-white rounded-xl p-3 border border-green-200 hover:shadow-md transition-all">
+            {/* Передан в склад */}
+            <div className="bg-white rounded-xl p-3 border border-purple-200 hover:shadow-md transition-all">
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-green-50 rounded-lg">
-                  <Check className="w-4 h-4 text-green-600" />
+                <div className="p-1.5 bg-purple-50 rounded-lg">
+                  <Warehouse className="w-4 h-4 text-purple-600" />
                 </div>
-                <span className="text-xs font-semibold text-gray-700">{t('Готовы')}</span>
+                <span className="text-xs font-semibold text-gray-700">{t('Передан в склад')}</span>
               </div>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.ready_for_pickup.count}
+              <div className="text-2xl font-bold text-purple-600">
+                {stats.transferred_to_warehouse.count}
               </div>
             </div>
 
-            {/* Завершены */}
+            {/* Завершенные */}
             <div className="bg-white rounded-xl p-3 border border-gray-200 hover:shadow-md transition-all">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 bg-gray-50 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-gray-600" />
+                  <PackageCheck className="w-4 h-4 text-gray-600" />
                 </div>
-                <span className="text-xs font-semibold text-gray-700">{t('Завершены')}</span>
+                <span className="text-xs font-semibold text-gray-700">{t('Завершенные')}</span>
               </div>
               <div className="text-2xl font-bold text-gray-600">
                 {stats.completed.count}
@@ -332,7 +363,7 @@ const OrdersManagementPage = () => {
           </div>
         </div>
 
-        {/* ТАБЫ - убираем текст на мобилке, оставляем только иконки и счетчики */}
+        {/* ТАБЫ */}
         <div className="mb-4 md:mb-6">
           <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 inline-flex w-full sm:w-auto overflow-x-auto">
             <button 
@@ -348,6 +379,7 @@ const OrdersManagementPage = () => {
                 <span className="hidden sm:inline"> ({stats.new.count})</span>
               </span>
             </button>
+            
             <button 
               onClick={() => setActiveTab('processing')} 
               className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
@@ -361,26 +393,28 @@ const OrdersManagementPage = () => {
                 <span className="hidden sm:inline"> ({stats.processing.count})</span>
               </span>
             </button>
+            
             <button 
-              onClick={() => setActiveTab('ready_for_pickup')} 
+              onClick={() => setActiveTab('transferred_to_warehouse')} 
               className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
-                activeTab === 'ready_for_pickup' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'transferred_to_warehouse' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Warehouse className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs sm:text-base font-medium">
-                <span className="hidden sm:inline">{t('Готовы')}</span>
-                <span className="inline sm:hidden">({stats.ready_for_pickup.count})</span>
-                <span className="hidden sm:inline"> ({stats.ready_for_pickup.count})</span>
+                <span className="hidden sm:inline">{t('Передан в склад')}</span>
+                <span className="inline sm:hidden">({stats.transferred_to_warehouse.count})</span>
+                <span className="hidden sm:inline"> ({stats.transferred_to_warehouse.count})</span>
               </span>
             </button>
+            
             <button 
               onClick={() => setActiveTab('completed')} 
               className={`flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
                 activeTab === 'completed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <PackageCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs sm:text-base font-medium">
                 <span className="hidden sm:inline">{t('Завершенные')}</span>
                 {completedOrdersLoaded ? (

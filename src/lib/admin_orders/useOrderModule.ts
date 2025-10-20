@@ -7,12 +7,12 @@ import { OrderService, OrderWithItems, ActionLog, OrderStatus } from './OrderSer
 
 export interface UseOrderModuleReturn {
   // Состояния
-  activeOrders: OrderWithItems[];  // Все активные заказы
-  completedOrders: OrderWithItems[];  // Завершенные заказы
+  activeOrders: OrderWithItems[];
+  completedOrders: OrderWithItems[];
   currentOrder: OrderWithItems | null;
   actionLog: ActionLog[];
   loading: boolean;
-  loadingCompleted: boolean;  // Отдельный флаг для завершенных
+  loadingCompleted: boolean;
   error: string | null;
   completedPagination: {
     total: number;
@@ -29,6 +29,8 @@ export interface UseOrderModuleReturn {
   
   // Методы обновления
   updateOrderStatus: (orderId: string, newStatus: OrderStatus, reason?: string) => Promise<boolean>;
+  transferToWarehouse: (orderId: string, departmentNotes?: string) => Promise<boolean>;  // 👈 НОВЫЙ
+  updateDepartmentNotes: (orderId: string, departmentNotes: string) => Promise<boolean>;  // 👈 НОВЫЙ
   updateNotes: (orderId: string, notes: string) => Promise<boolean>;
   updateDeliveryAddress: (orderId: string, address: string) => Promise<boolean>;
   updateDeliveryDate: (orderId: string, date: string) => Promise<boolean>;
@@ -102,10 +104,8 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       
       if (result.success && result.data) {
         if (page === 1) {
-          // Первая страница - заменяем
           setCompletedOrders(result.data.orders);
         } else {
-          // Последующие страницы - добавляем
           setCompletedOrders(prev => [...prev, ...result.data.orders]);
         }
         
@@ -187,7 +187,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       setLoading(true);
       setError(null);
 
-      // Получаем ID текущего пользователя
       const { data: { user } } = await (await import('@/lib/supabase/client')).supabase.auth.getUser();
       if (!user) {
         setError('Пользователь не авторизован');
@@ -197,20 +196,15 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       const result = await orderService.updateOrderStatus(orderId, newStatus, user.id, reason);
       
       if (result.success) {
-        // Обновляем заказ в списке
         if (newStatus === 'delivered' || newStatus === 'cancelled' || newStatus === 'returned') {
-          // Если заказ стал завершенным - удаляем из активных
           setActiveOrders(prev => prev.filter(o => o.id !== orderId));
-          // И обновляем завершенные, если они загружены
           if (completedOrders.length > 0) {
             await loadCompletedOrders(1, completedPagination.pageSize);
           }
         } else {
-          // Иначе перезагружаем все активные
           await loadAllActiveOrders();
         }
         
-        // Если это текущий заказ - перезагружаем его
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
           await loadActionLog(orderId);
@@ -229,6 +223,86 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, [currentOrder, completedOrders.length, completedPagination.pageSize, loadAllActiveOrders, loadCompletedOrders, loadOrderById, loadActionLog]);
 
+  /**
+   * 🆕 Быстрый перевод в статус "Передан в склад"
+   */
+  const transferToWarehouse = useCallback(async (
+    orderId: string,
+    departmentNotes?: string
+  ): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: { user } } = await (await import('@/lib/supabase/client')).supabase.auth.getUser();
+      if (!user) {
+        setError('Пользователь не авторизован');
+        return false;
+      }
+
+      const result = await orderService.transferToWarehouse(orderId, user.id, departmentNotes);
+      
+      if (result.success) {
+        await loadAllActiveOrders();
+        
+        if (currentOrder?.id === orderId) {
+          await loadOrderById(orderId);
+          await loadActionLog(orderId);
+        }
+        
+        return true;
+      } else {
+        setError(result.error || 'Ошибка передачи в склад');
+        return false;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentOrder, loadAllActiveOrders, loadOrderById, loadActionLog]);
+
+  /**
+   * 🆕 Обновление заметок между отделами
+   */
+  const updateDepartmentNotes = useCallback(async (
+    orderId: string,
+    departmentNotes: string
+  ): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: { user } } = await (await import('@/lib/supabase/client')).supabase.auth.getUser();
+      if (!user) {
+        setError('Пользователь не авторизован');
+        return false;
+      }
+
+      const result = await orderService.updateDepartmentNotes(orderId, departmentNotes, user.id);
+      
+      if (result.success) {
+        if (currentOrder?.id === orderId) {
+          await loadOrderById(orderId);
+          await loadActionLog(orderId);
+        }
+        return true;
+      } else {
+        setError(result.error || 'Ошибка обновления заметок между отделами');
+        return false;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [currentOrder, loadOrderById, loadActionLog]);
+
+  /**
+   * Обновление заметок заказа (клиентских)
+   */
   const updateNotes = useCallback(async (
     orderId: string,
     notes: string
@@ -403,6 +477,8 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     
     // Методы обновления
     updateOrderStatus,
+    transferToWarehouse,  // 👈 НОВЫЙ
+    updateDepartmentNotes,  // 👈 НОВЫЙ
     updateNotes,
     updateDeliveryAddress,
     updateDeliveryDate,

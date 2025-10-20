@@ -1,30 +1,87 @@
 'use client';
 
-import Image from 'next/image';
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FastLink } from '@/components/FastLink';
 import { useTranslate } from '@/hooks/useTranslate';
+import { 
+  LayoutDashboard, 
+  Users2, 
+  ShoppingBag, 
+  GraduationCap, 
+  Wallet, 
+  Package,
+  LucideIcon 
+} from 'lucide-react';
+import { useUser } from '@/context/UserContext';
+import { hasPageAccess } from '@/lib/permissions';
 
-const adminNavItems = [
-  { href: '/admin/dashboard',  icon: '/icons/sidebar/homewhite.svg',  iconGray: '/icons/sidebar/homegray.svg',     label: 'Дэшборд' },
-  { href: '/admin/teamcontent',icon: '/icons/sidebar/teamwhite.svg',  iconGray: '/icons/sidebar/teamgray.svg',     label: 'Команда' },
-  { href: '/admin/store',      icon: '/icons/sidebar/storewhite.svg', iconGray: '/icons/sidebar/storegray.svg',    label: 'Tannutstore' },
-  { href: '/admin/tnba',       icon: '/icons/sidebar/tnbawhite.svg',  iconGray: '/icons/sidebar/tnbawhite.svg',    label: 'Настройки' },
-  { href: '/admin/finance',    icon: '/icons/sidebar/statswhite.svg', iconGray: '/icons/sidebar/statsgray.svg',    label: 'Ваши финансы' },
-  { href: '/admin/warehouse',  icon: '/icons/sidebar/warehousewhite.svg', iconGray: '/icons/sidebar/warehousegray.svg', label: 'Склад' },
-  { href: '/admin/documents',  icon: '/icons/sidebar/folderwhite.svg', iconGray: '/icons/sidebar/foldergray.svg',  label: 'Документы' }
+interface NavItem {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  permissions: string[];
+}
+
+const adminNavItems: NavItem[] = [
+  { 
+    href: '/admin/dashboard', 
+    icon: LayoutDashboard, 
+    label: 'Дэшборд',
+    permissions: ['all', 'warehouse', 'orders', 'finance']
+  },
+  { 
+    href: '/admin/teamcontent', 
+    icon: Users2, 
+    label: 'Команда',
+    permissions: ['all']
+  },
+  { 
+    href: '/admin/store', 
+    icon: ShoppingBag, 
+    label: 'Tannutstore',
+    permissions: ['all', 'orders']
+  },
+  { 
+    href: '/admin/tnba', 
+    icon: GraduationCap, 
+    label: 'Академия',
+    permissions: ['all']
+  },
+  { 
+    href: '/admin/finance', 
+    icon: Wallet, 
+    label: 'Финансы',
+    permissions: ['all', 'finance']
+  },
+  { 
+    href: '/admin/warehouse', 
+    icon: Package, 
+    label: 'Склад',
+    permissions: ['all', 'warehouse']
+  }
 ];
 
 export default function DashboardSidebarAdmin() {
   const { t } = useTranslate();
   const pathname = usePathname();
   const router = useRouter();
+  const { profile } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [activeTop, setActiveTop] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+
+  // Фильтруем навигацию по правам пользователя
+  const visibleNavItems = adminNavItems.filter(item => {
+    if (!profile?.permissions) return false;
+    
+    // Если у пользователя есть хотя бы одно из требуемых разрешений
+    return item.permissions.some(permission => 
+      profile.permissions?.includes(permission)
+    );
+  });
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
@@ -32,7 +89,7 @@ export default function DashboardSidebarAdmin() {
         setActiveTop(null);
         return;
       }
-      const activeItemIndex = adminNavItems.findIndex(item => pathname.startsWith(item.href));
+      const activeItemIndex = visibleNavItems.findIndex(item => pathname.startsWith(item.href));
       const activeEl = itemRefs.current[activeItemIndex];
       const containerEl = containerRef.current;
 
@@ -47,7 +104,7 @@ export default function DashboardSidebarAdmin() {
     updateActiveTop();
     window.addEventListener('resize', updateActiveTop);
     return () => window.removeEventListener('resize', updateActiveTop);
-  }, [pathname]);
+  }, [pathname, visibleNavItems]);
 
   useEffect(() => {
     setLoadingIndex(null);
@@ -65,7 +122,7 @@ export default function DashboardSidebarAdmin() {
         hidden
         lg:flex
         fixed left-0 top-0
-        h-screen w-30
+        h-screen w-22
         bg-[#f6f6f6] z-10
         flex-col items-center pt-12 pb-6
         border-r border-gray-300
@@ -76,18 +133,13 @@ export default function DashboardSidebarAdmin() {
         onClick={goToHome}
         className={`
           mb-6 mt-4
-          w-[60px] h-[60px]
+          w-[40px] h-[40px]
           rounded-xl flex items-center justify-center transition-all
           ${pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
         `}
         title={t('Главная')}
       >
-        <Image
-          src="/icons/company/tannur_black.svg"
-          alt={t('Логотип')}
-          width={70}
-          height={70}
-        />
+        <div className="text-3xl font-bold">T</div>
       </button>
 
       {/* Навигация */}
@@ -101,7 +153,7 @@ export default function DashboardSidebarAdmin() {
             layoutId="admin-active-indicator"
             className="
               absolute
-              w-[60px] h-[60px]
+              w-[45px] h-[45px]
               bg-[#D77E6C] rounded-xl left-1/2 -translate-x-1/2 z-0
             "
             style={{ top: activeTop }}
@@ -110,9 +162,10 @@ export default function DashboardSidebarAdmin() {
           />
         )}
 
-        {adminNavItems.map((item, idx) => {
+        {visibleNavItems.map((item, idx) => {
           const isActive = pathname !== null && pathname.startsWith(item.href);
           const isCurrentlyLoading = loadingIndex === idx;
+          const Icon = item.icon;
 
           return (
             <FastLink
@@ -131,7 +184,7 @@ export default function DashboardSidebarAdmin() {
                   itemRefs.current[idx] = el;
                 }}
                 className="
-                  w-[60px] h-[60px]
+                  w-[45px] h-[45px]
                   rounded-xl flex items-center justify-center
                   transition-all hover:bg-[#00000011]
                 "
@@ -140,16 +193,13 @@ export default function DashboardSidebarAdmin() {
                 {isCurrentlyLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full" />
                 ) : (
-                  <Image
-                    src={isActive ? item.iconGray : item.icon}
-                    alt={t(item.label)}
-                    width={24}
-                    height={24}
-                    style={{
-                      filter: isActive
-                        ? 'brightness(0) invert(1)'
-                        : 'grayscale(100%) brightness(0.5)',
-                    }}
+                  <Icon
+                    size={24}
+                    className={
+                      isActive
+                        ? 'text-white'
+                        : 'text-gray-500'
+                    }
                   />
                 )}
               </div>

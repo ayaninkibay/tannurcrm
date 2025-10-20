@@ -1,11 +1,7 @@
 // src/lib/order/OrderService.ts
-// ОБНОВЛЕНО: теперь один метод - создать И оплатить заказ
+// ПРОСТАЯ ВЕРСИЯ: без автоматической проверки оплаты
 
 import { supabase } from '@/lib/supabase/client';
-
-// ==========================================
-// ТИПЫ
-// ==========================================
 
 export interface Order {
   id: string;
@@ -46,14 +42,10 @@ export interface ServiceResult<T = void> {
   error?: string;
 }
 
-// ==========================================
-// СЕРВИС
-// ==========================================
-
 class OrderService {
   
   /**
-   * Создать И оплатить заказ из корзины (один шаг)
+   * Создать заказ из корзины
    */
   async createAndPayOrder(
     userId: string,
@@ -63,8 +55,6 @@ class OrderService {
     notes?: string
   ): Promise<ServiceResult<Order>> {
     try {
-      console.log('💳 Creating and paying order...', { userId, cartId, deliveryAddress });
-      
       const { data, error } = await supabase.rpc('create_and_pay_order', {
         p_user_id: userId,
         p_cart_id: cartId,
@@ -73,41 +63,22 @@ class OrderService {
         p_notes: notes || null
       });
 
-      if (error) {
-        console.error('❌ RPC error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data || !data.success) {
-        const errorMessage = data?.message || 'Не удалось создать заказ';
-        console.error('❌ Order creation failed:', errorMessage);
-        
-        if (data?.validation) {
-          const validation = data.validation;
-          if (validation.errors && validation.errors.length > 0) {
-            return {
-              success: false,
-              error: validation.errors.join('; ')
-            };
-          }
-        }
-        
         return {
           success: false,
-          error: errorMessage
+          error: data?.message || 'Не удалось создать заказ'
         };
       }
-
-      console.log('✅ Order created and paid successfully:', data.order);
 
       return {
         success: true,
         data: data.order,
-        message: data.message || 'Заказ успешно оплачен'
+        message: 'Заказ создан'
       };
 
     } catch (error: any) {
-      console.error('❌ Error in createAndPayOrder:', error);
       return {
         success: false,
         error: error.message || 'Ошибка создания заказа'
@@ -116,12 +87,107 @@ class OrderService {
   }
 
   /**
+   * Подтвердить оплату (клиент сказал "Я оплатил")
+   */
+  async confirmPayment(
+    orderId: string,
+    userId: string,
+    paymentNotes: string
+  ): Promise<ServiceResult> {
+    try {
+      // Проверяем что заказ существует и принадлежит пользователю
+      const { data: order, error: fetchError } = await supabase
+        .from('orders')
+        .select('user_id, notes')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !order) {
+        return { success: false, error: 'Заказ не найден' };
+      }
+
+      if (order.user_id !== userId) {
+        return { success: false, error: 'У вас нет доступа к этому заказу' };
+      }
+
+      // Добавляем заметки от клиента
+      const updatedNotes = order.notes 
+        ? `${order.notes}\n\nДанные оплаты:\n${paymentNotes}`
+        : `Данные оплаты:\n${paymentNotes}`;
+
+      // Обновляем статус на PAID
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          notes: updatedNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (updateError) throw updateError;
+
+      return { success: true, message: 'Оплата подтверждена' };
+
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Ошибка подтверждения оплаты' };
+    }
+  }
+
+  /**
+   * Отклонить оплату (клиент сказал "Не оплатил")
+   */
+  async declinePayment(
+    orderId: string,
+    userId: string,
+    declineNotes: string
+  ): Promise<ServiceResult> {
+    try {
+      // Проверяем что заказ существует и принадлежит пользователю
+      const { data: order, error: fetchError } = await supabase
+        .from('orders')
+        .select('user_id, notes')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !order) {
+        return { success: false, error: 'Заказ не найден' };
+      }
+
+      if (order.user_id !== userId) {
+        return { success: false, error: 'У вас нет доступа к этому заказу' };
+      }
+
+      // Добавляем причину
+      const updatedNotes = order.notes 
+        ? `${order.notes}\n\nОплата не выполнена:\n${declineNotes}`
+        : `Оплата не выполнена:\n${declineNotes}`;
+
+      // Обновляем статус на PENDING
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: 'pending',
+          notes: updatedNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (updateError) throw updateError;
+
+      return { success: true, message: 'Заказ сохранен' };
+
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Ошибка сохранения заказа' };
+    }
+  }
+
+  /**
    * Получить заказы пользователя
    */
   async getUserOrders(userId: string, limit?: number): Promise<ServiceResult<OrderWithItems[]>> {
     try {
-      console.log('📋 Loading user orders...', userId);
-      
       let query = supabase
         .from('orders')
         .select(`
@@ -142,16 +208,10 @@ class OrderService {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (limit) {
-        query = query.limit(limit);
-      }
+      if (limit) query = query.limit(limit);
 
       const { data: orders, error } = await query;
-
-      if (error) {
-        console.error('❌ Error loading orders:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       const processedOrders: OrderWithItems[] = (orders || []).map(order => ({
         ...order,
@@ -170,19 +230,10 @@ class OrderService {
         }))
       }));
 
-      console.log(`✅ Loaded ${processedOrders.length} orders`);
-
-      return {
-        success: true,
-        data: processedOrders
-      };
+      return { success: true, data: processedOrders };
 
     } catch (error: any) {
-      console.error('❌ Error in getUserOrders:', error);
-      return {
-        success: false,
-        error: error.message || 'Ошибка загрузки заказов'
-      };
+      return { success: false, error: error.message || 'Ошибка загрузки заказов' };
     }
   }
 
@@ -191,8 +242,6 @@ class OrderService {
    */
   async getOrderById(orderId: string, userId: string): Promise<ServiceResult<OrderWithItems>> {
     try {
-      console.log('📦 Loading order by ID...', { orderId, userId });
-
       const { data: order, error } = await supabase
         .from('orders')
         .select(`
@@ -216,10 +265,7 @@ class OrderService {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          return {
-            success: false,
-            error: 'Заказ не найден или у вас нет доступа'
-          };
+          return { success: false, error: 'Заказ не найден' };
         }
         throw error;
       }
@@ -241,55 +287,34 @@ class OrderService {
         }))
       };
 
-      console.log('✅ Order loaded');
-
-      return {
-        success: true,
-        data: processedOrder
-      };
+      return { success: true, data: processedOrder };
 
     } catch (error: any) {
-      console.error('❌ Error in getOrderById:', error);
-      return {
-        success: false,
-        error: error.message || 'Ошибка загрузки заказа'
-      };
+      return { success: false, error: error.message || 'Ошибка загрузки заказа' };
     }
   }
 
   /**
-   * Отменить заказ (только если ещё не отправлен)
+   * Отменить заказ
    */
   async cancelOrder(orderId: string, userId: string): Promise<ServiceResult> {
     try {
-      console.log('❌ Cancelling order...', { orderId, userId });
-
       const { data: order, error: fetchError } = await supabase
         .from('orders')
-        .select('order_status, payment_status, user_id')
+        .select('order_status, user_id')
         .eq('id', orderId)
         .single();
 
       if (fetchError || !order) {
-        return {
-          success: false,
-          error: 'Заказ не найден'
-        };
+        return { success: false, error: 'Заказ не найден' };
       }
 
       if (order.user_id !== userId) {
-        return {
-          success: false,
-          error: 'У вас нет доступа к этому заказу'
-        };
+        return { success: false, error: 'У вас нет доступа' };
       }
 
-      // Можно отменить только подтвержденные, но не отправленные
       if (['shipped', 'delivered'].includes(order.order_status)) {
-        return {
-          success: false,
-          error: 'Заказ нельзя отменить на текущем этапе'
-        };
+        return { success: false, error: 'Заказ нельзя отменить' };
       }
 
       const { error: updateError } = await supabase
@@ -303,24 +328,15 @@ class OrderService {
 
       if (updateError) throw updateError;
 
-      console.log('✅ Order cancelled');
-
-      return {
-        success: true,
-        message: 'Заказ отменен'
-      };
+      return { success: true, message: 'Заказ отменен' };
 
     } catch (error: any) {
-      console.error('❌ Error in cancelOrder:', error);
-      return {
-        success: false,
-        error: error.message || 'Ошибка отмены заказа'
-      };
+      return { success: false, error: error.message || 'Ошибка отмены заказа' };
     }
   }
 
   /**
-   * Получить статистику заказов
+   * Статистика заказов
    */
   async getUserOrdersStats(userId: string): Promise<ServiceResult<{
     totalOrders: number;
@@ -330,8 +346,6 @@ class OrderService {
     pendingOrders: number;
   }>> {
     try {
-      console.log('📊 Loading user orders stats...', userId);
-
       const { data: orders, error } = await supabase
         .from('orders')
         .select('order_status, payment_status, total_amount')
@@ -350,19 +364,10 @@ class OrderService {
         pendingOrders: orders?.filter(o => o.payment_status === 'pending').length || 0
       };
 
-      console.log('✅ Stats loaded:', stats);
-
-      return {
-        success: true,
-        data: stats
-      };
+      return { success: true, data: stats };
 
     } catch (error: any) {
-      console.error('❌ Error in getUserOrdersStats:', error);
-      return {
-        success: false,
-        error: error.message || 'Ошибка загрузки статистики'
-      };
+      return { success: false, error: error.message || 'Ошибка загрузки статистики' };
     }
   }
 }

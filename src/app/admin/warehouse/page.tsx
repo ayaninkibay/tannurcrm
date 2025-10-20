@@ -1,542 +1,630 @@
+// src/app/admin/warehouse/page.tsx
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import MoreHeaderAD from '@/components/header/MoreHeaderAD';
-import ProductCardWare from '@/components/ui/ProductCardWare';
-import RightSidebar from '@/components/ui/RightSidebar';
-
-import { 
-  Package, 
-  Users, 
-  Gift, 
-  Plus, 
-  TrendingUp,
-  Box,
-  DollarSign,
-  BarChart3,
+import {
+  Package,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Hash,
+  Phone,
+  MapPin,
+  Loader2,
   ShoppingBag,
-  Sparkles,
-  Eye,
-  Building2
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  RefreshCw,
+  Warehouse,
+  PackageCheck,
+  Truck,
+  Settings,
+  Box,
+  FileText // 👈 НОВАЯ ИКОНКА
 } from 'lucide-react';
-
-import { useProductModule } from '@/lib/product/ProductModule';
-import { useGiftModule } from '@/lib/gift/useGiftModule';
-import { useDistributorModule } from '@/lib/distributor/useDistributorModule';
-import Presents, { GiftItem } from '@/components/reports/warehouse/presents';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
+import { useOrderModule } from '@/lib/admin_orders/useOrderModule';
+import ReportModal from '@/components/warehouse/ReportModal'; // 👈 ИМПОРТ МОДАЛКИ
 
-type ActiveTab = 'warehouse' | 'distributors' | 'gifts';
+type TabType = 'warehouse' | 'packed' | 'ready_for_pickup' | 'shipped' | 'completed';
 
-export default function WareHouse() {
-  const { t } = useTranslate();
+const WarehouseOrdersPage = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('warehouse');
-
-  const { 
-    products, 
-    total, 
-    isLoading, 
-    error, 
-    listProducts 
-  } = useProductModule();
+  const { t } = useTranslate();
 
   const {
-    gifts,
-    stats: giftStats,
-    loading: giftsLoading,
-    loadGifts,
-    loadStats
-  } = useGiftModule();
+    activeOrders,
+    completedOrders,
+    loading,
+    loadingCompleted,
+    error,
+    completedPagination,
+    loadAllActiveOrders,
+    loadCompletedOrders,
+    clearError,
+    refreshOrders
+  } = useOrderModule();
 
-  const {
-    distributors,
-    loading: distributorsLoading,
-    loadDistributors
-  } = useDistributorModule();
+  const [activeTab, setActiveTab] = useState<TabType>('warehouse');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [completedOrdersLoaded, setCompletedOrdersLoaded] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false); // 👈 СОСТОЯНИЕ МОДАЛКИ
+  
+  const initialLoadStarted = React.useRef(false);
 
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalStock: 0,
-    totalValue: 0
-  });
-
-  // Загружаем все данные при инициализации
   useEffect(() => {
-    loadProducts();
-    loadGifts();
-    loadStats();
-    loadDistributors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!initialLoadStarted.current) {
+      initialLoadStarted.current = true;
+      loadAllActiveOrders().then(() => {
+        setInitialLoadDone(true);
+      });
+    }
   }, []);
 
-  // Перезагружаем подарки при переключении на вкладку gifts
   useEffect(() => {
-    if (activeTab === 'gifts') {
-      loadGifts();
-      loadStats();
+    if (activeTab === 'completed' && !completedOrdersLoaded) {
+      loadCompletedOrders(1, 50);
+      setCompletedOrdersLoaded(true);
     }
-  }, [activeTab, loadGifts, loadStats]);
+  }, [activeTab, completedOrdersLoaded, loadCompletedOrders]);
 
-  // Перезагружаем дистрибьюторов при переключении на вкладку distributors
-  useEffect(() => {
-    if (activeTab === 'distributors') {
-      loadDistributors();
-    }
-  }, [activeTab, loadDistributors]);
+  const getStatusConfig = (status: string | null) => {
+    const configs: any = {
+      'new': {
+        label: t('Новый'),
+        color: 'text-blue-700',
+        bg: 'bg-blue-50',
+        border: 'border-blue-200'
+      },
+      'confirmed': {
+        label: t('Подтвержден'),
+        color: 'text-green-700',
+        bg: 'bg-green-50',
+        border: 'border-green-200'
+      },
+      'processing': {
+        label: t('В обработке'),
+        color: 'text-yellow-700',
+        bg: 'bg-yellow-50',
+        border: 'border-yellow-200'
+      },
+      'transferred_to_warehouse': {
+        label: t('Передан в склад'),
+        color: 'text-purple-700',
+        bg: 'bg-purple-50',
+        border: 'border-purple-200'
+      },
+      'packed': {
+        label: t('Упакован'),
+        color: 'text-teal-700',
+        bg: 'bg-teal-50',
+        border: 'border-teal-200'
+      },
+      'ready_for_pickup': {
+        label: t('Готов к выдаче'),
+        color: 'text-indigo-700',
+        bg: 'bg-indigo-50',
+        border: 'border-indigo-200'
+      },
+      'shipped': {
+        label: t('Отправлен'),
+        color: 'text-cyan-700',
+        bg: 'bg-cyan-50',
+        border: 'border-cyan-200'
+      },
+      'delivered': {
+        label: t('Доставлен'),
+        color: 'text-emerald-700',
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200'
+      },
+      'cancelled': {
+        label: t('Отменен'),
+        color: 'text-red-700',
+        bg: 'bg-red-50',
+        border: 'border-red-200'
+      },
+      'returned': {
+        label: t('Возврат'),
+        color: 'text-orange-700',
+        bg: 'bg-orange-50',
+        border: 'border-orange-200'
+      }
+    };
+    return configs[status as string] || configs['new'];
+  };
 
-  useEffect(() => {
-    if (products.length > 0) {
-      const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
-      const totalValue = products.reduce((sum, p) => {
-        const price = p.price_dealer || p.price || 0;
-        const stock = p.stock || 0;
-        return sum + (price * stock);
-      }, 0);
-      setStats({
-        totalProducts: products.length,
-        totalStock,
-        totalValue
-      });
-    } else {
-      setStats({ totalProducts: 0, totalStock: 0, totalValue: 0 });
-    }
-  }, [products]);
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  const loadProducts = async () => {
+  const openOrder = (order: any) => {
     try {
-      await listProducts({
-        limit: 50,
-        orderBy: 'created_at',
-        order: 'desc'
+      router.push(`/admin/warehouse/warehouse_control/view_order/${order.id}`);
+    } catch (e) {
+      console.error('Error opening order:', e);
+    }
+  };
+
+  // 📊 Статистика для склада
+  const stats = useMemo(() => {
+    const warehouseOrders = activeOrders.filter(o => 
+      o.order_status === 'transferred_to_warehouse'
+    );
+    
+    const packedOrders = activeOrders.filter(o => 
+      o.order_status === 'packed'
+    );
+    
+    const readyOrders = activeOrders.filter(o => 
+      o.order_status === 'ready_for_pickup'
+    );
+    
+    const shippedOrders = activeOrders.filter(o => 
+      o.order_status === 'shipped'
+    );
+    
+    const completedCount = completedOrdersLoaded ? completedPagination.total : 0;
+    
+    return {
+      warehouse: { count: warehouseOrders.length },
+      packed: { count: packedOrders.length },
+      ready_for_pickup: { count: readyOrders.length },
+      shipped: { count: shippedOrders.length },
+      completed: { count: completedCount }
+    };
+  }, [activeOrders, completedOrdersLoaded, completedPagination.total]);
+
+  // Фильтрация по вкладкам
+  const getTabOrders = (tab: TabType) => {
+    switch(tab) {
+      case 'warehouse':
+        return activeOrders.filter(o => o.order_status === 'transferred_to_warehouse');
+      case 'packed':
+        return activeOrders.filter(o => o.order_status === 'packed');
+      case 'ready_for_pickup':
+        return activeOrders.filter(o => o.order_status === 'ready_for_pickup');
+      case 'shipped':
+        return activeOrders.filter(o => o.order_status === 'shipped');
+      case 'completed':
+        return completedOrders;
+      default:
+        return [];
+    }
+  };
+
+  // Поиск
+  const filteredOrders = useMemo(() => {
+    let result = getTabOrders(activeTab);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(order => {
+        const fullName = `${order.user?.first_name || ''} ${order.user?.last_name || ''}`.toLowerCase();
+        const phone = (order.user?.phone || '').toLowerCase();
+        const email = (order.user?.email || '').toLowerCase();
+        const orderNumber = (order.order_number || order.id).toLowerCase();
+        
+        return (
+          fullName.includes(query) ||
+          phone.includes(query) ||
+          email.includes(query) ||
+          orderNumber.includes(query)
+        );
       });
-    } catch (err) {
-      console.error('Error loading products:', err);
     }
-  };
 
-  const handleProductClick = (productId: string) => {
-    router.push(`/admin/warehouse/product_view?id=${productId}`);
-  };
+    return result;
+  }, [activeOrders, completedOrders, activeTab, searchQuery]);
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (!price) return '0 ₸';
-    return `${price.toLocaleString('ru-RU')} ₸`;
-  };
+  const MobileOrderCard = ({ order }: { order: any }) => {
+    const config = getStatusConfig(order.order_status);
 
-  const getImageUrl = (imageUrl?: string | null) => {
-    if (!imageUrl) return '/icons/Photo_icon_1.jpg';
-    return imageUrl;
-  };
-
-  // Конвертируем реальные подарки в формат для компонента Presents
-  const giftItems: GiftItem[] = gifts.map(gift => ({
-    name: gift.recipient_name,
-    qty: gift.gift_items.reduce((sum, item) => sum + item.quantity, 0),
-    total: formatPrice(gift.total_amount),
-    note: gift.reason
-  }));
-
-  const tabsData = [
-    {
-      id: 'warehouse' as const,
-      icon: Package,
-      title: t('Товары на складе'),
-      count: stats.totalStock,
-      unit: t('единиц'),
-      sum: formatPrice(stats.totalValue),
-      sumLabel: t('Общая стоимость'),
-      color: '#D77E6C',
-      bgColor: 'bg-orange-50',
-      borderColor: 'border-[#D77E6C]',
-      iconBg: 'bg-[#D77E6C]/10'
-    },
-    {
-      id: 'distributors' as const,
-      icon: Users,
-      title: t('Дистрибьюторы'),
-      count: distributors.length,
-      unit: t('дистрибьюторов'),
-      sum: distributors.reduce((sum, d) => sum + (d.current_balance || 0), 0).toLocaleString('ru-RU') + ' ₸',
-      sumLabel: t('Общий баланс'),
-      color: '#7C9D6C',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-600',
-      iconBg: 'bg-green-100'
-    },
-    {
-      id: 'gifts' as const,
-      icon: Gift,
-      title: t('Подарочный фонд'),
-      count: giftStats.totalGifts,
-      unit: t('подарков'),
-      sum: formatPrice(giftStats.totalAmount),
-      sumLabel: t('Общая стоимость'),
-      color: '#9C7C6C',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-600',
-      iconBg: 'bg-purple-100'
-    }
-  ];
-
-  if (error) {
     return (
-      <main className=" bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-        <MoreHeaderAD title={t('Склад Tannur')} />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center bg-white p-8 rounded-2xl">
-            <p className="text-red-500 mb-4 text-lg">{t('Ошибка')}: {String(error)}</p>
-            <button 
-              onClick={loadProducts}
-              className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
-            >
-              {t('Попробовать снова')}
-            </button>
+      <div 
+        className="bg-white rounded-xl border border-gray-200 p-3 mb-2 hover:shadow-md transition-all cursor-pointer"
+        onClick={() => openOrder(order)}
+      >
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className="font-mono text-xs font-semibold text-gray-700">
+                #{order.order_number || order.id.slice(-8)}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.color} border ${config.border}`}>
+                {config.label}
+              </span>
+            </div>
+            <p className="font-semibold text-sm text-gray-900">
+              {order.user?.first_name} {order.user?.last_name}
+            </p>
           </div>
         </div>
-      </main>
+
+        <div className="space-y-1.5 text-xs text-gray-600">
+          <div className="flex items-center gap-2">
+            <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span>{order.user?.phone || t('Не указан')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <span>{formatDate(order.created_at)}</span>
+          </div>
+          {order.delivery_address && (
+            <div className="flex items-start gap-2">
+              <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <span className="line-clamp-2">{order.delivery_address}</span>
+            </div>
+          )}
+          {order.department_notes && (
+            <div className="flex items-start gap-2 mt-2 pt-2 border-t border-purple-100">
+              <Package className="w-3.5 h-3.5 text-purple-600 mt-0.5 flex-shrink-0" />
+              <span className="text-purple-700 font-medium line-clamp-2">{order.department_notes}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between items-center">
+          <div className="text-xs text-gray-600">
+            {order.order_items?.length || 0} {t('товаров')}
+          </div>
+          <div className="font-bold text-sm text-[#D77E6C]">
+            {(order.total_amount || 0).toLocaleString()} ₸
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (!initialLoadDone && loading) {
+    return (
+      <div className="flex">
+        <div className="grid w-full h-full">
+          <MoreHeaderAD title={t('Склад')} />
+          <div className="flex flex-col justify-center items-center py-20">
+            <Loader2 className="w-12 h-12 text-[#D77E6C] animate-spin mb-4" />
+            <p className="text-gray-600 font-medium">{t('Загрузка заказов...')}</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen">
-      <MoreHeaderAD title={t('Склад Tannur')} />
+    <div className="flex">
+      <div className="grid w-full h-full">
+        <MoreHeaderAD title={t('Складские заказы')} />
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Левая колонка */}
-        <div className="flex-1">
-          {/* Табы-карточки */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
-            {tabsData.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative group rounded-2xl p-6 text-left border-2 transition-all duration-300 overflow-hidden
-                    ${isActive 
-                      ? `bg-white ${tab.borderColor}  scale-[1.02]` 
-                      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
-                    }`}
-                >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#D77E6C]/5" />
-                  )}
-                  
-                  <div className={`absolute top-4 right-4 w-2 h-2 rounded-full transition-all duration-300 ${
-                    isActive ? 'bg-[#D77E6C] animate-pulse' : 'bg-gray-300'
-                  }`} />
-                  
-                  <div className="relative">
-                    {/* Иконка и заголовок */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-2.5 rounded-xl transition-colors ${
-                        isActive ? tab.iconBg : 'bg-gray-100 group-hover:bg-gray-200'
-                      }`}>
-                        <Icon className={`w-5 h-5 transition-colors`} style={{ color: isActive ? tab.color : undefined }} />
-                      </div>
-                      <p className={`text-sm font-medium transition-colors ${
-                        isActive ? 'text-gray-900' : 'text-gray-600'
-                      }`}>
-                        {tab.title}
-                      </p>
-                    </div>
-                    
-                    {/* Основное число */}
-                    <div className="mb-4">
-                      <h3 className="text-3xl font-bold text-gray-900">
-                        {tab.count.toLocaleString('ru-RU')}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">{tab.unit}</p>
-                    </div>
-                    
-                    {/* Сумма */}
-                    <div className={`rounded-xl p-3 transition-colors ${
-                      isActive ? 'bg-gradient-to-r from-[#D77E6C]/10 to-[#D77E6C]/5' : 'bg-gray-50'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-lg font-semibold text-gray-900">{tab.sum}</p>
-                          <p className="text-xs text-gray-600 mt-0.5">{tab.sumLabel}</p>
-                        </div>
-                        <TrendingUp className={`${isActive ? 'text-[#D77E6C]' : 'text-gray-400'} w-5 h-5 transition-colors`} />
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between mt-6 md:mx-0">
+            <span className="text-red-700">{error}</span>
+            <button onClick={clearError} className="text-red-500 hover:text-red-700 text-xl">×</button>
           </div>
+        )}
 
-          {/* Основной контент */}
-          <div className="bg-white rounded-2xl overflow-hidden">
-            {/* Шапка секции */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {activeTab === 'warehouse' && <Package className="w-6 h-6 text-[#D77E6C]" />}
-                  {activeTab === 'distributors' && <Users className="w-6 h-6 text-green-600" />}
-                  {activeTab === 'gifts' && <Gift className="w-6 h-6 text-purple-600" />}
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {activeTab === 'warehouse' ? t('Товары на складе') : 
-                     activeTab === 'distributors' ? t('Дистрибьюторы') : t('Подарочный фонд')}
-                  </h2>
-                </div>
+        {/* ШАПКА С КНОПКАМИ - ОБНОВЛЕНО! 👇 */}
+        <div className="mt-6 md:mt-10 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{t('Управление заказами')}</h2>
+            <p className="text-sm text-gray-600 mt-1">{t('Ежедневные заказы')}</p>
+          </div>
+          
+          <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+            {/* 🆕 КНОПКА СОЗДАТЬ ОТЧЕТ */}
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all shadow-md"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="text-sm font-semibold">{t('Создать отчет')}</span>
+            </button>
 
-                <div className="flex items-center gap-3">
-                  {activeTab === 'warehouse' && (
-                    <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
-                      {t('Всего: {n} товаров').replace('{n}', String(total || products.length))}
-                    </span>
-                  )}
+            <button
+              onClick={refreshOrders}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium hidden sm:inline">{t('Обновить')}</span>
+            </button>
+            
+            <button
+              onClick={() => router.push('/admin/warehouse/warehouse_control')}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="text-sm font-semibold">{t('Управление складом')}</span>
+            </button>
+          </div>
+        </div>
 
-                  {activeTab === 'gifts' && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
-                        {t('Ожидает выдачи: {n}').replace('{n}', String(giftStats.pendingGifts))}
-                      </span>
-                      <span className="text-sm text-gray-600 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg">
-                        {t('Выдано: {n}').replace('{n}', String(giftStats.issuedGifts))}
-                      </span>
-                    </div>
-                  )}
+        {/* ТАБЫ */}
+        <div className="mb-4 md:mb-6">
+          <div className="bg-gray-100/50 backdrop-blur-sm rounded-2xl p-1.5 inline-flex w-full sm:w-auto overflow-x-auto">
+            <button 
+              onClick={() => setActiveTab('warehouse')} 
+              className={`flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'warehouse' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Warehouse className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">
+                <span className="hidden lg:inline">{t('В складе')}</span>
+                <span className="inline lg:hidden">({stats.warehouse.count})</span>
+                <span className="hidden lg:inline"> ({stats.warehouse.count})</span>
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('packed')} 
+              className={`flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'packed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Box className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">
+                <span className="hidden lg:inline">{t('Упакован')}</span>
+                <span className="inline lg:hidden">({stats.packed.count})</span>
+                <span className="hidden lg:inline"> ({stats.packed.count})</span>
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('ready_for_pickup')} 
+              className={`flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'ready_for_pickup' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">
+                <span className="hidden lg:inline">{t('Готов к выдаче')}</span>
+                <span className="inline lg:hidden">({stats.ready_for_pickup.count})</span>
+                <span className="hidden lg:inline"> ({stats.ready_for_pickup.count})</span>
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('shipped')} 
+              className={`flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'shipped' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">
+                <span className="hidden lg:inline">{t('Доставка')}</span>
+                <span className="inline lg:hidden">({stats.shipped.count})</span>
+                <span className="hidden lg:inline"> ({stats.shipped.count})</span>
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('completed')} 
+              className={`flex items-center gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all whitespace-nowrap flex-1 sm:flex-initial justify-center sm:justify-start ${
+                activeTab === 'completed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <PackageCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">
+                <span className="hidden lg:inline">{t('Завершено')}</span>
+                {completedOrdersLoaded ? (
+                  <>
+                    <span className="inline lg:hidden">({stats.completed.count})</span>
+                    <span className="hidden lg:inline"> ({stats.completed.count})</span>
+                  </>
+                ) : ''}
+              </span>
+            </button>
+          </div>
+        </div>
 
-                  {activeTab !== 'warehouse' && (
-                    <button
-                      onClick={() => {
-                        if (activeTab === 'distributors') {
-                          router.push('/admin/warehouse/create_distributor');
-                        }
-                        if (activeTab === 'gifts') {
-                          router.push('/admin/warehouse/create_gift');
-                        }
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#D77E6C] hover:text-[#D77E6C] transition-all"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>{activeTab === 'distributors' ? t('Добавить дистрибьютора') : t('Добавить подарок')}</span>
-                    </button>
-                  )}
-                </div>
+        {/* ПОИСК */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={t('Поиск по имени, телефону, номеру заказа...')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Лоадер для завершенных */}
+        {activeTab === 'completed' && loadingCompleted && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-10 h-10 text-[#D77E6C] animate-spin" />
+          </div>
+        )}
+
+        {/* МОБИЛЬНАЯ ВЕРСИЯ */}
+        <div className="md:hidden mb-6">
+          {!loadingCompleted && filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <MobileOrderCard key={order.id} order={order} />
+            ))
+          ) : !loadingCompleted ? (
+            <div className="text-center text-gray-500 py-12 bg-white rounded-xl border border-gray-200">
+              <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="font-medium">{t('Заказов не найдено')}</p>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ДЕСКТОПНАЯ ТАБЛИЦА */}
+        <div className="hidden md:block mb-6">
+          {!loadingCompleted && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-3 px-6 text-sm font-semibold text-gray-700">{t('Номер')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Клиент')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Дата')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Адрес')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Заметки склада')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Товары')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Сумма')}</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">{t('Статус')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.length > 0 ? (
+                      filteredOrders.map((order) => {
+                        const config = getStatusConfig(order.order_status);
+                        
+                        return (
+                          <tr
+                            key={order.id}
+                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => openOrder(order)}
+                          >
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                <Hash className="w-4 h-4 text-gray-400" />
+                                <span className="font-mono text-sm font-semibold text-gray-900">
+                                  {order.order_number || order.id.slice(-8)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div>
+                                <p className="font-semibold text-gray-900 text-sm">
+                                  {order.user?.first_name} {order.user?.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500">{order.user?.phone}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Clock className="w-4 h-4 text-gray-400" />
+                                {formatDate(order.created_at)}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-start gap-2 max-w-xs">
+                                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-gray-600 line-clamp-1">
+                                  {order.delivery_address || t('Самовывоз')}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              {order.department_notes ? (
+                                <div className="flex items-start gap-2 max-w-xs">
+                                  <Package className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                                  <span className="text-sm text-purple-700 font-medium line-clamp-2">
+                                    {order.department_notes}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="text-sm font-medium text-gray-900">
+                                {order.order_items?.length || 0} {t('шт')}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="font-bold text-[#D77E6C]">
+                                {(order.total_amount || 0).toLocaleString()} ₸
+                              </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${config.bg} ${config.color} border ${config.border}`}
+                              >
+                                {config.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center">
+                          <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500 font-medium">{t('Заказов не найдено')}</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Контент вкладок */}
-            <div className="p-6">
-              {activeTab === 'warehouse' && (
-                <>
-                  {/* Заголовок таблицы */}
-                  <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-gray-500" />
-                      <span>{t('Имя')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <DollarSign className="w-4 h-4 text-gray-500" />
-                      <span>{t('Розница')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#D77E6C]" />
-                      <span>{t('Дилер')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Box className="w-4 h-4 text-gray-500" />
-                      <span>{t('Кол-во')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-gray-500" />
-                      <span>{t('Действия')}</span>
-                    </div>
-                  </div>
+        {/* ПАГИНАЦИЯ ДЛЯ ЗАВЕРШЕННЫХ */}
+        {activeTab === 'completed' && completedPagination.totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mb-6">
+            <button
+              onClick={() => {
+                const prevPage = Math.max(1, completedPagination.page - 1);
+                loadCompletedOrders(prevPage, completedPagination.pageSize);
+              }}
+              disabled={completedPagination.page === 1 || loadingCompleted}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {t('Страница')} {completedPagination.page} {t('из')} {completedPagination.totalPages}
+              </span>
+            </div>
+            
+            <button
+              onClick={() => {
+                const nextPage = Math.min(completedPagination.totalPages, completedPagination.page + 1);
+                loadCompletedOrders(nextPage, completedPagination.pageSize);
+              }}
+              disabled={completedPagination.page === completedPagination.totalPages || loadingCompleted}
+              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
 
-                  {/* Список товаров */}
-                  {isLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#D77E6C] border-t-transparent"></div>
-                    </div>
-                  ) : products.length > 0 ? (
-                    <div className="space-y-3">
-                      {products.map((product) => (
-                        <ProductCardWare
-                          key={product.id}
-                          image={getImageUrl(product.image_url)}
-                          title={t(product.name || 'Без названия')}
-                          priceOld={formatPrice(product.price)}
-                          priceNew={formatPrice(product.price_dealer)}
-                          count={product.stock || 100}
-                          onClick={() => handleProductClick(product.id)}
-                          className="hover:shadow-md transition-shadow"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Товары не найдены')}</p>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {activeTab === 'distributors' && (
-                <>
-                  {distributorsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-600 border-t-transparent"></div>
-                    </div>
-                  ) : distributors.length > 0 ? (
-                    <div className="space-y-3">
-                      {distributors.map((distributor) => (
-                        <div 
-                          key={distributor.id} 
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
-                          onClick={() => router.push(`/admin/warehouse/distributors/${distributor.id}`)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                              <Building2 className="w-6 h-6 text-green-600" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{distributor.org_name}</h3>
-                              <p className="text-sm text-gray-600">
-                                {distributor.user?.first_name} {distributor.user?.last_name}
-                              </p>
-                              <p className="text-xs text-gray-500">{distributor.user?.region}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="font-semibold text-gray-900">
-                                {formatPrice(distributor.current_balance)}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {t('Баланс')}
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <div className="text-sm text-gray-600">
-                                {distributor.user?.phone}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded-full ${
-                                distributor.status === 'active' ? 'bg-green-100 text-green-800' :
-                                distributor.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {distributor.status === 'active' ? t('Активен') :
-                                 distributor.status === 'inactive' ? t('Неактивен') : t('Заблокирован')}
-                              </div>
-                            </div>
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/admin/warehouse/distributors/${distributor.id}`);
-                              }}
-                              className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Дистрибьюторы не найдены')}</p>
-                      <button
-                        onClick={() => router.push('/admin/warehouse/create_distributor')}
-                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
-                      >
-                        {t('Добавить первого дистрибьютора')}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {activeTab === 'gifts' && (
-                <>
-                  {giftsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent"></div>
-                    </div>
-                  ) : gifts.length > 0 ? (
-                    <div className="space-y-3">
-                      {gifts.map((gift) => (
-                        <div 
-                          key={gift.id} 
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
-                          onClick={() => router.push(`/admin/warehouse/gifts/${gift.id}`)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                              <Gift className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{gift.recipient_name}</h3>
-                              <p className="text-sm text-gray-600">
-                                {gift.gift_items.reduce((sum, item) => sum + item.quantity, 0)} {t('позиций')}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="font-semibold text-gray-900">
-                                {formatPrice(gift.total_amount)}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded-full ${
-                                gift.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                gift.status === 'issued' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {gift.status === 'pending' ? t('Ожидает') :
-                                 gift.status === 'issued' ? t('Выдан') : t('Отменен')}
-                              </div>
-                            </div>
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/admin/warehouse/gifts/${gift.id}`);
-                              }}
-                              className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Подарки не найдены')}</p>
-                      <button
-                        onClick={() => router.push('/admin/warehouse/create_gift')}
-                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
-                      >
-                        {t('Создать первый подарок')}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
+            <div className="ml-4 text-sm text-gray-400">
+              ({completedPagination.total} {t('всего')})
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Правая часть */}
-        <div className="w-full lg:w-[320px] xl:w-[380px]">
-          <RightSidebar />
-        </div>
+        {/* 🆕 МОДАЛКА ОТЧЕТА */}
+        <ReportModal 
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          t={t}
+        />
       </div>
-    </main>
+    </div>
   );
-}
+};
+
+export default WarehouseOrdersPage;
