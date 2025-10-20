@@ -24,6 +24,29 @@ const nextConfig = {
       },
     ],
   },
+  
+  // 🚀 Оптимизации для Vercel
+  experimental: {
+    // Ускоряет сборку используя worker threads
+    webpackBuildWorker: true,
+  },
+  
+  // 📦 Исключаем Supabase из Edge Runtime (решает warning)
+  serverComponentsExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
+  
+  // 🎯 Оптимизация webpack
+  webpack: (config, { isServer }) => {
+    // Уменьшаем размер бандлов
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
