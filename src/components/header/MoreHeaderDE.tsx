@@ -54,36 +54,38 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
   }, [profile, loading]);
 
   // Загрузка количества товаров в корзине
-  const loadCartCount = async () => {
-    if (!profile?.id) return;
-    
-    try {
-      // Получаем корзину пользователя
-      const { data: cart } = await supabase
-        .from('carts')
-        .select('id')
-        .eq('user_id', profile.id)
-        .eq('status', 'active')
-        .single();
+const loadCartCount = async () => {
+  if (!profile?.id) return;
+  
+  try {
+    // Получаем последнюю корзину (БЕЗ .single())
+    const { data: carts } = await supabase
+      .from('carts')
+      .select('id')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-      if (!cart) {
-        setCartCount(0);
-        return;
-      }
-
-      // Считаем товары в корзине
-      const { data: items } = await supabase
-        .from('cart_items')
-        .select('quantity')
-        .eq('cart_id', cart.id);
-
-      const total = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-      setCartCount(total);
-    } catch (error) {
-      console.error('Error loading cart:', error);
+    if (!carts || carts.length === 0) {
       setCartCount(0);
+      return;
     }
-  };
+
+    const cart = carts[0]; // Берем первую (последнюю по дате)
+
+    // Считаем товары в корзине
+    const { data: items } = await supabase
+      .from('cart_items')
+      .select('quantity')
+      .eq('cart_id', cart.id);
+
+    const total = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+    setCartCount(total);
+  } catch (error) {
+    console.error('Error loading cart:', error);
+    setCartCount(0);
+  }
+};
 
   // Перезагружаем при смене страницы
   useEffect(() => {

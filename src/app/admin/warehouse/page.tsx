@@ -23,13 +23,11 @@ import {
   PackageCheck,
   Truck,
   Settings,
-  Box,
-  FileText // 👈 НОВАЯ ИКОНКА
+  Box
 } from 'lucide-react';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useOrderModule } from '@/lib/admin_orders/useOrderModule';
-import ReportModal from '@/components/warehouse/ReportModal'; // 👈 ИМПОРТ МОДАЛКИ
 
 type TabType = 'warehouse' | 'packed' | 'ready_for_pickup' | 'shipped' | 'completed';
 
@@ -54,7 +52,6 @@ const WarehouseOrdersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [completedOrdersLoaded, setCompletedOrdersLoaded] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false); // 👈 СОСТОЯНИЕ МОДАЛКИ
   
   const initialLoadStarted = React.useRef(false);
 
@@ -315,23 +312,14 @@ const WarehouseOrdersPage = () => {
           </div>
         )}
 
-        {/* ШАПКА С КНОПКАМИ - ОБНОВЛЕНО! 👇 */}
+        {/* ШАПКА С КНОПКОЙ УПРАВЛЕНИЯ */}
         <div className="mt-6 md:mt-10 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{t('Управление заказами')}</h2>
             <p className="text-sm text-gray-600 mt-1">{t('Ежедневные заказы')}</p>
           </div>
           
-          <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-            {/* 🆕 КНОПКА СОЗДАТЬ ОТЧЕТ */}
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all shadow-md"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-semibold">{t('Создать отчет')}</span>
-            </button>
-
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={refreshOrders}
               disabled={loading}
@@ -615,13 +603,6 @@ const WarehouseOrdersPage = () => {
             </div>
           </div>
         )}
-
-        {/* 🆕 МОДАЛКА ОТЧЕТА */}
-        <ReportModal 
-          isOpen={isReportModalOpen}
-          onClose={() => setIsReportModalOpen(false)}
-          t={t}
-        />
       </div>
     </div>
   );
