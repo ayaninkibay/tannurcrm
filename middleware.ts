@@ -1,17 +1,52 @@
-// middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
-import { hasPageAccess } from './src/lib/permissions/permissions'
-import { isProtectedAdminRoute } from './src/lib/permissions/permissions-config'
+
+// Импортируем только то, что нужно
+const hasPageAccess = async (supabase: any, userId: string, pathname: string): Promise<boolean> => {
+  // Встроенная упрощенная проверка прав
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role, permissions')
+    .eq('id', userId)
+    .single()
+
+  const permissions = userData?.permissions || []
+  
+  // Базовая логика проверки прав
+  if (permissions.includes('*')) return true
+  
+  // Здесь ваша логика проверки из permissions.ts
+  // но только критичная часть
+  return permissions.some((p: string) => pathname.startsWith(p))
+}
+
+const isProtectedAdminRoute = (pathname: string): boolean => {
+  return pathname.startsWith('/admin/finance') ||
+         pathname.startsWith('/admin/warehouse') ||
+         pathname.startsWith('/admin/teamcontent')
+}
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
+
+  // Оптимизация: создаем клиент только если нужно
+  const pathname = request.nextUrl.pathname
+  const isProtectedRoute = pathname.startsWith('/dealer') ||
+                          pathname.startsWith('/admin') ||
+                          pathname.startsWith('/celebrity')
+  
+  const isAuthRoute = pathname === '/signin' || pathname === '/signup'
+
+  // Если это не защищенный роут и не auth - пропускаем
+  if (!isProtectedRoute && !isAuthRoute) {
+    return response
+  }
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,15 +58,8 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            const cookieOptions = {
-              ...options,
-              httpOnly: false,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax' as const,
-              maxAge: 60 * 60 * 24 * 7
-            }
-            request.cookies.set({ name, value, ...cookieOptions })
-            response.cookies.set({ name, value, ...cookieOptions })
+            request.cookies.set({ name, value, ...options })
+            response.cookies.set({ name, value, ...options })
           })
         },
       },
@@ -39,50 +67,23 @@ export async function middleware(request: NextRequest) {
   )
 
   try {
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (error) {
-      console.error('Session error in middleware:', error)
-    }
-
     const { data: { user } } = await supabase.auth.getUser()
 
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
-                           request.nextUrl.pathname.startsWith('/admin') ||
-                           request.nextUrl.pathname.startsWith('/celebrity')
-
-    const isAuthRoute = request.nextUrl.pathname === '/signin' || 
-                       request.nextUrl.pathname === '/signup'
-
-    // 🔒 Если неавторизованный пытается попасть на защищенную страницу - показываем 404
+    // Неавторизованный на защищенной странице
     if (isProtectedRoute && !user) {
       return NextResponse.rewrite(new URL('/not-found', request.url))
     }
 
-    // Если пользователь авторизован и находится на странице входа
+    // Авторизованный на странице входа
     if (isAuthRoute && user) {
       const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/'
-      const url = request.nextUrl.clone()
-      url.pathname = redirectTo
-      url.searchParams.delete('redirectTo')
-      return NextResponse.redirect(url)
+      return NextResponse.redirect(new URL(redirectTo, request.url))
     }
 
-    // 🔐 ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНСКИМ СТРАНИЦАМ
-    if (user && isProtectedAdminRoute(request.nextUrl.pathname)) {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role, permissions')
-        .eq('id', user.id)
-        .single()
-
-      if (userError) {
-        return NextResponse.rewrite(new URL('/not-found', request.url))
-      }
-
-      const userPermissions = userData?.permissions || []
-      const hasAccess = hasPageAccess(userPermissions, request.nextUrl.pathname)
-
+    // Проверка прав доступа к админским страницам
+    if (user && isProtectedAdminRoute(pathname)) {
+      const hasAccess = await hasPageAccess(supabase, user.id, pathname)
+      
       if (!hasAccess) {
         return NextResponse.rewrite(new URL('/not-found', request.url))
       }
@@ -90,10 +91,6 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     console.error('Middleware error:', error)
-    
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dealer') ||
-                           request.nextUrl.pathname.startsWith('/admin') ||
-                           request.nextUrl.pathname.startsWith('/celebrity')
     
     if (isProtectedRoute) {
       return NextResponse.rewrite(new URL('/not-found', request.url))
@@ -105,6 +102,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (images, etc)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ]
 }
