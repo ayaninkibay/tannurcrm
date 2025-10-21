@@ -31,9 +31,6 @@ const nextConfig = {
     webpackBuildWorker: true,
   },
   
-  // 📦 Исключаем Supabase из Edge Runtime (решает warning)
-  serverComponentsExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
-  
   // 🎯 Оптимизация webpack
   webpack: (config, { isServer }) => {
     // Уменьшаем размер бандлов
