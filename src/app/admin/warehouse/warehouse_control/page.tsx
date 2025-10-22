@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
-import ProductCardWare from '@/components/ui/ProductCardWare';
-import RightSidebar from '@/components/ui/RightSidebar';
+import Image from 'next/image';
 
 import { 
   Package, 
@@ -24,7 +23,6 @@ import {
 import { useProductModule } from '@/lib/product/ProductModule';
 import { useGiftModule } from '@/lib/gift/useGiftModule';
 import { useDistributorModule } from '@/lib/distributor/useDistributorModule';
-import Presents, { GiftItem } from '@/components/reports/warehouse/presents';
 import { useTranslate } from '@/hooks/useTranslate';
 
 type ActiveTab = 'warehouse' | 'distributors' | 'gifts';
@@ -130,14 +128,6 @@ export default function WareHouse() {
     return imageUrl;
   };
 
-  // Конвертируем реальные подарки в формат для компонента Presents
-  const giftItems: GiftItem[] = gifts.map(gift => ({
-    name: gift.recipient_name,
-    qty: gift.gift_items.reduce((sum, item) => sum + item.quantity, 0),
-    total: formatPrice(gift.total_amount),
-    note: gift.reason
-  }));
-
   const tabsData = [
     {
       id: 'warehouse' as const,
@@ -182,7 +172,7 @@ export default function WareHouse() {
 
   if (error) {
     return (
-      <main className=" bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <main className=" min-h-screen">
         <MoreHeaderAD title={t('Склад Tannur')} />
         <div className="flex items-center justify-center h-96">
           <div className="text-center bg-white p-8 rounded-2xl">
@@ -199,15 +189,17 @@ export default function WareHouse() {
     );
   }
 
+  const activeTabData = tabsData.find(tab => tab.id === activeTab);
+
   return (
     <main className="min-h-screen">
       <MoreHeaderAD title={t('Склад Tannur')} />
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Левая колонка */}
-        <div className="flex-1">
-          {/* Табы-карточки */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-6">
+      <div className="mt-8">
+        {/* Верхняя панель с табами и кнопками действий */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          {/* Компактные табы */}
+          <div className="flex gap-2 flex-wrap">
             {tabsData.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -216,213 +208,192 @@ export default function WareHouse() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative group rounded-2xl p-6 text-left border-2 transition-all duration-300 overflow-hidden
+                  className={`
+                    flex items-center gap-2 px-4 py-2 rounded-lg text-sm
                     ${isActive 
-                      ? `bg-white ${tab.borderColor}  scale-[1.02]` 
-                      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg'
-                    }`}
+                      ? 'bg-white border-2 ' + tab.borderColor + ' font-medium'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                    }
+                  `}
                 >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-[#D77E6C]/5" />
-                  )}
-                  
-                  <div className={`absolute top-4 right-4 w-2 h-2 rounded-full transition-all duration-300 ${
-                    isActive ? 'bg-[#D77E6C] animate-pulse' : 'bg-gray-300'
-                  }`} />
-                  
-                  <div className="relative">
-                    {/* Иконка и заголовок */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`p-2.5 rounded-xl transition-colors ${
-                        isActive ? tab.iconBg : 'bg-gray-100 group-hover:bg-gray-200'
-                      }`}>
-                        <Icon className={`w-5 h-5 transition-colors`} style={{ color: isActive ? tab.color : undefined }} />
-                      </div>
-                      <p className={`text-sm font-medium transition-colors ${
-                        isActive ? 'text-gray-900' : 'text-gray-600'
-                      }`}>
-                        {tab.title}
-                      </p>
-                    </div>
-                    
-                    {/* Основное число */}
-                    <div className="mb-4">
-                      <h3 className="text-3xl font-bold text-gray-900">
-                        {tab.count.toLocaleString('ru-RU')}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">{tab.unit}</p>
-                    </div>
-                    
-                    {/* Сумма */}
-                    <div className={`rounded-xl p-3 transition-colors ${
-                      isActive ? 'bg-gradient-to-r from-[#D77E6C]/10 to-[#D77E6C]/5' : 'bg-gray-50'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-lg font-semibold text-gray-900">{tab.sum}</p>
-                          <p className="text-xs text-gray-600 mt-0.5">{tab.sumLabel}</p>
-                        </div>
-                        <TrendingUp className={`${isActive ? 'text-[#D77E6C]' : 'text-gray-400'} w-5 h-5 transition-colors`} />
-                      </div>
-                    </div>
-                  </div>
+                  <Icon className="w-4 h-4" style={{ color: isActive ? tab.color : undefined }} />
+                  <span>{tab.title}</span>
+                  <span className="text-xs text-gray-400">({tab.count})</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Основной контент */}
-          <div className="bg-white rounded-2xl overflow-hidden">
-            {/* Шапка секции */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {activeTab === 'warehouse' && <Package className="w-6 h-6 text-[#D77E6C]" />}
-                  {activeTab === 'distributors' && <Users className="w-6 h-6 text-green-600" />}
-                  {activeTab === 'gifts' && <Gift className="w-6 h-6 text-purple-600" />}
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {activeTab === 'warehouse' ? t('Товары на складе') : 
-                     activeTab === 'distributors' ? t('Дистрибьюторы') : t('Подарочный фонд')}
-                  </h2>
-                </div>
+          {/* Кнопки действий */}
+          <div className="flex gap-2">
+            {activeTab === 'warehouse' && (
+              <>
+                <button
+                  onClick={() => router.push('/admin/warehouse/create_product')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] text-sm font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('Создать товар')}</span>
+                </button>
+                <button
+                  onClick={() => router.push('/admin/warehouse/stock_movements')}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 text-sm"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>{t('История движений')}</span>
+                </button>
+              </>
+            )}
+            {activeTab === 'distributors' && (
+              <button
+                onClick={() => router.push('/admin/warehouse/create_distributor')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#7C9D6C] text-white rounded-lg hover:bg-[#6B8C5B] text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('Добавить дистрибьютора')}</span>
+              </button>
+            )}
+            {activeTab === 'gifts' && (
+              <button
+                onClick={() => router.push('/admin/warehouse/create_gift')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#9C7C6C] text-white rounded-lg hover:bg-[#8B6B5B] text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('Создать подарок')}</span>
+              </button>
+            )}
+          </div>
+        </div>
 
-                <div className="flex items-center gap-3">
-                  {activeTab === 'warehouse' && (
-                    <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
-                      {t('Всего: {n} товаров').replace('{n}', String(total || products.length))}
-                    </span>
-                  )}
+        {/* Основной контент на полную ширину */}
+        <div className="bg-white rounded-2xl shadow p-6">
+          {/* Заголовок секции */}
+          <div className="flex items-center gap-2 mb-6">
+            {activeTabData && (
+              <>
+                <activeTabData.icon 
+                  className="w-5 h-5" 
+                  style={{ color: activeTabData.color }} 
+                />
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {activeTabData.title}
+                </h2>
+              </>
+            )}
+          </div>
 
-                  {activeTab === 'gifts' && (
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
-                        {t('Ожидает выдачи: {n}').replace('{n}', String(giftStats.pendingGifts))}
-                      </span>
-                      <span className="text-sm text-gray-600 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg">
-                        {t('Выдано: {n}').replace('{n}', String(giftStats.issuedGifts))}
-                      </span>
-                    </div>
-                  )}
-
-                  {activeTab !== 'warehouse' && (
-                    <button
-                      onClick={() => {
-                        if (activeTab === 'distributors') {
-                          router.push('/admin/warehouse/create_distributor');
-                        }
-                        if (activeTab === 'gifts') {
-                          router.push('/admin/warehouse/create_gift');
-                        }
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#D77E6C] hover:text-[#D77E6C] transition-all"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>{activeTab === 'distributors' ? t('Добавить дистрибьютора') : t('Добавить подарок')}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Контент вкладок */}
-            <div className="p-6">
-              {activeTab === 'warehouse' && (
-                <>
-                  {/* Заголовок таблицы */}
-                  <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 rounded-xl mb-4 text-xs font-semibold text-gray-700">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-gray-500" />
-                      <span>{t('Имя')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <DollarSign className="w-4 h-4 text-gray-500" />
-                      <span>{t('Розница')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#D77E6C]" />
-                      <span>{t('Дилер')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <Box className="w-4 h-4 text-gray-500" />
-                      <span>{t('Кол-во')}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-gray-500" />
-                      <span>{t('Действия')}</span>
-                    </div>
+          {/* Контент */}
+          <div>
+            {activeTab === 'warehouse' && (
+              <>
+                {/* Заголовки таблицы */}
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-4 py-2 bg-gray-50 rounded-lg mb-3 text-sm text-gray-600 font-medium">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-gray-400" />
+                    <span>{t('Наименование')}</span>
                   </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-gray-400" />
+                    <span>{t('Розница')}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Sparkles className="w-4 h-4 text-gray-400" />
+                    <span>{t('Дилер')}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Box className="w-4 h-4 text-gray-400" />
+                    <span>{t('Кол-во')}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-gray-400" />
+                    <span>{t('Действия')}</span>
+                  </div>
+                </div>
 
-                  {/* Список товаров */}
-                  {isLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#D77E6C] border-t-transparent"></div>
-                    </div>
-                  ) : products.length > 0 ? (
-                    <div className="space-y-3">
-                      {products.map((product) => (
-                        <ProductCardWare
-                          key={product.id}
-                          image={getImageUrl(product.image_url)}
-                          title={t(product.name || 'Без названия')}
-                          priceOld={formatPrice(product.price)}
-                          priceNew={formatPrice(product.price_dealer)}
-                          count={product.stock || 100}
-                          onClick={() => handleProductClick(product.id)}
-                          className="hover:shadow-md transition-shadow"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Товары не найдены')}</p>
-                    </div>
-                  )}
-                </>
-              )}
+                {/* Список товаров */}
+                {isLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#D77E6C] border-t-transparent"></div>
+                  </div>
+                ) : products.length > 0 ? (
+                  <div className="space-y-1">
+                    {products.map((product) => (
+                      <div
+                        key={product.id}
+                        onClick={() => handleProductClick(product.id)}
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 items-center px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600"
+                      >
+                        {/* Наименование */}
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <Image
+                            src={getImageUrl(product.image_url)}
+                            alt="product"
+                            width={50}
+                            height={50}
+                            className="rounded-lg object-cover flex-shrink-0"
+                          />
+                          <span className="font-medium text-gray-900 truncate">
+                            {t(product.name || 'Без названия')}
+                          </span>
+                        </div>
 
-              {activeTab === 'distributors' && (
-                <>
-                  {distributorsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-600 border-t-transparent"></div>
-                    </div>
-                  ) : distributors.length > 0 ? (
-                    <div className="space-y-3">
-                      {distributors.map((distributor) => (
-                        <div 
-                          key={distributor.id} 
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
-                          onClick={() => router.push(`/admin/warehouse/distributors/${distributor.id}`)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                              <Building2 className="w-6 h-6 text-green-600" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{distributor.org_name}</h3>
-                              <p className="text-sm text-gray-600">
-                                {distributor.user?.first_name} {distributor.user?.last_name}
-                              </p>
-                              <p className="text-xs text-gray-500">{distributor.user?.region}</p>
-                            </div>
+                        {/* Розница */}
+                        <span className="whitespace-nowrap text-center">
+                          {formatPrice(product.price)}
+                        </span>
+
+                        {/* Дилер */}
+                        <span className="whitespace-nowrap text-center">
+                          {formatPrice(product.price_dealer)}
+                        </span>
+
+                        {/* Количество */}
+                        <span className="text-black font-semibold whitespace-nowrap text-center">
+                          {product.stock || 0}
+                        </span>
+
+                        {/* Действия */}
+                        <div className="flex justify-center">
+                          <Eye className="w-5 h-5 text-[#D77E6C]" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">{t('Товары не найдены')}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'distributors' && (
+              <>
+                {distributorsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-600 border-t-transparent"></div>
+                  </div>
+                ) : distributors.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {distributors.map((distributor) => (
+                      <div 
+                        key={distributor.id} 
+                        className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
+                        onClick={() => router.push(`/admin/warehouse/distributors/${distributor.id}`)}
+                      >
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-6 h-6 text-green-600" />
                           </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="font-semibold text-gray-900">
-                                {formatPrice(distributor.current_balance)}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {t('Баланс')}
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <div className="text-sm text-gray-600">
-                                {distributor.user?.phone}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded-full ${
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-gray-900 truncate">{distributor.org_name}</h3>
+                            <p className="text-sm text-gray-600 truncate">
+                              {distributor.user?.first_name} {distributor.user?.last_name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-gray-500">{distributor.user?.region}</p>
+                              <div className={`text-xs px-2 py-0.5 rounded-full ${
                                 distributor.status === 'active' ? 'bg-green-100 text-green-800' :
                                 distributor.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
                                 'bg-red-100 text-red-800'
@@ -431,67 +402,72 @@ export default function WareHouse() {
                                  distributor.status === 'inactive' ? t('Неактивен') : t('Заблокирован')}
                               </div>
                             </div>
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/admin/warehouse/distributors/${distributor.id}`);
-                              }}
-                              className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Дистрибьюторы не найдены')}</p>
-                      <button
-                        onClick={() => router.push('/admin/warehouse/create_distributor')}
-                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
-                      >
-                        {t('Добавить первого дистрибьютора')}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {activeTab === 'gifts' && (
-                <>
-                  {giftsLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent"></div>
-                    </div>
-                  ) : gifts.length > 0 ? (
-                    <div className="space-y-3">
-                      {gifts.map((gift) => (
-                        <div 
-                          key={gift.id} 
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-all cursor-pointer"
-                          onClick={() => router.push(`/admin/warehouse/gifts/${gift.id}`)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                              <Gift className="w-6 h-6 text-purple-600" />
+                        
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className="text-right">
+                            <div className="font-semibold text-gray-900 whitespace-nowrap">
+                              {formatPrice(distributor.current_balance)}
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{gift.recipient_name}</h3>
-                              <p className="text-sm text-gray-600">
-                                {gift.gift_items.reduce((sum, item) => sum + item.quantity, 0)} {t('позиций')}
-                              </p>
+                            <div className="text-xs text-gray-500">
+                              {t('Баланс')}
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="font-semibold text-gray-900">
-                                {formatPrice(gift.total_amount)}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded-full ${
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/admin/warehouse/distributors/${distributor.id}`);
+                            }}
+                            className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">{t('Дистрибьюторы не найдены')}</p>
+                    <button
+                      onClick={() => router.push('/admin/warehouse/create_distributor')}
+                      className="px-6 py-3 bg-[#7C9D6C] text-white rounded-xl hover:bg-[#6B8C5B] transition-all"
+                    >
+                      {t('Добавить первого дистрибьютора')}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'gifts' && (
+              <>
+                {giftsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-600 border-t-transparent"></div>
+                  </div>
+                ) : gifts.length > 0 ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {gifts.map((gift) => (
+                      <div 
+                        key={gift.id} 
+                        className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:shadow-md hover:border-purple-600 transition-all cursor-pointer"
+                        onClick={() => router.push(`/admin/warehouse/gifts/${gift.id}`)}
+                      >
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Gift className="w-6 h-6 text-purple-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-gray-900 truncate">{gift.recipient_name}</h3>
+                            <p className="text-sm text-gray-600">
+                              {gift.gift_items.reduce((sum, item) => sum + item.quantity, 0)} {t('позиций')}
+                            </p>
+                            <div className="mt-1">
+                              <div className={`inline-block text-xs px-2 py-0.5 rounded-full ${
                                 gift.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                 gift.status === 'issued' ? 'bg-green-100 text-green-800' :
                                 'bg-red-100 text-red-800'
@@ -500,41 +476,44 @@ export default function WareHouse() {
                                  gift.status === 'issued' ? t('Выдан') : t('Отменен')}
                               </div>
                             </div>
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/admin/warehouse/gifts/${gift.id}`);
-                              }}
-                              className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 mb-4">{t('Подарки не найдены')}</p>
-                      <button
-                        onClick={() => router.push('/admin/warehouse/create_gift')}
-                        className="px-6 py-3 bg-[#D77E6C] text-white rounded-xl hover:bg-[#C56D5C] transition-all"
-                      >
-                        {t('Создать первый подарок')}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                        
+                        <div className="flex items-center gap-3 ml-4">
+                          <div className="text-right">
+                            <div className="font-semibold text-gray-900 whitespace-nowrap">
+                              {formatPrice(gift.total_amount)}
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/admin/warehouse/gifts/${gift.id}`);
+                            }}
+                            className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">{t('Подарки не найдены')}</p>
+                    <button
+                      onClick={() => router.push('/admin/warehouse/create_gift')}
+                      className="px-6 py-3 bg-[#9C7C6C] text-white rounded-xl hover:bg-[#8B6B5B] transition-all"
+                    >
+                      {t('Создать первый подарок')}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        </div>
-
-        {/* Правая часть */}
-        <div className="w-full lg:w-[320px] xl:w-[380px]">
-          <RightSidebar />
         </div>
       </div>
     </main>
