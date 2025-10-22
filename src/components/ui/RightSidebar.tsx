@@ -54,7 +54,7 @@ export default function RightSidebar() {
       {/* Товары (создание) */}
       <div className="w-full">
         <button
-          onClick={() => router.push('/admin/warehouse/create_product')}
+          onClick={() => router.push('/admin/warehouse/warehouse_control/create_product')}
           className="flex justify-between items-center text-sm py-3 px-4 rounded-xl bg-white hover:bg-gray-100 w-full transition"
         >
           <span className="flex items-center gap-2 text-[#111] font-medium">

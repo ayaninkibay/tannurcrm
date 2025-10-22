@@ -117,7 +117,7 @@ export default function WareHouse() {
   };
 
   const handleProductClick = (productId: string) => {
-    router.push(`/admin/warehouse/product_view?id=${productId}`);
+    router.push(`/admin/warehouse/warehouse_control/product_view?id=${productId}`);
   };
 
   const formatPrice = (price: number | null | undefined) => {

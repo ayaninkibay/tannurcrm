@@ -18,11 +18,13 @@ import {
   File,
   FileVideo,
   FileImage,
-  FilePlus
+  FilePlus,
+  Lock
 } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import { AcademyProvider, useAcademyModule } from '@/lib/academy/AcademyModule';
 import { useDocumentModule } from '@/lib/documents/useDocumentModule';
+import { useUser } from '@/context/UserContext';
 
 // Кэш данных вне компонента для сохранения между ре-рендерами
 const dataCache = {
@@ -34,9 +36,192 @@ const dataCache = {
   CACHE_DURATION: 5 * 60 * 1000 // 5 минут
 };
 
+// Компонент всплывающего уведомления
+function ComingSoonTooltip({ show, x, y }: { show: boolean; x: number; y: number }) {
+  const { t } = useTranslate();
+  
+  if (!show) return null;
+  
+  return (
+    <div 
+      className="fixed z-50 pointer-events-none"
+      style={{ 
+        left: `${x}px`, 
+        top: `${y}px`,
+        transform: 'translate(-50%, -120%)'
+      }}
+    >
+      <div className="bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap animate-fade-in-up">
+        <div className="flex items-center gap-2">
+          <Lock className="w-4 h-4" />
+          {t('Скоро будет доступно')}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Компонент карточки документа
+function DocumentCard({ category }: { category: any }) {
+  const { t } = useTranslate();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { profile } = useUser();
+  const { downloadDocument } = useDocumentModule();
+  const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0 });
+
+  const userRole = profile?.role;
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    if (['pdf', 'doc', 'docx', 'txt'].includes(extension || '')) {
+      return <FileText className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) {
+      return <FileVideo className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '')) {
+      return <FileImage className="w-5 h-5 text-[#D77E6C]" />;
+    }
+    return <File className="w-5 h-5 text-[#D77E6C]" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDownload = async (e: React.MouseEvent, fileUrl: string, fileName: string) => {
+    e.stopPropagation();
+    
+    // Проверка роли для не-админов
+    if (userRole !== 'admin') {
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      setTooltip({
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+      setTimeout(() => setTooltip({ show: false, x: 0, y: 0 }), 2000);
+      return;
+    }
+
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка при скачивании файла:', error);
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (userRole !== 'admin') {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setTooltip({
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+      setTimeout(() => setTooltip({ show: false, x: 0, y: 0 }), 2000);
+      return;
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <>
+      <ComingSoonTooltip show={tooltip.show} x={tooltip.x} y={tooltip.y} />
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-[#D77E6C]/30 hover:shadow-md transition-all">
+      <button
+        onClick={handleCardClick}
+        className="w-full p-6 text-left"
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-50 rounded-lg flex items-center justify-center">
+              <FolderOpen className="w-6 h-6 text-[#D77E6C]" />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2">
+              {category.name}
+            </h3>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <div className="flex items-center gap-1">
+                <File className="w-4 h-4" />
+                <span>{category.documents?.length || 0} {t('файлов')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {isExpanded && category.documents && category.documents.length > 0 && (
+        <div className="border-t border-gray-100 bg-gray-50 p-4">
+          <div className="space-y-2">
+            {category.documents.map((doc: any) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-3 bg-white rounded-lg hover:shadow-sm transition-shadow"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0 mr-3">
+                  {getFileIcon(doc.file_name)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {doc.file_name}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>{formatFileSize(doc.file_size)}</span>
+                      {doc.uploaded_at && (
+                        <>
+                          <span>•</span>
+                          <span>{new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => handleDownload(e, doc.file_url, doc.file_name)}
+                  className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title={t('Скачать')}
+                >
+                  <Download className="w-5 h-5 text-[#D77E6C]" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+    </>
+  );
+}
+
 function EducationContent() {
   const { t } = useTranslate();
   const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
+  const { profile, loading: userLoading } = useUser();
+  const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0 });
   
   const { courses, lessons, loading, loadCourses, loadLessons } = useAcademyModule();
   const {
@@ -52,6 +237,8 @@ function EducationContent() {
   const [displayCourses, setDisplayCourses] = useState<any[]>(dataCache.courses || []);
   const [displayCategories, setDisplayCategories] = useState<any[]>(dataCache.categories || []);
   const isInitialMount = useRef(true);
+
+  const userRole = profile?.role;
 
   // Проверяем актуальность кэша
   const isCacheValid = () => {
@@ -104,8 +291,6 @@ function EducationContent() {
     }
   }, [categories]);
 
-  // Убираем лишний useEffect для синхронизации - он не нужен
-
   // Загружаем уроки только когда найден курс
   useEffect(() => {
     if (!coursesLoaded) return;
@@ -144,56 +329,36 @@ function EducationContent() {
     return mins ? `${hours} ч ${mins} мин` : `${hours} ч`;
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (!bytes) return '';
-    if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
+  const handleRestrictedAction = (e: React.MouseEvent) => {
+    if (userRole !== 'admin') {
+      e.preventDefault();
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      setTooltip({
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+      setTimeout(() => setTooltip({ show: false, x: 0, y: 0 }), 2000);
+      return false;
     }
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return true;
   };
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    if (['pdf', 'doc', 'docx', 'txt'].includes(extension || '')) {
-      return <FileText className="w-5 h-5 text-[#D77E6C]" />;
+  const handleTabChange = (tab: 'all' | 'saved', e: React.MouseEvent) => {
+    if (userRole !== 'admin') {
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      setTooltip({
+        show: true,
+        x: rect.left + rect.width / 2,
+        y: rect.top
+      });
+      setTimeout(() => setTooltip({ show: false, x: 0, y: 0 }), 2000);
+      return;
     }
-    if (['mp4', 'avi', 'mov', 'mkv'].includes(extension || '')) {
-      return <FileVideo className="w-5 h-5 text-[#D77E6C]" />;
-    }
-    if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '')) {
-      return <FileImage className="w-5 h-5 text-[#D77E6C]" />;
-    }
-    return <File className="w-5 h-5 text-[#D77E6C]" />;
+    setActiveTab(tab);
   };
 
-  const handleDownload = async (fileUrl: string, fileName: string) => {
-    try {
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Ошибка при скачивании файла:', error);
-      // Fallback на прямую загрузку
-      const link = document.createElement('a');
-      link.href = fileUrl;
-      link.download = fileName;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  if ((loading || !coursesLoaded) && !isCacheValid()) {
+  if (userLoading || (loading || !coursesLoaded) && !isCacheValid()) {
     return (
       <div className="p-2 md:p-6">
         <MoreHeaderDE title={t('Академия TNBA')} />
@@ -204,89 +369,18 @@ function EducationContent() {
     );
   }
 
-  const DocumentCard = ({ category }: { category: any }) => (
-    <div className="bg-white rounded-2xl hover:shadow-sm transition-all duration-300 overflow-hidden border border-gray-100">
-      <div className="bg-gradient-to-r from-[#D77E6C] to-[#E89380] p-4 sm:p-5">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-            {category.icon_src ? (
-              <Image src={category.icon_src} alt="icon" width={20} height={20} />
-            ) : (
-              <FolderOpen className="w-5 h-5 text-white" />
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-white font-semibold text-sm md:text-base">
-              {t(category.name)}
-            </h3>
-            <p className="text-white/80 text-xs">
-              {category.files.length} {t('файлов')}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 sm:p-5 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-        {category.files.length > 0 ? (
-          category.files.map((file: any) => (
-            <div
-              key={file.id}
-              className="group flex items-center justify-between p-3 bg-gray-50 hover:bg-orange-50 rounded-xl transition-all duration-200 cursor-pointer"
-              onClick={() => handleDownload(file.public_url, file.name)}
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-2 bg-white rounded-lg group-hover:bg-orange-100 transition-colors">
-                  {getFileIcon(file.name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800 truncate group-hover:text-[#D77E6C] transition-colors">
-                    {file.name}
-                  </p>
-                  {file.size > 0 && (
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(file.size)}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <button 
-                className="p-2 hover:bg-white rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
-                aria-label="download"
-                title={t('Скачать файл')}
-              >
-                <Download className="w-4 h-4 text-[#D77E6C]" />
-              </button>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12">
-            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
-              <FilePlus className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-sm text-gray-500">{t('В этой категории пока нет файлов')}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-2 md:p-6">
+    <div className="p-2 md:p-6 relative">
+      {/* Всплывающее уведомление */}
+      <ComingSoonTooltip show={tooltip.show} x={tooltip.x} y={tooltip.y} />
+
       <MoreHeaderDE title={t('Академия TNBA')} />
 
-      {/* Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 mt-5 gap-4">
-        <div className="flex items-center gap-2">
-          <Grid3x3 className="w-5 h-5 text-gray-600" />
-          <h2 className="text-xl font-semibold text-gray-900">
-            {activeTab === 'all' ? t('Курсы') : t('Сохраненные курсы')}
-          </h2>
-        </div>
-
-        <div className="flex bg-white rounded-lg p-1 shadow-sm w-full sm:w-auto">
+      {/* Tab Navigation */}
+      <div className="mb-6 mt-6">
+        <div className="flex gap-2">
           <button
-            onClick={() => setActiveTab('all')}
+            onClick={(e) => handleTabChange('all', e)}
             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'all' ? 'bg-[#D77E6C] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
@@ -295,7 +389,7 @@ function EducationContent() {
             <span>{t('Все курсы')}</span>
           </button>
           <button
-            onClick={() => setActiveTab('saved')}
+            onClick={(e) => handleTabChange('saved', e)}
             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'saved' ? 'bg-[#D77E6C] text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
             }`}
@@ -315,7 +409,8 @@ function EducationContent() {
                 {displayCourses.slice(0, 4).map((course) => (
                   <Link
                     key={course.id}
-                    href={`/dealer/education/course-preview?id=${course.id}`}
+                    href={userRole === 'admin' ? `/dealer/education/course-preview?id=${course.id}` : '#'}
+                    onClick={(e) => handleRestrictedAction(e)}
                     className="bg-white border border-gray-100 rounded-xl p-4 hover:border-[#D77E6C]/30 hover:shadow-sm transition-all block"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -337,7 +432,8 @@ function EducationContent() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">{t('Популярные уроки')}</h2>
               <Link
-                href={`/dealer/education/course-preview?id=${introCourseId}`}
+                href={userRole === 'admin' ? `/dealer/education/course-preview?id=${introCourseId}` : '#'}
+                onClick={(e) => handleRestrictedAction(e)}
                 className="text-[#D77E6C] hover:text-[#C66B5A] text-sm font-medium flex items-center gap-1 transition-colors"
               >
                 {t('Все уроки курса')}
@@ -352,7 +448,8 @@ function EducationContent() {
               {introLessons.slice(0, 4).map((lesson: any, index) => (
                 <Link
                   key={lesson.id}
-                  href={`/dealer/education/courses?id=${introCourseId}&lesson=${lesson.id}`}
+                  href={userRole === 'admin' ? `/dealer/education/courses?id=${introCourseId}&lesson=${lesson.id}` : '#'}
+                  onClick={(e) => handleRestrictedAction(e)}
                   className="bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-shadow duration-200 group block"
                 >
                   <div className="relative h-48 overflow-hidden bg-gray-100">
@@ -454,7 +551,7 @@ function EducationContent() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('Нет сохраненных курсов')}</h3>
             <p className="text-sm text-gray-500 mb-6">{t('Сохраняйте интересные курсы, чтобы вернуться к ним позже')}</p>
             <button 
-              onClick={() => setActiveTab('all')}
+              onClick={(e) => handleTabChange('all', e)}
               className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-lg text-sm font-medium transition-colors"
             >
               <Grid3x3 className="w-4 h-4" />
@@ -479,6 +576,19 @@ function EducationContent() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #C66B5A;
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -100%);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -120%);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fadeInUp 0.2s ease-out;
         }
       `}</style>
     </div>

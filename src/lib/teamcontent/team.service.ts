@@ -1,3 +1,5 @@
+// //src/lib/teamcontent/team.service.ts
+
 import { supabase } from '@/lib/supabase/client';
 
 export type UserRole = 'manager' | 'financier' | 'warehouseman' | 'admin' | 'dealer' | 'celebrity';

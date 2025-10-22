@@ -499,7 +499,7 @@ export default function StockMovementsPage() {
                     
                     <td className="px-6 py-4 text-center">
                       <button 
-                        onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
+                        onClick={() => router.push(`/admin/warehouse/warehouse_control/product_view?id=${movement.product_id}`)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title={t('Открыть товар')}
                       >
@@ -582,7 +582,7 @@ export default function StockMovementsPage() {
                 </div>
 
                 <button 
-                  onClick={() => router.push(`/admin/warehouse/product_view?id=${movement.product_id}`)}
+                  onClick={() => router.push(`/admin/warehouse/warehouse_control/product_view?id=${movement.product_id}`)}
                   className="mt-3 w-full py-2 text-xs text-[#D77E6C] bg-[#D77E6C]/10 rounded-lg hover:bg-[#D77E6C]/20 transition-colors"
                 >
                   {t('Открыть товар')}

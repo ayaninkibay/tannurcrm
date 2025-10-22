@@ -42,7 +42,7 @@ export const ROUTES = {
   ADMIN: {
     DASHBOARD: '/admin/dashboard',
     WAREHOUSE: '/admin/warehouse',
-    PRODUCT_VIEW: '/admin/warehouse/product_view',
+    PRODUCT_VIEW: '/admin/warehouse/warehouse_control/product_view',
     PRODUCT_EDIT: '/admin/warehouse/product_edit',
     STOCK: '/admin/warehouse/stock',
     REPORTS: '/admin/reports',
