@@ -1,19 +1,25 @@
-// //src/lib/teamcontent/team.service.ts
+// src/lib/teamcontent/team.service.ts
 
 import { supabase } from '@/lib/supabase/client';
 
-export type UserRole = 'manager' | 'financier' | 'warehouseman' | 'admin' | 'dealer' | 'celebrity';
+export type UserRole = 'dealer' | 'celebrity' | 'admin' | 'financier' | 'user';
 
 export interface User {
   id: string;
   email: string | null;
-  role: UserRole | null;
+  role: string | null;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
   created_at: string;
-  status?: 'active' | 'blocked';
-  team_count?: number;
+  is_confirmed: boolean;
+  referral_code: string | null;
+  parent_id: string | null;
+  star_id: string | null;
+  instagram: string | null;
+  region: string | null;
+  avatar_url: string | null;
+  profession: string | null;
 }
 
 export interface TeamMemberData {
@@ -21,146 +27,248 @@ export interface TeamMemberData {
   name: string;
   profession: string;
   date: string;
-  status: 'active' | 'blocked';
+  status: boolean;
   commands: number;
+  referralCode: string;
+  email: string;
+  phone: string;
+  avatar_url: string | null;
+}
+
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data?: T[];
+  error?: string;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export class TeamService {
-  // Получить пользователей по ролям
-  async getUsersByRole(roles: UserRole[]): Promise<{ success: boolean; data?: User[]; error?: string }> {
+  private readonly DEFAULT_PAGE_SIZE = 50;
+
+  private async getTotalCount(roles: string[]): Promise<number> {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .in('role', roles);
+
+    if (error) {
+      console.error('Error getting count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  }
+
+  async getUsersByRole(
+    roles: string[],
+    params: PaginationParams = { page: 1, pageSize: this.DEFAULT_PAGE_SIZE }
+  ): Promise<PaginatedResponse<User>> {
     try {
-      console.log('Loading users with roles:', roles);
-      
+      const { page, pageSize } = params;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const total = await this.getTotalCount(roles);
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .in('role', roles)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) {
         console.error('Error loading users:', error);
         return { success: false, error: error.message };
       }
 
-      // Приводим типы и фильтруем невалидные роли
-      const users: User[] = (data || []).map((user: any) => ({
-        ...user,
-        role: roles.includes(user.role as UserRole) ? user.role as UserRole : null
-      }));
+      const users: User[] = data || [];
 
-      return { success: true, data: users };
+      return {
+        success: true,
+        data: users,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize)
+        }
+      };
     } catch (error) {
       console.error('Service error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка'
       };
     }
   }
 
-  // Получить всех дилеров
-  async getDealers(): Promise<{ success: boolean; data?: User[]; error?: string }> {
-    return this.getUsersByRole(['dealer']);
+async searchUsers(
+  query: string,
+  params: PaginationParams = { page: 1, pageSize: this.DEFAULT_PAGE_SIZE }
+): Promise<PaginatedResponse<User>> {
+  try {
+    if (!query.trim()) {
+      return { success: true, data: [] };
+    }
+
+    const { page, pageSize } = params;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    // Разбиваем запрос на слова
+    const searchWords = query.trim().split(/\s+/);
+    const searchPattern = `%${query}%`;
+    
+    // Базовый запрос
+    let queryBuilder = supabase
+      .from('users')
+      .select('*', { count: 'exact' });
+
+    // Если одно слово - ищем по всем полям
+    if (searchWords.length === 1) {
+      queryBuilder = queryBuilder.or(
+        `first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern},referral_code.ilike.${searchPattern},instagram.ilike.${searchPattern}`
+      );
+    } else {
+      // Если несколько слов - ищем комбинации имени и фамилии
+      const word1Pattern = `%${searchWords[0]}%`;
+      const word2Pattern = `%${searchWords[1]}%`;
+      
+      queryBuilder = queryBuilder.or(
+        `and(first_name.ilike.${word1Pattern},last_name.ilike.${word2Pattern}),and(first_name.ilike.${word2Pattern},last_name.ilike.${word1Pattern}),first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern},referral_code.ilike.${searchPattern}`
+      );
+    }
+
+    // Подсчет
+    const { count } = await queryBuilder;
+
+    // Получение данных
+    queryBuilder = supabase
+      .from('users')
+      .select('*');
+
+    if (searchWords.length === 1) {
+      queryBuilder = queryBuilder.or(
+        `first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern},referral_code.ilike.${searchPattern},instagram.ilike.${searchPattern}`
+      );
+    } else {
+      const word1Pattern = `%${searchWords[0]}%`;
+      const word2Pattern = `%${searchWords[1]}%`;
+      
+      queryBuilder = queryBuilder.or(
+        `and(first_name.ilike.${word1Pattern},last_name.ilike.${word2Pattern}),and(first_name.ilike.${word2Pattern},last_name.ilike.${word1Pattern}),first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern},referral_code.ilike.${searchPattern}`
+      );
+    }
+
+    const { data, error } = await queryBuilder
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error('Search error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: data || [],
+      pagination: {
+        page,
+        pageSize,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / pageSize)
+      }
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Ошибка поиска'
+    };
+  }
+}
+
+  async getDealers(params?: PaginationParams): Promise<PaginatedResponse<User>> {
+    return this.getUsersByRole(['dealer'], params);
   }
 
-  // Получить всех звезд
-  async getCelebrities(): Promise<{ success: boolean; data?: User[]; error?: string }> {
-    return this.getUsersByRole(['celebrity']);
+  async getCelebrities(params?: PaginationParams): Promise<PaginatedResponse<User>> {
+    return this.getUsersByRole(['celebrity'], params);
   }
 
-  // Получить всех сотрудников
-  async getEmployees(): Promise<{ success: boolean; data?: User[]; error?: string }> {
-    return this.getUsersByRole(['manager', 'financier', 'warehouseman', 'admin']);
+  async getEmployees(params?: PaginationParams): Promise<PaginatedResponse<User>> {
+    return this.getUsersByRole(['admin', 'financier', 'user'], params);
   }
 
-  // Преобразовать пользователя в формат для таблицы
   transformToTeamMember(user: User): TeamMemberData {
-    const roleToPosition: Record<UserRole, string> = {
-      'manager': 'Менеджер',
-      'financier': 'Финансист',
-      'warehouseman': 'Складовщик',
-      'admin': 'Администратор',
+    const roleToPosition: Record<string, string> = {
       'dealer': 'Дилер',
-      'celebrity': 'Знаменитость'
+      'celebrity': 'Знаменитость',
+      'admin': 'Администратор',
+      'financier': 'Финансист',
+      'user': 'Пользователь'
     };
 
-    // Форматируем дату
     const date = new Date(user.created_at);
     const formattedDate = date.toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    }).replace(/\./g, '-');
+    });
 
     return {
-      id: user.id.slice(0, 8).toUpperCase(), // Показываем только первые 8 символов ID
+      id: user.id,
       name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Без имени',
-      profession: roleToPosition[user.role as UserRole] || 'Не указано',
+      profession: user.profession || roleToPosition[user.role || ''] || 'Не указано',
       date: formattedDate,
-      status: user.status || 'active',
-      commands: user.team_count || 0
+      status: user.is_confirmed,
+      commands: 0,
+      referralCode: user.referral_code || '-',
+      email: user.email || '-',
+      phone: user.phone || '-',
+      avatar_url: user.avatar_url
     };
   }
 
-  // Получить статистику по ролям
-  async getUsersStatistics(): Promise<{ 
-    success: boolean; 
+  async getUsersStatistics(): Promise<{
+    success: boolean;
     data?: {
       dealers: number;
       celebrities: number;
       employees: number;
-    }; 
-    error?: string 
+    };
+    error?: string;
   }> {
     try {
-      const [dealersResult, celebritiesResult, employeesResult] = await Promise.all([
-        this.getDealers(),
-        this.getCelebrities(),
-        this.getEmployees()
+      const [dealersCount, celebritiesCount, employeesCount] = await Promise.all([
+        this.getTotalCount(['dealer']),
+        this.getTotalCount(['celebrity']),
+        this.getTotalCount(['admin', 'financier', 'user'])
       ]);
 
       return {
         success: true,
         data: {
-          dealers: dealersResult.data?.length || 0,
-          celebrities: celebritiesResult.data?.length || 0,
-          employees: employeesResult.data?.length || 0
+          dealers: dealersCount,
+          celebrities: celebritiesCount,
+          employees: employeesCount
         }
       };
     } catch (error) {
       console.error('Statistics error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Ошибка получения статистики' 
-      };
-    }
-  }
-
-  // Поиск пользователей
-  async searchUsers(query: string): Promise<{ success: boolean; data?: User[]; error?: string }> {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      // Приводим типы для role
-      const validRoles: UserRole[] = ['manager', 'financier', 'warehouseman', 'admin', 'dealer', 'celebrity'];
-      const users: User[] = (data || []).map((user: any) => ({
-        ...user,
-        role: validRoles.includes(user.role as UserRole) ? user.role as UserRole : null
-      }));
-
-      return { success: true, data: users };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Ошибка поиска' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Ошибка получения статистики'
       };
     }
   }

@@ -1,9 +1,9 @@
-//src/lib/teamcontent/team.module.ts
+// src/lib/teamcontent/team.module.ts
 
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { TeamService, User, TeamMemberData, UserRole } from './team.service';
+import { TeamService, User, TeamMemberData, PaginationParams } from './team.service';
 
 export interface TeamStatistics {
   dealers: number;
@@ -11,32 +11,35 @@ export interface TeamStatistics {
   employees: number;
 }
 
+export interface PaginationState {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface UseTeamModuleReturn {
-  // Данные
   dealers: TeamMemberData[];
   celebrities: TeamMemberData[];
   employees: TeamMemberData[];
   statistics: TeamStatistics;
+  pagination: PaginationState;
   
-  // Состояния
   loading: boolean;
   error: string | null;
   searchQuery: string;
+  isSearching: boolean;
   
-  // Методы
-  loadAllUsers: () => Promise<void>;
+  loadUsers: (page?: number) => Promise<void>;
   searchUsers: (query: string) => Promise<void>;
   setSearchQuery: (query: string) => void;
   clearError: () => void;
   refreshData: () => Promise<void>;
-  
-  // Дополнительные методы
-  getUsersByRole: (role: UserRole | UserRole[]) => Promise<User[]>;
-  updateUserStatus: (userId: string, status: 'active' | 'blocked') => Promise<void>;
+  goToPage: (page: number) => Promise<void>;
+  setPageSize: (size: number) => Promise<void>;
 }
 
-export const useTeamModule = (): UseTeamModuleReturn => {
-  // Состояния для данных
+export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = 'dealers'): UseTeamModuleReturn => {
   const [dealers, setDealers] = useState<TeamMemberData[]>([]);
   const [celebrities, setCelebrities] = useState<TeamMemberData[]>([]);
   const [employees, setEmployees] = useState<TeamMemberData[]>([]);
@@ -46,109 +49,107 @@ export const useTeamModule = (): UseTeamModuleReturn => {
     employees: 0
   });
   
-  // Состояния UI
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 0
+  });
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   
-  // Сервис
   const service = new TeamService();
 
-  // Загрузка всех пользователей
-  const loadAllUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (page: number = pagination.page) => {
     try {
       setLoading(true);
       setError(null);
+      setIsSearching(false);
 
-      // Параллельная загрузка всех данных
-      const [dealersResult, celebritiesResult, employeesResult, statsResult] = await Promise.all([
-        service.getDealers(),
-        service.getCelebrities(),
-        service.getEmployees(),
-        service.getUsersStatistics()
-      ]);
+      const params: PaginationParams = {
+        page,
+        pageSize: pagination.pageSize
+      };
 
-      // Обработка дилеров
-      if (dealersResult.success && dealersResult.data) {
-        const transformedDealers = dealersResult.data.map(user => 
-          service.transformToTeamMember(user)
-        );
-        setDealers(transformedDealers);
-      } else if (dealersResult.error) {
-        console.error('Error loading dealers:', dealersResult.error);
+      let result;
+      
+      switch (selectedTab) {
+        case 'dealers':
+          result = await service.getDealers(params);
+          break;
+        case 'stars':
+          result = await service.getCelebrities(params);
+          break;
+        case 'employees':
+          result = await service.getEmployees(params);
+          break;
       }
 
-      // Обработка знаменитостей
-      if (celebritiesResult.success && celebritiesResult.data) {
-        const transformedCelebrities = celebritiesResult.data.map(user => 
-          service.transformToTeamMember(user)
-        );
-        setCelebrities(transformedCelebrities);
-      } else if (celebritiesResult.error) {
-        console.error('Error loading celebrities:', celebritiesResult.error);
-      }
+      if (result.success && result.data) {
+        const transformed = result.data.map(user => service.transformToTeamMember(user));
+        
+        if (selectedTab === 'dealers') setDealers(transformed);
+        if (selectedTab === 'stars') setCelebrities(transformed);
+        if (selectedTab === 'employees') setEmployees(transformed);
 
-      // Обработка сотрудников
-      if (employeesResult.success && employeesResult.data) {
-        const transformedEmployees = employeesResult.data.map(user => 
-          service.transformToTeamMember(user)
-        );
-        setEmployees(transformedEmployees);
-      } else if (employeesResult.error) {
-        console.error('Error loading employees:', employeesResult.error);
-      }
-
-      // Обновление статистики
-      if (statsResult.success && statsResult.data) {
-        setStatistics(statsResult.data);
-      }
-
-      // Проверка на общие ошибки
-      const hasErrors = [dealersResult, celebritiesResult, employeesResult].some(r => !r.success);
-      if (hasErrors) {
-        setError('Некоторые данные не удалось загрузить');
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
+      } else {
+        setError(result.error || 'Ошибка загрузки данных');
       }
 
     } catch (err) {
-      console.error('Critical error loading users:', err);
-      setError(err instanceof Error ? err.message : 'Критическая ошибка загрузки данных');
+      console.error('Error loading users:', err);
+      setError(err instanceof Error ? err.message : 'Критическая ошибка загрузки');
     } finally {
       setLoading(false);
     }
+  }, [selectedTab, pagination.pageSize]);
+
+  const loadStatistics = useCallback(async () => {
+    const result = await service.getUsersStatistics();
+    if (result.success && result.data) {
+      setStatistics(result.data);
+    }
   }, []);
 
-  // Поиск пользователей
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
-      await loadAllUsers();
+      setIsSearching(false);
+      await loadUsers(1);
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      setIsSearching(true);
 
-      const result = await service.searchUsers(query);
+      const params: PaginationParams = {
+        page: 1,
+        pageSize: pagination.pageSize
+      };
+
+      const result = await service.searchUsers(query, params);
       
       if (result.success && result.data) {
-        // Группируем результаты по ролям
         const dealerUsers = result.data.filter(u => u.role === 'dealer');
         const celebrityUsers = result.data.filter(u => u.role === 'celebrity');
         const employeeUsers = result.data.filter(u => 
-          ['manager', 'financier', 'warehouseman', 'admin'].includes(u.role || '')
+          ['admin', 'financier', 'user'].includes(u.role || '')
         );
 
-        // Преобразуем и обновляем состояния
         setDealers(dealerUsers.map(u => service.transformToTeamMember(u)));
         setCelebrities(celebrityUsers.map(u => service.transformToTeamMember(u)));
         setEmployees(employeeUsers.map(u => service.transformToTeamMember(u)));
 
-        // Обновляем статистику
-        setStatistics({
-          dealers: dealerUsers.length,
-          celebrities: celebrityUsers.length,
-          employees: employeeUsers.length
-        });
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       } else {
         setError(result.error || 'Ошибка поиска');
       }
@@ -157,67 +158,55 @@ export const useTeamModule = (): UseTeamModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [loadAllUsers]);
+  }, [pagination.pageSize, loadUsers]);
 
-  // Получение пользователей по роли (для других компонентов)
-  const getUsersByRole = useCallback(async (role: UserRole | UserRole[]): Promise<User[]> => {
-    const roles = Array.isArray(role) ? role : [role];
-    const result = await service.getUsersByRole(roles);
-    return result.success && result.data ? result.data : [];
-  }, []);
-
-  // Обновление статуса пользователя
-  const updateUserStatus = useCallback(async (userId: string, status: 'active' | 'blocked') => {
-    try {
-      setLoading(true);
-      // TODO: Реализовать обновление статуса в базе данных
-      console.log(`Updating user ${userId} status to ${status}`);
-      
-      // После обновления перезагружаем данные
-      await loadAllUsers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка обновления статуса');
-    } finally {
-      setLoading(false);
+  const goToPage = useCallback(async (page: number) => {
+    if (isSearching) {
+      await searchUsers(searchQuery);
+    } else {
+      await loadUsers(page);
     }
-  }, [loadAllUsers]);
+  }, [isSearching, searchQuery, searchUsers, loadUsers]);
 
-  // Обновление данных
+  const setPageSize = useCallback(async (size: number) => {
+    setPagination(prev => ({ ...prev, pageSize: size, page: 1 }));
+    await loadUsers(1);
+  }, [loadUsers]);
+
   const refreshData = useCallback(async () => {
-    await loadAllUsers();
-  }, [loadAllUsers]);
+    await Promise.all([
+      loadUsers(1),
+      loadStatistics()
+    ]);
+  }, [loadUsers, loadStatistics]);
 
-  // Очистка ошибки
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  // Загрузка данных при монтировании
   useEffect(() => {
-    loadAllUsers();
-  }, [loadAllUsers]);
+    loadUsers(1);
+    loadStatistics();
+  }, [selectedTab]);
 
   return {
-    // Данные
     dealers,
     celebrities,
     employees,
     statistics,
+    pagination,
     
-    // Состояния
     loading,
     error,
     searchQuery,
+    isSearching,
     
-    // Методы
-    loadAllUsers,
+    loadUsers,
     searchUsers,
     setSearchQuery,
     clearError,
     refreshData,
-    
-    // Дополнительные методы
-    getUsersByRole,
-    updateUserStatus
+    goToPage,
+    setPageSize
   };
 };

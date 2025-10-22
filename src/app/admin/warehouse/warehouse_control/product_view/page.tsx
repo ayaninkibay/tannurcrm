@@ -118,6 +118,12 @@ function ProductViewContent() {
     }
   };
 
+  // Функция для перехода на страницу редактирования
+  const handleEditProduct = () => {
+    if (!productId) return;
+    router.push(`/admin/warehouse/warehouse_control/edit_product/${productId}`);
+  };
+
   // Открытие модального окна для изменения остатков
   const openStockModal = (type: 'add' | 'subtract') => {
     setStockModalType(type);
@@ -276,10 +282,10 @@ function ProductViewContent() {
                 <div className="space-y-3">
                   <p className="text-sm font-semibold text-[#111]">{t('Данные')}</p>
                   <button
-                    onClick={() => router.push(`/admin/warehouse/product_edit?id=${productId}`)}
-                    className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={handleEditProduct}
+                    className="w-full flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
                   >
-                    <Edit className="w-4 h-4 text-[#D77E6C]" />
+                    <Edit className="w-4 h-4 text-[#D77E6C] group-hover:scale-110 transition-transform" />
                     <span className="text-sm">{t('Изменить данные товара')}</span>
                   </button>
                 </div>
@@ -307,9 +313,9 @@ function ProductViewContent() {
                     <p className="text-sm font-semibold text-[#111]">{t('Удаление')}</p>
                     <button
                       onClick={handleDeleteProduct}
-                      className="w-full flex items-center gap-3 px-4 py-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors group"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
                       <span className="text-sm">{t('Удалить товар')}</span>
                     </button>
                   </div>

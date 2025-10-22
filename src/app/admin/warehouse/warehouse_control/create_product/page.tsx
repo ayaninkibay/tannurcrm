@@ -1,4 +1,4 @@
-// src/app/admin/warehouse/create_product/page.tsx (обновлённый)
+// src/app/admin/warehouse/warehouse_control/create_product/page.tsx
 'use client';
 
 import Image from 'next/image';

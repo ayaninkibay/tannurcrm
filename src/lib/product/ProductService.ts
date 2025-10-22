@@ -214,7 +214,37 @@ class ProductService {
     if (error) throw new Error(error.message)
   }
 
-  /** Удаление изображения из gallery + удаление физического файла из Storage */
+  /** 
+   * Удаляет изображение из Storage (из любого места - image_url или gallery)
+   * @param imageUrl - Public URL изображения для удаления
+   */
+  async deleteProductImage(imageUrl: string): Promise<void> {
+    try {
+      // Извлекаем путь к файлу из URL
+      const key = getStorageKeyFromPublicUrl(imageUrl)
+      if (!key) {
+        console.warn('Не удалось извлечь ключ из URL:', imageUrl)
+        return
+      }
+
+      // Удаляем файл из Storage
+      const { error } = await supabase.storage.from(BUCKET).remove([key])
+      if (error) {
+        console.error('Ошибка при удалении файла из Storage:', error)
+        throw new Error(error.message)
+      }
+
+      console.log('Файл успешно удален из Storage:', key)
+    } catch (error) {
+      console.error('Ошибка в deleteProductImage:', error)
+      throw error
+    }
+  }
+
+  /** 
+   * Удаляет изображение из gallery + удаление физического файла из Storage
+   * Также обновляет запись в БД
+   */
   async removeGalleryImage(productId: string, imageUrl: string): Promise<ProductRow> {
     await this.removeStorageFileByPublicUrl(imageUrl)
 
@@ -229,6 +259,52 @@ class ProductService {
       .single()
     if (error) throw new Error(error.message)
     return data as ProductRow
+  }
+
+  /**
+   * Удаляет главное изображение товара (image_url) и очищает поле в БД
+   */
+  async removeMainImage(productId: string): Promise<ProductRow> {
+    const product = await this.fetchProductById(productId)
+    
+    if (product.image_url) {
+      await this.removeStorageFileByPublicUrl(product.image_url)
+    }
+
+    const { data, error } = await supabase
+      .from(PRODUCT_TABLE)
+      .update({ image_url: null, updated_at: new Date().toISOString() })
+      .eq('id', productId)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data as ProductRow
+  }
+
+  /**
+   * Удаляет все изображения товара (главное + галерея)
+   */
+  async deleteAllProductImages(productId: string): Promise<void> {
+    const product = await this.fetchProductById(productId)
+
+    const imagesToDelete: string[] = []
+    if (product.image_url) imagesToDelete.push(product.image_url)
+    if (product.gallery) imagesToDelete.push(...product.gallery)
+
+    // Удаляем все файлы из Storage
+    for (const imageUrl of imagesToDelete) {
+      try {
+        await this.deleteProductImage(imageUrl)
+      } catch (err) {
+        console.error('Ошибка при удалении изображения:', err)
+      }
+    }
+
+    // Очищаем поля в БД
+    await this.updateProduct(productId, {
+      image_url: null,
+      gallery: []
+    })
   }
 }
 
