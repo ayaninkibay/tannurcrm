@@ -1,4 +1,3 @@
-
 // DealerProductCard.tsx
 'use client';
 
@@ -21,7 +20,7 @@ export default function DealerProductCard({
   const { t } = useTranslate();
   const router = useRouter();
 
-  const handleArrowClick = () => {
+  const handleCardClick = () => {
     router.push(`/dealer/shop/product_view?id=${product.id}`);
   };
 
@@ -48,14 +47,17 @@ export default function DealerProductCard({
   };
 
   return (
-    <div className={`bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 relative w-full group hover:shadow-lg transition-all duration-300 ${className}`}>
+    <div 
+      onClick={handleCardClick}
+      className={`bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 relative w-full group hover:shadow-lg transition-all duration-300 cursor-pointer ${className}`}
+    >
       {/* Контейнер изображения */}
       <div className="w-full aspect-square relative rounded-xl sm:rounded-2xl overflow-hidden bg-white">
         <Image
           src={imgSrc || '/img/product1.jpg'} // Fallback на случай если imgSrc пустой
           alt={product?.name || 'Товар'}
           fill
-          className="object-cover"
+          className="object-cover group-hover:scale-110 transition-transform duration-300"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           onError={handleImageError}
         />
@@ -72,7 +74,7 @@ export default function DealerProductCard({
 
       {/* Информация о товаре */}
       <div className="p-2 sm:p-3 pt-3 sm:pt-4">
-        <h3 className="text-xs sm:text-sm font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] leading-tight">
+        <h3 className="text-xs sm:text-sm font-bold text-[#1C1C1C] mb-2 sm:mb-3 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] leading-tight group-hover:text-[#D77E6C] transition-colors">
           {product?.name || 'Без названия'}
         </h3>
 
@@ -98,12 +100,7 @@ export default function DealerProductCard({
 
           {/* Кнопка просмотра */}
           <div className="shrink-0">
-            <button
-              onClick={handleArrowClick}
-              className="hover:scale-105 transition-transform duration-200"
-              aria-label={'Подробнее'}
-              title={'Подробнее'}
-            >
+            <div className="group-hover:scale-110 transition-transform duration-200">
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"
                 alt="arrow"
@@ -111,7 +108,7 @@ export default function DealerProductCard({
                 height={20}
                 className="w-5 h-5 sm:w-6 sm:h-6"
               />
-            </button>
+            </div>
           </div>
         </div>
       </div>

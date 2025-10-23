@@ -229,14 +229,14 @@ export default function WareHouse() {
             {activeTab === 'warehouse' && (
               <>
                 <button
-                  onClick={() => router.push('/admin/warehouse/create_product')}
+                  onClick={() => router.push('/admin/warehouse/warehouse_control/create_product')}
                   className="flex items-center gap-2 px-4 py-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C56D5C] text-sm font-medium"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('Создать товар')}</span>
                 </button>
                 <button
-                  onClick={() => router.push('/admin/warehouse/stock_movements')}
+                  onClick={() => router.push('/admin/warehouse/warehouse_control/stock_movements')}
                   className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 text-sm"
                 >
                   <TrendingUp className="w-4 h-4" />
@@ -246,7 +246,7 @@ export default function WareHouse() {
             )}
             {activeTab === 'distributors' && (
               <button
-                onClick={() => router.push('/admin/warehouse/create_distributor')}
+                onClick={() => router.push('/admin/warehouse/warehouse_control/create_distributor')}
                 className="flex items-center gap-2 px-4 py-2 bg-[#7C9D6C] text-white rounded-lg hover:bg-[#6B8C5B] text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />

@@ -20,7 +20,7 @@ export default function DealerBigProductCard({
   const router = useRouter();
   const { t } = useTranslate();
 
-  const handleArrowClick = () => {
+  const handleCardClick = () => {
     router.push(`/dealer/shop/product_view?id=${product?.id || '538dd152-4d6f-471e-8cf1-dcdf6ba564ec'}`);
   };
 
@@ -40,7 +40,10 @@ export default function DealerBigProductCard({
   const handleImgError = () => setImgSrc('/img/productBig.jpg');
 
   return (
-    <div className={`bg-white rounded-2xl p-2 relative w-full max-w-full ${className || ''}`}>
+    <div 
+      onClick={handleCardClick}
+      className={`bg-white rounded-2xl p-2 relative w-full max-w-full cursor-pointer group hover:shadow-xl transition-all duration-300 ${className || ''}`}
+    >
       {/* Блок с картинкой */}
       <div className="w-full aspect-[11/5] relative rounded-2xl overflow-hidden">
         <Image
@@ -49,7 +52,7 @@ export default function DealerBigProductCard({
           fill
           priority
           loading="eager"
-          className="object-cover"
+          className="object-cover group-hover:scale-110 transition-transform duration-300"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           onError={handleImgError}
         />
@@ -57,7 +60,7 @@ export default function DealerBigProductCard({
 
       <div className="p-3 pt-6">
         <div className="flex justify-between items-start -mb-1 gap-2">
-          <h3 className="text-base font-bold text-[#1C1C1C] line-clamp-2 min-h-[3rem]">
+          <h3 className="text-base font-bold text-[#1C1C1C] line-clamp-2 min-h-[3rem] group-hover:text-[#D77E6C] transition-colors">
             {product?.name || 'Без названия'}
           </h3>
 
@@ -87,7 +90,7 @@ export default function DealerBigProductCard({
           </div>
 
           <div className="shrink-0 self-end">
-            <button onClick={handleArrowClick} aria-label={'Открыть товар'} title={'Открыть товар'}>
+            <div className="group-hover:scale-110 transition-transform duration-200">
               <Image
                 src="/icons/buttom/DoubleIconArrowOrange.svg"
                 alt=""
@@ -96,7 +99,7 @@ export default function DealerBigProductCard({
                 height={24}
                 style={{ height: 'auto' }}
               />
-            </button>
+            </div>
           </div>
         </div>
       </div>

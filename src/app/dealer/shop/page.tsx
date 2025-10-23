@@ -32,7 +32,7 @@ class ProductCache {
   private static CACHE_KEY = 'shop_products_cache'
   private static TTL = 5 * 60 * 1000 // 5 минут
 
-  static get(): { products: ProductRow[], bigProduct: ProductRow | null, timestamp: number } | null {
+  static get(): { products: ProductRow[], bigProducts: ProductRow[], timestamp: number } | null {
     try {
       const cached = localStorage.getItem(this.CACHE_KEY)
       if (!cached) return null
@@ -49,11 +49,11 @@ class ProductCache {
     }
   }
 
-  static set(products: ProductRow[], bigProduct: ProductRow | null): void {
+  static set(products: ProductRow[], bigProducts: ProductRow[]): void {
     try {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify({
         products,
-        bigProduct,
+        bigProducts,
         timestamp: Date.now()
       }))
     } catch {}
@@ -64,7 +64,7 @@ export default function ShopPage() {
   const { t } = useTranslate()
   const [showClientPrices, setShowClientPrices] = useState(false)
   const [products, setProducts] = useState<ProductRow[]>([])
-  const [bigProduct, setBigProduct] = useState<ProductRow | null>(null)
+  const [bigProducts, setBigProducts] = useState<ProductRow[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -82,7 +82,7 @@ export default function ShopPage() {
       const cached = ProductCache.get()
       if (cached) {
         setProducts(cached.products)
-        setBigProduct(cached.bigProduct)
+        setBigProducts(cached.bigProducts)
         setLoading(false)
         
         // Обновляем в фоне
@@ -100,20 +100,19 @@ export default function ShopPage() {
   }
 
   const fetchFromDatabase = async () => {
-    // Загружаем флагманский товар для большой карточки
-    const { data: bigProductData, error: bigError } = await supabase
+    // Загружаем ВСЕ флагманские товары для большой карточки
+    const { data: bigProductsData, error: bigError } = await supabase
       .from('products')
       .select('*')
       .eq('flagman', true)
       .eq('is_active', true)
-      .limit(1)
-      .single<ProductRow>()
+      .order('created_at', { ascending: false })
 
-    if (!bigError && bigProductData) {
-      setBigProduct(bigProductData)
+    if (!bigError && bigProductsData) {
+      setBigProducts(bigProductsData)
     }
 
-    // Загружаем остальные товары (исключая флагманский)
+    // Загружаем остальные товары (исключая флагманские)
     const { data: productsData, error: productsError } = await supabase
       .from('products')
       .select('*')
@@ -124,7 +123,7 @@ export default function ShopPage() {
 
     if (!productsError && productsData) {
       setProducts(productsData)
-      ProductCache.set(productsData, bigProductData || null)
+      ProductCache.set(productsData, bigProductsData || [])
     }
   }
 
@@ -171,7 +170,7 @@ export default function ShopPage() {
             
             <div className="flex items-center gap-3 md:gap-4 px-3 md:px-4 py-2 md:py-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
               <div className="text-center">
-                <p className="text-lg md:text-2xl font-bold text-white">{products.length}</p>
+                <p className="text-lg md:text-2xl font-bold text-white">{products.length + bigProducts.length}</p>
                 <p className="text-[10px] md:text-xs text-white/70">{t('товаров')}</p>
               </div>
               <div className="w-px h-8 bg-white/20"></div>
@@ -192,10 +191,12 @@ export default function ShopPage() {
                 <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm md:text-base text-gray-900 mb-0.5">{t('Корзина')}</h3>
-                <p className="text-[10px] md:text-xs text-gray-600 truncate">{t('Оформить заказ')}</p>
+                <p className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-[#D77E6C] transition-colors">
+                  {t('Моя корзина')}
+                </p>
+                <p className="text-[10px] md:text-xs text-gray-500">{t('Оформить заказ')}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#D77E6C] group-hover:translate-x-1 transition-transform flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#D77E6C] group-hover:translate-x-1 transition-all" />
             </a>
 
             <a 
@@ -206,44 +207,44 @@ export default function ShopPage() {
                 <Clock className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm md:text-base text-gray-900 mb-0.5">{t('Заказы')}</h3>
-                <p className="text-[10px] md:text-xs text-gray-600 truncate">{t('История покупок')}</p>
+                <p className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  {t('Мои заказы')}
+                </p>
+                <p className="text-[10px] md:text-xs text-gray-500">{t('История покупок')}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* Панель управления */}
-      <section className="bg-white rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm">
-        <div className="flex flex-col gap-3">
-          {/* Категории - скроллящиеся на мобилке */}
-          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
-            <div className="flex items-center gap-2 min-w-max md:flex-wrap">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
-                    selectedCategory === cat
-                      ? 'bg-[#D77E6C] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat === 'all' ? t('Все товары') : cat}
-                </button>
-              ))}
-            </div>
+      {/* Фильтры и управление */}
+      <section className="bg-white rounded-xl md:rounded-2xl shadow-sm">
+        <div className="p-3 md:p-4">
+          {/* Категории */}
+          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`flex-shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                  selectedCategory === category
+                    ? 'bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {category === 'all' ? t('Все товары') : category}
+              </button>
+            ))}
           </div>
 
           {/* Контролы */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              {/* Счетчик товаров */}
-              <div className="text-xs md:text-sm text-gray-500">
-                {filteredProducts.length} / {products.length}
-              </div>
+              <Filter className="w-4 h-4 text-gray-400" />
+              <span className="text-xs md:text-sm text-gray-600">
+                {t('Найдено')}: <span className="font-semibold">{filteredProducts.length}</span>
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -293,25 +294,28 @@ export default function ShopPage() {
         </div>
       </section>
 
-      {/* Флагманский товар */}
-      {bigProduct && (
+      {/* Флагманские товары */}
+      {bigProducts.length > 0 && (
         <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl md:rounded-2xl p-3 md:p-4 border border-amber-100">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-1.5 md:p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
               <Star className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
             </div>
-            <h2 className="text-sm md:text-base font-semibold text-gray-900">{t('Флагманский продукт')}</h2>
+            <h2 className="text-sm md:text-base font-semibold text-gray-900">{t('Флагманские продукты')}</h2>
             <div className="ml-auto px-2 md:px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] md:text-xs font-bold rounded-full">
               {t('ФЛАГМАН')}
             </div>
           </div>
           
-          <div className="max-w-md">
-            <DealerBigProductCard
-              product={bigProduct}
-              showClientPrice={showClientPrices}
-              className="shadow-lg hover:shadow-xl transition-shadow"
-            />
+          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {bigProducts.map((product) => (
+              <DealerBigProductCard
+                key={product.id}
+                product={product}
+                showClientPrice={showClientPrices}
+                className="shadow-lg hover:shadow-xl transition-shadow"
+              />
+            ))}
           </div>
         </section>
       )}
