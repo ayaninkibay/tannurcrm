@@ -302,7 +302,7 @@ export default function ProfilePage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
+  const [photoPreview, setPhotoPreview] = useState<string>('/icons/default-avatar.png');
   
   const [form, setForm] = useState<UserUpdateData>({
     first_name: '',

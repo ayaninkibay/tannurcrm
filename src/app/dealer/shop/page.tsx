@@ -147,167 +147,198 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4 p-2 md:p-6 min-h-screen">
+    <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4 p-2 sm:p-3 lg:p-6 min-h-screen">
       <MoreHeaderDE title={t('Магазин Tannur')} />
 
-      {/* Фирменный баннер */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#D77E6C] via-[#E09080] to-[#D77E6C] rounded-xl md:rounded-2xl shadow-lg">
+      {/* Фирменный баннер - КОМПАКТНЫЙ на мобиле */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#D77E6C] via-[#E09080] to-[#D77E6C] rounded-xl lg:rounded-2xl shadow-lg">
         <div className="absolute inset-0 bg-black/5"></div>
-        <div className="absolute -top-20 -right-20 w-40 h-40 md:w-60 md:h-60 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 md:w-60 md:h-60 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-16 -right-16 sm:-top-20 sm:-right-20 w-32 h-32 sm:w-40 sm:h-40 lg:w-60 lg:h-60 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-8 -left-8 sm:-bottom-10 sm:-left-10 w-32 h-32 sm:w-40 sm:h-40 lg:w-60 lg:h-60 bg-white/10 rounded-full blur-3xl"></div>
         
-        <div className="relative z-10 p-4 md:p-6">
-          <div className="flex items-center justify-between gap-4 mb-3 md:mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-yellow-200" />
-                <span className="text-xs md:text-sm font-semibold text-white/90">{t('Эксклюзивные цены')}</span>
+        <div className="relative z-10 p-3 sm:p-4 lg:p-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 lg:gap-4 mb-2 sm:mb-3 lg:mb-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-yellow-200 flex-shrink-0" />
+                <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-white/90 truncate">{t('Эксклюзивные цены')}</span>
               </div>
-              <h2 className="text-lg md:text-2xl font-bold text-white mb-1">
+              <h2 className="text-base sm:text-lg lg:text-2xl font-bold text-white truncate">
                 {t('Дилерский каталог')}
               </h2>
             </div>
             
-            <div className="flex items-center gap-3 md:gap-4 px-3 md:px-4 py-2 md:py-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 lg:py-3 bg-white/10 backdrop-blur-md rounded-lg sm:rounded-xl border border-white/20 flex-shrink-0">
               <div className="text-center">
-                <p className="text-lg md:text-2xl font-bold text-white">{products.length + bigProducts.length}</p>
-                <p className="text-[10px] md:text-xs text-white/70">{t('товаров')}</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold text-white">{products.length + bigProducts.length}</p>
+                <p className="text-[9px] sm:text-[10px] lg:text-xs text-white/70 whitespace-nowrap">{t('товаров')}</p>
               </div>
-              <div className="w-px h-8 bg-white/20"></div>
+              <div className="w-px h-6 sm:h-8 bg-white/20"></div>
               <div className="text-center">
-                <p className="text-lg md:text-2xl font-bold text-white">24/7</p>
-                <p className="text-[10px] md:text-xs text-white/70">{t('онлайн')}</p>
+                <p className="text-base sm:text-lg lg:text-2xl font-bold text-white">24/7</p>
+                <p className="text-[9px] sm:text-[10px] lg:text-xs text-white/70 whitespace-nowrap">{t('онлайн')}</p>
               </div>
             </div>
           </div>
 
-          {/* Быстрые действия */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+          {/* Быстрые действия - КОМПАКТНЫЕ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 lg:gap-3">
             <a 
               href="/dealer/shop/cart"
-              className="group bg-white/95 hover:bg-white backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 transition-all flex items-center gap-3 hover:scale-[1.02] hover:shadow-xl"
+              className="group bg-white/95 hover:bg-white backdrop-blur-sm rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-4 transition-all flex items-center gap-2 sm:gap-3 hover:scale-[1.02] hover:shadow-xl"
             >
-              <div className="p-2 md:p-2.5 bg-gradient-to-br from-[#D77E6C] to-[#E09080] rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <div className="p-1.5 sm:p-2 lg:p-2.5 bg-gradient-to-br from-[#D77E6C] to-[#E09080] rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
+                <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-[#D77E6C] transition-colors">
-                  {t('Моя корзина')}
-                </p>
-                <p className="text-[10px] md:text-xs text-gray-500">{t('Оформить заказ')}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm font-bold text-gray-900 truncate">{t('Корзина')}</p>
+                <p className="text-[9px] sm:text-[10px] lg:text-xs text-gray-600 truncate">{t('Оформить заказ')}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#D77E6C] group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </a>
 
             <a 
-              href="/dealer/shop/orders"
-              className="group bg-white/95 hover:bg-white backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 transition-all flex items-center gap-3 hover:scale-[1.02] hover:shadow-xl"
+              href="/dealer/orders"
+              className="group bg-white/95 hover:bg-white backdrop-blur-sm rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-4 transition-all flex items-center gap-2 sm:gap-3 hover:scale-[1.02] hover:shadow-xl"
             >
-              <div className="p-2 md:p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
-                <Clock className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <div className="p-1.5 sm:p-2 lg:p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {t('Мои заказы')}
-                </p>
-                <p className="text-[10px] md:text-xs text-gray-500">{t('История покупок')}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm font-bold text-gray-900 truncate">{t('Заказы')}</p>
+                <p className="text-[9px] sm:text-[10px] lg:text-xs text-gray-600 truncate">{t('История покупок')}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+              <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* Фильтры и управление */}
-      <section className="bg-white rounded-xl md:rounded-2xl shadow-sm">
-        <div className="p-3 md:p-4">
-          {/* Категории */}
-          <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.map((category) => (
+      {/* Управление - КОМПАКТНОЕ */}
+      <section>
+        <div className="bg-white rounded-lg sm:rounded-xl lg:rounded-2xl shadow-sm">
+          <div className="p-2 sm:p-3 lg:p-4">
+            {/* Верхняя панель управления */}
+            <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2 sm:mb-0">
+              {/* Кнопка фильтра для мобильных */}
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`flex-shrink-0 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
-                  selectedCategory === category
-                    ? 'bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"
               >
-                {category === 'all' ? t('Все товары') : category}
-              </button>
-            ))}
-          </div>
-
-          {/* Контролы */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <span className="text-xs md:text-sm text-gray-600">
-                {t('Найдено')}: <span className="font-semibold">{filteredProducts.length}</span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Переключатель вида */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
-                  title={t('Сетка')}
-                >
-                  <Grid3x3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
-                  title={t('Список')}
-                >
-                  <List className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                </button>
-              </div>
-
-              {/* Переключатель цен */}
-              <button
-                onClick={() => setShowClientPrices(!showClientPrices)}
-                className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
-                  showClientPrices 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {showClientPrices ? (
-                  <>
-                    <Eye className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">{t('Клиентские')}</span>
-                    <span className="sm:hidden">{t('Клиент.')}</span>
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    <span className="hidden sm:inline">{t('Дилерские')}</span>
-                    <span className="sm:hidden">{t('Дилер.')}</span>
-                  </>
+                <Filter className="w-4 h-4" />
+                <span className="text-xs font-medium">{t('Фильтры')}</span>
+                {selectedCategory !== 'all' && (
+                  <span className="w-2 h-2 bg-[#D77E6C] rounded-full"></span>
                 )}
               </button>
+
+              {/* Категории - видны только на десктопе */}
+              <div className="hidden sm:flex flex-1 min-w-0 overflow-x-auto hide-scrollbar">
+                <div className="flex gap-1.5 sm:gap-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs lg:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                        selectedCategory === cat
+                          ? 'bg-[#D77E6C] text-white shadow-md'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {cat === 'all' ? t('Все') : cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Переключатели - КОМПАКТНЫЕ */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 ml-auto sm:ml-0">
+                {/* Вид отображения */}
+                <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1 sm:p-1.5 rounded transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                    title={t('Сетка')}
+                  >
+                    <Grid3x3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1 sm:p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                    title={t('Список')}
+                  >
+                    <List className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4" />
+                  </button>
+                </div>
+
+                {/* Переключатель цен */}
+                <button
+                  onClick={() => setShowClientPrices(!showClientPrices)}
+                  className={`flex items-center gap-1 sm:gap-1.5 lg:gap-2 px-2 sm:px-2.5 lg:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs lg:text-sm font-medium transition-all ${
+                    showClientPrices 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {showClientPrices ? (
+                    <>
+                      <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">{t('Клиентские')}</span>
+                      <span className="sm:hidden">{t('Клиент.')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">{t('Дилерские')}</span>
+                      <span className="sm:hidden">{t('Дилер.')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Выдвижная панель категорий для мобильных */}
+            {filterOpen && (
+              <div className="sm:hidden mt-2 pt-2 border-t border-gray-100">
+                <div className="flex flex-wrap gap-1.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat)
+                        setFilterOpen(false)
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                        selectedCategory === cat
+                          ? 'bg-[#D77E6C] text-white shadow-md'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {cat === 'all' ? t('Все') : cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Флагманские товары */}
+      {/* Флагманские товары - 1 КОЛОНКА НА МОБИЛЕ */}
       {bigProducts.length > 0 && (
-        <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl md:rounded-2xl p-3 md:p-4 border border-amber-100">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 md:p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
-              <Star className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+        <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 border border-amber-100">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+            <div className="p-1 sm:p-1.5 lg:p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex-shrink-0">
+              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 text-white" />
             </div>
-            <h2 className="text-sm md:text-base font-semibold text-gray-900">{t('Флагманские продукты')}</h2>
-            <div className="ml-auto px-2 md:px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] md:text-xs font-bold rounded-full">
+            <h2 className="text-xs sm:text-sm lg:text-base font-semibold text-gray-900 truncate flex-1">{t('Флагманские продукты')}</h2>
+            <div className="px-1.5 sm:px-2 lg:px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] lg:text-xs font-bold rounded-full flex-shrink-0">
               {t('ФЛАГМАН')}
             </div>
           </div>
           
-          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* 1 КОЛОНКА НА МОБИЛЕ */}
+          <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {bigProducts.map((product) => (
               <DealerBigProductCard
                 key={product.id}
@@ -320,12 +351,12 @@ export default function ShopPage() {
         </section>
       )}
 
-      {/* Основной каталог */}
+      {/* Основной каталог - 2 КОЛОНКИ НА МОБИЛЕ */}
       <section>
         {/* Сетка или список товаров */}
         {viewMode === 'grid' ? (
-          // СЕТКА - адаптивная
-          <div className="grid gap-3 md:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          // СЕТКА - 2 КОЛОНКИ НА МОБИЛЕ
+          <div className="grid gap-1.5 sm:gap-2 lg:gap-3 xl:gap-4 grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filteredProducts.map((product) => (
               <div 
                 key={product.id} 
@@ -340,15 +371,15 @@ export default function ShopPage() {
             ))}
           </div>
         ) : (
-          // СПИСОК - адаптивный
-          <div className="flex flex-col gap-2 md:gap-3">
+          // СПИСОК - компактный на мобиле
+          <div className="flex flex-col gap-1.5 sm:gap-2 lg:gap-3">
             {filteredProducts.map((product) => (
               <div 
                 key={product.id}
-                className="group bg-white rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3 md:gap-4"
+                className="group bg-white rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-2 sm:gap-3 lg:gap-4"
               >
-                {/* Изображение */}
-                <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                {/* Изображение - КОМПАКТНОЕ */}
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                   {product.image_url ? (
                     <img 
                       src={product.image_url} 
@@ -357,40 +388,40 @@ export default function ShopPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-5 h-5 md:w-8 md:h-8 text-gray-300" />
+                      <Package className="w-4 h-4 sm:w-5 sm:h-5 lg:w-8 lg:h-8 text-gray-300" />
                     </div>
                   )}
                 </div>
 
-                {/* Информация */}
+                {/* Информация - КОМПАКТНАЯ */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm md:text-base text-gray-900 mb-0.5 md:mb-1 line-clamp-1 group-hover:text-[#D77E6C] transition-colors">
+                  <h3 className="font-semibold text-xs sm:text-sm lg:text-base text-gray-900 mb-0.5 line-clamp-1 group-hover:text-[#D77E6C] transition-colors">
                     {product.name}
                   </h3>
-                  <p className="text-xs md:text-sm text-gray-500 line-clamp-1 hidden sm:block">
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-gray-500 line-clamp-1 hidden sm:block">
                     {product.description || t('Нет описания')}
                   </p>
                   {product.category && (
-                    <span className="inline-block mt-1 px-1.5 md:px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] md:text-xs rounded">
+                    <span className="inline-block mt-0.5 sm:mt-1 px-1 sm:px-1.5 lg:px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] sm:text-[10px] lg:text-xs rounded">
                       {product.category}
                     </span>
                   )}
                 </div>
 
-                {/* Цены и кнопка */}
-                <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 md:gap-3">
+                {/* Цены и кнопка - КОМПАКТНЫЕ */}
+                <div className="flex flex-col items-end gap-1 sm:gap-1.5 lg:gap-2 flex-shrink-0">
                   {/* Цены */}
                   <div className="flex flex-col items-end">
                     {showClientPrices && product.price && (
-                      <div className="text-[10px] md:text-xs text-gray-500">
+                      <div className="text-[9px] sm:text-[10px] lg:text-xs text-gray-500">
                         <span className="line-through">{product.price} ₸</span>
                       </div>
                     )}
-                    <div className="text-base md:text-xl font-bold text-[#D77E6C] whitespace-nowrap">
+                    <div className="text-sm sm:text-base lg:text-xl font-bold text-[#D77E6C] whitespace-nowrap">
                       {showClientPrices ? product.price : product.price_dealer} ₸
                     </div>
                     {product.stock !== null && product.stock !== undefined && (
-                      <div className="text-[10px] md:text-xs text-gray-500 hidden sm:block">
+                      <div className="text-[9px] sm:text-[10px] lg:text-xs text-gray-500 hidden sm:block">
                         {t('В наличии')}: {product.stock}
                       </div>
                     )}
@@ -398,12 +429,12 @@ export default function ShopPage() {
 
                   {/* Кнопка действия */}
                   <button 
-                    className="flex-shrink-0 p-2 md:p-3 bg-gradient-to-br from-[#D77E6C] to-[#E09080] text-white rounded-lg hover:shadow-lg transition-all group-hover:scale-110"
+                    className="flex-shrink-0 p-1.5 sm:p-2 lg:p-3 bg-gradient-to-br from-[#D77E6C] to-[#E09080] text-white rounded-lg hover:shadow-lg transition-all group-hover:scale-110"
                     onClick={() => {
                       toast.success(t('Товар добавлен в корзину'))
                     }}
                   >
-                    <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
+                    <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
                   </button>
                 </div>
               </div>
@@ -413,12 +444,12 @@ export default function ShopPage() {
 
         {/* Пустое состояние */}
         {filteredProducts.length === 0 && (
-          <div className="text-center py-8 md:py-12 bg-white rounded-xl">
-            <ShoppingBag className="w-10 h-10 md:w-12 md:h-12 text-gray-300 mx-auto mb-3 md:mb-4" />
-            <p className="text-sm md:text-base text-gray-500 mb-2">{t('Нет товаров в этой категории')}</p>
+          <div className="text-center py-6 sm:py-8 lg:py-12 bg-white rounded-xl">
+            <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-gray-300 mx-auto mb-2 sm:mb-3 lg:mb-4" />
+            <p className="text-xs sm:text-sm lg:text-base text-gray-500 mb-1.5 sm:mb-2">{t('Нет товаров в этой категории')}</p>
             <button
               onClick={() => setSelectedCategory('all')}
-              className="text-[#D77E6C] hover:underline text-xs md:text-sm font-medium"
+              className="text-[#D77E6C] hover:underline text-[10px] sm:text-xs lg:text-sm font-medium"
             >
               {t('Показать все товары')}
             </button>
@@ -426,17 +457,17 @@ export default function ShopPage() {
         )}
       </section>
 
-      {/* Кнопка "Загрузить еще" */}
+      {/* Кнопка "Загрузить еще" - КОМПАКТНАЯ */}
       {filteredProducts.length >= 12 && (
-        <section className="flex justify-center py-3 md:py-4">
+        <section className="flex justify-center py-2 sm:py-3 lg:py-4">
           <button 
             onClick={fetchProducts}
-            className="group px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white text-xs md:text-sm font-medium rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+            className="group px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white text-[10px] sm:text-xs lg:text-sm font-medium rounded-lg sm:rounded-xl hover:shadow-lg transition-all flex items-center gap-1.5 sm:gap-2"
           >
-            <Package className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <Package className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 flex-shrink-0" />
             <span className="hidden sm:inline">{t('Загрузить еще товары')}</span>
             <span className="sm:hidden">{t('Еще')}</span>
-            <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 group-hover:translate-y-[-2px] transition-transform" />
+            <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 group-hover:translate-y-[-2px] transition-transform flex-shrink-0" />
           </button>
         </section>
       )}

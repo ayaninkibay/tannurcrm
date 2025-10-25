@@ -5,12 +5,12 @@ import Image from 'next/image';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import ReferalLink from '@/components/blocks/ReferralLink';
 import SponsorCard from '@/components/blocks/SponsorCard';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Instagram, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Instagram,
   Calendar,
   Award,
   Users,
@@ -28,7 +28,10 @@ import {
   Briefcase,
   CreditCard,
   UserCog,
-  Crown
+  Crown,
+  FileText,
+  Download,
+  CheckCircle
 } from 'lucide-react';
 
 // Импорты для работы с пользователем
@@ -76,7 +79,7 @@ const getPermissionsDisplay = (permissions: string[] | null) => {
 // Модальное окно изменения аватара
 const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>(currentAvatar || '/icons/avatar-placeholder.png');
+  const [preview, setPreview] = useState<string>(currentAvatar || '/icons/default-avatar.png');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { uploadUserAvatar } = useUserModule();
@@ -85,7 +88,7 @@ const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any)
   useEffect(() => {
     if (!isOpen) {
       setSelectedFile(null);
-      setPreview(currentAvatar || '/icons/avatar-placeholder.png');
+      setPreview(currentAvatar || '/icons/default-avatar.png');
       setError('');
     }
   }, [isOpen, currentAvatar]);
@@ -133,7 +136,7 @@ const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any)
 
   const handleRemove = () => {
     setSelectedFile(null);
-    setPreview('/icons/avatar-placeholder.png');
+    setPreview('/icons/default-avatar.png');
   };
 
   if (!isOpen) return null;
@@ -397,7 +400,8 @@ export default function ProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
+  const [photoPreview, setPhotoPreview] = useState<string>('/icons/default-avatar.png');
+  const [contractLanguage, setContractLanguage] = useState<'ru' | 'kz' | 'cn'>('ru');
 
   const roleDisplay = getRoleDisplay(profile?.role, profile?.permissions);
   const RoleIcon = roleDisplay.icon;
@@ -590,6 +594,287 @@ export default function ProfilePage() {
               Ваш спонсор
             </h3>
             <SponsorCard variant="gray" />
+          </div>
+        </div>
+
+        {/* Договор */}
+        <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
+          <div className="border-b border-gray-100 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#DC7C67] to-[#E89380] flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {contractLanguage === 'ru' ? 'Дилерский договор' : contractLanguage === 'kz' ? 'Дилерлік келісім шарт' : '经销商合同'}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {contractLanguage === 'ru' ? 'Официальный договор дилера' : contractLanguage === 'kz' ? 'Дилердің ресми келісімі' : '正式经销商合同'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setContractLanguage('ru')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    contractLanguage === 'ru' ? 'bg-[#DC7C67] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  РУ
+                </button>
+                <button
+                  onClick={() => setContractLanguage('kz')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    contractLanguage === 'kz' ? 'bg-[#DC7C67] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ҚЗ
+                </button>
+                <button
+                  onClick={() => setContractLanguage('cn')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    contractLanguage === 'cn' ? 'bg-[#DC7C67] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  中文
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="max-h-[600px] overflow-y-auto bg-gray-50 rounded-2xl p-6 space-y-4 text-sm">
+              {contractLanguage === 'ru' && (
+                <div className="space-y-4">
+                  <div className="text-center font-bold text-base">
+                    ДИЛЕРСКИЙ ДОГОВОР № 0001
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>г.Алматы</span>
+                    <span>«___» ___________202___ года</span>
+                  </div>
+                  <p className="text-justify leading-relaxed">
+                    Товарищество с ограниченной ответственностью «Tannur Trading Holding», в лице Директора Қағыбат М.,
+                    действующего на основании Устава, именуемое в дальнейшем «Продавец», с одной стороны и гражданин{' '}
+                    <span className="font-semibold bg-yellow-100 px-1">{profile?.first_name || '___'} {profile?.last_name || '___'}</span>,
+                    ИИН: <span className="font-semibold bg-yellow-100 px-1">{profile?.iin || '_______________________'}</span>,
+                    именуемое в дальнейшем «Дилер», с другой стороны, совместно именуемые «Стороны» заключили настоящий Договор о нижеследующем:
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">1. ПРЕДМЕТ И ЦЕЛЬ ДОГОВОРА</div>
+                  <p className="text-justify leading-relaxed">
+                    1.1. Дилерский договор (далее по тексту - Договор) регулирует взаимоотношения Продавца и Дилера.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.2. Целью данного Договора является определение принципов, порядка и условий осуществления Дилером деятельности,
+                    направленной на продажу продукции ТОО «Tannur Trading Holding» с торговой маркой «Tannur cosmetics»,
+                    изготавливаемой и поставляемой Продавцом, именуемой в дальнейшем «Товар», третьим лицам – потребителям и посредникам.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.3. Дилер на территории города Алматы Республики Казахстан (именуемой в дальнейшем «Территория»),
+                    получает статус официального Дилера Продавца, осуществляет продвижение и сбыт Товара.
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">2. ОБЯЗАННОСТИ СТОРОН</div>
+                  <p className="font-medium">2.1. Дилер обязуется:</p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.1. Продавать Товар от своего имени, на свой риск и под свою имущественную ответственность на Территории
+                    согласно условиям настоящего Договора.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.2. Соблюдать авторские права на Товар, принадлежащие Продавцу, принимать все необходимые меры для
+                    недопущения их нарушения по вине Дилера.
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">3. УСЛОВИЯ ОПЛАТЫ И ОБЪЕМ ЗАКУПОК</div>
+                  <p className="text-justify leading-relaxed">
+                    3.1. Дилер приобретает Товар у Продавца по дилерской стоимости.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.2. Стоимость закупаемого Дилером Товара определяется официальным прайс-листом по выбранным бизнес пакетам.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.3. 100% оплата за Товар производится Дилером в тенге Республики Казахстан в безналичном порядке на расчетный счет Продавца,
+                    либо наличными денежными средствами в кассу Продавца.
+                  </p>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-6">
+                    <p className="text-xs text-blue-800 italic">
+                      * Полный текст договора доступен для скачивания. Данный документ был подписан при регистрации в системе.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {contractLanguage === 'kz' && (
+                <div className="space-y-4">
+                  <div className="text-center font-bold text-base">
+                    ДИЛЕРЛІК КЕЛІСІМ № 0001
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Алматы қ</span>
+                    <span>«___» ___________202___ жыл</span>
+                  </div>
+                  <p className="text-justify leading-relaxed">
+                    «Tannur Trading Holding» жауапкершілігі шектеулі серіктестігі, бұдан әрі «Сатушы» деп аталатын Жарғы негізінде әрекет ететін
+                    директор М. Қағыбат ұсынатын, бір жағынан азамат{' '}
+                    <span className="font-semibold bg-yellow-100 px-1">{profile?.first_name || '___'} {profile?.last_name || '___'}</span>,
+                    ЖСН: <span className="font-semibold bg-yellow-100 px-1">{profile?.iin || '_______________________'}</span>,
+                    бұдан әрі «Дилер» деп аталатын, екінші жағынан, бірлесіп «Тараптар» деп аталатын, осы Келісімшартқа мынадай тәртіппен жасасты:
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">1. КЕЛІСІМНІҢ МӘНІ ЖӘНЕ МАҚСАТЫ</div>
+                  <p className="text-justify leading-relaxed">
+                    1.1. Дилерлік келісім (бұдан әрі – Шарт) Сатушы мен Дилер арасындағы қарым-қатынасты реттейді.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.2. Осы Шарттың мақсаты Сатушы өндіретін және жеткізетін, бұдан әрі «Өнімдер», «Таннур косметика» сауда белгісімен
+                    «Таннур Трейдинг Холдинг» ЖШС өнімдерін сатуға бағытталған қызметті жүзеге асыру қағидаттарын, тәртібін және
+                    үшінші тұлғаларға – тұтынушылар мен делдалдар шарттарын анықтау болып табылады.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.3. Қазақстан Республикасында және Алматы қаласының аумағындағы дилер (бұдан әрі – «Аумақ») Сатушының ресми Дилері
+                    мәртебесін алады, Өнімді жылжытады және өткізеді.
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">2. ТАРАПТАРДЫҢ МІНДЕТТЕМЕЛЕРІ</div>
+                  <p className="font-medium">2.1. Дилер міндеттенеді:</p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.1. Осы Келісімнің талаптарына сәйкес Тауарды өз атыңыздан, өз тәуекеліңізбен және аумақта мүліктік жауапкершілігімен сату.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.2. Сатушыға тиесілі Өнімнің авторлық құқығын құрметтеу, олардың Дилердің кінәсінен бұзылуын болдырмау үшін
+                    барлық қажетті шараларды қабылдау.
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">3. ТӨЛЕУ ШАРТТАРЫ ЖӘНЕ САТЫП АЛУ САНЫ</div>
+                  <p className="text-justify leading-relaxed">
+                    3.1. Дилер Өнімді сатушыдан дилер бағасы бойынша сатып алады.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.2. Дилер сатып алатын тауардың құны таңдалған бизнес пакеттер бойынша ресми прайс-парақпен анықталады.
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.3. Тауар үшін 100% төлемді Дилер Қазақстан Республикасының теңгесінде Сатушының банктік шотына немесе
+                    Сатушының кассасына қолма-қол ақшамен аудару арқылы жүзеге асырады.
+                  </p>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-6">
+                    <p className="text-xs text-blue-800 italic">
+                      * Келісімнің толық мәтіні жүктеп алу үшін қолжетімді. Бұл құжат жүйеде тіркеу кезінде қол қойылды.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {contractLanguage === 'cn' && (
+                <div className="space-y-4">
+                  <div className="text-center font-bold text-base">
+                    经销商合同 № 0001
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>阿拉木图市</span>
+                    <span>202___年___月___日</span>
+                  </div>
+                  <p className="text-justify leading-relaxed">
+                    "Tannur Trading Holding"有限责任合伙企业，以下简称"卖方"，由根据公司章程行事的董事Қағыбат М.代表，
+                    一方，和公民{' '}
+                    <span className="font-semibold bg-yellow-100 px-1">{profile?.first_name || '___'} {profile?.last_name || '___'}</span>，
+                    个人识别号码: <span className="font-semibold bg-yellow-100 px-1">{profile?.iin || '_______________________'}</span>，
+                    以下简称"经销商"，另一方，共同称为"双方"，就以下事项订立本合同：
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">1. 合同标的和目的</div>
+                  <p className="text-justify leading-relaxed">
+                    1.1. 经销商合同（以下简称合同）规范卖方和经销商之间的关系。
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.2. 本合同的目的是确定经销商开展活动的原则、程序和条件，该活动旨在向第三方（消费者和中介）销售
+                    "Tannur Trading Holding"有限责任公司生产和供应的"Tannur cosmetics"商标产品（以下简称"商品"）。
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    1.3. 经销商在哈萨克斯坦共和国阿拉木图市境内（以下简称"区域"）获得卖方官方经销商地位，进行商品推广和销售。
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">2. 双方义务</div>
+                  <p className="font-medium">2.1. 经销商承诺：</p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.1. 根据本合同条款，以自己的名义、自担风险并承担财产责任在区域内销售商品。
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    2.1.2. 尊重卖方对商品拥有的版权，采取一切必要措施防止因经销商过错而侵犯版权。
+                  </p>
+
+                  <div className="font-semibold text-base mt-6">3. 付款条件和采购量</div>
+                  <p className="text-justify leading-relaxed">
+                    3.1. 经销商以经销商价格从卖方处购买商品。
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.2. 经销商购买商品的成本由所选商业套餐的官方价目表确定。
+                  </p>
+                  <p className="text-justify leading-relaxed">
+                    3.3. 经销商以哈萨克斯坦共和国坚戈通过转账方式向卖方账户或现金方式向卖方收银台支付商品100%的款项。
+                  </p>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-6">
+                    <p className="text-xs text-blue-800 italic">
+                      * 完整合同文本可供下载。本文件已在系统注册时签署。
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Статус подписи */}
+            <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">
+                      {contractLanguage === 'ru' ? 'Договор подписан' : contractLanguage === 'kz' ? 'Келісім қол қойылды' : '合同已签署'}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {contractLanguage === 'ru'
+                        ? `Подписант: ${profile?.first_name || 'Имя'} ${profile?.last_name || 'Фамилия'}`
+                        : contractLanguage === 'kz'
+                        ? `Қол қойған: ${profile?.first_name || 'Аты'} ${profile?.last_name || 'Тегі'}`
+                        : `签署人: ${profile?.first_name || '名字'} ${profile?.last_name || '姓氏'}`
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {contractLanguage === 'ru'
+                        ? `ИИН: ${profile?.iin || 'Не указан'}`
+                        : contractLanguage === 'kz'
+                        ? `ЖСН: ${profile?.iin || 'Көрсетілмеген'}`
+                        : `个人识别号码: ${profile?.iin || '未指定'}`
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {contractLanguage === 'ru'
+                        ? `Дата подписания: ${profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : 'Н/Д'}`
+                        : contractLanguage === 'kz'
+                        ? `Қол қойылған күні: ${profile?.created_at ? new Date(profile.created_at).toLocaleDateString('kk-KZ') : 'Ж/Қ'}`
+                        : `签署日期: ${profile?.created_at ? new Date(profile.created_at).toLocaleDateString('zh-CN') : '未知'}`
+                      }
+                    </p>
+                  </div>
+                </div>
+                <button
+                  disabled
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gray-300 text-gray-500 rounded-xl font-medium cursor-not-allowed opacity-60"
+                  title={contractLanguage === 'ru' ? 'Скоро будет доступно' : contractLanguage === 'kz' ? 'Жақында қолжетімді болады' : '即将推出'}
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="text-sm">
+                    {contractLanguage === 'ru' ? 'Скачать договор' : contractLanguage === 'kz' ? 'Келісімді жүктеу' : '下载合同'}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

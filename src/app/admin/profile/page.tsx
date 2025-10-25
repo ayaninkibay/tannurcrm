@@ -77,7 +77,7 @@ const getPermissionsDisplay = (permissions: string[] | null) => {
 // Модальное окно изменения аватара
 const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>(currentAvatar || '/icons/avatar-placeholder.png');
+  const [preview, setPreview] = useState<string>(currentAvatar || '/icons/default-avatar.png');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { uploadUserAvatar } = useUserModule();
@@ -86,7 +86,7 @@ const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any)
   useEffect(() => {
     if (!isOpen) {
       setSelectedFile(null);
-      setPreview(currentAvatar || '/icons/avatar-placeholder.png');
+      setPreview(currentAvatar || '/icons/default-avatar.png');
       setError('');
     }
   }, [isOpen, currentAvatar]);
@@ -135,7 +135,7 @@ const AvatarModal = ({ isOpen, onClose, currentAvatar, userId, onSuccess }: any)
 
   const handleRemove = () => {
     setSelectedFile(null);
-    setPreview('/icons/avatar-placeholder.png');
+    setPreview('/icons/default-avatar.png');
   };
 
   if (!isOpen) return null;
@@ -399,7 +399,7 @@ export default function ProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string>('/icons/avatar-placeholder.png');
+  const [photoPreview, setPhotoPreview] = useState<string>('/icons/default-avatar.png');
   
   const overallLoading = userContextLoading || userModuleLoading;
 
