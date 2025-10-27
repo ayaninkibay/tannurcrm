@@ -198,7 +198,7 @@ export default function ShopPage() {
             </a>
 
             <a 
-              href="/dealer/orders"
+              href="/dealer/shop/orders"
               className="group bg-white/95 hover:bg-white backdrop-blur-sm rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-4 transition-all flex items-center gap-2 sm:gap-3 hover:scale-[1.02] hover:shadow-xl"
             >
               <div className="p-1.5 sm:p-2 lg:p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg group-hover:scale-110 transition-transform flex-shrink-0">
