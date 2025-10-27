@@ -5,11 +5,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import Lottie from 'lottie-react';
-import hamburgerAnimation from '@/components/lotties/Menu.json';
 import { useUser } from '@/context/UserContext';
 import { useTranslate, type Lang } from '@/hooks/useTranslate';
-import { ArrowLeft, ChevronDown, X, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ChevronDown, X, ShoppingCart, Home, Users, TrendingUp, Store, Package, GraduationCap, User, Menu, Globe } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 interface MoreHeaderDEProps {
@@ -42,6 +40,7 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
   const [languageMenuOpen, setLanguageMenuOpen] = useState<boolean>(false);
   const [showInqoInfo, setShowInqoInfo] = useState<boolean>(false);
   const [cartCount, setCartCount] = useState<number>(0);
+  const [isNavigatingToProfile, setIsNavigatingToProfile] = useState<boolean>(false);
 
   const currentLanguage = languages.find(lang => lang.code === language) || languages[0];
 
@@ -92,7 +91,10 @@ const loadCartCount = async () => {
     if (profile?.id) loadCartCount();
   }, [pathname, profile?.id]);
 
-  const handleProfile = () => router.push('/dealer/profile');
+  const handleProfile = () => {
+    setIsNavigatingToProfile(true);
+    router.push('/dealer/profile');
+  };
 
   const handleSignOut = async () => {
     try {
@@ -122,12 +124,16 @@ const loadCartCount = async () => {
   };
 
   const menuItems = [
-    { label: t('Мой дэшборд')    || 'Мой дэшборд',    href: '/dealer/dashboard', icon: '/icons/Icon home gray.png',   activeIcon: '/icons/Icon home white.png' },
-    { label: t('Моя команда')    || 'Моя команда',    href: '/dealer/myteam',    icon: '/icons/Icon share gray.png',  activeIcon: '/icons/Icon share white.png' },
-    { label: t('Мои финансы')    || 'Мои финансы',    href: '/dealer/stats',     icon: '/icons/IconStatsGray.svg',    activeIcon: '/icons/IconStatsOpacity.svg' },
-    { label: t('Tannur Store')   || 'Tannur Store',   href: '/dealer/shop',      icon: '/icons/Icon shop gray.png',   activeIcon: '/icons/Icon shop white.png' },
-    { label: t('Корзина')        || 'Корзина',        href: '/dealer/shop/cart',      icon: '/icons/Icon shop gray.png',   activeIcon: '/icons/Icon shop white.png', showBadge: true },
-    { label: t('Tannur BA')      || 'Tannur BA',      href: '/dealer/education', icon: '/icons/Icon course gray.png', activeIcon: '/icons/Icon course white.png' }
+    { label: t('Главная')    || 'Главная',    href: '/dealer/dashboard', icon: Home },
+    { label: t('Моя команда')    || 'Моя команда',    href: '/dealer/myteam',    icon: Users },
+    { label: t('Мои финансы')    || 'Мои финансы',    href: '/dealer/stats',     icon: TrendingUp },
+    { label: t('Магазин')   || 'Магазин',   href: '/dealer/shop',      icon: Store },
+    { label: t('Академия')      || 'Академия',      href: '/dealer/education', icon: GraduationCap },
+    { type: 'divider' as const },
+    { label: t('Корзина')        || 'Корзина',        href: '/dealer/shop/cart',      icon: ShoppingCart, showBadge: true },
+    { label: t('Мои покупки')    || 'Мои покупки',    href: '/dealer/shop/orders',    icon: Package },
+    { type: 'divider' as const },
+    { label: t('Мой профиль')    || 'Мой профиль',    href: '/dealer/profile',        icon: User, showAvatar: true },
   ];
 
   const handleLanguageChange = (langCode: Lang) => {
@@ -182,110 +188,194 @@ const loadCartCount = async () => {
 
           <button
             onClick={handleProfile}
-            className="flex items-center bg-white rounded-full py-1 pl-1 pr-1 md:pr-3 gap-1 md:gap-2"
+            className="flex items-center bg-white rounded-full py-1 pl-1 pr-3 gap-2 hover:shadow-md transition-shadow relative"
+            disabled={isNavigatingToProfile}
           >
             <Image
               src={avatarUrl}
               alt={t('Аватар')}
-              width={28}
-              height={28}
-              className="rounded-full"
+              width={32}
+              height={32}
+              className="rounded-full object-cover"
               unoptimized
             />
-            <span className="hidden lg:block text-sm text-[#111] font-medium truncate max-w-[200px]">
-              {name}
-            </span>
-            <Image
-              src="/icons/buttom/DoubleIconArrowBlack.svg"
-              alt="arrow"
-              width={16}
-              height={16}
-              className="hidden lg:block"
-              unoptimized
-            />
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-base font-medium text-gray-900 leading-tight truncate max-w-[120px]">
+                {name}
+              </span>
+              
+              {/* Лоадер рядом с именем */}
+              <AnimatePresence>
+                {isNavigatingToProfile && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                    className="flex items-center"
+                  >
+                    <motion.div
+                      className="w-4 h-4 border-2 border-[#D77E6C]/30 border-t-[#D77E6C] rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </button>
 
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center lg:hidden"
-            aria-label="Open menu"
-          >
-            <Lottie
-              animationData={hamburgerAnimation}
-              loop
-              autoplay
-              className="w-10 h-10"
-            />
-          </button>
+          {/* Language Switcher - Desktop */}
+          <div className="hidden lg:flex relative">
+            <button
+              onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+              className="flex items-center bg-white rounded-full py-1 px-3 gap-2 border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-5 h-5 flex items-center justify-center overflow-hidden rounded-sm">
+                <Image
+                  src={currentLanguage.flagSvg}
+                  alt={currentLanguage.name}
+                  width={20}
+                  height={20}
+                  className={currentLanguage.className}
+                  unoptimized
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-700">{currentLanguage.short}</span>
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${languageMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
 
+            {/* Language Dropdown */}
+            <AnimatePresence>
+              {languageMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
+                >
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageChange(lang.code)}
+                      className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${
+                        language === lang.code
+                          ? 'bg-[#D77E6C]/10 text-[#D77E6C]'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="w-5 h-5 flex items-center justify-center overflow-hidden rounded-sm">
+                        <Image
+                          src={lang.flagSvg}
+                          alt={lang.name}
+                          width={20}
+                          height={20}
+                          className={lang.className}
+                          unoptimized
+                        />
+                      </div>
+                      <span className="font-medium">{lang.short}</span>
+                      <span className="text-xs opacity-70 ml-auto">{lang.name}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Menu Button - Mobile */}
           <button
-            onClick={handleSignOut}
-            className="w-5 h-5 md:w-6 md:h-6 hidden lg:flex items-center justify-center"
-            aria-label={t('Выйти')}
-            title={t('Выйти')}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex lg:hidden items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+            aria-label={t('Меню')}
           >
-            <Image
-              src="/icons/buttom/IconSignOut.svg"
-              alt={t('Выйти')}
-              width={16}
-              height={16}
-              unoptimized
-            />
+            <Menu className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
 
-      {/* Мобильное меню */}
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {menuOpen && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
             />
-
             <motion.div
               initial={{ x: '100%' }}
-              animate={{ x: '60%' }}
+              animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ duration: 0.3 }}
-              className="fixed top-0 right-0 h-full w-[160%] bg-gray-100 z-50 flex flex-col justify-between p-6 space-y-4 lg:hidden shadow-lg"
-              role="dialog"
-              aria-modal="true"
+              transition={{ type: 'tween', duration: 0.3 }}
+              className="fixed top-0 right-0 h-full w-[280px] bg-[#FBF7F4] shadow-2xl z-50 flex flex-col lg:hidden overflow-y-auto"
             >
-              <div className="w-full">
-                <div className="w-full flex justify-between items-center mb-4">
-                  <Image src="/icons/company/tannur_black.svg" alt={t('Логотип')} width={70} height={24} unoptimized />
-                  <button onClick={() => setMenuOpen(false)} className="text-3xl" aria-label="Close">×</button>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src={avatarUrl}
+                    alt={t('Аватар')}
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
+                    unoptimized
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs text-gray-400">{t('Добро пожаловать!')}</span>
+                    <span className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
+                      {name}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full h-px bg-gray-300 mt-5 mb-10" />
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
+                  aria-label={t('Закрыть')}
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
 
-                {menuItems.map(({ label, href, icon, activeIcon, showBadge }) => {
-                  const isActive = pathname === href;
+              {/* Menu Items */}
+              <div className="flex flex-col gap-2 p-4 flex-1">
+                {menuItems.map((item, index) => {
+                  if (item.type === 'divider') {
+                    return <div key={`divider-${index}`} className="w-full h-px bg-gray-300 my-2" />;
+                  }
+
+                  const isActive = pathname === item.href;
+                  const IconComponent = item.icon;
+
                   return (
                     <button
-                      key={href}
+                      key={item.href}
                       onClick={() => {
+                        router.push(item.href);
                         setMenuOpen(false);
-                        router.push(href);
                       }}
-                      className={`flex items-center gap-3 px-4 py-2 rounded-xl w-full text-left transition-all relative ${
-                        isActive ? 'bg-[#D77E6C] text-white' : 'text-black hover:bg-[#F4ECEB]'
+                      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                        isActive
+                          ? 'bg-gradient-to-r from-[#D77E6C] to-[#E89380] text-white shadow-md'
+                          : 'bg-white text-gray-700 hover:bg-[#F4ECEB]'
                       }`}
                     >
-                      <Image
-                        src={isActive && activeIcon ? activeIcon : icon}
-                        alt={typeof label === 'string' ? label : ''}
-                        width={20}
-                        height={20}
-                        unoptimized
-                      />
-                      <span className="text-base font-medium">{label}</span>
-                      {showBadge && cartCount > 0 && (
-                        <span className="ml-auto w-6 h-6 bg-[#D77E6C] text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {item.showAvatar ? (
+                        <Image
+                          src={avatarUrl}
+                          alt={item.label}
+                          width={20}
+                          height={20}
+                          className="rounded-full object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <IconComponent className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                      )}
+                      <span className="font-medium">{item.label}</span>
+                      {item.showBadge && cartCount > 0 && (
+                        <span className="ml-auto px-2 py-0.5 bg-[#D77E6C] text-white text-xs font-bold rounded-full">
                           {cartCount > 99 ? '99+' : cartCount}
                         </span>
                       )}
@@ -299,6 +389,18 @@ const loadCartCount = async () => {
                   {t('Прочее') || 'Прочее'}
                 </p>
                 <div className="flex flex-col gap-2 mt-2">
+                  {/* Переход на главную */}
+                  <button
+                    onClick={() => {
+                      router.push('/');
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-2 font-medium rounded-xl w-full text-left text-black hover:bg-[#F4ECEB] transition-colors"
+                  >
+                    <Globe className="w-5 h-5 text-gray-600" />
+                    <span>{t('Главная страница') || 'Главная страница'}</span>
+                  </button>
+
                   {/* Переключатель языка в мобильном меню */}
                   <button
                     onClick={() => setLanguageMenuOpen(!languageMenuOpen)}

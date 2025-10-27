@@ -1,3 +1,5 @@
+// src/app/dealer/myteam/create_dealer/dealer_payment/page.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +8,7 @@ import {
   ArrowRight, Loader2, CreditCard, Copy, Check, 
   Users, Info, Phone, Mail, Hash, User, 
   Clock, Award, ChevronRight, Wallet,
-  CheckCircle2, AlertCircle, QrCode, Building2
+  CheckCircle2, AlertCircle, QrCode, Building2, ExternalLink, XCircle
 } from 'lucide-react';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { supabase } from '@/lib/supabase/client';
@@ -46,7 +48,7 @@ export default function DealerPayment() {
   const [dealerInfo, setDealerInfo] = useState<any>(null);
   const [sponsorInfo, setSponsorInfo] = useState<any>(null);
   const [sponsorChain, setSponsorChain] = useState<any[]>([]);
-  const [selectedMethod, setSelectedMethod] = useState('');
+  const [selectedMethod, setSelectedMethod] = useState('kaspi_qr');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -56,31 +58,12 @@ export default function DealerPayment() {
   const [activeTab, setActiveTab] = useState<'payment' | 'bonuses'>('payment');
   
   const SUBSCRIPTION_AMOUNT = 100000;
-  const KASPI_NUMBER = "+7 777 123 45 67";
-  const BANK_NAME = "ТОО Tannur Kazakhstan";
-  const BIK = "KKMFKZ2A";
-  const IIK = "KZ12345678901234567890";
+  const KASPI_LINK = 'https://pay.kaspi.kz/pay/lafnp2v5';
 
-  const paymentMethods = [
-    { 
-      id: 'kaspi_transfer',
-      name: 'Каспи Перевод',
-      icon: '💳',
-      description: 'На номер телефона'
-    },
-    { 
-      id: 'kaspi_qr',
-      name: 'Каспи QR', 
-      icon: '📱',
-      description: 'Через QR-код'
-    },
-    { 
-      id: 'bank_transfer',
-      name: 'Банковский перевод',
-      icon: '🏦',
-      description: 'На расчетный счет'
-    }
-  ];
+  // Состояния для flow оплаты
+  const [paymentStep, setPaymentStep] = useState<'initial' | 'waiting' | 'confirm' | 'declined'>('initial');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [declineReason, setDeclineReason] = useState('');
 
   useEffect(() => {
     if (dealerId && sponsorId) {
@@ -156,14 +139,22 @@ export default function DealerPayment() {
     setTimeout(() => setCopied(''), 2000);
   };
 
-  const handlePaymentConfirm = async () => {
-    if (!selectedMethod) {
-      setError('Выберите способ оплаты');
-      return;
-    }
+  const handleOpenKaspi = () => {
+    window.open(KASPI_LINK, '_blank');
+    setPaymentStep('waiting');
+  };
 
-    if (!notes.trim()) {
-      setError('Укажите детали платежа');
+  const handleConfirmPayment = () => {
+    setPaymentStep('confirm');
+  };
+
+  const handleDeclinePayment = () => {
+    setPaymentStep('declined');
+  };
+
+  const handleSubmitConfirmation = async () => {
+    if (!paymentNotes.trim()) {
+      setError('Пожалуйста, укажите данные об оплате');
       return;
     }
 
@@ -177,16 +168,47 @@ export default function DealerPayment() {
           user_id: dealerId,
           parent_id: sponsorId,
           amount: SUBSCRIPTION_AMOUNT,
-          method: selectedMethod,
+          method: 'kaspi_qr',
           status: 'pending',
           paid_at: new Date().toISOString(),
-          notes: notes.trim()
+          notes: paymentNotes.trim()
         }]);
 
       if (error) throw error;
       setShowSuccessModal(true);
     } catch (err: any) {
       setError('Ошибка создания заявки');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitDecline = async () => {
+    if (!declineReason.trim()) {
+      setError('Пожалуйста, укажите причину');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const { error } = await supabase
+        .from('subscription_payments')
+        .insert([{
+          user_id: dealerId,
+          parent_id: sponsorId,
+          amount: SUBSCRIPTION_AMOUNT,
+          method: 'kaspi_qr',
+          status: 'cancelled',
+          paid_at: new Date().toISOString(),
+          notes: `Отменено: ${declineReason.trim()}`
+        }]);
+
+      if (error) throw error;
+      router.push('/dealer/myteam');
+    } catch (err: any) {
+      setError('Ошибка сохранения');
     } finally {
       setIsSubmitting(false);
     }
@@ -301,178 +323,225 @@ export default function DealerPayment() {
               </div>
             </div>
 
-            {/* Payment Methods */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Выберите способ оплаты</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {paymentMethods.map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => setSelectedMethod(method.id)}
-                    className={`bg-white rounded-2xl p-6 text-left hover:shadow-lg transition-all group border-2 ${
-                      selectedMethod === method.id 
-                        ? 'border-[#D77E6C] shadow-lg' 
-                        : 'border-gray-100'
-                    }`}
-                  >
-                    <div className="text-3xl mb-3">{method.icon}</div>
-                    <h4 className="text-base font-semibold text-gray-900 mb-1">
-                      {method.name}
-                    </h4>
-                    <p className="text-sm text-gray-500">{method.description}</p>
-                    {selectedMethod === method.id && (
-                      <div className="mt-4 flex items-center text-[#D77E6C] text-sm font-medium">
-                        <span>Выбрано</span>
-                        <Check className="w-4 h-4 ml-1" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Payment Details - Kaspi Transfer */}
-            {selectedMethod === 'kaspi_transfer' && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="text-2xl">💳</span>
-                  Детали для перевода Каспи
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Номер телефона</p>
-                      <p className="text-lg font-mono font-semibold">{KASPI_NUMBER}</p>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(KASPI_NUMBER, 'phone')}
-                      className="p-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C66B5A] transition-colors"
-                    >
-                      {copied === 'phone' ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                    </button>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-1">Сумма к переводу</p>
-                    <p className="text-2xl font-bold text-[#D77E6C]">{SUBSCRIPTION_AMOUNT.toLocaleString()} ₸</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Details - QR Code */}
-            {selectedMethod === 'kaspi_qr' && (
+            {/* Kaspi QR Payment Flow */}
+            {paymentStep === 'initial' && (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <QrCode className="w-5 h-5" />
-                  QR-код для оплаты
+                  Kaspi QR оплата
                 </h4>
-                <div className="flex flex-col items-center">
-                  <div className="w-64 h-64 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">QR-код временно недоступен</p>
+                
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-gray-700">
+                      <p className="font-semibold text-blue-900 mb-1">Как оплатить:</p>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Нажмите кнопку ниже - откроется Kaspi</li>
+                        <li>Введите сумму: <span className="font-bold">{SUBSCRIPTION_AMOUNT.toLocaleString()} ₸</span></li>
+                        <li>Завершите оплату</li>
+                        <li>Вернитесь сюда и подтвердите оплату</li>
+                      </ol>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-2">Сумма к оплате</p>
-                    <p className="text-3xl font-bold text-[#D77E6C]">{SUBSCRIPTION_AMOUNT.toLocaleString()} ₸</p>
+                </div>
+
+                <button
+                  onClick={handleOpenKaspi}
+                  className="w-full py-4 bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white rounded-xl font-semibold text-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  Перейти к оплате в Kaspi
+                </button>
+              </div>
+            )}
+
+            {paymentStep === 'waiting' && (
+              <div className="bg-white rounded-2xl p-6 border-2 border-yellow-200 mb-6">
+                <div className="text-center mb-6">
+                  <div className="inline-flex p-4 bg-yellow-50 rounded-full mb-4">
+                    <Loader2 className="w-12 h-12 text-yellow-600 animate-spin" />
                   </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Ожидаем оплату
+                  </h3>
+                  <p className="text-gray-600">
+                    После завершения оплаты в Kaspi, вернитесь на эту страницу
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                  <p className="text-sm text-gray-600 mb-1">Сумма к оплате:</p>
+                  <p className="text-2xl font-bold text-[#D77E6C]">
+                    {SUBSCRIPTION_AMOUNT.toLocaleString()} ₸
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={handleConfirmPayment}
+                    className="py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    Я оплатил
+                  </button>
+                  <button
+                    onClick={handleDeclinePayment}
+                    className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Не оплатил
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleOpenKaspi}
+                  className="w-full mt-3 py-2 text-sm text-[#D77E6C] hover:text-[#C66B5A] transition-colors flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Открыть Kaspi снова
+                </button>
+              </div>
+            )}
+
+            {paymentStep === 'confirm' && (
+              <div className="bg-white rounded-2xl p-6 border-2 border-green-200 mb-6">
+                <div className="text-center mb-6">
+                  <div className="inline-flex p-4 bg-green-50 rounded-full mb-4">
+                    <CheckCircle2 className="w-12 h-12 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Подтверждение оплаты
+                  </h3>
+                  <p className="text-gray-600">
+                    Пожалуйста, укажите данные об оплате для подтверждения
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <p className="text-sm text-blue-900 font-medium mb-2">Что указать:</p>
+                    <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                      <li>От кого перевод (имя или номер телефона)</li>
+                      <li>Последние 4 цифры номера телефона отправителя</li>
+                      <li>Примерное время оплаты</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Данные об оплате *
+                    </label>
+                    <textarea
+                      value={paymentNotes}
+                      onChange={(e) => setPaymentNotes(e.target.value)}
+                      placeholder="Например: Оплачено от Айжан, номер +7 777 123-45-67, время: 14:30"
+                      className="w-full h-32 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent resize-none"
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {paymentNotes.length}/500 символов
+                    </p>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 mt-0.5" />
+                      {error}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setPaymentStep('waiting')}
+                    className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+                  >
+                    Назад
+                  </button>
+                  <button
+                    onClick={handleSubmitConfirmation}
+                    disabled={isSubmitting}
+                    className="py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Обработка...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5" />
+                        Подтвердить оплату
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Payment Details - Bank Transfer */}
-            {selectedMethod === 'bank_transfer' && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
-                  Банковские реквизиты
-                </h4>
-                <div className="space-y-3">
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-1">Получатель</p>
-                    <p className="font-semibold">{BANK_NAME}</p>
+            {paymentStep === 'declined' && (
+              <div className="bg-white rounded-2xl p-6 border-2 border-red-200 mb-6">
+                <div className="text-center mb-6">
+                  <div className="inline-flex p-4 bg-red-50 rounded-full mb-4">
+                    <XCircle className="w-12 h-12 text-red-600" />
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">БИК банка</p>
-                      <p className="font-mono font-semibold">{BIK}</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    Оплата не выполнена
+                  </h3>
+                  <p className="text-gray-600">
+                    Пожалуйста, укажите причину
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Причина *
+                    </label>
+                    <textarea
+                      value={declineReason}
+                      onChange={(e) => setDeclineReason(e.target.value)}
+                      placeholder="Например: Технические проблемы с Kaspi, нет средств на счету, передумал..."
+                      className="w-full h-24 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                      maxLength={300}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {declineReason.length}/300 символов
+                    </p>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-2 text-red-600 text-sm bg-red-50 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 mt-0.5" />
+                      {error}
                     </div>
-                    <button
-                      onClick={() => copyToClipboard(BIK, 'bik')}
-                      className="p-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C66B5A] transition-colors"
-                    >
-                      {copied === 'bik' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1 mr-2">
-                      <p className="text-sm text-gray-500 mb-1">Расчетный счет (ИИК)</p>
-                      <p className="font-mono text-sm break-all">{IIK}</p>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(IIK, 'iik')}
-                      className="p-2 bg-[#D77E6C] text-white rounded-lg hover:bg-[#C66B5A] transition-colors flex-shrink-0"
-                    >
-                      {copied === 'iik' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-1">Назначение платежа</p>
-                    <p className="text-sm font-medium">Оплата подписки дилера ID: {dealerId?.slice(0, 8)}</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500 mb-1">Сумма</p>
-                    <p className="text-2xl font-bold text-[#D77E6C]">{SUBSCRIPTION_AMOUNT.toLocaleString()} ₸</p>
-                  </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setPaymentStep('waiting')}
+                    className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+                  >
+                    Назад
+                  </button>
+                  <button
+                    onClick={handleSubmitDecline}
+                    disabled={isSubmitting}
+                    className="py-3 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Обработка...
+                      </>
+                    ) : (
+                      'Отменить оплату'
+                    )}
+                  </button>
                 </div>
               </div>
-            )}
-
-            {/* Notes Input */}
-            {selectedMethod && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Детали платежа <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-[#D77E6C] transition-colors"
-                  placeholder="Укажите номер транзакции, время перевода, имя отправителя..."
-                  rows={3}
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Эта информация поможет финансисту быстрее найти и подтвердить ваш платеж
-                </p>
-                {error && (
-                  <div className="mt-3 flex items-start gap-2 text-red-600 text-sm">
-                    <AlertCircle className="w-4 h-4 mt-0.5" />
-                    {error}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Submit Button */}
-            {selectedMethod && (
-              <button
-                onClick={handlePaymentConfirm}
-                disabled={!notes.trim() || isSubmitting}
-                className="w-full bg-[#D77E6C] hover:bg-[#C66B5A] disabled:bg-gray-300 text-white py-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Отправка заявки...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Подтвердить оплату</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
             )}
           </>
         ) : (
