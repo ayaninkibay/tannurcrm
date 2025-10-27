@@ -129,40 +129,38 @@ export default function CartPage() {
   };
 
   // ПОДТВЕРЖДЕНИЕ ОПЛАТЫ (ДА ОПЛАТИЛ)
-  const handlePaymentConfirmed = async (paymentNotes: string) => {
-    if (!currentUser || !createdOrderId) return;
+const handlePaymentConfirmed = async (notes: string) => {
+  if (!createdOrder) return;
+  
+  setIsProcessing(true);
+  
+  try {
+    const result = await orderService.confirmPayment(
+      createdOrder.id,
+      user.id,
+      notes
+    );
 
-    setIsProcessing(true);
-
-    try {
-      console.log('✅ Confirming payment...');
-
-      const result = await orderService.confirmPayment(
-        createdOrderId,
-        currentUser.id,
-        paymentNotes
-      );
-
-      if (!result.success) {
-        toast.error(result.error || 'Ошибка подтверждения оплаты');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Очищаем корзину
-      await cart.clearCart();
-
-      // SUCCESS
-      setOrderStage('success');
-      toast.success('Заказ успешно оплачен!');
-
-    } catch (error: any) {
-      console.error('❌ Error confirming payment:', error);
-      toast.error(error.message || 'Ошибка подтверждения оплаты');
-    } finally {
-      setIsProcessing(false);
+    if (result.success) {
+      // ✅ ДОБАВЬ ЭТИ СТРОКИ - Принудительная перезагрузка корзины
+      console.log('🧹 Reloading cart after order confirmation...');
+      await loadCart(); // Перезагрузит корзину с сервера
+      
+      // Небольшая задержка для гарантии
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      toast.success('Оплата подтверждена!');
+      router.push(`/dealer/orders/${createdOrder.id}`);
+    } else {
+      toast.error(result.error || 'Ошибка подтверждения оплаты');
     }
-  };
+  } catch (error) {
+    console.error('Error confirming payment:', error);
+    toast.error('Ошибка подтверждения оплаты');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   // ОТКЛОНЕНИЕ ОПЛАТЫ (НЕТ НЕ ОПЛАТИЛ)
   const handlePaymentCancelled = async (declineNotes: string) => {
