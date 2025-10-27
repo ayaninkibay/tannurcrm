@@ -3,12 +3,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ExternalLink, CheckCircle, XCircle, Phone, AlertCircle, Loader2 } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface KaspiPaymentFlowProps {
   totalAmount: number;
   onPaymentConfirmed: (notes: string) => void | Promise<void>;
-  onPaymentCancelled: (notes: string) => void | Promise<void>;
+  onPaymentCancelled: () => void | Promise<void>;  // Убрали notes - он не нужен
   isProcessing?: boolean;
 }
 
@@ -18,11 +18,8 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
   onPaymentCancelled,
   isProcessing = false 
 }) => {
-  const [step, setStep] = useState<'initial' | 'waiting' | 'confirm' | 'declined'>('initial');
+  const [step, setStep] = useState<'initial' | 'waiting' | 'confirm'>('initial');
   const [paymentNotes, setPaymentNotes] = useState('');
-  const [declineReason, setDeclineReason] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [showContactForm, setShowContactForm] = useState(false);
 
   const KASPI_LINK = 'https://pay.kaspi.kz/pay/lafnp2v5';
 
@@ -35,8 +32,9 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
     setStep('confirm');
   };
 
-  const handleDeclinePayment = () => {
-    setStep('declined');
+  const handleDeclinePayment = async () => {
+    // Просто вызываем callback без всяких форм
+    await onPaymentCancelled();
   };
 
   const handleSubmitConfirmation = async () => {
@@ -45,19 +43,6 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
       return;
     }
     await onPaymentConfirmed(paymentNotes);
-  };
-
-  const handleSubmitDecline = async () => {
-    if (!declineReason.trim()) {
-      alert('Пожалуйста, укажите причину');
-      return;
-    }
-    
-    const notes = showContactForm 
-      ? `Причина: ${declineReason}\nТелефон для связи: ${contactPhone}`
-      : `Причина: ${declineReason}`;
-    
-    await onPaymentCancelled(notes);
   };
 
   const formatAmount = (amount: number) => {
@@ -137,14 +122,16 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={handleConfirmPayment}
-            className="py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={isProcessing}
+            className="py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
           >
             <CheckCircle className="w-5 h-5" />
             Я оплатил
           </button>
           <button
             onClick={handleDeclinePayment}
-            className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+            disabled={isProcessing}
+            className="py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 text-gray-700 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
           >
             <XCircle className="w-5 h-5" />
             Не оплатил
@@ -198,6 +185,7 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
               placeholder="Например: Оплачено от Айжан, номер +7 777 123-45-67, время: 14:30"
               className="w-full h-32 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent resize-none"
               maxLength={500}
+              disabled={isProcessing}
             />
             <p className="text-xs text-gray-500 mt-1">
               {paymentNotes.length}/500 символов
@@ -208,7 +196,8 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             onClick={() => setStep('waiting')}
-            className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+            disabled={isProcessing}
+            className="py-3 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 text-gray-700 rounded-xl font-semibold transition-colors"
           >
             Назад
           </button>
@@ -220,102 +209,13 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
             {isProcessing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Обработка...
+                Создание заказа...
               </>
             ) : (
               <>
                 <CheckCircle className="w-5 h-5" />
                 Подтвердить оплату
               </>
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // DECLINED STEP - Не оплатил
-  if (step === 'declined') {
-    return (
-      <div className="bg-white rounded-2xl p-6 border-2 border-red-200">
-        <div className="text-center mb-6">
-          <div className="inline-flex p-4 bg-red-50 rounded-full mb-4">
-            <XCircle className="w-12 h-12 text-red-600" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Оплата не выполнена
-          </h3>
-          <p className="text-gray-600">
-            Пожалуйста, укажите причину
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Причина *
-            </label>
-            <textarea
-              value={declineReason}
-              onChange={(e) => setDeclineReason(e.target.value)}
-              placeholder="Например: Технические проблемы с Kaspi, нет средств на счету, передумал..."
-              className="w-full h-24 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-              maxLength={300}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {declineReason.length}/300 символов
-            </p>
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showContactForm}
-                onChange={(e) => setShowContactForm(e.target.checked)}
-                className="w-5 h-5 text-[#D77E6C] border-gray-300 rounded focus:ring-[#D77E6C]"
-              />
-              <div className="flex items-center gap-2 flex-1">
-                <Phone className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  Свяжитесь со мной
-                </span>
-              </div>
-            </label>
-
-            {showContactForm && (
-              <div className="mt-3">
-                <input
-                  type="tel"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="+7 (777) 123-45-67"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => setStep('waiting')}
-            className="py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
-          >
-            Назад
-          </button>
-          <button
-            onClick={handleSubmitDecline}
-            disabled={isProcessing}
-            className="py-3 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Обработка...
-              </>
-            ) : (
-              'Сохранить заказ'
             )}
           </button>
         </div>

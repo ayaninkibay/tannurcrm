@@ -20,7 +20,9 @@ import {
   Filter,
   X,
   MapPin,
-  Box
+  Box,
+  MessageCircle,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -39,6 +41,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<OrderWithItems | null>(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
@@ -126,8 +130,6 @@ export default function OrdersPage() {
   const handleCancelOrder = async (orderId: string) => {
     if (!currentUser) return;
     
-    if (!confirm('Вы уверены, что хотите отменить заказ?')) return;
-    
     try {
       console.log('❌ Cancelling order:', orderId);
       
@@ -138,7 +140,7 @@ export default function OrdersPage() {
         return;
       }
       
-      toast.success('Заказ отменен');
+      toast.success(result.message || 'Заказ отменен');
       
       await loadOrders();
       await loadStats();
@@ -147,10 +149,18 @@ export default function OrdersPage() {
         setShowDetails(false);
       }
       
+      setShowCancelModal(false);
+      setOrderToCancel(null);
+      
     } catch (error: any) {
       console.error('❌ Error cancelling order:', error);
       toast.error(error.message || 'Ошибка отмены заказа');
     }
+  };
+
+  const openCancelModal = (order: OrderWithItems) => {
+    setOrderToCancel(order);
+    setShowCancelModal(true);
   };
 
   const handleViewOrder = async (order: OrderWithItems) => {
@@ -233,6 +243,12 @@ export default function OrdersPage() {
         color: 'bg-red-50 text-red-700 border-red-200', 
         icon: XCircle,
         gradient: 'from-red-500 to-red-600'
+      },
+      'refund_pending': { 
+        label: 'Возврат средств', 
+        color: 'bg-orange-50 text-orange-700 border-orange-200', 
+        icon: AlertCircle,
+        gradient: 'from-orange-500 to-orange-600'
       }
     };
     
@@ -318,7 +334,7 @@ export default function OrdersPage() {
       <div className="mt-4 space-y-6">
         
         {/* СТАТИСТИКА */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
           
           <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
@@ -332,26 +348,6 @@ export default function OrdersPage() {
 
           <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl">
-                <Clock className="w-4 h-4 md:w-5 md:h-5 text-white" />
-              </div>
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-yellow-600">{stats.activeOrders}</div>
-            <div className="text-xs md:text-sm text-gray-500 mt-1">В процессе</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
-                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-white" />
-              </div>
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-green-600">{stats.completedOrders}</div>
-            <div className="text-xs md:text-sm text-gray-500 mt-1">Выполнено</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-3">
               <div className="p-2 bg-gradient-to-br from-[#D77E6C] to-[#E09080] rounded-xl">
                 <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
@@ -362,6 +358,35 @@ export default function OrdersPage() {
             <div className="text-xs md:text-sm text-gray-500 mt-1">Потрачено</div>
           </div>
         </div>
+
+        {/* КНОПКА СВЯЗИ С МЕНЕДЖЕРОМ */}
+        <a
+          href="https://wa.me/77478828987"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-6 border-2 border-green-200 shadow-sm hover:shadow-lg hover:border-green-300 transition-all group relative overflow-hidden"
+        >
+          {/* Декоративный фон */}
+          <div className="absolute inset-0 bg-gradient-to-r from-green-400/5 to-emerald-400/5 group-hover:from-green-400/10 group-hover:to-emerald-400/10 transition-all" />
+          
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all">
+                <MessageCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-lg text-gray-900 mb-0.5">Связаться с менеджером</p>
+                <p className="text-sm text-gray-600">Поможем с любым вопросом по заказу</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-green-200 shadow-sm">
+              <span className="text-green-700 font-semibold text-sm">Открыть WhatsApp</span>
+              <svg className="w-5 h-5 text-green-600 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+          </div>
+        </a>
 
         {/* ПОИСК И ФИЛЬТРЫ */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -547,10 +572,10 @@ export default function OrdersPage() {
                         Подробнее
                       </button>
                       
-                      {/* Отмена только для new и processing */}
-                      {['new', 'processing'].includes(order.order_status) && (
+                      {/* Отмена только для new */}
+                      {order.order_status === 'new' && (
                         <button
-                          onClick={() => handleCancelOrder(order.id)}
+                          onClick={() => openCancelModal(order)}
                           className="px-4 py-2.5 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all font-medium border border-red-200"
                         >
                           Отменить
@@ -664,17 +689,90 @@ export default function OrdersPage() {
                 </p>
               </div>
 
-              {/* Кнопка отмены (если можно) */}
-              {['new', 'processing'].includes(selectedOrder.order_status) && (
-                <div className="flex gap-3 pt-4 border-t">
+              {/* Кнопки действий */}
+              <div className="flex flex-col gap-3 pt-4 border-t">
+                {/* Кнопка отмены (только для new) */}
+                {selectedOrder.order_status === 'new' && (
                   <button
-                    onClick={() => handleCancelOrder(selectedOrder.id)}
+                    onClick={() => {
+                      setShowDetails(false);
+                      openCancelModal(selectedOrder);
+                    }}
                     className="w-full px-6 py-3 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors font-semibold border border-red-200"
                   >
                     Отменить заказ
                   </button>
+                )}
+
+                {/* Связаться с менеджером */}
+                <a
+                  href="https://wa.me/77478828987"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full px-6 py-3 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors font-semibold border border-green-200 flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Связаться с менеджером
+                </a>
+                <p className="text-sm text-gray-500 text-center">
+                  Если нужна помощь с заказом
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА ОТМЕНЫ ЗАКАЗА */}
+      {showCancelModal && orderToCancel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
                 </div>
-              )}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Отмена заказа</h3>
+                  <p className="text-sm text-gray-500">{orderToCancel.order_number}</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  {orderToCancel.paid_at ? (
+                    <>
+                      <span className="font-semibold text-orange-600">Заказ был оплачен.</span>
+                      <br />
+                      После отмены статус изменится на <span className="font-semibold">"Возврат средств"</span>.
+                      <br />
+                      Менеджер свяжется с вами для возврата денег.
+                    </>
+                  ) : (
+                    <>
+                      Заказ не был оплачен, он будет удален из системы.
+                    </>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false);
+                    setOrderToCancel(null);
+                  }}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-semibold"
+                >
+                  Отменить
+                </button>
+                <button
+                  onClick={() => handleCancelOrder(orderToCancel.id)}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-semibold"
+                >
+                  Подтвердить
+                </button>
+              </div>
             </div>
           </div>
         </div>

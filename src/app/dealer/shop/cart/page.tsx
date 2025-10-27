@@ -1,5 +1,3 @@
-// src/app/dealer/shop/cart/page.tsx
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -25,7 +23,7 @@ import { useCartModule } from '@/lib/cart/CartModule';
 import { orderService } from '@/lib/order/OrderService';
 import KaspiPaymentFlow from '@/components/payment/KaspiPaymentFlow';
 
-type OrderStage = 'cart' | 'payment' | 'success' | 'pending';
+type OrderStage = 'cart' | 'payment' | 'success';
 
 export default function CartPage() {
   const router = useRouter();
@@ -33,7 +31,6 @@ export default function CartPage() {
   const cart = useCartModule();
   
   const [orderStage, setOrderStage] = useState<OrderStage>('cart');
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -83,7 +80,7 @@ export default function CartPage() {
     return errors.length === 0;
   };
 
-  // ПЕРЕХОД К ОПЛАТЕ
+  // ПЕРЕХОД К ОПЛАТЕ (без создания заказа)
   const handleProceedToPayment = async () => {
     if (!currentUser || !cart.cart) return;
 
@@ -93,111 +90,76 @@ export default function CartPage() {
       return;
     }
 
+    // Просто переходим к экрану оплаты, НЕ создаем заказ
+    setOrderStage('payment');
+  };
+
+  // ПОДТВЕРЖДЕНИЕ ОПЛАТЫ - ТОЛЬКО ЗДЕСЬ создаем заказ и очищаем корзину
+  const handlePaymentConfirmed = async (paymentNotes: string) => {
+    if (!currentUser || !cart.cart) return;
+
     setIsProcessing(true);
 
     try {
-      console.log('📦 Creating order...');
+      console.log('📦 Creating order after payment confirmation...');
       
-      // Создаем заказ
-      const result = await orderService.createAndPayOrder(
+      // 1. СОЗДАЕМ ЗАКАЗ
+      const createResult = await orderService.createAndPayOrder(
         currentUser.id,
         cart.cart.id,
         'Самовывоз',
         'pickup'
       );
       
-      if (!result.success || !result.data) {
-        toast.error(result.error || 'Не удалось создать заказ');
+      if (!createResult.success || !createResult.data) {
+        toast.error(createResult.error || 'Не удалось создать заказ');
         setIsProcessing(false);
         return;
       }
 
-      // Сохраняем ID заказа
-      setCreatedOrderId(result.data.id);
-      
-      // Переходим к оплате
-      setOrderStage('payment');
-      
-      console.log('✅ Order created:', result.data.order_number);
+      const orderId = createResult.data.id;
+      console.log('✅ Order created:', createResult.data.order_number);
 
-    } catch (error: any) {
-      console.error('❌ Error creating order:', error);
-      toast.error(error.message || 'Ошибка создания заказа');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // ПОДТВЕРЖДЕНИЕ ОПЛАТЫ (ДА ОПЛАТИЛ)
-  const handlePaymentConfirmed = async (paymentNotes: string) => {
-    if (!currentUser || !createdOrderId) return;
-
-    setIsProcessing(true);
-
-    try {
+      // 2. ПОДТВЕРЖДАЕМ ОПЛАТУ
       console.log('✅ Confirming payment...');
-
-      const result = await orderService.confirmPayment(
-        createdOrderId,
+      const confirmResult = await orderService.confirmPayment(
+        orderId,
         currentUser.id,
         paymentNotes
       );
 
-      if (!result.success) {
-        toast.error(result.error || 'Ошибка подтверждения оплаты');
+      if (!confirmResult.success) {
+        toast.error(confirmResult.error || 'Ошибка подтверждения оплаты');
         setIsProcessing(false);
         return;
       }
 
-      // Очищаем корзину
+      // 3. ОЧИЩАЕМ КОРЗИНУ (только после успеха)
       await cart.clearCart();
+      console.log('🗑️ Cart cleared');
 
-      // SUCCESS
+      // 4. SUCCESS
       setOrderStage('success');
       toast.success('Заказ успешно оплачен!');
 
     } catch (error: any) {
-      console.error('❌ Error confirming payment:', error);
-      toast.error(error.message || 'Ошибка подтверждения оплаты');
+      console.error('❌ Error in payment flow:', error);
+      toast.error(error.message || 'Ошибка оформления заказа');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // ОТКЛОНЕНИЕ ОПЛАТЫ (НЕТ НЕ ОПЛАТИЛ)
+  // ОТКЛОНЕНИЕ ОПЛАТЫ - НЕ создаем заказ, НЕ очищаем корзину, просто возвращаемся
   const handlePaymentCancelled = async (declineNotes: string) => {
-    if (!currentUser || !createdOrderId) return;
-
-    setIsProcessing(true);
-
-    try {
-      console.log('❌ Declining payment...');
-
-      const result = await orderService.declinePayment(
-        createdOrderId,
-        currentUser.id,
-        declineNotes
-      );
-
-      if (!result.success) {
-        toast.error(result.error || 'Ошибка сохранения заказа');
-        setIsProcessing(false);
-        return;
-      }
-
-      // Очищаем корзину
-      await cart.clearCart();
-
-      // PENDING
-      setOrderStage('pending');
-      toast(result.message || 'Заказ сохранен');
-
-    } catch (error: any) {
-      console.error('❌ Error declining payment:', error);
-      toast.error(error.message || 'Ошибка сохранения заказа');
-    } finally {
-      setIsProcessing(false);
-    }
+    console.log('❌ Payment cancelled:', declineNotes);
+    
+    // Просто возвращаемся в корзину
+    setOrderStage('cart');
+    
+    toast('Вы можете попробовать оплатить позже', {
+      icon: '💭',
+    });
   };
 
   const totals = cart.calculateTotals();
@@ -218,41 +180,6 @@ export default function CartPage() {
           </h2>
           <p className="text-gray-600 mb-8">
             Спасибо за оплату. Ваш заказ принят в обработку.
-          </p>
-          <div className="space-y-3">
-            <button
-              onClick={() => router.push('/dealer/shop/orders')}
-              className="w-full px-8 py-3 bg-gradient-to-r from-[#D77E6C] to-[#E09080] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
-              Перейти к моим заказам
-            </button>
-            <button
-              onClick={() => router.push('/dealer/shop')}
-              className="w-full px-8 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
-            >
-              Продолжить покупки
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // PENDING SCREEN
-  // ==========================================
-  if (orderStage === 'pending') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 flex items-center justify-center">
-        <div className="max-w-lg w-full bg-white rounded-3xl p-8 text-center shadow-2xl border border-gray-100">
-          <div className="inline-flex p-6 bg-yellow-50 rounded-full mb-6">
-            <AlertCircle className="w-16 h-16 text-yellow-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
-            Заказ в ожидании
-          </h2>
-          <p className="text-gray-600 mb-8">
-            Ваш заказ сохранен. Наш менеджер свяжется с вами в ближайшее время для уточнения деталей оплаты.
           </p>
           <div className="space-y-3">
             <button
@@ -563,7 +490,7 @@ export default function CartPage() {
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Создание заказа...
+                    Обработка...
                   </>
                 ) : (
                   'Перейти к оплате'
@@ -577,7 +504,6 @@ export default function CartPage() {
                   </div>
                   <div className="text-sm">
                     <p className="font-medium text-gray-900">Защита покупателя</p>
-                    <p className="text-gray-500">Гарантия возврата</p>
                   </div>
                 </div>
                 

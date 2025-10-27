@@ -47,6 +47,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [isInCart, setIsInCart] = useState(false);
   const [cartItemQuantity, setCartItemQuantity] = useState(0);
   const [totalCartItems, setTotalCartItems] = useState(0);
+  const [totalCartAmount, setTotalCartAmount] = useState(0);
 
   // ==========================================
   // ЗАГРУЗКА ДАННЫХ
@@ -71,6 +72,13 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
       // Считаем общее количество товаров
       const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
       setTotalCartItems(total);
+      
+      // Считаем общую сумму ВСЕХ товаров
+      const totalAmount = cart.cartItems.reduce((sum, item) => {
+        const price = item.price_dealer || 0;
+        return sum + (item.quantity * price);
+      }, 0);
+      setTotalCartAmount(totalAmount);
     }
   }, [cart.cartItems, product]);
 
@@ -514,7 +522,7 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                               {t('В корзине:')} {totalCartItems}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {formatPrice(cart.calculateTotals().subtotal)} ₸
+                              {formatPrice(totalCartAmount)} ₸
                             </p>
                           </>
                         ) : (

@@ -11,7 +11,7 @@ export interface Order {
   order_number: string;
   user_id: string;
   total_amount: number;
-  order_status: 'new' | 'confirmed' | 'processing' | 'ready_for_pickup' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
+  order_status: 'new' | 'confirmed' | 'processing' | 'ready_for_pickup' | 'shipped' | 'delivered' | 'cancelled' | 'returned' | 'refund_pending';
   payment_status: 'pending' | 'paid' | 'cancelled' | 'refunded' | 'processing';
   delivery_address: string;
   notes?: string | null;
@@ -364,15 +364,18 @@ class OrderService {
   }
 
   /**
-   * Отменить заказ (только если ещё не отправлен)
+   * Отменить заказ
+   * - Если НЕ оплачен (paid_at = null) → УДАЛЯЕМ заказ
+   * - Если ОПЛАЧЕН (paid_at != null) → Меняем статус на refund_pending
    */
   async cancelOrder(orderId: string, userId: string): Promise<ServiceResult> {
     try {
       console.log('❌ Cancelling order...', { orderId, userId });
 
+      // Получаем заказ
       const { data: order, error: fetchError } = await supabase
         .from('orders')
-        .select('order_status, payment_status, user_id')
+        .select('order_status, payment_status, user_id, paid_at')
         .eq('id', orderId)
         .single();
 
@@ -390,31 +393,72 @@ class OrderService {
         };
       }
 
-      // Можно отменить только подтвержденные, но не отправленные
-      if (['shipped', 'delivered'].includes(order.order_status)) {
+      // Можно отменить только new или processing
+      if (!['new', 'processing'].includes(order.order_status)) {
         return {
           success: false,
           error: 'Заказ нельзя отменить на текущем этапе'
         };
       }
 
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          order_status: 'cancelled',
-          payment_status: 'cancelled',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', orderId);
+      // ПРОВЕРЯЕМ ОПЛАТУ
+      if (!order.paid_at) {
+        // ❌ НЕ ОПЛАЧЕН → УДАЛЯЕМ заказ
+        console.log('💰 Order not paid, deleting...');
+        
+        // Сначала удаляем order_items (из-за foreign key)
+        const { error: deleteItemsError } = await supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', orderId);
 
-      if (updateError) throw updateError;
+        if (deleteItemsError) {
+          console.error('❌ Error deleting order items:', deleteItemsError);
+          throw deleteItemsError;
+        }
 
-      console.log('✅ Order cancelled');
+        // Затем удаляем сам заказ
+        const { error: deleteOrderError } = await supabase
+          .from('orders')
+          .delete()
+          .eq('id', orderId);
 
-      return {
-        success: true,
-        message: 'Заказ отменен'
-      };
+        if (deleteOrderError) {
+          console.error('❌ Error deleting order:', deleteOrderError);
+          throw deleteOrderError;
+        }
+
+        console.log('✅ Order deleted (not paid)');
+
+        return {
+          success: true,
+          message: 'Заказ удален'
+        };
+
+      } else {
+        // ✅ ОПЛАЧЕН → Меняем статус на refund_pending
+        console.log('💰 Order paid, setting refund_pending status...');
+        
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            order_status: 'refund_pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+
+        if (updateError) {
+          console.error('❌ Error updating order:', updateError);
+          throw updateError;
+        }
+
+        console.log('✅ Order status changed to refund_pending');
+
+        return {
+          success: true,
+          message: 'Заказ отменен. Ожидается возврат средств.'
+        };
+      }
 
     } catch (error: any) {
       console.error('❌ Error in cancelOrder:', error);
