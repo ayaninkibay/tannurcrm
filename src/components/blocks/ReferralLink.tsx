@@ -14,7 +14,7 @@ export default function ReferralLink({ referralCode }: ReferralLinkProps) {
   const [copied, setCopied] = useState(false);
 
   const code = referralCode || profile?.referral_code || 'USER2024';
-  const fullLink = `https://tnba.kz/${code}`;
+  const fullLink = `https://tnba.kz/invite/${code}`;
 
   const handleCopy = async () => {
     try {
@@ -111,7 +111,7 @@ export default function ReferralLink({ referralCode }: ReferralLinkProps) {
 
                   {/* URL */}
                   <div className="flex items-baseline gap-0.5 text-sm font-medium">
-                    <span className="text-gray-500">tnba.kz/</span>
+                    <span className="text-gray-500">tnba.kz/invite/</span>
                     <span className="text-[#DC7C67] font-semibold">{code}</span>
                   </div>
                 </div>

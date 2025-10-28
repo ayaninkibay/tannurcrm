@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import SponsorCard from '@/components/blocks/SponsorCard';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
+import { referralService } from '@/lib/referral/referralService';
 
 export default function CreateDealer() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function CreateDealer() {
     first_name: '',
     last_name: '',
     email: '',
-    phone: '',
+    phone: '+7 ',
     iin: '',
     region: '',
     instagram: '',
@@ -31,8 +32,93 @@ export default function CreateDealer() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // Availability checks
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  const [iinChecking, setIinChecking] = useState(false);
+  const [iinAvailable, setIinAvailable] = useState<boolean | null>(null);
+  const [phoneChecking, setPhoneChecking] = useState(false);
+  const [phoneAvailable, setPhoneAvailable] = useState<boolean | null>(null);
+
+  // Проверка доступности email
+  useEffect(() => {
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setEmailAvailable(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setEmailChecking(true);
+      const result = await referralService.checkEmailAvailability(formData.email);
+      setEmailAvailable(result.available);
+      setEmailChecking(false);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.email]);
+
+  // Проверка доступности IIN
+  useEffect(() => {
+    if (!formData.iin || formData.iin.length !== 12) {
+      setIinAvailable(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIinChecking(true);
+      const result = await referralService.checkIinAvailability(formData.iin);
+      setIinAvailable(result.available);
+      setIinChecking(false);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.iin]);
+
+  // Проверка доступности телефона
+  useEffect(() => {
+    const phoneDigits = formData.phone.replace(/^\+7\s*/, '').replace(/\D/g, '');
+    
+    if (!formData.phone || phoneDigits.length !== 10) {
+      setPhoneAvailable(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setPhoneChecking(true);
+      const phoneForCheck = formData.phone.replace(/\D/g, '');
+      const result = await referralService.checkPhoneAvailability(phoneForCheck);
+      setPhoneAvailable(result.available);
+      setPhoneChecking(false);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.phone]);
+
+  const handleInputChange = (field: string, value: string) => {
+    // Для телефона - форматирование с +7
+    if (field === 'phone') {
+      let cleaned = value.replace(/\D/g, '');
+      if (cleaned.startsWith('8')) cleaned = '7' + cleaned.slice(1);
+      if (!cleaned.startsWith('7')) cleaned = '7' + cleaned;
+      cleaned = cleaned.slice(0, 11);
+      
+      let formatted = '+7';
+      if (cleaned.length > 1) formatted += ' ' + cleaned.slice(1, 4);
+      if (cleaned.length > 4) formatted += ' ' + cleaned.slice(4, 7);
+      if (cleaned.length > 7) formatted += ' ' + cleaned.slice(7, 9);
+      if (cleaned.length > 9) formatted += ' ' + cleaned.slice(9, 11);
+      
+      setFormData(prev => ({ ...prev, [field]: formatted }));
+    } 
+    // Для ИИН - только цифры
+    else if (field === 'iin') {
+      const cleaned = value.replace(/\D/g, '').slice(0, 12);
+      setFormData(prev => ({ ...prev, [field]: cleaned }));
+    } 
+    else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+    
     if (error) setError('');
   };
 
@@ -40,10 +126,19 @@ export default function CreateDealer() {
     if (!formData.first_name.trim()) return 'Введите имя';
     if (!formData.last_name.trim()) return 'Введите фамилию';
     if (!formData.email.trim()) return 'Введите email';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Некорректный формат email';
+    if (!emailAvailable) return 'Этот email уже зарегистрирован';
+    
+    const phoneDigits = formData.phone.replace(/^\+7\s*/, '').replace(/\D/g, '');
     if (!formData.phone.trim()) return 'Введите телефон';
+    if (phoneDigits.length !== 10) return 'Введите 10 цифр номера';
+    if (!phoneAvailable) return 'Этот телефон уже зарегистрирован';
+    
     if (!formData.iin.trim()) return 'Введите ИИН';
     if (formData.iin.length !== 12) return 'ИИН должен содержать 12 цифр';
     if (!/^\d+$/.test(formData.iin)) return 'ИИН должен содержать только цифры';
+    if (!iinAvailable) return 'Этот ИИН уже зарегистрирован';
+    
     if (!formData.region.trim()) return 'Выберите регион';
     if (!formData.profession.trim()) return 'Введите профессию';
     if (!formData.password) return 'Введите пароль';
@@ -68,14 +163,15 @@ export default function CreateDealer() {
     setError('');
 
     try {
-      // Получаем текущую сессию
       const { data: session } = await supabase.auth.getSession();
       
       if (!session.session?.access_token) {
         throw new Error('Нет активной сессии');
-      };
+      }
 
-      // Вызываем Edge Function с полными данными формы
+      // Подготавливаем телефон для отправки (убираем + и пробелы)
+      const phoneForDB = formData.phone.replace(/\D/g, '');
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-dealer`, {
         method: 'POST',
         headers: {
@@ -87,7 +183,7 @@ export default function CreateDealer() {
           password: formData.password,
           first_name: formData.first_name,
           last_name: formData.last_name,
-          phone: formData.phone,
+          phone: phoneForDB,
           iin: formData.iin,
           region: formData.region,
           instagram: formData.instagram,
@@ -118,10 +214,9 @@ export default function CreateDealer() {
       const newDealerId = result.user_id;
       console.log('Dealer created with ID:', newDealerId);
 
-      // Данные уже заполнены в Edge Function, поэтому редиректим сразу
       router.push(`/dealer/myteam/create_dealer/dealer_payment?dealer_id=${newDealerId}&sponsor_id=${profile.id}`);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating dealer:', err);
       setError(err.message || 'Произошла ошибка');
     } finally {
@@ -188,44 +283,86 @@ export default function CreateDealer() {
             {/* Email */}
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-600">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
-                placeholder="example@email.com"
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={`w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm transition-all ${
+                    emailAvailable === false ? 'ring-2 ring-red-300' :
+                    emailAvailable === true ? 'ring-2 ring-green-300' :
+                    'focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20'
+                  }`}
+                  placeholder="example@mail.com"
+                />
+                {emailChecking && (
+                  <Loader2 className="absolute right-3 top-3 w-5 h-5 animate-spin text-gray-400" />
+                )}
+                {!emailChecking && emailAvailable === true && (
+                  <CheckCircle2 className="absolute right-3 top-3 w-5 h-5 text-green-500" />
+                )}
+              </div>
+              {emailAvailable === false && (
+                <span className="text-xs text-red-600">Этот email уже зарегистрирован</span>
+              )}
             </div>
 
             {/* Телефон */}
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-600">Телефон *</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
-                placeholder="+7 (777) 123-45-67"
-              />
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className={`w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm transition-all ${
+                    phoneAvailable === false ? 'ring-2 ring-red-300' :
+                    phoneAvailable === true ? 'ring-2 ring-green-300' :
+                    'focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20'
+                  }`}
+                  placeholder="+7 707 355 48 35"
+                />
+                {phoneChecking && (
+                  <Loader2 className="absolute right-3 top-3 w-5 h-5 animate-spin text-gray-400" />
+                )}
+                {!phoneChecking && phoneAvailable === true && (
+                  <CheckCircle2 className="absolute right-3 top-3 w-5 h-5 text-green-500" />
+                )}
+              </div>
+              {phoneAvailable === false && (
+                <span className="text-xs text-red-600">Этот телефон уже зарегистрирован</span>
+              )}
             </div>
 
             {/* ИИН */}
             <div className="flex flex-col gap-2">
               <label className="text-sm text-gray-600">ИИН *</label>
-              <input
-                type="text"
-                value={formData.iin}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 12);
-                  handleInputChange('iin', value);
-                }}
-                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
-                placeholder="123456789012"
-                maxLength={12}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.iin}
+                  onChange={(e) => handleInputChange('iin', e.target.value)}
+                  className={`w-full bg-[#F6F6F6] rounded-xl px-4 py-3 text-sm transition-all ${
+                    iinAvailable === false ? 'ring-2 ring-red-300' :
+                    iinAvailable === true ? 'ring-2 ring-green-300' :
+                    'focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20'
+                  }`}
+                  placeholder="123456789012"
+                  maxLength={12}
+                />
+                {iinChecking && (
+                  <Loader2 className="absolute right-3 top-3 w-5 h-5 animate-spin text-gray-400" />
+                )}
+                {!iinChecking && iinAvailable === true && (
+                  <CheckCircle2 className="absolute right-3 top-3 w-5 h-5 text-green-500" />
+                )}
+              </div>
               <span className="text-xs text-gray-400">
                 {formData.iin.length}/12 цифр
               </span>
+              {iinAvailable === false && (
+                <span className="text-xs text-red-600">Этот ИИН уже зарегистрирован</span>
+              )}
             </div>
 
             {/* Регион */}
@@ -286,21 +423,15 @@ export default function CreateDealer() {
                 type={showPassword ? 'text' : 'password'}
                 value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
+                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
                 placeholder="Минимум 6 символов"
               />
               <button
                 type="button"
-                className="absolute right-3 top-11"
+                className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700 transition"
                 onClick={() => setShowPassword(prev => !prev)}
               >
-                <Image
-                  src={showPassword ? '/icons/OffEye.svg' : '/icons/OnEye.svg'}
-                  alt="toggle"
-                  width={20}
-                  height={20}
-                  className="opacity-60"
-                />
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
 
@@ -311,21 +442,15 @@ export default function CreateDealer() {
                 type={showRepeatPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
+                className="w-full bg-[#F6F6F6] rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-[#D77E6C]/20 transition-all"
                 placeholder="Повторите пароль"
               />
               <button
                 type="button"
-                className="absolute right-3 top-11"
+                className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700 transition"
                 onClick={() => setShowRepeatPassword(prev => !prev)}
               >
-                <Image
-                  src={showRepeatPassword ? '/icons/OffEye.svg' : '/icons/OnEye.svg'}
-                  alt="toggle"
-                  width={20}
-                  height={20}
-                  className="opacity-60"
-                />
+                {showRepeatPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
 
@@ -333,8 +458,8 @@ export default function CreateDealer() {
             <div className="sm:col-span-2 mt-4">
               <button 
                 onClick={handleSubmit}
-                disabled={isLoading}
-                className="w-full bg-[#D77E6C] hover:bg-[#C66B5A] disabled:bg-gray-400 text-white py-4 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
+                disabled={isLoading || !emailAvailable || !phoneAvailable || !iinAvailable}
+                className="w-full bg-[#D77E6C] hover:bg-[#C66B5A] disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-4 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -373,12 +498,19 @@ export default function CreateDealer() {
                   <p className="font-medium text-gray-700 mb-2">Обязательные поля:</p>
                   <ul className="text-xs space-y-1">
                     <li>• Имя и Фамилия</li>
-                    <li>• Email и Телефон</li>
-                    <li>• ИИН (12 цифр)</li>
+                    <li>• Email (проверяется на уникальность)</li>
+                    <li>• Телефон (проверяется на уникальность)</li>
+                    <li>• ИИН (12 цифр, проверяется на уникальность)</li>
                     <li>• Регион</li>
                     <li>• Профессия</li>
                     <li>• Пароль (мин. 6 символов)</li>
                   </ul>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                  <p className="text-blue-800 font-medium text-xs">
+                    💡 Все поля проверяются в реальном времени. Зеленая галочка ✓ означает, что данные доступны для регистрации.
+                  </p>
                 </div>
               </div>
             </div>
