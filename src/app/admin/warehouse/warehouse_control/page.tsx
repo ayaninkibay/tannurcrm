@@ -236,7 +236,7 @@ export default function WareHouse() {
                   <span>{t('Создать товар')}</span>
                 </button>
                 <button
-                  onClick={() => router.push('/admin/warehouse/warehouse_control/stock_movements')}
+                  onClick={() => router.push('/admin/warehouse/warehouse_control/stock')}
                   className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 text-sm"
                 >
                   <TrendingUp className="w-4 h-4" />
@@ -255,7 +255,7 @@ export default function WareHouse() {
             )}
             {activeTab === 'gifts' && (
               <button
-                onClick={() => router.push('/admin/warehouse/create_gift')}
+                onClick={() => router.push('/admin/warehouse/warehouse_control/create_gift')}
                 className="flex items-center gap-2 px-4 py-2 bg-[#9C7C6C] text-white rounded-lg hover:bg-[#8B6B5B] text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -380,7 +380,7 @@ export default function WareHouse() {
                       <div 
                         key={distributor.id} 
                         className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:shadow-md hover:border-green-600 transition-all cursor-pointer"
-                        onClick={() => router.push(`/admin/warehouse/distributors/${distributor.id}`)}
+                        onClick={() => router.push(`/admin/warehouse/warehouse_control/distributors/${distributor.id}`)}
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -418,7 +418,7 @@ export default function WareHouse() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/admin/warehouse/distributors/${distributor.id}`);
+                              router.push(`/admin/warehouse/warehouse_control/distributors/${distributor.id}`);
                             }}
                             className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                           >
@@ -433,7 +433,7 @@ export default function WareHouse() {
                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 mb-4">{t('Дистрибьюторы не найдены')}</p>
                     <button
-                      onClick={() => router.push('/admin/warehouse/create_distributor')}
+                      onClick={() => router.push('/admin/warehouse/warehouse_control/create_distributor')}
                       className="px-6 py-3 bg-[#7C9D6C] text-white rounded-xl hover:bg-[#6B8C5B] transition-all"
                     >
                       {t('Добавить первого дистрибьютора')}
@@ -455,7 +455,7 @@ export default function WareHouse() {
                       <div 
                         key={gift.id} 
                         className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:shadow-md hover:border-purple-600 transition-all cursor-pointer"
-                        onClick={() => router.push(`/admin/warehouse/gifts/${gift.id}`)}
+                        onClick={() => router.push(`/admin/warehouse/warehouse_control/gifts/${gift.id}`)}
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -489,7 +489,7 @@ export default function WareHouse() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/admin/warehouse/gifts/${gift.id}`);
+                              router.push(`/admin/warehouse/warehouse_control/gifts/${gift.id}`);
                             }}
                             className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
                           >
@@ -504,7 +504,7 @@ export default function WareHouse() {
                     <Gift className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 mb-4">{t('Подарки не найдены')}</p>
                     <button
-                      onClick={() => router.push('/admin/warehouse/create_gift')}
+                      onClick={() => router.push('/admin/warehouse/warehouse_control/create_gift')}
                       className="px-6 py-3 bg-[#9C7C6C] text-white rounded-xl hover:bg-[#8B6B5B] transition-all"
                     >
                       {t('Создать первый подарок')}
