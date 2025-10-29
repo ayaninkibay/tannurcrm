@@ -6,7 +6,6 @@ import { useState, useCallback } from 'react';
 import { OrderService, OrderWithItems, ActionLog, OrderStatus } from './OrderService';
 
 export interface UseOrderModuleReturn {
-  // Состояния
   activeOrders: OrderWithItems[];
   completedOrders: OrderWithItems[];
   currentOrder: OrderWithItems | null;
@@ -21,22 +20,19 @@ export interface UseOrderModuleReturn {
     totalPages: number;
   };
   
-  // Методы загрузки
   loadAllActiveOrders: () => Promise<void>;
   loadCompletedOrders: (page?: number, pageSize?: number) => Promise<void>;
   loadOrderById: (orderId: string) => Promise<void>;
   loadActionLog: (orderId: string) => Promise<void>;
   
-  // Методы обновления
   updateOrderStatus: (orderId: string, newStatus: OrderStatus, reason?: string) => Promise<boolean>;
-  transferToWarehouse: (orderId: string, departmentNotes?: string) => Promise<boolean>;  // 👈 НОВЫЙ
-  updateDepartmentNotes: (orderId: string, departmentNotes: string) => Promise<boolean>;  // 👈 НОВЫЙ
+  transferToWarehouse: (orderId: string, departmentNotes?: string) => Promise<boolean>;
+  updateDepartmentNotes: (orderId: string, departmentNotes: string) => Promise<boolean>;
   updateNotes: (orderId: string, notes: string) => Promise<boolean>;
   updateDeliveryAddress: (orderId: string, address: string) => Promise<boolean>;
   updateDeliveryDate: (orderId: string, date: string) => Promise<boolean>;
   updateDeliveryMethod: (orderId: string, method: 'pickup' | 'delivery') => Promise<boolean>;
   
-  // Утилиты
   clearError: () => void;
   clearCurrentOrder: () => void;
   refreshOrders: () => Promise<void>;
@@ -60,36 +56,25 @@ export const useOrderModule = (): UseOrderModuleReturn => {
   
   const orderService = new OrderService();
 
-  /**
-   * 🚀 Загрузка ВСЕХ активных заказов
-   */
   const loadAllActiveOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Loading ALL active orders...');
-      
       const result = await orderService.getAllActiveOrders();
       
       if (result.success && result.data) {
         setActiveOrders(result.data);
-        console.log('✅ Active orders loaded:', result.data.length);
       } else {
         setError(result.error || 'Ошибка загрузки заказов');
-        console.error('❌ Failed to load orders:', result.error);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-      console.error('💥 Error:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * 🚀 Загрузка завершенных заказов (по запросу)
-   */
   const loadCompletedOrders = useCallback(async (
     page: number = 1,
     pageSize: number = 50
@@ -97,8 +82,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     try {
       setLoadingCompleted(true);
       setError(null);
-      
-      console.log('🔄 Loading completed orders (page ' + page + ')...');
       
       const result = await orderService.getCompletedOrders(page, pageSize);
       
@@ -115,50 +98,35 @@ export const useOrderModule = (): UseOrderModuleReturn => {
           pageSize: result.data.pageSize,
           totalPages: result.data.totalPages
         });
-        
-        console.log('✅ Completed orders loaded:', result.data.orders.length, 'of', result.data.total);
       } else {
         setError(result.error || 'Ошибка загрузки завершенных заказов');
-        console.error('❌ Failed to load completed orders:', result.error);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-      console.error('💥 Error:', err);
     } finally {
       setLoadingCompleted(false);
     }
   }, []);
 
-  /**
-   * Загрузка одного заказа
-   */
   const loadOrderById = useCallback(async (orderId: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('📦 Loading order:', orderId);
-      
       const result = await orderService.getOrderById(orderId);
       
       if (result.success && result.data) {
         setCurrentOrder(result.data);
-        console.log('✅ Order loaded with', result.data.order_items?.length || 0, 'items');
       } else {
         setError(result.error || 'Ошибка загрузки заказа');
-        console.error('❌ Failed to load order:', result.error);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-      console.error('💥 Error:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Загрузка журнала действий
-   */
   const loadActionLog = useCallback(async (orderId: string) => {
     try {
       setError(null);
@@ -175,9 +143,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, []);
 
-  /**
-   * Обновление статуса заказа
-   */
   const updateOrderStatus = useCallback(async (
     orderId: string,
     newStatus: OrderStatus,
@@ -223,9 +188,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, [currentOrder, completedOrders.length, completedPagination.pageSize, loadAllActiveOrders, loadCompletedOrders, loadOrderById, loadActionLog]);
 
-  /**
-   * 🆕 Быстрый перевод в статус "Передан в склад"
-   */
   const transferToWarehouse = useCallback(async (
     orderId: string,
     departmentNotes?: string
@@ -263,9 +225,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, [currentOrder, loadAllActiveOrders, loadOrderById, loadActionLog]);
 
-  /**
-   * 🆕 Обновление заметок между отделами
-   */
   const updateDepartmentNotes = useCallback(async (
     orderId: string,
     departmentNotes: string
@@ -300,9 +259,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, [currentOrder, loadOrderById, loadActionLog]);
 
-  /**
-   * Обновление заметок заказа (клиентских)
-   */
   const updateNotes = useCallback(async (
     orderId: string,
     notes: string
@@ -439,9 +395,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     }
   }, [currentOrder, loadOrderById, loadActionLog]);
 
-  /**
-   * Обновление заказов
-   */
   const refreshOrders = useCallback(async () => {
     await loadAllActiveOrders();
     if (completedOrders.length > 0) {
@@ -459,7 +412,6 @@ export const useOrderModule = (): UseOrderModuleReturn => {
   }, []);
 
   return {
-    // Состояния
     activeOrders,
     completedOrders,
     currentOrder,
@@ -469,22 +421,19 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     error,
     completedPagination,
     
-    // Методы загрузки
     loadAllActiveOrders,
     loadCompletedOrders,
     loadOrderById,
     loadActionLog,
     
-    // Методы обновления
     updateOrderStatus,
-    transferToWarehouse,  // 👈 НОВЫЙ
-    updateDepartmentNotes,  // 👈 НОВЫЙ
+    transferToWarehouse,
+    updateDepartmentNotes,
     updateNotes,
     updateDeliveryAddress,
     updateDeliveryDate,
     updateDeliveryMethod,
     
-    // Утилиты
     clearError,
     clearCurrentOrder,
     refreshOrders

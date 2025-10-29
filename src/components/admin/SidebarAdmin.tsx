@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FastLink } from '@/components/FastLink';
 import { useTranslate } from '@/hooks/useTranslate';
+import Image from 'next/image';
 import { 
   LayoutDashboard, 
   Users2, 
@@ -15,13 +16,13 @@ import {
   LucideIcon 
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
-import { hasPageAccess } from '@/lib/permissions';
+import type { Permission } from '@/lib/permissions/permissions-config';
 
 interface NavItem {
   href: string;
   icon: LucideIcon;
   label: string;
-  permissions: string[];
+  requiredPermissions: Permission[];
 }
 
 const adminNavItems: NavItem[] = [
@@ -29,59 +30,73 @@ const adminNavItems: NavItem[] = [
     href: '/admin/dashboard', 
     icon: LayoutDashboard, 
     label: 'Дэшборд',
-    permissions: ['all', 'warehouse', 'orders', 'finance']
+    requiredPermissions: ['all', 'warehouse', 'orders', 'finance']
   },
   { 
     href: '/admin/teamcontent', 
     icon: Users2, 
     label: 'Команда',
-    permissions: ['all']
+    requiredPermissions: ['all']
   },
   { 
     href: '/admin/store', 
     icon: ShoppingBag, 
     label: 'Tannutstore',
-    permissions: ['all', 'orders']
+    requiredPermissions: ['all', 'orders']
   },
   { 
     href: '/admin/tnba', 
     icon: GraduationCap, 
     label: 'Академия',
-    permissions: ['all']
+    requiredPermissions: ['all']
   },
   { 
     href: '/admin/finance', 
     icon: Wallet, 
     label: 'Финансы',
-    permissions: ['all', 'finance']
+    requiredPermissions: ['all', 'finance']
   },
   { 
     href: '/admin/warehouse', 
     icon: Package, 
     label: 'Склад',
-    permissions: ['all', 'warehouse']
+    requiredPermissions: ['all', 'warehouse']
   }
 ];
+
+function hasAnyPermission(
+  userRole: string | null | undefined,
+  userPermissions: string[] | null | undefined,
+  requiredPermissions: Permission[]
+): boolean {
+  if (userRole !== 'admin') {
+    return false;
+  }
+
+  if (!userPermissions || userPermissions.length === 0) {
+    return false;
+  }
+
+  return requiredPermissions.some(required => 
+    userPermissions.includes(required)
+  );
+}
 
 export default function DashboardSidebarAdmin() {
   const { t } = useTranslate();
   const pathname = usePathname();
   const router = useRouter();
-  const { profile } = useUser();
+  const { profile, loading } = useUser();
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [activeTop, setActiveTop] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
-  // Фильтруем навигацию по правам пользователя
-  const visibleNavItems = adminNavItems.filter(item => {
-    if (!profile?.permissions) return false;
-    
-    // Если у пользователя есть хотя бы одно из требуемых разрешений
-    return item.permissions.some(permission => 
-      profile.permissions?.includes(permission)
-    );
-  });
+  const visibleNavItems = loading 
+    ? []
+    : adminNavItems.filter(item => 
+        hasAnyPermission(profile?.role, profile?.permissions, item.requiredPermissions)
+      );
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {
@@ -116,6 +131,16 @@ export default function DashboardSidebarAdmin() {
     }
   };
 
+  if (loading) {
+    return (
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-22 bg-[#f6f6f6] z-10 flex-col items-center pt-12 pb-6 border-r border-gray-300">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full" />
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside
       className="
@@ -128,21 +153,25 @@ export default function DashboardSidebarAdmin() {
         border-r border-gray-300
       "
     >
-      {/* Логотип */}
       <button
         onClick={goToHome}
         className={`
           mb-6 mt-4
-          w-[40px] h-[40px]
+          w-[70px] h-[70px]
           rounded-xl flex items-center justify-center transition-all
           ${pathname === '/' ? 'bg-[#D77E6C]' : 'hover:bg-black/10'}
         `}
         title={t('Главная')}
       >
-        <div className="text-3xl font-bold">T</div>
+        <Image 
+          src="/icons/company/tannur_black.svg" 
+          alt={t('Логотип')} 
+          width={50} 
+          height={50} 
+          unoptimized 
+        />
       </button>
 
-      {/* Навигация */}
       <div
         ref={containerRef}
         className="relative flex-grow flex flex-col justify-center items-center gap-8 mt-2 w-full"

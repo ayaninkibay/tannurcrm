@@ -34,42 +34,16 @@ class GiftService {
    * Создание нового подарка
    */
   async createGift(data: CreateGiftData): Promise<Gift> {
-    console.log('=== НАЧАЛО СОЗДАНИЯ ПОДАРКА ===');
-    console.log('Creating gift with data:', data);
-    
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('Current user:', user);
     
     if (!user) {
-      console.error('User not authenticated');
       throw new Error('Пользователь не авторизован');
     }
-
-    // Проверяем роль пользователя
-    const { data: userProfile, error: userError } = await supabase
-      .from('users')
-      .select('role, email')
-      .eq('id', user.id)
-      .single();
-    
-    console.log('User profile:', userProfile, 'Error:', userError);
 
     const totalAmount = data.items.reduce((sum, item) => 
       sum + (item.price * item.quantity), 0
     );
-    console.log('Total amount calculated:', totalAmount);
 
-    // Проверяем доступ к таблице gifts
-    console.log('Testing access to gifts table...');
-    const { data: testAccess, error: accessError } = await supabase
-      .from('gifts')
-      .select('id')
-      .limit(1);
-    
-    console.log('Access test result:', { testAccess, accessError });
-
-    // Создаем основную запись подарка
-    console.log('Creating gift record...');
     const giftInsertData = {
       recipient_name: data.recipient_name,
       recipient_info: data.recipient_info,
@@ -80,8 +54,6 @@ class GiftService {
       created_by: user.id,
       status: 'pending'
     };
-    
-    console.log('Gift insert data:', giftInsertData);
 
     const { data: gift, error: giftError } = await supabase
       .from('gifts')
@@ -89,27 +61,14 @@ class GiftService {
       .select()
       .single();
 
-    console.log('Gift creation result:', { gift, giftError });
-
     if (giftError) {
-      console.error('Gift creation error details:', {
-        message: giftError.message,
-        details: giftError.details,
-        hint: giftError.hint,
-        code: giftError.code
-      });
       throw new Error(giftError.message);
     }
 
     if (!gift) {
-      console.error('Gift was not returned after creation');
       throw new Error('Подарок не был создан');
     }
 
-    console.log('Gift created successfully:', gift);
-
-    // Создаем позиции подарка
-    console.log('Creating gift items...');
     const giftItems: GiftItemInsert[] = data.items.map(item => ({
       gift_id: gift.id,
       product_id: item.product_id,
@@ -118,68 +77,30 @@ class GiftService {
       total: item.price * item.quantity
     }));
 
-    console.log('Gift items to insert:', giftItems);
-
-    // Проверяем доступ к таблице gift_items
-    console.log('Testing access to gift_items table...');
-    const { data: testItemsAccess, error: itemsAccessError } = await supabase
+    const { error: itemsError } = await supabase
       .from('gift_items')
-      .select('id')
-      .limit(1);
-    
-    console.log('Gift items access test:', { testItemsAccess, itemsAccessError });
-
-    const { data: insertedItems, error: itemsError } = await supabase
-      .from('gift_items')
-      .insert(giftItems)
-      .select();
-
-    console.log('Gift items creation result:', { insertedItems, itemsError });
+      .insert(giftItems);
 
     if (itemsError) {
-      console.error('Gift items creation error details:', {
-        message: itemsError.message,
-        details: itemsError.details,
-        hint: itemsError.hint,
-        code: itemsError.code
-      });
-      
       // Откатываем создание подарка
-      console.log('Rolling back gift creation...');
-      const { error: deleteError } = await supabase.from('gifts').delete().eq('id', gift.id);
-      if (deleteError) {
-        console.error('Error rolling back gift creation:', deleteError);
-      }
-      
+      await supabase.from('gifts').delete().eq('id', gift.id);
       throw new Error(itemsError.message);
     }
 
-    console.log('Gift items created successfully:', insertedItems);
-
-    // ВРЕМЕННО ОТКЛЮЧЕНО: Списываем товары со склада
-    console.log('Stock deduction temporarily disabled for debugging');
-    /*
-    console.log('Starting stock deduction...');
+    // Списываем товары со склада
     for (const item of data.items) {
-      console.log(`Deducting stock for product ${item.product_id}, quantity: ${item.quantity}`);
-      
-      const { data: stockResult, error: stockError } = await supabase.rpc('update_product_stock', {
+      const { error: stockError } = await supabase.rpc('update_product_stock', {
         p_product_id: item.product_id,
         p_change: -item.quantity,
         p_reason: `Подарок: ${data.recipient_name}`,
         p_source: 'gift'
       });
 
-      console.log('Stock update result:', { stockResult, stockError });
-
       if (stockError) {
         console.error('Stock deduction error:', stockError);
-        // Продолжаем выполнение, но логируем ошибку
       }
     }
-    */
 
-    console.log('=== ПОДАРОК УСПЕШНО СОЗДАН ===');
     return gift;
   }
 
@@ -191,8 +112,6 @@ class GiftService {
     offset?: number;
     status?: string;
   }): Promise<{ gifts: GiftWithItems[]; total: number }> {
-    console.log('Loading gifts with options:', options);
-
     let query = supabase
       .from('gifts')
       .select(`
@@ -222,8 +141,6 @@ class GiftService {
 
     const { data, error, count } = await query;
 
-    console.log('Gifts loaded:', { data, error, count });
-
     if (error) throw new Error(error.message);
 
     return {
@@ -236,8 +153,6 @@ class GiftService {
    * Получение детальной информации о подарке
    */
   async getGiftById(id: string): Promise<GiftWithItems | null> {
-    console.log('Loading gift by id:', id);
-
     const { data, error } = await supabase
       .from('gifts')
       .select(`
@@ -256,8 +171,6 @@ class GiftService {
       .eq('id', id)
       .single();
 
-    console.log('Gift by id result:', { data, error });
-
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw new Error(error.message);
@@ -270,8 +183,6 @@ class GiftService {
    * Обновление статуса подарка
    */
   async updateGiftStatus(id: string, status: 'pending' | 'issued' | 'cancelled'): Promise<void> {
-    console.log('Updating gift status:', { id, status });
-
     const updateData: any = { status };
     
     if (status === 'issued') {
@@ -282,8 +193,6 @@ class GiftService {
       .from('gifts')
       .update(updateData)
       .eq('id', id);
-
-    console.log('Status update result:', { error });
 
     if (error) throw new Error(error.message);
   }
@@ -297,26 +206,18 @@ class GiftService {
     pendingGifts: number;
     issuedGifts: number;
   }> {
-    console.log('Loading gift stats...');
-
     const { data, error } = await supabase
       .from('gifts')
       .select('status, total_amount');
 
-    console.log('Stats data:', { data, error });
-
     if (error) throw new Error(error.message);
 
-    const stats = {
+    return {
       totalGifts: data.length,
       totalAmount: data.reduce((sum, gift) => sum + (gift.total_amount || 0), 0),
       pendingGifts: data.filter(g => g.status === 'pending').length,
       issuedGifts: data.filter(g => g.status === 'issued').length,
     };
-
-    console.log('Calculated stats:', stats);
-
-    return stats;
   }
 }
 

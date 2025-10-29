@@ -7,7 +7,7 @@ export type OrderStatus =
   | 'confirmed' 
   | 'processing' 
   | 'transferred_to_warehouse'
-  | 'packed'  // 👈 НОВЫЙ СТАТУС
+  | 'packed'
   | 'ready_for_pickup'
   | 'shipped' 
   | 'delivered' 
@@ -70,17 +70,12 @@ export interface ActionLog {
 
 export class OrderService {
   
-  /**
-   * 🚀 ЗАГРУЖАЕМ ВСЕ АКТИВНЫЕ ЗАКАЗЫ (кроме завершенных)
-   */
   async getAllActiveOrders(): Promise<{ 
     success: boolean; 
     data?: OrderWithItems[]; 
     error?: string 
   }> {
     try {
-      console.log('📦 Loading ALL active orders...');
-
       const { data: orders, error } = await supabase
         .from('orders')
         .select(`
@@ -108,7 +103,7 @@ export class OrderService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error loading orders:', error);
+        console.error('Error loading orders:', error);
         return { success: false, error: error.message };
       }
 
@@ -134,10 +129,9 @@ export class OrderService {
         })) || []
       })) || [];
 
-      console.log(`✅ Active orders loaded: ${processedOrders.length}`);
       return { success: true, data: processedOrders };
     } catch (error) {
-      console.error('💥 Service error:', error);
+      console.error('Service error:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
@@ -145,9 +139,6 @@ export class OrderService {
     }
   }
 
-  /**
-   * 🚀 ЗАГРУЖАЕМ ТОЛЬКО ЗАВЕРШЕННЫЕ ЗАКАЗЫ (по запросу)
-   */
   async getCompletedOrders(
     page: number = 1,
     pageSize: number = 50
@@ -163,8 +154,6 @@ export class OrderService {
     error?: string 
   }> {
     try {
-      console.log('📦 Loading completed orders...', { page, pageSize });
-      
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -196,7 +185,7 @@ export class OrderService {
         .range(from, to);
 
       if (error) {
-        console.error('❌ Error loading completed orders:', error);
+        console.error('Error loading completed orders:', error);
         return { success: false, error: error.message };
       }
 
@@ -224,8 +213,6 @@ export class OrderService {
 
       const totalPages = Math.ceil((count || 0) / pageSize);
 
-      console.log(`✅ Completed orders loaded: ${processedOrders.length} of ${count}`);
-
       return { 
         success: true, 
         data: {
@@ -237,7 +224,7 @@ export class OrderService {
         }
       };
     } catch (error) {
-      console.error('💥 Service error:', error);
+      console.error('Service error:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Неизвестная ошибка' 
@@ -245,13 +232,8 @@ export class OrderService {
     }
   }
 
-  /**
-   * Получение одного заказа по ID
-   */
   async getOrderById(orderId: string): Promise<{ success: boolean; data?: OrderWithItems; error?: string }> {
     try {
-      console.log('📦 Loading order by ID:', orderId);
-
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select(`
@@ -279,7 +261,7 @@ export class OrderService {
         .single();
 
       if (orderError) {
-        console.error('❌ Error loading order:', orderError);
+        console.error('Error loading order:', orderError);
         return { success: false, error: orderError.message };
       }
 
@@ -304,12 +286,10 @@ export class OrderService {
           } : null
         })) || []
       };
-
-      console.log('✅ Order loaded with', result.order_items?.length || 0, 'items');
       
       return { success: true, data: result };
     } catch (error) {
-      console.error('💥 Error loading order:', error);
+      console.error('Error loading order:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Ошибка загрузки заказа' 
@@ -317,9 +297,6 @@ export class OrderService {
     }
   }
 
-  /**
-   * Изменение статуса заказа
-   */
   async updateOrderStatus(
     orderId: string,
     newStatus: OrderStatus,
@@ -327,8 +304,6 @@ export class OrderService {
     reason?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Updating order status:', { orderId, newStatus, userId, reason });
-
       const { data: currentOrder, error: fetchError } = await supabase
         .from('orders')
         .select('order_status')
@@ -346,7 +321,7 @@ export class OrderService {
         'confirmed': 'Подтвержден',
         'processing': 'В обработке',
         'transferred_to_warehouse': 'Передан в склад',
-        'packed': 'Упакован',  // 👈 НОВЫЙ СТАТУС
+        'packed': 'Упакован',
         'ready_for_pickup': 'Готов к получению',
         'shipped': 'Отправлен',
         'delivered': 'Доставлен',
@@ -378,7 +353,6 @@ export class OrderService {
         description: reason || `Статус изменен с "${oldStatusText}" на "${newStatusText}"`
       });
 
-      console.log('✅ Order status updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -389,17 +363,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * 🆕 Быстрый перевод заказа в статус "Передан в склад"
-   */
   async transferToWarehouse(
     orderId: string,
     userId: string,
     departmentNotes?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('📦 Transferring order to warehouse...', { orderId, userId });
-
       const { data: currentOrder, error: fetchError } = await supabase
         .from('orders')
         .select('order_status, department_notes')
@@ -451,7 +420,6 @@ export class OrderService {
         });
       }
 
-      console.log('✅ Order transferred to warehouse successfully');
       return { success: true };
     } catch (error) {
       console.error('Error transferring to warehouse:', error);
@@ -462,17 +430,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * 🆕 Обновление заметок между отделами
-   */
   async updateDepartmentNotes(
     orderId: string,
     departmentNotes: string,
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('📝 Updating department notes:', { orderId, userId });
-
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('department_notes')
@@ -514,7 +477,6 @@ export class OrderService {
         description
       });
 
-      console.log('✅ Department notes updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating department notes:', error);
@@ -525,17 +487,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * Обновление заметок заказа (клиентских заметок)
-   */
   async updateOrderNotes(
     orderId: string,
     notes: string,
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Updating order notes:', { orderId, userId });
-
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('notes')
@@ -572,7 +529,6 @@ export class OrderService {
         description: `Заметка ${actionType === 'note_added' ? 'добавлена' : actionType === 'note_deleted' ? 'удалена' : 'обновлена'}`
       });
 
-      console.log('✅ Order notes updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating order notes:', error);
@@ -583,17 +539,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * Обновление адреса доставки
-   */
   async updateDeliveryAddress(
     orderId: string,
     address: string,
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Updating delivery address:', { orderId, userId });
-
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('delivery_address')
@@ -623,7 +574,6 @@ export class OrderService {
         description: 'Адрес доставки обновлен'
       });
 
-      console.log('✅ Delivery address updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating delivery address:', error);
@@ -634,17 +584,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * Обновление даты доставки
-   */
   async updateDeliveryDate(
     orderId: string,
     date: string,
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Updating delivery date:', { orderId, date, userId });
-
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('delivery_date')
@@ -674,7 +619,6 @@ export class OrderService {
         description: 'Дата доставки обновлена'
       });
 
-      console.log('✅ Delivery date updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating delivery date:', error);
@@ -685,17 +629,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * Обновление типа доставки
-   */
   async updateDeliveryMethod(
     orderId: string,
     method: 'pickup' | 'delivery',
     userId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Updating delivery method:', { orderId, method, userId });
-
       const { data: currentOrder } = await supabase
         .from('orders')
         .select('delivery_method')
@@ -737,7 +676,6 @@ export class OrderService {
         description: `Тип доставки изменен на "${methodText[method]}"`
       });
 
-      console.log('✅ Delivery method updated successfully');
       return { success: true };
     } catch (error) {
       console.error('Error updating delivery method:', error);
@@ -748,16 +686,11 @@ export class OrderService {
     }
   }
 
-  /**
-   * Получение журнала действий заказа
-   */
   async getOrderActionLog(
     orderId: string,
     limit: number = 50
   ): Promise<{ success: boolean; data?: ActionLog[]; error?: string }> {
     try {
-      console.log('Loading action log for order:', orderId);
-
       const { data, error } = await supabase
         .from('order_action_logs')
         .select(`
@@ -793,7 +726,6 @@ export class OrderService {
         } : null
       })) || [];
 
-      console.log('✅ Action log loaded:', logs.length, 'entries');
       return { success: true, data: logs };
     } catch (error) {
       console.error('Error loading action log:', error);
@@ -804,9 +736,6 @@ export class OrderService {
     }
   }
 
-  /**
-   * Вспомогательный метод для логирования действий
-   */
   private async logAction(params: {
     orderId: string;
     userId: string;

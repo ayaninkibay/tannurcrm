@@ -36,7 +36,6 @@ export const PAGE_PERMISSIONS: Record<string, string[]> = {
   '/admin/finance/bonuses/audit': ['all', 'finance'],
   
   // Общие админские (только 'all')
-  '/admin/dashboard': ['all'],
   '/admin/dashboard/create_bonus_event': ['all'],
   '/admin/dashboard/create_event': ['all'],
   '/admin/dashboard/events/[id]': ['all'],

@@ -1,10 +1,12 @@
 // lib/permissions.ts
+
 import { getRequiredPermissions } from './permissions-config';
 
 /**
  * Проверяет, есть ли у пользователя доступ к странице
  */
 export function hasPageAccess(
+  userRole: string | null | undefined,
   userPermissions: string[] | null | undefined,
   pathname: string
 ): boolean {
@@ -13,6 +15,11 @@ export function hasPageAccess(
   // Если маршрут не требует разрешений - доступ открыт
   if (!requiredPermissions) {
     return true;
+  }
+  
+  // 🔥 КРИТИЧНО: Админские разделы только для роли admin
+  if (pathname.startsWith('/admin') && userRole !== 'admin') {
+    return false;
   }
   
   // Если у пользователя нет разрешений - доступ закрыт
@@ -30,9 +37,13 @@ export function hasPageAccess(
  * Проверяет наличие конкретного разрешения у пользователя
  */
 export function hasPermission(
+  userRole: string | null | undefined,
   userPermissions: string[] | null | undefined,
   permission: string
 ): boolean {
+  // Только админы могут иметь разрешения
+  if (userRole !== 'admin') return false;
+  
   if (!userPermissions) return false;
   return userPermissions.includes('all') || userPermissions.includes(permission);
 }
@@ -42,7 +53,10 @@ export function hasPermission(
  */
 export function filterMenuByPermissions<T extends { href: string }>(
   menuItems: T[],
+  userRole: string | null | undefined,
   userPermissions: string[] | null | undefined
 ): T[] {
-  return menuItems.filter(item => hasPageAccess(userPermissions, item.href));
+  return menuItems.filter(item => 
+    hasPageAccess(userRole, userPermissions, item.href)
+  );
 }

@@ -1,3 +1,5 @@
+//src/app/dealer/myteam/create_dealer/page.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';

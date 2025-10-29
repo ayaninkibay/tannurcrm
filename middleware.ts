@@ -54,12 +54,10 @@ export async function middleware(request: NextRequest) {
     const isAuthRoute = request.nextUrl.pathname === '/signin' || 
                        request.nextUrl.pathname === '/signup'
 
-    // 🔒 Если неавторизованный пытается попасть на защищенную страницу - показываем 404
     if (isProtectedRoute && !user) {
       return NextResponse.rewrite(new URL('/not-found', request.url))
     }
 
-    // Если пользователь авторизован и находится на странице входа
     if (isAuthRoute && user) {
       const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/'
       const url = request.nextUrl.clone()
@@ -68,7 +66,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // 🔐 ПРОВЕРКА ПРАВ ДОСТУПА К АДМИНСКИМ СТРАНИЦАМ
     if (user && isProtectedAdminRoute(request.nextUrl.pathname)) {
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -80,8 +77,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.rewrite(new URL('/not-found', request.url))
       }
 
+      const userRole = userData?.role
       const userPermissions = userData?.permissions || []
-      const hasAccess = hasPageAccess(userPermissions, request.nextUrl.pathname)
+
+      const hasAccess = hasPageAccess(
+        userRole,
+        userPermissions, 
+        request.nextUrl.pathname
+      )
 
       if (!hasAccess) {
         return NextResponse.rewrite(new URL('/not-found', request.url))
