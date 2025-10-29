@@ -49,7 +49,7 @@ export interface AchievedTarget {
   target_id: string;
   target_amount: number;
   reward_title: string;
-  reward_description: string | null;  // Может быть null из БД
+  reward_description: string | null;
   reward_icon: string;
   is_achieved: boolean;
   achievement_date: string | null;
@@ -67,11 +67,6 @@ export interface LeaderboardEntry extends UserProgress {
 export class BonusEventService {
   private supabase = supabase;
 
-  // =====================================================
-  // УПРАВЛЕНИЕ СОБЫТИЯМИ
-  // =====================================================
-
-  // Создать новое бонусное событие с целями
   async createBonusEvent(event: BonusEvent, targets: BonusEventTarget[]): Promise<BonusEvent> {
     try {
       const { data: eventData, error: eventError } = await this.supabase
@@ -113,7 +108,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить ВСЕ активные бонусные события
   async getActiveBonusEvents(): Promise<BonusEvent[]> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -143,7 +137,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить главное бонусное событие (priority = 1)
   async getMainBonusEvent(): Promise<BonusEvent | null> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -171,7 +164,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить бонусное событие по ID
   async getBonusEventById(eventId: string): Promise<BonusEvent | null> {
     try {
       const { data, error } = await this.supabase
@@ -196,7 +188,6 @@ export class BonusEventService {
     }
   }
 
-  // Обновить событие
   async updateBonusEvent(eventId: string, updates: Partial<BonusEvent>): Promise<boolean> {
     try {
       const { error } = await this.supabase
@@ -215,16 +206,10 @@ export class BonusEventService {
     }
   }
 
-  // Деактивировать событие
   async deactivateEvent(eventId: string): Promise<boolean> {
     return this.updateBonusEvent(eventId, { is_active: false });
   }
 
-  // =====================================================
-  // ПРОГРЕСС ПОЛЬЗОВАТЕЛЯ (ОПТИМИЗИРОВАННЫЕ МЕТОДЫ)
-  // =====================================================
-
-  // Получить прогресс пользователя через RPC функцию
   async getUserProgress(
     userId: string, 
     eventId?: string, 
@@ -235,20 +220,17 @@ export class BonusEventService {
       let endDate: string;
       let event: BonusEvent | null = null;
 
-      // Определяем период
       if (eventId) {
         event = await this.getBonusEventById(eventId);
         if (!event) return null;
         startDate = event.start_date;
         endDate = event.end_date;
       } else {
-        // По умолчанию - текущий месяц
         const now = new Date();
         startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       }
 
-      // Вызываем RPC функцию для получения оборота
       const { data: turnoverData, error: turnoverError } = await this.supabase
         .rpc('get_user_bonus_turnover', {
           p_user_id: userId,
@@ -263,7 +245,6 @@ export class BonusEventService {
         return null;
       }
 
-      // Получаем достигнутые цели если есть событие
       let achievedTargets: AchievedTarget[] = [];
       if (event?.id) {
         const { data: targetsData, error: targetsError } = await this.supabase
@@ -299,7 +280,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить рейтинг участников события (оптимизированный)
   async getEventLeaderboard(
     eventId: string, 
     limit: number = 10,
@@ -309,7 +289,6 @@ export class BonusEventService {
       const event = await this.getBonusEventById(eventId);
       if (!event) return [];
 
-      // Используем RPC функцию для массового получения данных
       const { data: leaderboardData, error } = await this.supabase
         .rpc('get_all_users_bonus_turnover', {
           p_start_date: event.start_date,
@@ -324,7 +303,6 @@ export class BonusEventService {
         return [];
       }
 
-      // Добавляем информацию о достигнутых целях
       const leaderboardWithTargets = await Promise.all(
         leaderboardData.map(async (entry: any) => {
           const { data: targetsData } = await this.supabase
@@ -348,7 +326,6 @@ export class BonusEventService {
     }
   }
 
-  // Получить полный рейтинг для админки
   async getAdminLeaderboard(
     startDate: string,
     endDate: string,
@@ -373,7 +350,7 @@ export class BonusEventService {
 
       return leaderboardData.map((entry: any) => ({
         ...entry,
-        achieved_targets: [] // Админка может не нуждаться в деталях целей
+        achieved_targets: []
       }));
     } catch (error) {
       console.error('Error getting admin leaderboard:', error);
@@ -381,11 +358,6 @@ export class BonusEventService {
     }
   }
 
-  // =====================================================
-  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-  // =====================================================
-
-  // Форматирование суммы
   formatAmount(amount: number): string {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
@@ -395,7 +367,6 @@ export class BonusEventService {
     }).format(amount);
   }
 
-  // Получить иконку для награды
   getRewardIcon(iconType: string): string {
     const icons: Record<string, string> = {
       plane: '✈️',
@@ -414,12 +385,10 @@ export class BonusEventService {
     return icons[iconType] || '🎯';
   }
 
-  // Проверить достиг ли пользователь цели
   isTargetAchieved(turnover: number, targetAmount: number): boolean {
     return turnover >= targetAmount;
   }
 
-  // Получить процент прогресса к следующей цели
   getProgressPercent(currentTurnover: number, targets: BonusEventTarget[]): number {
     const nextTarget = targets.find(t => currentTurnover < t.target_amount);
     
@@ -435,17 +404,14 @@ export class BonusEventService {
     return Math.max(0, Math.min(100, progress));
   }
 
-  // Получить следующую цель
   getNextTarget(currentTurnover: number, targets: BonusEventTarget[]): BonusEventTarget | null {
     return targets.find(t => currentTurnover < t.target_amount) || null;
   }
 
-  // Получить достигнутые цели
   getAchievedTargets(turnover: number, targets: BonusEventTarget[]): BonusEventTarget[] {
     return targets.filter(t => turnover >= t.target_amount);
   }
 
-  // Форматировать дату
   formatDate(date: string | null): string {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('ru-RU', {
@@ -455,7 +421,6 @@ export class BonusEventService {
     });
   }
 
-  // Получить дни до конца события
   getDaysRemaining(endDate: string): number {
     const end = new Date(endDate);
     const now = new Date();

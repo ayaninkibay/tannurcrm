@@ -230,7 +230,7 @@ export default function CreateDealer() {
 
   return (
     <div className="flex flex-col p-2 md:p-6 bg-[#F6F6F6] min-h-screen">
-      <MoreHeaderDE title="Создание дилера" />
+      <MoreHeaderDE title="Создание дилера" showBackButton={true}/>
 
       <div className="mt-4 mb-6">
         <button

@@ -355,7 +355,7 @@ export default function DealerBonusesPage() {
 
   return (
     <div className="min-h-screen p-2 sm:p-4">
-      <MoreHeaderDE title="Мои бонусы" />
+      <MoreHeaderDE title="Мои бонусы" showBackButton={true} />
       
       <div className="mt-4">
         {/* Селектор месяца */}

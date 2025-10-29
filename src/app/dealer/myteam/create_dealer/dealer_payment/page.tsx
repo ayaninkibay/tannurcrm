@@ -258,7 +258,7 @@ export default function DealerPaymentPage() {
 
   return (
     <div className="flex flex-col p-2 md:p-6 bg-[#F6F6F6] min-h-screen">
-      <MoreHeaderDE title="Оплата подписки дилера" />
+      <MoreHeaderDE title="Оплата подписки дилера" showBackButton={true}/>
 
       <div className="w-full mx-auto mt-6">
         <div className="bg-white rounded-3xl shadow-xl p-4 md:p-10">

@@ -1,10 +1,13 @@
+// src/app/admin/dashboard/events/create_event/page.tsx
+
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase/client';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { 
   Calendar, 
   Gift, 
@@ -41,10 +44,16 @@ const BADGE_ICONS = [
   '🎉', '🏅', '✨', '🌟', '💪', '🎊', '🥇', '🎈'
 ];
 
-export default function CreateEventPage() {
+function CreateOrEditEventPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile, loading: userLoading } = useUser();
   
+  // Определяем режим работы (создание или редактирование)
+  const eventId = searchParams.get('id');
+  const isEditMode = !!eventId;
+  
+  const [loading, setLoading] = useState(isEditMode); // Загрузка только в режиме редактирования
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -77,6 +86,56 @@ export default function CreateEventPage() {
   const [newReward, setNewReward] = useState('');
   const [newCondition, setNewCondition] = useState('');
   const [newTag, setNewTag] = useState('');
+
+  // Загрузка существующего события (только в режиме редактирования)
+  useEffect(() => {
+    if (isEditMode && eventId) {
+      loadEvent(eventId);
+    }
+  }, [eventId, isEditMode]);
+
+  const loadEvent = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (data) {
+        // Преобразуем данные в формат формы
+        setFormData({
+          title: data.title || '',
+          short_description: data.short_description || '',
+          description: data.description || '',
+          start_date: data.start_date || '',
+          end_date: data.end_date || '',
+          goals: data.goals || [],
+          rewards: data.rewards || [],
+          conditions: data.conditions || [],
+          badge_color: data.badge_color || BADGE_COLORS[0],
+          badge_icon: data.badge_icon || BADGE_ICONS[4],
+          priority: data.priority || 0,
+          is_featured: data.is_featured || false,
+          tags: data.tags || [],
+          status: data.status || 'draft',
+          image_url: data.image_url || '',
+          banner_url: data.banner_url || '',
+          gallery: data.gallery || []
+        });
+      }
+    } catch (err: any) {
+      console.error('Error loading event:', err);
+      setError('Не удалось загрузить событие');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Функция загрузки изображения
   const uploadImage = async (file: File, type: 'main' | 'banner') => {
@@ -173,7 +232,7 @@ export default function CreateEventPage() {
     if (!userLoading && !profile) {
       router.push('/signin');
     } else if (!userLoading && profile && profile.role !== 'admin') {
-      setError('У вас нет прав администратора для создания событий');
+      setError('У вас нет прав администратора для работы с событиями');
       setTimeout(() => {
         router.push('/');
       }, 3000);
@@ -207,29 +266,56 @@ export default function CreateEventPage() {
     setError(null);
 
     try {
-      const { error: insertError } = await supabase
-        .from('events')
-        .insert([{
-          ...formData,
-          status,
-          created_by: profile.id
-        }]);
+      if (isEditMode && eventId) {
+        // Режим редактирования - UPDATE
+        const { error: updateError } = await supabase
+          .from('events')
+          .update({
+            ...formData,
+            status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', eventId);
 
-      if (insertError) throw insertError;
-      
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dealer/dashboard/events');
-      }, 1500);
+        if (updateError) throw updateError;
+        
+        setSuccess(true);
+        setTimeout(() => {
+          router.push(`/admin/dashboard/events/event/${eventId}`);
+        }, 1500);
+      } else {
+        // Режим создания - INSERT
+        const { data: newEvent, error: insertError } = await supabase
+          .from('events')
+          .insert([{
+            ...formData,
+            status,
+            created_by: profile.id
+          }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        
+        setSuccess(true);
+        setTimeout(() => {
+          // Перенаправляем на страницу созданного события
+          if (newEvent?.id) {
+            router.push(`/admin/dashboard/events/event/${newEvent.id}`);
+          } else {
+            router.push('/dealer/dashboard/events');
+          }
+        }, 1500);
+      }
     } catch (err: any) {
-      console.error('Error creating event:', err);
+      console.error('Error saving event:', err);
       
       if (err.code === '42501') {
-        setError('Нет прав на создание события. Убедитесь, что вы администратор.');
+        setError('Нет прав на изменение события. Убедитесь, что вы администратор.');
       } else if (err.message) {
         setError(err.message);
       } else {
-        setError('Произошла ошибка при создании события');
+        setError(`Произошла ошибка при ${isEditMode ? 'обновлении' : 'создании'} события`);
       }
     } finally {
       setSaving(false);
@@ -259,9 +345,9 @@ export default function CreateEventPage() {
     }));
   };
 
-  if (userLoading) {
+  if (userLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC7C67]"></div>
       </div>
     );
@@ -269,59 +355,61 @@ export default function CreateEventPage() {
 
   if (!profile || profile.role !== 'admin') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Доступ запрещен</h2>
-          <p className="text-gray-600">У вас нет прав для просмотра этой страницы</p>
+      <div className="w-full min-h-screen bg-gray-50">
+        <div className="">
+          <MoreHeaderAD title="События" showBackButton={true} />
+        </div>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold mb-2">Доступ запрещен</h2>
+            <p className="text-gray-600">У вас нет прав для просмотра этой страницы</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-[#F8F1EF] to-white">
-      {/* Шапка страницы */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-[#DC7C67] via-[#C86B56] to-[#B95F4A] shadow-sm">
-        <div className="px-4 sm:px-6 lg:px-8 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dealer/dashboard/events"
-                className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 border border-white/25 hover:bg-white/25 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 text-white" />
-              </Link>
-              <div className="text-white">
-                <h1 className="text-2xl font-semibold">Создание события</h1>
-                <p className="text-white/80 text-sm mt-0.5">Заполните информацию о новом событии</p>
-              </div>
-            </div>
+    <div className="w-full min-h-screen">
+      {/* Заголовок с MoreHeaderAD */}
+      <div className="mb-6">
+        <MoreHeaderAD 
+          title={isEditMode ? 'Редактирование события' : 'Создание события'} 
+          showBackButton={true} 
+        />
+      </div>
 
-            {/* Кнопки действий */}
+      {/* Кнопки действий - фиксированная панель */}
+      <div className="sticky rounded-2xl top-0 z-10 bg-gray-50">
+        <div className="px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-600">
+              {isEditMode ? 'Внесите необходимые изменения' : 'Заполните информацию о новом событии'}
+            </p>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => handleSave('draft')}
                 disabled={saving}
-                className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium"
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm font-medium"
               >
                 <FileText className="w-4 h-4" />
-                Сохранить как черновик
+                Черновик
               </button>
               <button
                 onClick={() => handleSave('published')}
                 disabled={saving || !formData.title}
-                className="px-4 py-2 bg-white text-[#C86B56] rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
+                className="px-4 py-2 bg-[#DC7C67] text-white rounded-lg hover:bg-[#C86B56] transition-colors flex items-center gap-2 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#C86B56]"></div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     Сохранение...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    Опубликовать
+                    {isEditMode ? <Save className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                    {isEditMode ? 'Сохранить' : 'Опубликовать'}
                   </>
                 )}
               </button>
@@ -330,13 +418,13 @@ export default function CreateEventPage() {
         </div>
       </div>
 
-      {/* Контент */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Контент - БЕЗ ограничения по ширине */}
+      <div className="mx-auto mt-6">
         {/* Success message */}
         {success && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2">
             <div className="h-5 w-5">✓</div>
-            Событие успешно создано! Перенаправление...
+            {isEditMode ? 'Событие успешно обновлено!' : 'Событие успешно создано!'} Перенаправление...
           </div>
         )}
 
@@ -601,19 +689,19 @@ export default function CreateEventPage() {
                 <h2 className="text-lg font-semibold text-[#B95F4A]">Оформление</h2>
               </div>
               
-              <div className="p-6 space-y-5">
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Цвет бейджа
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-8 gap-1.5">
                     {BADGE_COLORS.map((color) => (
                       <button
                         key={color}
                         onClick={() => setFormData(prev => ({ ...prev, badge_color: color }))}
-                        className={`w-full aspect-square rounded-xl border-2 transition-all ${
+                        className={`w-full aspect-square rounded-lg border-2 transition-all ${
                           formData.badge_color === color 
-                            ? 'border-gray-900 scale-110 shadow-lg' 
+                            ? 'border-gray-900 scale-110 shadow-md' 
                             : 'border-gray-200 hover:scale-105'
                         }`}
                         style={{ backgroundColor: color }}
@@ -623,15 +711,15 @@ export default function CreateEventPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Иконка события
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Иконка
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-8 gap-1.5">
                     {BADGE_ICONS.map((icon) => (
                       <button
                         key={icon}
                         onClick={() => setFormData(prev => ({ ...prev, badge_icon: icon }))}
-                        className={`w-full aspect-square rounded-xl border-2 flex items-center justify-center text-2xl transition-all ${
+                        className={`w-full aspect-square rounded-lg border-2 flex items-center justify-center text-lg transition-all ${
                           formData.badge_icon === icon 
                             ? 'border-[#DC7C67] bg-[#FFF7F5] scale-110' 
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -840,5 +928,18 @@ export default function CreateEventPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Обертка с Suspense
+export default function CreateOrEditEventPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC7C67]"></div>
+      </div>
+    }>
+      <CreateOrEditEventPageContent />
+    </Suspense>
   );
 }

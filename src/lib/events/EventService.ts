@@ -17,7 +17,7 @@ export interface Event {
   rewards?: any[] | null;
   conditions?: any[] | null;
   badge_color?: string | null;
-  badge_icon?: string | null;
+  badge_icon?: string | null;Й
   priority?: number | null;
   is_featured?: boolean | null;
   tags?: string[] | null;
