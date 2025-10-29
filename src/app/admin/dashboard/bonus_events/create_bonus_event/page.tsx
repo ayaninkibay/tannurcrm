@@ -2,14 +2,14 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { bonusEventService, BonusEventTarget } from '@/lib/bonus_event/BonusEventService';
 import { supabase } from '@/lib/supabase/client';
 
-export default function CreateBonusEventPage() {
+function CreateBonusEventPageContent() {
   const { t } = useTranslate();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -526,5 +526,20 @@ export default function CreateBonusEventPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CreateBonusEventPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D77E6C] mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    }>
+      <CreateBonusEventPageContent />
+    </Suspense>
   );
 }
