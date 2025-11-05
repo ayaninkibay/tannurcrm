@@ -176,7 +176,15 @@ export default function MoreHeaderAD({ title, showBackButton = false }: MoreHead
           </button>
 
           <button onClick={handleProfile} className="flex items-center bg-white rounded-full py-1 pl-1 pr-1 md:pr-3 gap-1 md:gap-2">
-            <Image src={avatarUrl} alt={t('Аватар')} width={28} height={28} className="rounded-full" />
+            <div className="w-7 h-7 flex-shrink-0">
+              <Image 
+                src={avatarUrl} 
+                alt={t('Аватар')} 
+                width={28} 
+                height={28} 
+                className="w-7 h-7 object-cover rounded-full" 
+              />
+            </div>
             <span className="hidden lg:block text-sm text-[#111] font-medium truncate max-w-[200px]">{name}</span>
             <Image src="/icons/buttom/DoubleIconArrowBlack.svg" alt="arrow" width={16} height={16} className="hidden lg:block" />
           </button>
@@ -201,7 +209,7 @@ export default function MoreHeaderAD({ title, showBackButton = false }: MoreHead
               animate={{ x: '60%' }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3 }}
-              className="fixed top-0 right-0 h-full w-[160%] bg-gray-100 z-50 flex flex кол justify-between p-6 space-y-4 lg:hidden shadow-lg"
+              className="fixed top-0 right-0 h-full w-[160%] bg-gray-100 z-50 flex flex-col justify-between p-6 space-y-4 lg:hidden shadow-lg"
             >
               <div className="w-full">
                 <div className="w-full flex justify-between items-center mb-4">

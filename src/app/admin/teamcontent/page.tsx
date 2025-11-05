@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useTeamModule } from '@/lib/teamcontent/team.module';
@@ -109,18 +110,18 @@ const TableRow = ({ member, onClick }: { member: TeamMemberData; onClick?: (memb
       <td className="px-6 py-4">
         <div className="flex items-center gap-4">
           {member.avatar_url ? (
-            <div className="relative">
+            <div className="relative w-12 h-12 flex-shrink-0">
               <Image
                 src={member.avatar_url}
                 alt={member.name}
                 width={48}
                 height={48}
-                className="rounded-2xl ring-2 ring-white shadow-md"
+                className="w-12 h-12 object-cover rounded-2xl ring-2 ring-white shadow-md"
               />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br from-[#DC7C67] to-[#E89580] rounded-full ring-2 ring-white"></div>
             </div>
           ) : (
-            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#DC7C67] to-[#E89580] flex items-center justify-center text-white font-bold text-base shadow-lg shadow-[#DC7C67]/30">
+            <div className="relative w-12 h-12 flex-shrink-0 rounded-2xl bg-gradient-to-br from-[#DC7C67] to-[#E89580] flex items-center justify-center text-white font-bold text-base shadow-lg shadow-[#DC7C67]/30">
               {getInitials(member.name)}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full ring-2 ring-[#DC7C67]/20"></div>
             </div>
@@ -185,6 +186,7 @@ const TableRow = ({ member, onClick }: { member: TeamMemberData; onClick?: (memb
 };
 
 export default function Team() {
+  const router = useRouter();
   const { t } = useTranslate();
   const [selectedTab, setSelectedTab] = useState<TabId>('dealers');
   
@@ -258,7 +260,8 @@ export default function Team() {
   }, [searchQuery]);
 
   const handleMemberClick = (member: TeamMemberData) => {
-    console.log('Clicked member:', member);
+    // Переход на страницу редактирования пользователя
+    router.push(`/admin/teamcontent/users/${member.id}`);
   };
 
   const StatCard = ({
@@ -414,7 +417,7 @@ export default function Team() {
               <h3 className="text-lg font-bold text-white">Быстрые действия</h3>
             </div>
             <button 
-              onClick={() => window.location.href = '/admin/teamcontent/create_dealer'}
+              onClick={() => router.push('/admin/teamcontent/create_dealer')}
               className="w-full px-6 py-4 bg-white text-[#DC7C67] rounded-2xl font-bold  transition-all transform hover:scale-105"
             >
               + Создать дилера

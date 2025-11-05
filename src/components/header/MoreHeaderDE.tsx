@@ -191,14 +191,16 @@ const loadCartCount = async () => {
             className="flex items-center bg-white rounded-full py-1 pl-1 pr-3 gap-2 hover:shadow-md transition-shadow relative"
             disabled={isNavigatingToProfile}
           >
-            <Image
-              src={avatarUrl}
-              alt={t('Аватар')}
-              width={32}
-              height={32}
-              className="rounded-full object-cover"
-              unoptimized
-            />
+            <div className="w-8 h-8 flex-shrink-0">
+              <Image
+                src={avatarUrl}
+                alt={t('Аватар')}
+                width={32}
+                height={32}
+                className="w-8 h-8 object-cover rounded-full"
+                unoptimized
+              />
+            </div>
             <div className="hidden md:flex items-center gap-2">
               <span className="text-base font-medium text-gray-900 leading-tight truncate max-w-[120px]">
                 {name}
@@ -314,14 +316,16 @@ const loadCartCount = async () => {
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
-                  <Image
-                    src={avatarUrl}
-                    alt={t('Аватар')}
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover"
-                    unoptimized
-                  />
+                  <div className="w-10 h-10 flex-shrink-0">
+                    <Image
+                      src={avatarUrl}
+                      alt={t('Аватар')}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 object-cover rounded-full"
+                      unoptimized
+                    />
+                  </div>
                   <div className="flex flex-col">
                     <span className="text-xs text-gray-400">{t('Добро пожаловать!')}</span>
                     <span className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
@@ -362,14 +366,16 @@ const loadCartCount = async () => {
                       }`}
                     >
                       {item.showAvatar ? (
-                        <Image
-                          src={avatarUrl}
-                          alt={item.label}
-                          width={20}
-                          height={20}
-                          className="rounded-full object-cover"
-                          unoptimized
-                        />
+                        <div className="w-5 h-5 flex-shrink-0">
+                          <Image
+                            src={avatarUrl}
+                            alt={item.label}
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 object-cover rounded-full"
+                            unoptimized
+                          />
+                        </div>
                       ) : (
                         <IconComponent className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
                       )}
