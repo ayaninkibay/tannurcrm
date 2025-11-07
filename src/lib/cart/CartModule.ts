@@ -169,84 +169,93 @@ export const useCartModule = (): UseCartModuleReturn => {
   // ОБНОВЛЕНИЕ КОЛИЧЕСТВА
   // ==========================================
   
-  const updateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
-    const item = cartItems.find(i => i.id === itemId);
-    if (!item) return;
+ // ОБНОВЛЕНИЕ КОЛИЧЕСТВА
+const updateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
+  const item = cartItems.find(i => i.id === itemId);
+  if (!item) return;
 
-    // Проверка границ
-    if (newQuantity < 1) newQuantity = 1;
-    if (newQuantity > item.stock) newQuantity = item.stock;
+  // Проверка границ
+  if (newQuantity < 1) newQuantity = 1;
+  if (newQuantity > item.stock) newQuantity = item.stock;
+  
+  // Если количество не изменилось - ничего не делаем
+  if (newQuantity === item.quantity) return;
+
+  // Оптимистичное обновление UI
+  const previousQuantity = item.quantity;
+  setCartItems(prev => prev.map(i => 
+    i.id === itemId ? { ...i, quantity: newQuantity } : i
+  ));
+
+  // Устанавливаем loading state для этого товара
+  setLoadingStates(prev => ({
+    ...prev,
+    updatingItem: new Map(prev.updatingItem).set(itemId, true)
+  }));
+
+  try {
+    console.log('🔄 Updating quantity:', { itemId, newQuantity });
     
-    // Если количество не изменилось - ничего не делаем
-    if (newQuantity === item.quantity) return;
-
-    // Оптимистичное обновление UI
-    const previousQuantity = item.quantity;
-    setCartItems(prev => prev.map(i => 
-      i.id === itemId ? { ...i, quantity: newQuantity } : i
-    ));
-
-    // Устанавливаем loading state для этого товара
-    setLoadingStates(prev => ({
-      ...prev,
-      updatingItem: new Map(prev.updatingItem).set(itemId, true)
-    }));
-
-    try {
-      console.log('🔄 Updating quantity:', { itemId, newQuantity });
-      
-      const result = await cartService.updateItemQuantity(itemId, newQuantity);
-      
-      if (!result.success) {
-        // Откатываем изменения
-        setCartItems(prev => prev.map(i => 
-          i.id === itemId ? { ...i, quantity: previousQuantity } : i
-        ));
-        toast.error(result.error || 'Не удалось обновить количество');
-        return;
-      }
-      
-      // Успех - уже обновили UI оптимистично
-      
-    } catch (error: any) {
-      // Откатываем изменения при ошибке
+    const result = await cartService.updateItemQuantity(itemId, newQuantity);
+    
+    if (!result.success) {
+      // Откатываем изменения
       setCartItems(prev => prev.map(i => 
         i.id === itemId ? { ...i, quantity: previousQuantity } : i
       ));
-      console.error('❌ Error updating quantity:', error);
-      toast.error(error.message || 'Ошибка обновления количества');
-    } finally {
-      // Убираем loading state
-      setLoadingStates(prev => {
-        const newMap = new Map(prev.updatingItem);
-        newMap.delete(itemId);
-        return { ...prev, updatingItem: newMap };
-      });
+      toast.error(result.error || 'Не удалось обновить количество');
+      return;
     }
-  }, [cartItems]);
+    
+    // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ПОЛУЧИТЬ ПОДАРКИ
+    if (cart?.user_id) {
+      await loadUserCart(cart.user_id);
+    }
+    
+  } catch (error: any) {
+    // Откатываем изменения при ошибке
+    setCartItems(prev => prev.map(i => 
+      i.id === itemId ? { ...i, quantity: previousQuantity } : i
+    ));
+    console.error('❌ Error updating quantity:', error);
+    toast.error(error.message || 'Ошибка обновления количества');
+  } finally {
+    // Убираем loading state
+    setLoadingStates(prev => {
+      const newMap = new Map(prev.updatingItem);
+      newMap.delete(itemId);
+      return { ...prev, updatingItem: newMap };
+    });
+  }
+}, [cartItems, cart, loadUserCart]);
 
   // ==========================================
   // УДАЛЕНИЕ ТОВАРА
   // ==========================================
   
-  const removeItem = useCallback(async (itemId: string) => {
-    // Устанавливаем loading state
-    setLoadingStates(prev => ({
-      ...prev,
-      removingItem: new Map(prev.removingItem).set(itemId, true)
-    }));
+ // УДАЛЕНИЕ ТОВАРА
+const removeItem = useCallback(async (itemId: string) => {
+  // Устанавливаем loading state
+  setLoadingStates(prev => ({
+    ...prev,
+    removingItem: new Map(prev.removingItem).set(itemId, true)
+  }));
 
-    try {
-      console.log('🗑️ Removing item:', itemId);
-      
-      const result = await cartService.removeItem(itemId);
-      
-      if (!result.success) {
-        toast.error(result.error || 'Не удалось удалить товар');
-        return;
-      }
-      
-      // Удаляем из локального state
+  try {
+    console.log('🗑️ Removing item:', itemId);
+    
+    const result = await cartService.removeItem(itemId);
+    
+    if (!result.success) {
+      toast.error(result.error || 'Не удалось удалить товар');
+      return;
+    }
+    
+    // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ОБНОВИТЬ ПОДАРКИ
+    if (cart?.user_id) {
+      await loadUserCart(cart.user_id);
+    } else {
+      // Удаляем из локального state если нет cart
       setCartItems(prev => prev.filter(item => item.id !== itemId));
       
       // Удаляем из выбранных
@@ -264,21 +273,22 @@ export const useCartModule = (): UseCartModuleReturn => {
         
         return newSet;
       });
-      
-      toast.success('Товар удален из корзины');
-      
-    } catch (error: any) {
-      console.error('❌ Error removing item:', error);
-      toast.error(error.message || 'Ошибка удаления товара');
-    } finally {
-      // Убираем loading state
-      setLoadingStates(prev => {
-        const newMap = new Map(prev.removingItem);
-        newMap.delete(itemId);
-        return { ...prev, removingItem: newMap };
-      });
     }
-  }, [cart]);
+    
+    toast.success('Товар удален из корзины');
+    
+  } catch (error: any) {
+    console.error('❌ Error removing item:', error);
+    toast.error(error.message || 'Ошибка удаления товара');
+  } finally {
+    // Убираем loading state
+    setLoadingStates(prev => {
+      const newMap = new Map(prev.removingItem);
+      newMap.delete(itemId);
+      return { ...prev, removingItem: newMap };
+    });
+  }
+}, [cart, loadUserCart]);
 
   // ==========================================
   // ВЫБОР ТОВАРОВ

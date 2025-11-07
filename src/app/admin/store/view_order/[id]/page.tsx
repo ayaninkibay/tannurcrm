@@ -141,13 +141,13 @@ export default function ViewOrderPage() {
     return currentOrder.delivery_method === 'delivery' ? deliveryStatusFlow : pickupStatusFlow;
   }, [currentOrder]);
 
+  // ✅ ИСПРАВЛЕНО: Используем item.total вместо price * quantity
   const totals = useMemo(() => {
     if (!currentOrder) return { items: 0, shipping: 0, discount: 0, grand: 0 };
     
+    // Используем item.total (уже правильно рассчитан в БД: 0 для подарков)
     const items = currentOrder.order_items?.reduce((sum, item) => {
-      const price = item.price || item.product?.price || 0;
-      const qty = item.quantity || 1;
-      return sum + (price * qty);
+      return sum + (item.total || 0);
     }, 0) || currentOrder.total_amount || 0;
     
     const shipping = currentOrder.delivery_cost || 0;
@@ -439,7 +439,9 @@ export default function ViewOrderPage() {
             <div className="block sm:hidden space-y-2">
               {currentOrder.order_items && currentOrder.order_items.length > 0 ? (
                 currentOrder.order_items.map((item, i) => {
-                  const price = item.price || item.product?.price || 0;
+                  // ✅ ИСПРАВЛЕНО: Используем item.total
+                  const total = item.total || 0;
+                  const price = item.price ?? 0;
                   const qty = item.quantity || 1;
                   const name = item.product?.name || `Товар ${i + 1}`;
                   
@@ -455,7 +457,7 @@ export default function ViewOrderPage() {
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-semibold text-gray-900">{money(qty * price)}</div>
+                          <div className="text-sm font-semibold text-gray-900">{money(total)}</div>
                         </div>
                       </div>
                     </div>
@@ -479,7 +481,9 @@ export default function ViewOrderPage() {
                 <tbody>
                   {currentOrder.order_items && currentOrder.order_items.length > 0 ? (
                     currentOrder.order_items.map((item, i) => {
-                      const price = item.price || item.product?.price || 0;
+                      // ✅ ИСПРАВЛЕНО: Используем item.total
+                      const total = item.total || 0;
+                      const price = item.price ?? 0;
                       const qty = item.quantity || 1;
                       const name = item.product?.name || `Товар ${i + 1}`;
                       
@@ -488,7 +492,7 @@ export default function ViewOrderPage() {
                           <td className="py-3 pr-4"><div className="text-sm font-medium text-gray-900">{name}</div></td>
                           <td className="py-3 text-right text-sm">{money(price)}</td>
                           <td className="py-3 text-center text-sm">{qty}</td>
-                          <td className="py-3 text-right text-sm font-medium">{money(qty * price)}</td>
+                          <td className="py-3 text-right text-sm font-medium">{money(total)}</td>
                         </tr>
                       );
                     })
@@ -543,7 +547,7 @@ export default function ViewOrderPage() {
             </div>
           </Section>
 
-          {/* 👇 ПЕРЕИМЕНОВАННЫЙ И ПЕРЕМЕЩЕННЫЙ БЛОК */}
+          {/* Данные об оплате */}
           <Section 
             title={t('Данные об оплате')} 
             icon={DollarSign}
@@ -596,7 +600,7 @@ export default function ViewOrderPage() {
             )}
           </Section>
 
-          {/* 👇 ОБНОВЛЕННЫЙ БЛОК - Заметки между отделами */}
+          {/* Заметки между отделами */}
           <Section 
             title={t('Заметки между отделами (Внутренние)')} 
             icon={Building2}
@@ -706,7 +710,7 @@ export default function ViewOrderPage() {
           </div>
         </div>
 
-        {/* Правая колонка - остается без изменений... */}
+        {/* Правая колонка */}
         <div className="space-y-4 sm:space-y-6">
           
           <Section title={t('Клиент')} icon={User}>

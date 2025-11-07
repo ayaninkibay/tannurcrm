@@ -58,7 +58,7 @@ export default function DealerPaymentPage() {
   const [showBonuses, setShowBonuses] = useState(false);
 
   const SUBSCRIPTION_AMOUNT = 100000;
-  const KASPI_LINK = 'https://pay.kaspi.kz/pay/lafnp2v5';
+  const KASPI_LINK = 'https://pay.kaspi.kz/pay/2jzh8tc9';
 
   useEffect(() => {
     if (dealerId && sponsorId) {

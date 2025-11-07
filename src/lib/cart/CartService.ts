@@ -71,7 +71,7 @@ class CartService {
       cartData.delivery_cost = 0;
     }
 
-    // Загружаем товары с JOIN на products
+    // Загружаем товары с JOIN на products + is_gift и promotion_id
     const { data: cartItemsData, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
@@ -79,6 +79,8 @@ class CartService {
         cart_id,
         product_id,
         quantity,
+        is_gift,
+        promotion_id,
         created_at,
         updated_at,
         products (
@@ -104,6 +106,8 @@ class CartService {
         cart_id: item.cart_id,
         product_id: item.product_id,
         quantity: item.quantity,
+        is_gift: item.is_gift || false,
+        promotion_id: item.promotion_id || null,
         created_at: item.created_at,
         updated_at: item.updated_at,
         name: item.products.name || 'Товар',

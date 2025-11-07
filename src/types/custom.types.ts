@@ -289,6 +289,8 @@ export interface CartItemView extends CartItem {
   price_dealer: number;
   stock: number;
   category: string;
+  is_gift?: boolean;
+  promotion_id?: string | null;
 }
 
 // ========================================
