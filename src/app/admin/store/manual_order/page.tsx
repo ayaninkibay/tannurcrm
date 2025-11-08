@@ -11,7 +11,8 @@ import {
   ManualOrderItem,
 } from '@/lib/manualOrder/manualOrderService';
 import { Database } from '@/types/supabase';
-import { Search, X, Trash2, Calendar, User, Package, Save, Check, AlertCircle, MapPin, Image as ImageIcon } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
+import { Search, X, Trash2, Calendar, User, Package, Save, Check, AlertCircle, MapPin, Image as ImageIcon, Gift } from 'lucide-react';
 
 type UserType = Database['public']['Tables']['users']['Row'];
 type Product = Database['public']['Tables']['products']['Row'];
@@ -19,6 +20,22 @@ type Product = Database['public']['Tables']['products']['Row'];
 interface OrderItem extends ManualOrderItem {
   id: string;
   product?: Product;
+  is_gift?: boolean;
+  promotion_id?: string;
+}
+
+interface GiftPromotion {
+  id: string;
+  name: string;
+  min_purchase_amount: number;
+  is_active: boolean;
+  start_date: string;
+  end_date: string;
+  products: {
+    product_id: string;
+    quantity: number;
+    product?: Product;
+  }[];
 }
 
 export default function CreateManualOrderPage() {
@@ -36,6 +53,10 @@ export default function CreateManualOrderPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Gift Promotions
+  const [giftPromotions, setGiftPromotions] = useState<GiftPromotion[]>([]);
+  const [appliedPromotions, setAppliedPromotions] = useState<string[]>([]);
+
   // Order data
   const [orderDate, setOrderDate] = useState(
     new Date().toISOString().slice(0, 16)
@@ -50,10 +71,16 @@ export default function CreateManualOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Load all products on mount
+  // Load all products and gift promotions on mount
   useEffect(() => {
     loadProducts();
+    loadGiftPromotions();
   }, []);
+
+  // Check gift promotions whenever order items change
+  useEffect(() => {
+    checkAndApplyGiftPromotions();
+  }, [orderItems, giftPromotions]);
 
   // Search users with debounce
   useEffect(() => {
@@ -82,6 +109,120 @@ export default function CreateManualOrderPage() {
       setProducts(data);
     }
     setLoadingProducts(false);
+  }
+
+  async function loadGiftPromotions() {
+    try {
+      const now = new Date().toISOString();
+      
+      // Load active gift promotions with products
+      const { data: promotions, error } = await supabase
+        .from('gift_promotions')
+        .select(`
+          id,
+          name,
+          min_purchase_amount,
+          is_active,
+          start_date,
+          end_date
+        `)
+        .eq('is_active', true)
+        .lte('start_date', now)
+        .gte('end_date', now);
+
+      if (error) throw error;
+
+      if (promotions && promotions.length > 0) {
+        // Load products for each promotion
+        const promotionsWithProducts = await Promise.all(
+          promotions.map(async (promo) => {
+            const { data: promoProducts } = await supabase
+              .from('gift_promotion_products')
+              .select('product_id, quantity')
+              .eq('promotion_id', promo.id);
+
+            if (promoProducts && promoProducts.length > 0) {
+              // Load product details
+              const productIds = promoProducts.map(p => p.product_id);
+              const { data: productDetails } = await supabase
+                .from('products')
+                .select('*')
+                .in('id', productIds);
+
+              return {
+                ...promo,
+                products: promoProducts.map(pp => ({
+                  ...pp,
+                  product: productDetails?.find(p => p.id === pp.product_id)
+                }))
+              };
+            }
+
+            return {
+              ...promo,
+              products: []
+            };
+          })
+        );
+
+        setGiftPromotions(promotionsWithProducts.filter(p => p.products.length > 0));
+      }
+    } catch (error) {
+      console.error('Error loading gift promotions:', error);
+    }
+  }
+
+  function checkAndApplyGiftPromotions() {
+    // Calculate total for non-gift items only
+    const regularItemsTotal = orderItems
+      .filter(item => !item.is_gift)
+      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+
+    // Find applicable promotions
+    const applicablePromotions = giftPromotions
+      .filter(promo => regularItemsTotal >= promo.min_purchase_amount)
+      .sort((a, b) => b.min_purchase_amount - a.min_purchase_amount); // Highest threshold first
+
+    // Remove gift items from promotions that are no longer applicable
+    const newAppliedPromotions: string[] = [];
+    const itemsToKeep = orderItems.filter(item => {
+      if (!item.is_gift) return true;
+      
+      const promoStillApplies = applicablePromotions.some(p => p.id === item.promotion_id);
+      if (promoStillApplies && item.promotion_id) {
+        newAppliedPromotions.push(item.promotion_id);
+      }
+      return promoStillApplies;
+    });
+
+    // Add new gift items for newly applicable promotions
+    const newItems = [...itemsToKeep];
+    
+    applicablePromotions.forEach(promo => {
+      if (!newAppliedPromotions.includes(promo.id)) {
+        // Add gift items from this promotion
+        promo.products.forEach(giftProduct => {
+          if (giftProduct.product) {
+            newItems.push({
+              id: `gift-${promo.id}-${giftProduct.product_id}-${Math.random().toString(36).substr(2, 9)}`,
+              product_id: giftProduct.product_id,
+              quantity: giftProduct.quantity,
+              price: 0, // Gift items are free
+              product: giftProduct.product,
+              is_gift: true,
+              promotion_id: promo.id
+            });
+          }
+        });
+        newAppliedPromotions.push(promo.id);
+      }
+    });
+
+    // Update state if changed
+    if (JSON.stringify(newItems) !== JSON.stringify(orderItems)) {
+      setOrderItems(newItems);
+      setAppliedPromotions(newAppliedPromotions);
+    }
   }
 
   // Show loading while profile is loading
@@ -114,12 +255,12 @@ export default function CreateManualOrderPage() {
 
   // Add/update product quantity
   function handleToggleProduct(product: Product) {
-    const existingItem = orderItems.find((item) => item.product_id === product.id);
+    const existingItem = orderItems.find((item) => item.product_id === product.id && !item.is_gift);
 
     if (existingItem) {
       // Remove if quantity is 1
       if (existingItem.quantity === 1) {
-        setOrderItems(orderItems.filter((item) => item.product_id !== product.id));
+        setOrderItems(orderItems.filter((item) => !(item.product_id === product.id && !item.is_gift)));
       }
     } else {
       // Add new item with quantity 1
@@ -131,6 +272,7 @@ export default function CreateManualOrderPage() {
           quantity: 1,
           price: product.price_dealer || product.price || 0,
           product,
+          is_gift: false,
         },
       ]);
     }
@@ -164,20 +306,29 @@ export default function CreateManualOrderPage() {
     setOrderItems(orderItems.filter((item) => item.id !== itemId));
   }
 
-  // Calculate total
+  // Calculate total (excluding gifts)
   function calculateTotal() {
-    return orderItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+    return orderItems
+      .filter(item => !item.is_gift)
+      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
   }
 
   // Check if product is selected
   function isProductSelected(productId: string) {
-    return orderItems.some((item) => item.product_id === productId);
+    return orderItems.some((item) => item.product_id === productId && !item.is_gift);
   }
 
   // Get product quantity
   function getProductQuantity(productId: string) {
-    const item = orderItems.find((item) => item.product_id === productId);
+    const item = orderItems.find((item) => item.product_id === productId && !item.is_gift);
     return item?.quantity || 0;
+  }
+
+  // Get gift promotion name by id
+  function getPromotionName(promotionId?: string) {
+    if (!promotionId) return '';
+    const promo = giftPromotions.find(p => p.id === promotionId);
+    return promo?.name || '';
   }
 
   // Submit order
@@ -192,7 +343,8 @@ export default function CreateManualOrderPage() {
       return;
     }
 
-    if (orderItems.length === 0) {
+    const regularItems = orderItems.filter(item => !item.is_gift);
+    if (regularItems.length === 0) {
       setError('Добавьте хотя бы один товар');
       return;
     }
@@ -208,14 +360,19 @@ export default function CreateManualOrderPage() {
       // Set delivery address to "Самовывоз" if pickup selected
       const finalDeliveryAddress = deliveryMethod === 'pickup' ? 'Самовывоз' : deliveryAddress;
 
+      // Prepare items with gift flags
+      const itemsToSubmit = orderItems.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.price,
+        is_gift: item.is_gift || false,
+        promotion_id: item.promotion_id || null
+      }));
+
       const result = await createManualOrder({
         user_id: selectedUser.id,
         order_date: new Date(orderDate).toISOString(),
-        items: orderItems.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+        items: itemsToSubmit,
         delivery_address: finalDeliveryAddress || undefined,
         delivery_method: deliveryMethod,
         notes: notes || undefined,
@@ -224,9 +381,13 @@ export default function CreateManualOrderPage() {
       });
 
       if (result.success) {
+        const giftCount = orderItems.filter(i => i.is_gift).length;
+        const giftMessage = giftCount > 0 ? ` (включая ${giftCount} подарочных позиций)` : '';
+        
         setSuccess(
-          `Заказ ${result.order_number} успешно создан! Сумма: ${result.total_amount?.toLocaleString()} ₸`
+          `Заказ ${result.order_number} успешно создан${giftMessage}! Сумма: ${result.total_amount?.toLocaleString()} ₸`
         );
+        
         // Reset form completely
         setSelectedUser(null);
         setOrderItems([]);
@@ -234,6 +395,7 @@ export default function CreateManualOrderPage() {
         setDeliveryMethod('pickup');
         setNotes('');
         setOrderDate(new Date().toISOString().slice(0, 16));
+        setAppliedPromotions([]);
         
         // Scroll to top to show success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -246,6 +408,9 @@ export default function CreateManualOrderPage() {
       setIsSubmitting(false);
     }
   }
+
+  const regularItems = orderItems.filter(item => !item.is_gift);
+  const giftItems = orderItems.filter(item => item.is_gift);
 
   return (
     <div className="min-h-screen">
@@ -295,6 +460,24 @@ export default function CreateManualOrderPage() {
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+        )}
+
+        {/* Gift Promotion Alert */}
+        {appliedPromotions.length > 0 && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl flex items-start gap-3">
+            <Gift className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-purple-900 text-sm font-medium mb-1">🎁 Применены акции с подарками!</p>
+              <ul className="text-purple-800 text-xs space-y-0.5">
+                {appliedPromotions.map(promoId => {
+                  const promo = giftPromotions.find(p => p.id === promoId);
+                  return promo ? (
+                    <li key={promoId}>• {promo.name} - {promo.products.length} подарок(ов)</li>
+                  ) : null;
+                })}
+              </ul>
+            </div>
           </div>
         )}
 
@@ -393,9 +576,9 @@ export default function CreateManualOrderPage() {
                 <Package className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-lg font-semibold text-gray-900">Выбор товаров</h2>
-              {orderItems.length > 0 && (
+              {regularItems.length > 0 && (
                 <span className="ml-auto px-3 py-1 bg-[#D77E6C] text-white text-sm font-medium rounded-full">
-                  {orderItems.length}
+                  {regularItems.length}
                 </span>
               )}
             </div>
@@ -495,102 +678,21 @@ export default function CreateManualOrderPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Выбранные товары</h3>
               
-              {/* Mobile View */}
-              <div className="space-y-3 sm:hidden">
-                {orderItems.map((item) => (
-                  <div key={item.id} className="p-4 bg-gray-50 rounded-xl">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex gap-3 flex-1 min-w-0">
-                        {/* Image */}
-                        <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
-                          {item.product?.image_url ? (
-                            <img
-                              src={item.product.image_url}
-                              alt={item.product.name || ''}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <ImageIcon className="w-6 h-6 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1">
-                            {item.product?.name}
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            На складе: {item.product?.stock}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Кол-во</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value))}
-                          className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Цена</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.price}
-                          onChange={(e) => handleUpdatePrice(item.id, parseFloat(e.target.value))}
-                          className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Сумма</label>
-                        <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg text-center">
-                          {((item.price || 0) * item.quantity).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
+              {/* Regular Items */}
+              {regularItems.length > 0 && (
+                <>
+                  <div className="mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Основные товары</h4>
                   </div>
-                ))}
-              </div>
-
-              {/* Desktop Table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Товар
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Кол-во
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Цена
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Сумма
-                      </th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {orderItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                  
+                  {/* Mobile View */}
+                  <div className="space-y-3 sm:hidden mb-6">
+                    {regularItems.map((item) => (
+                      <div key={item.id} className="p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex gap-3 flex-1 min-w-0">
+                            {/* Image */}
+                            <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
                               {item.product?.image_url ? (
                                 <img
                                   src={item.product.image_url}
@@ -599,64 +701,270 @@ export default function CreateManualOrderPage() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <ImageIcon className="w-5 h-5 text-gray-400" />
+                                  <ImageIcon className="w-6 h-6 text-gray-400" />
                                 </div>
                               )}
                             </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{item.product?.name}</div>
-                              <div className="text-sm text-gray-500">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                                {item.product?.name}
+                              </h4>
+                              <p className="text-xs text-gray-500">
                                 На складе: {item.product?.stock}
-                              </div>
+                              </p>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleUpdateQuantity(item.id, parseInt(e.target.value))
-                            }
-                            className="w-20 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="number"
-                            min="0"
-                            value={item.price}
-                            onChange={(e) =>
-                              handleUpdatePrice(item.id, parseFloat(e.target.value))
-                            }
-                            className="w-28 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
-                          />
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">
-                          {((item.price || 0) * item.quantity).toLocaleString()} ₸
-                        </td>
-                        <td className="px-4 py-3">
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Кол-во</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value))}
+                              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Цена</label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.price}
+                              onChange={(e) => handleUpdatePrice(item.id, parseFloat(e.target.value))}
+                              className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">Сумма</label>
+                            <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 bg-gray-100 rounded-lg text-center">
+                              {((item.price || 0) * item.quantity).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto mb-6">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Товар
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Кол-во
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Цена
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Сумма
+                          </th>
+                          <th className="px-4 py-3"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {regularItems.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                                  {item.product?.image_url ? (
+                                    <img
+                                      src={item.product.image_url}
+                                      alt={item.product.name || ''}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <ImageIcon className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900">{item.product?.name}</div>
+                                  <div className="text-sm text-gray-500">
+                                    На складе: {item.product?.stock}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleUpdateQuantity(item.id, parseInt(e.target.value))
+                                }
+                                className="w-20 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.price}
+                                onChange={(e) =>
+                                  handleUpdatePrice(item.id, parseFloat(e.target.value))
+                                }
+                                className="w-28 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#D77E6C] focus:border-transparent"
+                              />
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-gray-900">
+                              {((item.price || 0) * item.quantity).toLocaleString()} ₸
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {/* Gift Items */}
+              {giftItems.length > 0 && (
+                <>
+                  <div className="mb-3 pt-4 border-t border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-5 h-5 text-purple-600" />
+                      <h4 className="text-sm font-semibold text-purple-700">Подарочные товары (автоматически добавлены)</h4>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile View for Gifts */}
+                  <div className="space-y-3 sm:hidden mb-6">
+                    {giftItems.map((item) => (
+                      <div key={item.id} className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200">
+                            {item.product?.image_url ? (
+                              <img
+                                src={item.product.image_url}
+                                alt={item.product.name || ''}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Gift className="w-6 h-6 text-purple-400" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-purple-900 text-sm mb-1 flex items-center gap-1">
+                              <Gift className="w-3.5 h-3.5" />
+                              {item.product?.name}
+                            </h4>
+                            <p className="text-xs text-purple-700 mb-1">
+                              {getPromotionName(item.promotion_id)}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-purple-600">Количество: {item.quantity}</span>
+                              <span className="font-bold text-green-600">ПОДАРОК</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table for Gifts */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-purple-50 border-b border-purple-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-purple-700">
+                            Товар
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-purple-700">
+                            Акция
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-purple-700">
+                            Кол-во
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-purple-700">
+                            Стоимость
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-purple-100">
+                        {giftItems.map((item) => (
+                          <tr key={item.id} className="bg-gradient-to-r from-purple-50 to-pink-50">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200">
+                                  {item.product?.image_url ? (
+                                    <img
+                                      src={item.product.image_url}
+                                      alt={item.product.name || ''}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Gift className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium text-purple-900 flex items-center gap-1">
+                                    <Gift className="w-4 h-4" />
+                                    {item.product?.name}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-purple-700">
+                              {getPromotionName(item.promotion_id)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-3 py-1 bg-purple-200 text-purple-800 rounded-lg text-sm font-medium">
+                                {item.quantity}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-bold text-green-600">
+                              ПОДАРОК
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
 
               {/* Total */}
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-between text-lg sm:text-xl font-bold">
-                  <span className="text-gray-900">Итого:</span>
+                  <span className="text-gray-900">Итого к оплате:</span>
                   <span className="text-[#D77E6C]">{calculateTotal().toLocaleString()} ₸</span>
                 </div>
+                {giftItems.length > 0 && (
+                  <p className="text-sm text-purple-600 mt-2 flex items-center gap-1">
+                    <Gift className="w-4 h-4" />
+                    + {giftItems.reduce((sum, item) => sum + item.quantity, 0)} подарочных товара(ов)
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -732,7 +1040,7 @@ export default function CreateManualOrderPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="submit"
-              disabled={isSubmitting || !selectedUser || orderItems.length === 0}
+              disabled={isSubmitting || !selectedUser || regularItems.length === 0}
               className="flex-1 bg-gradient-to-r from-[#D77E6C] to-[#C66B5A] hover:from-[#C66B5A] hover:to-[#B55A4A] text-white px-6 py-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-all"
             >
               {isSubmitting ? (
@@ -744,6 +1052,7 @@ export default function CreateManualOrderPage() {
                 <>
                   <Save className="w-5 h-5" />
                   Создать заказ
+                  {giftItems.length > 0 && <span className="text-xs opacity-90">(+{giftItems.length} 🎁)</span>}
                 </>
               )}
             </button>

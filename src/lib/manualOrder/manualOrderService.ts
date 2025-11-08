@@ -97,6 +97,7 @@ export async function searchProducts(query: string) {
       id,
       name,
       price,
+      article,
       price_dealer,
       stock,
       category,
@@ -123,6 +124,7 @@ export async function getAllProducts() {
       price,
       price_dealer,
       stock,
+      article,
       category,
       is_active,
       image_url

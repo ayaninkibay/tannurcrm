@@ -213,20 +213,6 @@ export default function AdminDashboardPage() {
               arrow="black"
               variant="white"
             />
-            <TannurButton
-              href="/admin/dashboard/gift-promotions"
-              text={t('Управление подарками')}
-              iconSrc="/icons/userblack.svg"
-              arrow="black"
-              variant="white"
-            />
-            <TannurButton
-              href="/admin/dashboard/manual_order"
-              text={t('Добавить ручной заказ')}
-              iconSrc="/icons/userblack.svg"
-              arrow="black"
-              variant="white"
-            />
           </div>
         </div>
 

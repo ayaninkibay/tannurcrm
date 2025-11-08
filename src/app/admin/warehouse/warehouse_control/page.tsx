@@ -17,7 +17,8 @@ import {
   ShoppingBag,
   Sparkles,
   Eye,
-  Building2
+  Building2,
+  Hash
 } from 'lucide-react';
 
 import { useProductModule } from '@/lib/product/ProductModule';
@@ -287,10 +288,14 @@ export default function WareHouse() {
             {activeTab === 'warehouse' && (
               <>
                 {/* Заголовки таблицы */}
-                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 px-4 py-2 bg-gray-50 rounded-lg mb-3 text-sm text-gray-600 font-medium">
+                <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-2 bg-gray-50 rounded-lg mb-3 text-sm text-gray-600 font-medium">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-400" />
                     <span>{t('Наименование')}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Hash className="w-4 h-4 text-gray-400" />
+                    <span>{t('Артикул')}</span>
                   </div>
                   <div className="flex items-center justify-center gap-2">
                     <ShoppingBag className="w-4 h-4 text-gray-400" />
@@ -321,7 +326,7 @@ export default function WareHouse() {
                       <div
                         key={product.id}
                         onClick={() => handleProductClick(product.id)}
-                        className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 items-center px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600"
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-4 items-center px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600"
                       >
                         {/* Наименование */}
                         <div className="flex items-center gap-3 overflow-hidden">
@@ -336,6 +341,11 @@ export default function WareHouse() {
                             {t(product.name || 'Без названия')}
                           </span>
                         </div>
+
+                        {/* Артикул */}
+                        <span className="text-center text-gray-500 font-mono text-xs">
+                          {product.article || '—'}
+                        </span>
 
                         {/* Розница */}
                         <span className="whitespace-nowrap text-center">

@@ -60,13 +60,40 @@ function ProductViewContent() {
     try {
       setLoading(true);
       
+      // ✅ ЯВНО УКАЗЫВАЕМ ВСЕ ПОЛЯ ВКЛЮЧАЯ ARTICLE
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          name,
+          description,
+          article,
+          category,
+          compound,
+          image_url,
+          gallery,
+          price,
+          price_dealer,
+          stock,
+          is_active,
+          flagman,
+          video_instr,
+          created_at,
+          updated_at
+        `)
         .eq('id', id)
         .single<ProductRow>()
 
       if (error) throw error;
+      
+      // 🔍 DEBUG: Проверяем что получили
+      console.group('📦 PRODUCT FETCHED');
+      console.log('Product ID:', data?.id);
+      console.log('Product Name:', data?.name);
+      console.log('Product Article:', data?.article);
+      console.log('Has Article:', !!data?.article);
+      console.log('Full Product:', data);
+      console.groupEnd();
       
       setProduct(data);
     } catch (error) {

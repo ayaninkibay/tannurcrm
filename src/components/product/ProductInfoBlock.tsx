@@ -1,5 +1,5 @@
 // src/components/product/ProductInfoBlock.tsx
-// ОБНОВЛЕНО: работа с новым CartModule
+// ОБНОВЛЕНО: добавлен артикул товара с отладочными логами
 
 'use client';
 
@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, Play,
   ShoppingCart, Heart, Share2, Star, Package,
   Plus, Minus, ArrowRight, FileText, Award,
-  Truck, Shield, Loader2
+  Truck, Shield, Loader2, Hash
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase/client';
@@ -48,6 +48,23 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   const [cartItemQuantity, setCartItemQuantity] = useState(0);
   const [totalCartItems, setTotalCartItems] = useState(0);
   const [totalCartAmount, setTotalCartAmount] = useState(0);
+
+  // ==========================================
+  // ОТЛАДКА АРТИКУЛА
+  // ==========================================
+  
+  useEffect(() => {
+    if (product) {
+      console.group('🔍 PRODUCT DATA DEBUG');
+      console.log('Product ID:', product.id);
+      console.log('Product Name:', product.name);
+      console.log('Product Article:', product.article);
+      console.log('Has Article:', !!product.article);
+      console.log('Article Type:', typeof product.article);
+      console.log('Full Product Object:', product);
+      console.groupEnd();
+    }
+  }, [product]);
 
   // ==========================================
   // ЗАГРУЗКА ДАННЫХ
@@ -98,11 +115,16 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('stock')
+        .select('stock, article')
         .eq('id', product.id)
         .single();
 
       if (error) throw error;
+      
+      console.log('📦 Stock loaded with article:', {
+        stock: data?.stock,
+        article: data?.article
+      });
       
       setProductStock(data?.stock || 0);
     } catch (error) {
@@ -136,7 +158,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     try {
       console.log('➕ Adding to cart:', { productId: product.id, quantity });
       
-      // Используем НОВЫЙ метод addItem
       await cart.addItem(
         currentUser.id,
         product.id,
@@ -150,7 +171,6 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
 
     } catch (error: any) {
       console.error('❌ Error adding to cart:', error);
-      // toast уже показан в CartModule
     } finally {
       setIsAddingToCart(false);
     }
@@ -250,6 +270,23 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
         {/* Мобильный заголовок */}
         <div className="md:hidden mb-4">
           <h1 className="text-2xl font-bold text-gray-900">{product.name || t('Без названия')}</h1>
+          
+          {/* Артикул для мобильных - DEBUG */}
+          {product.article ? (
+            <div className="flex items-center gap-1.5 mt-2">
+              <Hash className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-sm text-gray-500">
+                {t('Артикул')}: <span className="font-medium text-gray-700">{product.article}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 mt-2">
+              <span className="text-xs text-red-500">
+                [DEBUG: Артикул отсутствует]
+              </span>
+            </div>
+          )}
+          
           <div className="flex items-center gap-2 mt-2">
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
@@ -378,6 +415,23 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
                 <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
                   {product.name || t('Без названия')}
                 </h1>
+                
+                {/* Артикул - DEBUG */}
+                {product.article ? (
+                  <div className="flex items-center gap-2 mb-3">
+                    <Hash className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-500">
+                      {t('Артикул')}: <span className="font-semibold text-gray-700">{product.article}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs text-red-500">
+                      [DEBUG: Артикул отсутствует в product.article]
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
