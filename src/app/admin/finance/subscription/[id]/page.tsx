@@ -27,6 +27,24 @@ import {
   Briefcase
 } from 'lucide-react';
 
+type BonusDistribution = {
+  id: string;
+  recipient_id: string;
+  amount: number;
+  percentage: number;
+  hierarchy_level: number;
+  distribution_type: string;
+  status: string;
+  created_at: string;
+  recipient?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  };
+};
+
 type SubscriptionDetail = {
   id: string;
   user_id: string;
@@ -61,6 +79,7 @@ type SubscriptionDetail = {
     email: string;
     phone: string;
   };
+  bonusDistributions?: BonusDistribution[];
 };
 
 const SubscriptionDetailPage = () => {
@@ -85,43 +104,95 @@ const SubscriptionDetailPage = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
+      // Шаг 1: Загружаем основную подписку
+      const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscription_payments')
-        .select(`
-          *,
-          user:user_id (
-            id,
-            first_name,
-            last_name,
-            email,
-            phone,
-            iin,
-            region,
-            instagram,
-            avatar_url,
-            personal_level,
-            personal_turnover,
-            created_at,
-            is_confirmed,
-            status,
-            role
-          ),
-          parent:parent_id (
-            id,
-            first_name,
-            last_name,
-            email,
-            phone
-          )
-        `)
+        .select('*')
         .eq('id', subscriptionId)
         .single();
 
-      if (error) throw error;
+      if (subscriptionError) throw subscriptionError;
       
-      setSubscription(data);
+      // Шаг 2: Загружаем данные пользователя
+      let userData = null;
+      if (subscriptionData.user_id) {
+        const { data: userInfo, error: userError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, phone, iin, region, instagram, avatar_url, created_at, is_confirmed, status, role')
+          .eq('id', subscriptionData.user_id)
+          .single();
+        
+        if (userError) {
+          console.warn('Error loading user data:', userError);
+        } else {
+          userData = userInfo;
+        }
+
+        // Получаем текущий товарооборот пользователя
+        const { data: turnoverData } = await supabase
+          .from('user_turnover_current')
+          .select('personal_turnover')
+          .eq('user_id', subscriptionData.user_id)
+          .single();
+        
+        if (turnoverData && userData) {
+          userData.personal_turnover = turnoverData.personal_turnover;
+        }
+      }
+      
+      // Шаг 3: Загружаем данные спонсора
+      let parentData = null;
+      if (subscriptionData.parent_id) {
+        const { data: parentInfo, error: parentError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, phone')
+          .eq('id', subscriptionData.parent_id)
+          .single();
+        
+        if (parentError) {
+          console.warn('Error loading parent data:', parentError);
+        } else {
+          parentData = parentInfo;
+        }
+      }
+      
+      // Шаг 4: Загружаем распределения бонусов
+      let bonusDistributions: BonusDistribution[] = [];
+      const { data: distributionsData, error: distributionsError } = await supabase
+        .from('subscription_payment_distributions')
+        .select('*')
+        .eq('subscription_payment_id', subscriptionId)
+        .order('hierarchy_level', { ascending: true });
+      
+      if (distributionsError) {
+        console.warn('Error loading bonus distributions:', distributionsError);
+      } else if (distributionsData && distributionsData.length > 0) {
+        // Загружаем данные получателей бонусов
+        const recipientIds = distributionsData.map(d => d.recipient_id);
+        const { data: recipientsData } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, phone')
+          .in('id', recipientIds);
+        
+        // Объединяем данные
+        bonusDistributions = distributionsData.map(dist => ({
+          ...dist,
+          recipient: recipientsData?.find(r => r.id === dist.recipient_id)
+        }));
+      }
+      
+      // Шаг 5: Объединяем все данные
+      const fullSubscription = {
+        ...subscriptionData,
+        user: userData,
+        parent: parentData,
+        bonusDistributions
+      };
+      
+      setSubscription(fullSubscription);
     } catch (error) {
       console.error('Error loading subscription details:', error);
+      alert('Ошибка загрузки данных подписки');
       router.back();
     } finally {
       setIsLoading(false);
@@ -272,8 +343,8 @@ const handleApprove = async () => {
   return (
     <>
       <div className="min-h-screen">
-        <div className="p-2 md:p-4 lg:p-6">
-          <MoreHeaderAD title="Детали подписки" />
+        <div className="">
+          <MoreHeaderAD title="Детали подписки"  showBackButton={true} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             {/* Main Content */}
@@ -403,8 +474,77 @@ const handleApprove = async () => {
                 </div>
               </div>
 
-              {/* Sponsor Card */}
-              {subscription.parent && (
+              {/* Bonus Recipients Card - показываем всех получателей бонусов */}
+              {subscription.bonusDistributions && subscription.bonusDistributions.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#D77E6C]" />
+                    Распределение бонусов
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {subscription.bonusDistributions.map((dist) => {
+                      const levelNames: Record<number, string> = {
+                        1: '1-й уровень (родитель)',
+                        2: '2-й уровень (дед)',
+                        3: '3-й уровень (прадед)'
+                      };
+                      
+                      const levelColors: Record<number, string> = {
+                        1: 'from-emerald-500 to-green-600',
+                        2: 'from-blue-500 to-indigo-600',
+                        3: 'from-purple-500 to-pink-600'
+                      };
+                      
+                      return (
+                        <div 
+                          key={dist.id} 
+                          className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border-l-4 border-[#D77E6C]"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-2 py-0.5 bg-gradient-to-r ${levelColors[dist.hierarchy_level]} text-white text-xs font-semibold rounded-full`}>
+                                  {levelNames[dist.hierarchy_level] || `Уровень ${dist.hierarchy_level}`}
+                                </span>
+                                {dist.status === 'paid' && (
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                )}
+                              </div>
+                              <p className="font-semibold text-lg">
+                                {dist.recipient?.first_name} {dist.recipient?.last_name}
+                              </p>
+                              <p className="text-sm text-gray-500">{dist.recipient?.email}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 mb-1">{dist.percentage}% от суммы</p>
+                              <p className="text-xl font-bold text-green-600">
+                                +{dist.amount.toLocaleString()} ₸
+                              </p>
+                            </div>
+                          </div>
+                          {dist.recipient?.phone && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t border-gray-200">
+                              <Phone className="w-3.5 h-3.5" />
+                              {dist.recipient.phone}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-800">
+                      💡 Бонусы распределяются автоматически по 3 уровням вверх: родитель получает наибольший процент, 
+                      дед и прадед - меньшие проценты согласно настройкам системы.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Если распределений нет, показываем информацию о спонсоре (старый вариант) */}
+              {(!subscription.bonusDistributions || subscription.bonusDistributions.length === 0) && subscription.parent && (
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-[#D77E6C]" />
