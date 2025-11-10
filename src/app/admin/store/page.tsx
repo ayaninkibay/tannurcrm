@@ -49,6 +49,10 @@ const STORAGE_KEYS = {
   ACTIVE_TAB: 'orders_active_tab'
 };
 
+// ✅ Дефолтные значения
+const DEFAULT_SORT: SortConfig = { field: 'date', direction: 'desc' };
+const DEFAULT_TAB: TabType = 'new';
+
 // ✅ ВЫНЕСЛИ КОМПОНЕНТ ИКОНКИ НАРУЖУ
 const SortIcon = React.memo(({ field, sortConfig }: { field: SortField; sortConfig: SortConfig }) => {
   if (sortConfig.field !== field) {
@@ -79,38 +83,40 @@ const OrdersManagementPage = () => {
     refreshOrders
   } = useOrderModule();
 
-  // Загружаем сохраненные настройки
-  const loadSavedSettings = () => {
-    try {
-      const savedSort = localStorage.getItem(STORAGE_KEYS.SORT_CONFIG);
-      const savedTab = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
-      return {
-        sort: savedSort ? JSON.parse(savedSort) : { field: 'date', direction: 'desc' },
-        tab: (savedTab as TabType) || 'new'
-      };
-    } catch {
-      return {
-        sort: { field: 'date', direction: 'desc' },
-        tab: 'new'
-      };
-    }
-  };
-
-  const savedSettings = loadSavedSettings();
-
-  const [activeTab, setActiveTab] = useState<TabType>(savedSettings.tab);
+  // ✅ ИНИЦИАЛИЗИРУЕМ С ДЕФОЛТНЫМИ ЗНАЧЕНИЯМИ (для SSR)
+  const [activeTab, setActiveTab] = useState<TabType>(DEFAULT_TAB);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [completedOrdersLoaded, setCompletedOrdersLoaded] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [sortConfig, setSortConfig] = useState<SortConfig>(savedSettings.sort as SortConfig);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT);
+  const [isClient, setIsClient] = useState(false); // ✅ Флаг клиентской стороны
   
   const initialLoadStarted = useRef(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const canAccessSettings = hasPermission(profile?.role, profile?.permissions, 'all');
+
+  // ✅ ЗАГРУЖАЕМ НАСТРОЙКИ ТОЛЬКО НА КЛИЕНТЕ (после монтирования)
+  useEffect(() => {
+    setIsClient(true); // Помечаем что мы на клиенте
+    
+    try {
+      const savedSort = localStorage.getItem(STORAGE_KEYS.SORT_CONFIG);
+      const savedTab = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+      
+      if (savedSort) {
+        setSortConfig(JSON.parse(savedSort));
+      }
+      if (savedTab) {
+        setActiveTab(savedTab as TabType);
+      }
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }, []);
 
   // 🔥 Дебаунс для поиска (500ms)
   useEffect(() => {
@@ -129,15 +135,17 @@ const OrdersManagementPage = () => {
     };
   }, [searchQuery]);
 
-  // Сохранение настроек
+  // Сохранение настроек (только на клиенте)
   useEffect(() => {
+    if (!isClient) return; // ✅ Сохраняем только на клиенте
+    
     try {
       localStorage.setItem(STORAGE_KEYS.SORT_CONFIG, JSON.stringify(sortConfig));
       localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, activeTab);
     } catch (e) {
       console.error('Error saving settings:', e);
     }
-  }, [sortConfig, activeTab]);
+  }, [sortConfig, activeTab, isClient]);
 
   useEffect(() => {
     if (!initialLoadStarted.current) {
