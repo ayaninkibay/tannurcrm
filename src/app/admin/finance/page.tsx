@@ -236,7 +236,7 @@ const FinanceTransactionsPage = () => {
   };
 
   const handleViewWithdrawal = (withdrawal: WithdrawalRequest) => {
-    router.push(`/admin/finance/withdrawals`);
+    router.push(`/admin/finance/transactions`);
   };
 
   const getStatusBadge = (status: string, type: 'subscription' | 'withdrawal' = 'subscription') => {
@@ -423,7 +423,7 @@ const FinanceTransactionsPage = () => {
               )}
 
               <button
-                onClick={() => router.push('/admin/finance/withdrawals')}
+                onClick={() => router.push('/admin/finance/transactions')}
                 className="w-full mt-3 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-md hover:shadow-lg"
               >
                 <span>Все заявки на вывод</span>
@@ -525,7 +525,7 @@ const FinanceTransactionsPage = () => {
               )}
 
               <button
-                onClick={() => router.push('/admin/finance/subscriptions')}
+                onClick={() => router.push('/admin/finance/subscription')}
                 className="w-full mt-3 sm:mt-4 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm sm:text-base shadow-md hover:shadow-lg"
               >
                 <span>Все подписки</span>

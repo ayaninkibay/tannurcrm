@@ -93,27 +93,33 @@ export const useCartModule = (): UseCartModuleReturn => {
       if (savedSelection) {
         try {
           const saved = JSON.parse(savedSelection);
-          // Проверяем что сохраненные товары все еще в корзине и доступны
+          // ✅ Проверяем что сохраненные товары все еще в корзине, доступны и НЕ подарки
           const validIds = saved.filter((id: string) => {
             const item = items.find(i => i.id === id);
-            return item && item.stock > 0;
+            return item && item.stock > 0 && !item.is_gift;
           });
           setSelectedItems(new Set(validIds));
         } catch (error) {
           console.error('❌ Error parsing saved selection:', error);
-          // При ошибке выбираем все доступные товары
-          const availableItems = items.filter(item => item.stock > 0).map(item => item.id);
+          // При ошибке выбираем все доступные товары (НЕ подарки)
+          const availableItems = items
+            .filter(item => item.stock > 0 && !item.is_gift)
+            .map(item => item.id);
           setSelectedItems(new Set(availableItems));
         }
       } else {
-        // По умолчанию выбираем все доступные товары
-        const availableItems = items.filter(item => item.stock > 0).map(item => item.id);
+        // По умолчанию выбираем все доступные товары (НЕ подарки)
+        const availableItems = items
+          .filter(item => item.stock > 0 && !item.is_gift)
+          .map(item => item.id);
         setSelectedItems(new Set(availableItems));
       }
       
       console.log('✅ Cart loaded:', { 
         cartId, 
         itemsCount: items.length,
+        regularItems: items.filter(i => !i.is_gift).length,
+        giftItems: items.filter(i => i.is_gift).length,
         deliveryMethod: loadedCart.delivery_method || 'pickup',
         deliveryCost: loadedCart.delivery_cost || 0
       });
@@ -169,126 +175,124 @@ export const useCartModule = (): UseCartModuleReturn => {
   // ОБНОВЛЕНИЕ КОЛИЧЕСТВА
   // ==========================================
   
- // ОБНОВЛЕНИЕ КОЛИЧЕСТВА
-const updateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
-  const item = cartItems.find(i => i.id === itemId);
-  if (!item) return;
+  const updateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
+    const item = cartItems.find(i => i.id === itemId);
+    if (!item) return;
 
-  // Проверка границ
-  if (newQuantity < 1) newQuantity = 1;
-  if (newQuantity > item.stock) newQuantity = item.stock;
-  
-  // Если количество не изменилось - ничего не делаем
-  if (newQuantity === item.quantity) return;
-
-  // Оптимистичное обновление UI
-  const previousQuantity = item.quantity;
-  setCartItems(prev => prev.map(i => 
-    i.id === itemId ? { ...i, quantity: newQuantity } : i
-  ));
-
-  // Устанавливаем loading state для этого товара
-  setLoadingStates(prev => ({
-    ...prev,
-    updatingItem: new Map(prev.updatingItem).set(itemId, true)
-  }));
-
-  try {
-    console.log('🔄 Updating quantity:', { itemId, newQuantity });
+    // Проверка границ
+    if (newQuantity < 1) newQuantity = 1;
+    if (newQuantity > item.stock) newQuantity = item.stock;
     
-    const result = await cartService.updateItemQuantity(itemId, newQuantity);
-    
-    if (!result.success) {
-      // Откатываем изменения
+    // Если количество не изменилось - ничего не делаем
+    if (newQuantity === item.quantity) return;
+
+    // Оптимистичное обновление UI
+    const previousQuantity = item.quantity;
+    setCartItems(prev => prev.map(i => 
+      i.id === itemId ? { ...i, quantity: newQuantity } : i
+    ));
+
+    // Устанавливаем loading state для этого товара
+    setLoadingStates(prev => ({
+      ...prev,
+      updatingItem: new Map(prev.updatingItem).set(itemId, true)
+    }));
+
+    try {
+      console.log('🔄 Updating quantity:', { itemId, newQuantity });
+      
+      const result = await cartService.updateItemQuantity(itemId, newQuantity);
+      
+      if (!result.success) {
+        // Откатываем изменения
+        setCartItems(prev => prev.map(i => 
+          i.id === itemId ? { ...i, quantity: previousQuantity } : i
+        ));
+        toast.error(result.error || 'Не удалось обновить количество');
+        return;
+      }
+      
+      // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ПОЛУЧИТЬ ОБНОВЛЕННЫЕ ПОДАРКИ
+      if (cart?.user_id) {
+        await loadUserCart(cart.user_id);
+      }
+      
+    } catch (error: any) {
+      // Откатываем изменения при ошибке
       setCartItems(prev => prev.map(i => 
         i.id === itemId ? { ...i, quantity: previousQuantity } : i
       ));
-      toast.error(result.error || 'Не удалось обновить количество');
-      return;
+      console.error('❌ Error updating quantity:', error);
+      toast.error(error.message || 'Ошибка обновления количества');
+    } finally {
+      // Убираем loading state
+      setLoadingStates(prev => {
+        const newMap = new Map(prev.updatingItem);
+        newMap.delete(itemId);
+        return { ...prev, updatingItem: newMap };
+      });
     }
-    
-    // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ПОЛУЧИТЬ ПОДАРКИ
-    if (cart?.user_id) {
-      await loadUserCart(cart.user_id);
-    }
-    
-  } catch (error: any) {
-    // Откатываем изменения при ошибке
-    setCartItems(prev => prev.map(i => 
-      i.id === itemId ? { ...i, quantity: previousQuantity } : i
-    ));
-    console.error('❌ Error updating quantity:', error);
-    toast.error(error.message || 'Ошибка обновления количества');
-  } finally {
-    // Убираем loading state
-    setLoadingStates(prev => {
-      const newMap = new Map(prev.updatingItem);
-      newMap.delete(itemId);
-      return { ...prev, updatingItem: newMap };
-    });
-  }
-}, [cartItems, cart, loadUserCart]);
+  }, [cartItems, cart, loadUserCart]);
 
   // ==========================================
   // УДАЛЕНИЕ ТОВАРА
   // ==========================================
   
- // УДАЛЕНИЕ ТОВАРА
-const removeItem = useCallback(async (itemId: string) => {
-  // Устанавливаем loading state
-  setLoadingStates(prev => ({
-    ...prev,
-    removingItem: new Map(prev.removingItem).set(itemId, true)
-  }));
+  const removeItem = useCallback(async (itemId: string) => {
+    // Устанавливаем loading state
+    setLoadingStates(prev => ({
+      ...prev,
+      removingItem: new Map(prev.removingItem).set(itemId, true)
+    }));
 
-  try {
-    console.log('🗑️ Removing item:', itemId);
-    
-    const result = await cartService.removeItem(itemId);
-    
-    if (!result.success) {
-      toast.error(result.error || 'Не удалось удалить товар');
-      return;
-    }
-    
-    // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ОБНОВИТЬ ПОДАРКИ
-    if (cart?.user_id) {
-      await loadUserCart(cart.user_id);
-    } else {
-      // Удаляем из локального state если нет cart
-      setCartItems(prev => prev.filter(item => item.id !== itemId));
+    try {
+      console.log('🗑️ Removing item:', itemId);
       
-      // Удаляем из выбранных
-      setSelectedItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(itemId);
+      const result = await cartService.removeItem(itemId);
+      
+      if (!result.success) {
+        toast.error(result.error || 'Не удалось удалить товар');
+        return;
+      }
+      
+      // ✅ ПЕРЕЗАГРУЖАЕМ КОРЗИНУ ЧТОБЫ ОБНОВИТЬ ПОДАРКИ
+      if (cart?.user_id) {
+        await loadUserCart(cart.user_id);
+      } else {
+        // Удаляем из локального state если нет cart
+        setCartItems(prev => prev.filter(item => item.id !== itemId));
         
-        // Сохраняем в localStorage
-        if (cart?.id) {
-          localStorage.setItem(
-            `cart_selection_${cart.id}`,
-            JSON.stringify(Array.from(newSet))
-          );
-        }
-        
-        return newSet;
+        // Удаляем из выбранных
+        setSelectedItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          
+          // Сохраняем в localStorage
+          if (cart?.id) {
+            localStorage.setItem(
+              `cart_selection_${cart.id}`,
+              JSON.stringify(Array.from(newSet))
+            );
+          }
+          
+          return newSet;
+        });
+      }
+      
+      toast.success('Товар удален из корзины');
+      
+    } catch (error: any) {
+      console.error('❌ Error removing item:', error);
+      toast.error(error.message || 'Ошибка удаления товара');
+    } finally {
+      // Убираем loading state
+      setLoadingStates(prev => {
+        const newMap = new Map(prev.removingItem);
+        newMap.delete(itemId);
+        return { ...prev, removingItem: newMap };
       });
     }
-    
-    toast.success('Товар удален из корзины');
-    
-  } catch (error: any) {
-    console.error('❌ Error removing item:', error);
-    toast.error(error.message || 'Ошибка удаления товара');
-  } finally {
-    // Убираем loading state
-    setLoadingStates(prev => {
-      const newMap = new Map(prev.removingItem);
-      newMap.delete(itemId);
-      return { ...prev, removingItem: newMap };
-    });
-  }
-}, [cart, loadUserCart]);
+  }, [cart, loadUserCart]);
 
   // ==========================================
   // ВЫБОР ТОВАРОВ
@@ -296,7 +300,8 @@ const removeItem = useCallback(async (itemId: string) => {
   
   const toggleItemSelection = useCallback((itemId: string) => {
     const item = cartItems.find(i => i.id === itemId);
-    if (!item || item.stock === 0) return;
+    // ✅ ЗАПРЕЩАЕМ ВЫБИРАТЬ ПОДАРКИ
+    if (!item || item.stock === 0 || item.is_gift) return;
     
     setSelectedItems(prev => {
       const newSet = new Set(prev);
@@ -319,7 +324,8 @@ const removeItem = useCallback(async (itemId: string) => {
   }, [cartItems, cart]);
 
   const toggleSelectAll = useCallback(() => {
-    const availableItems = cartItems.filter(item => item.stock > 0);
+    // ✅ ТОЛЬКО ОБЫЧНЫЕ ТОВАРЫ (НЕ ПОДАРКИ)
+    const availableItems = cartItems.filter(item => item.stock > 0 && !item.is_gift);
     
     if (selectedItems.size === availableItems.length && selectedItems.size > 0) {
       // Снять выбор со всех
@@ -328,7 +334,7 @@ const removeItem = useCallback(async (itemId: string) => {
         localStorage.removeItem(`cart_selection_${cart.id}`);
       }
     } else {
-      // Выбрать все доступные
+      // Выбрать все доступные (не подарки)
       const allIds = new Set(availableItems.map(item => item.id));
       setSelectedItems(allIds);
       if (cart?.id) {
@@ -438,8 +444,11 @@ const removeItem = useCallback(async (itemId: string) => {
       errors.push('Выберите товары для заказа');
     }
     
-    // Проверяем наличие товаров
-    const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
+    // Проверяем наличие товаров (только не-подарки)
+    const selectedCartItems = cartItems.filter(item => 
+      selectedItems.has(item.id) && !item.is_gift
+    );
+    
     selectedCartItems.forEach(item => {
       if (item.stock === 0) {
         errors.push(`Товар "${item.name}" отсутствует на складе`);
@@ -519,7 +528,10 @@ const removeItem = useCallback(async (itemId: string) => {
   // ==========================================
   
   const calculateTotals = useCallback(() => {
-    const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
+    // ✅ ФИЛЬТРУЕМ ПОДАРКИ ИЗ РАСЧЕТОВ
+    const selectedCartItems = cartItems.filter(item => 
+      selectedItems.has(item.id) && !item.is_gift
+    );
     
     const subtotal = selectedCartItems.reduce(
       (sum, item) => sum + (item.price_dealer * item.quantity),

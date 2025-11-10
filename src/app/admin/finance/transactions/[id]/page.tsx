@@ -1,933 +1,813 @@
-// app/admin/finance/transactions/[id]/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
-import {
-  ArrowLeft,
-  Check,
-  X,
-  Clock,
-  DollarSign,
-  User,
-  CreditCard,
+import { toast } from 'react-toastify';
+import MoreHeaderAD from '@/components/header/MoreHeaderAD';
+import { 
+  Loader2, 
+  User, 
+  Mail, 
+  Phone, 
   Calendar,
+  CreditCard,
+  Users,
+  DollarSign,
   CheckCircle,
   XCircle,
-  RefreshCw,
   AlertCircle,
-  AlertTriangle,
-  Copy,
-  Shield,
-  ShieldAlert,
-  Wallet,
-  MapPin,
-  Phone,
-  Mail,
+  Clock,
   Hash,
-  UserCheck,
-  Timer,
-  FileCheck,
-  Ban,
-  Fingerprint,
+  FileText,
+  MapPin,
   Instagram,
-  Briefcase,
-  TrendingUp,
-  TrendingDown,
-  Package,
-  Users,
-  Gift,
-  Activity
+  Shield,
+  Banknote,
+  Briefcase
 } from 'lucide-react';
 
-interface TransactionDetail {
-  transaction_id: string;
-  transaction_type: string;
-  amount: number;
-  created_at: string;
-  source_type: string;
-  source_id: string;
-  notes: string;
-  source_details: any;
-  source_name: string;
-}
-
-interface UserFullData {
+type BonusDistribution = {
   id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  role: string;
+  recipient_id: string;
+  amount: number;
+  percentage: number;
+  hierarchy_level: number;
+  distribution_type: string;
   status: string;
   created_at: string;
-  iin?: number;
-  region?: string;
-  instagram?: string;
-  profession?: string;
-  referral_code?: string;
-  parent_id?: string;
-  personal_level?: number;
-  personal_turnover?: number;
-}
+  recipient?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  };
+};
 
-interface WithdrawalDetailsAdmin {
-  // Основные данные
-  request_id: string;
+type SubscriptionDetail = {
+  id: string;
   user_id: string;
+  parent_id: string | null;
   amount: number;
+  method: string;
   status: string;
-  payment_method: string;
-  payment_details: any;
-  requested_at: string;
-  
-  // Временные метки
-  approved_at?: string;
-  completed_at?: string;
-  rejected_at?: string;
-  cancelled_at?: string;
-  
-  // Люди
-  approved_by?: string;
-  rejected_by?: string;
-  approver_name?: string;
-  approver_email?: string;
-  rejector_name?: string;
-  rejector_email?: string;
-  
-  // Данные пользователя
-  user_name: string;
-  user_email: string;
-  user_phone: string;
-  user_role: string;
-  user_registered_at: string;
-  account_age_days: number;
-  
-  // Балансы
-  current_balance: number;
-  available_balance: number;
-  frozen_balance: number;
-  balance_at_request: number;
-  balance_total_withdrawn: number;
-  
-  // Статистика доходов
-  total_earned: number;
-  income_last_30_days: number;
-  recent_income_sources: any;
-  income_sources_diversity: number;
-  
-  // История выводов
-  total_withdrawals_count: number;
-  total_withdrawn_amount: number;
-  avg_withdrawal_amount: number;
-  last_withdrawal_date?: string;
-  withdrawals_last_24h: number;
-  withdrawals_last_week: number;
-  withdrawal_percentage: number;
-  
-  // Риски
-  risk_score: number;
-  risk_flags: any;
-  recommendation: string;
-  
-  // Время обработки
-  processing_time_hours?: number;
-  
-  // Заметки
-  user_notes?: string;
-  admin_notes?: string;
-  rejection_reason?: string;
-  payment_receipt_url?: string;
-  
-  // Транзакции
-  selected_transactions?: string[];
-  transactions_details?: TransactionDetail[];
-}
+  paid_at: string;
+  created_at: string;
+  notes?: string;
+  user?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    iin?: string;
+    region?: string;
+    instagram?: string;
+    avatar_url?: string;
+    personal_level?: number;
+    personal_turnover?: number;
+    created_at: string;
+    is_confirmed: boolean;
+    status: string;
+    role: string;
+  };
+  parent?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  };
+  bonusDistributions?: BonusDistribution[];
+};
 
-export default function WithdrawalDetailsPage() {
-  const params = useParams();
+const SubscriptionDetailPage = () => {
   const router = useRouter();
-  const withdrawalId = params.id as string;
+  const params = useParams();
+  const subscriptionId = params?.id as string;
 
-  const [withdrawal, setWithdrawal] = useState<WithdrawalDetailsAdmin | null>(null);
-  const [userFullData, setUserFullData] = useState<UserFullData | null>(null);
-  const [transactions, setTransactions] = useState<TransactionDetail[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processingAction, setProcessingAction] = useState<string | null>(null);
-  const [adminNotes, setAdminNotes] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState('');
+  const [subscription, setSubscription] = useState<SubscriptionDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
-    if (withdrawalId) {
-      loadWithdrawalDetails();
+    if (subscriptionId) {
+      loadSubscriptionDetails();
     }
-  }, [withdrawalId]);
+  }, [subscriptionId]);
 
-  const loadWithdrawalDetails = async () => {
-    setLoading(true);
+  const loadSubscriptionDetails = async () => {
     try {
-      // Получаем детальные данные из v_withdrawal_requests_admin
-      const { data: adminData, error: adminError } = await supabase
-        .from('v_withdrawal_requests_admin')
+      setIsLoading(true);
+      
+      // Шаг 1: Загружаем основную подписку
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('subscription_payments')
         .select('*')
-        .eq('request_id', withdrawalId)
+        .eq('id', subscriptionId)
         .single();
 
-      if (adminError) {
-        console.error('Admin view error:', adminError);
-        // Fallback на обычную таблицу
-        const { data: basicData, error: basicError } = await supabase
-          .from('withdrawal_requests')
-          .select('*')
-          .eq('id', withdrawalId)
-          .single();
-          
-        if (basicError) throw basicError;
-        
-        // Получаем полные данные пользователя
-        const { data: userData } = await supabase
+      if (subscriptionError) throw subscriptionError;
+      
+      // Шаг 2: Загружаем данные пользователя
+      let userData = null;
+      if (subscriptionData.user_id) {
+        const { data: userInfo, error: userError } = await supabase
           .from('users')
-          .select('*')
-          .eq('id', basicData.user_id)
+          .select('id, first_name, last_name, email, phone, iin, region, instagram, avatar_url, created_at, is_confirmed, status, role')
+          .eq('id', subscriptionData.user_id)
           .single();
-          
-        setUserFullData(userData);
         
-        setWithdrawal({
-          ...basicData,
-          request_id: basicData.id,
-          user_name: `${userData?.first_name || ''} ${userData?.last_name || ''}`,
-          user_email: userData?.email || '',
-          user_phone: userData?.phone || '',
-          user_role: userData?.role || 'dealer',
-          user_registered_at: userData?.created_at || '',
-          account_age_days: 0,
-          current_balance: 0,
-          available_balance: 0,
-          frozen_balance: 0,
-          total_earned: 0,
-          income_last_30_days: 0,
-          recent_income_sources: {},
-          income_sources_diversity: 0,
-          total_withdrawals_count: 0,
-          total_withdrawn_amount: 0,
-          avg_withdrawal_amount: 0,
-          withdrawals_last_24h: 0,
-          withdrawals_last_week: 0,
-          withdrawal_percentage: 0,
-          risk_score: 0,
-          risk_flags: {},
-          recommendation: '',
-          selected_transactions: basicData.payment_details?.selected_transactions || [],
-          transactions_details: basicData.payment_details?.transactions_details || []
-        } as WithdrawalDetailsAdmin);
-      } else {
-        setWithdrawal(adminData);
-        
-        // Получаем полные данные пользователя
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', adminData.user_id)
-          .single();
+        if (userError) {
+          console.warn('Error loading user data:', userError);
+        } else {
+          userData = userInfo;
+        }
+
+        // Получаем текущий товарооборот пользователя
+        try {
+          const { data: turnoverData, error: turnoverError } = await supabase
+            .from('user_turnover_current')
+            .select('personal_turnover')
+            .eq('user_id', subscriptionData.user_id)
+            .maybeSingle();
           
-        setUserFullData(userData);
-        
-        // Если есть selected_transactions, получаем детали транзакций
-        if (adminData.payment_details?.selected_transactions) {
-          const transactionIds = adminData.payment_details.selected_transactions;
-          
-          const { data: transData } = await supabase
-            .from('balance_transactions')
-            .select('*')
-            .in('id', transactionIds);
-            
-          if (transData) {
-            const enrichedTransactions = transData.map(t => ({
-              ...t,
-              source_name: getSourceName(t.transaction_type)
-            }));
-            setTransactions(enrichedTransactions);
+          if (!turnoverError && turnoverData && userData) {
+            userData.personal_turnover = turnoverData.personal_turnover || 0;
+          } else {
+            if (userData) {
+              userData.personal_turnover = 0;
+            }
+          }
+        } catch (turnoverErr) {
+          console.warn('Turnover data not available:', turnoverErr);
+          if (userData) {
+            userData.personal_turnover = 0;
           }
         }
       }
-
-      setAdminNotes(adminData?.admin_notes || '');
-    } catch (error) {
-      console.error('Error loading withdrawal details:', error);
+      
+      // Шаг 3: Загружаем данные спонсора
+      let parentData = null;
+      if (subscriptionData.parent_id) {
+        const { data: parentInfo, error: parentError } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, phone')
+          .eq('id', subscriptionData.parent_id)
+          .single();
+        
+        if (parentError) {
+          console.warn('Error loading parent data:', parentError);
+        } else {
+          parentData = parentInfo;
+        }
+      }
+      
+      // Шаг 4: Загружаем распределения бонусов
+      let bonusDistributions: BonusDistribution[] = [];
+      const { data: distributionsData, error: distributionsError } = await supabase
+        .from('subscription_payment_distributions')
+        .select('*')
+        .eq('subscription_payment_id', subscriptionId)
+        .order('hierarchy_level', { ascending: true });
+      
+      if (distributionsError) {
+        console.warn('Error loading bonus distributions:', distributionsError);
+      } else if (distributionsData && distributionsData.length > 0) {
+        // Загружаем данные получателей бонусов
+        const recipientIds = distributionsData.map(d => d.recipient_id);
+        const { data: recipientsData } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email, phone')
+          .in('id', recipientIds);
+        
+        // Объединяем данные
+        bonusDistributions = distributionsData.map(dist => ({
+          ...dist,
+          recipient: recipientsData?.find(r => r.id === dist.recipient_id)
+        }));
+      }
+      
+      // Шаг 5: Объединяем все данные
+      const fullSubscription = {
+        ...subscriptionData,
+        user: userData,
+        parent: parentData,
+        bonusDistributions
+      };
+      
+      setSubscription(fullSubscription);
+      toast.success('✅ Данные подписки загружены');
+      
+    } catch (error: any) {
+      console.error('Error loading subscription details:', error);
+      toast.error(`❌ ${error.message || 'Ошибка загрузки данных подписки'}`);
+      router.back();
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
-
-  const getSourceName = (type: string) => {
-    const sourceMap: Record<string, string> = {
-      'order_bonus': 'Бонус от заказа',
-      'team_purchase_bonus': 'Командная закупка',
-      'referral_subscription': 'Реферальный бонус',
-      'adjustment': 'Корректировка',
-      'withdrawal': 'Вывод средств'
-    };
-    return sourceMap[type] || type;
-  };
-
-  const getSourceIcon = (type: string) => {
-    const iconMap: Record<string, any> = {
-      'order_bonus': Package,
-      'team_purchase_bonus': Users,
-      'referral_subscription': Gift,
-      'adjustment': Activity,
-      'withdrawal': TrendingDown
-    };
-    const Icon = iconMap[type] || DollarSign;
-    return <Icon size={14} className="text-[#D77E6C]" />;
-  };
-
-  const getRiskFlagTranslation = (key: string) => {
-    const translations: Record<string, string> = {
-      'is_new_account': 'Новый аккаунт',
-      'unusual_amount': 'Необычная сумма',
-      'first_withdrawal': 'Первый вывод',
-      'large_withdrawal': 'Крупный вывод',
-      'single_income_source': 'Один источник дохода',
-      'withdrawal_percentage': 'Процент вывода',
-      'frequent_withdrawals_24h': 'Частые выводы за 24ч',
-      'frequent_withdrawals_week': 'Частые выводы за неделю',
-      'low_income_activity': 'Низкая активность доходов',
-      'account_age_days': 'Возраст аккаунта (дней)'
-    };
-    return translations[key] || key;
   };
 
   const handleApprove = async () => {
-    setProcessingAction('approve');
+    if (!subscription) return;
+    
+    setIsProcessing(true);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Не авторизован');
+      // Шаг 1: Обновляем статус пользователя на активного дилера
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ 
+          status: 'active',
+          is_confirmed: true,
+          role: 'dealer'
+        })
+        .eq('id', subscription.user_id);
 
-      const { data, error } = await supabase.rpc('approve_withdrawal_request', {
-        p_request_id: withdrawalId,
-        p_approver_id: user.id,
-        p_admin_notes: adminNotes
-      });
+      if (userError) throw userError;
 
-      if (error) throw error;
-      
-      if (data?.success) {
-        await loadWithdrawalDetails();
-        alert('Заявка успешно одобрена');
-      } else {
-        throw new Error(data?.error || 'Ошибка при одобрении');
+      // Шаг 2: Обновляем статус платежа
+      const { error: paymentError } = await supabase
+        .from('subscription_payments')
+        .update({ 
+          status: 'paid'
+        })
+        .eq('id', subscription.id);
+
+      if (paymentError) throw paymentError;
+
+      // Шаг 3: Вызываем функцию распределения бонусов через RPC
+      const { data, error: bonusError } = await supabase
+        .rpc('process_subscription_payment_bonuses', {
+          p_payment_id: subscription.id
+        });
+
+      if (bonusError) {
+        console.error('Error distributing bonuses:', bonusError);
+        toast.warning('⚠️ Подписка одобрена, но возникла ошибка при распределении бонусов');
+      } else if (data && data.success) {
+        console.log('Bonuses distributed:', data.message);
+        toast.success('✅ Подписка одобрена! Аккаунт активирован, бонусы распределены.');
       }
-    } catch (error: any) {
-      alert(error.message || 'Ошибка при одобрении заявки');
-    } finally {
-      setProcessingAction(null);
-    }
-  };
 
-  const handleComplete = async () => {
-    setProcessingAction('complete');
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Не авторизован');
-
-      const { data, error } = await supabase.rpc('complete_withdrawal', {
-        p_request_id: withdrawalId,
-        p_completer_id: user.id,
-        p_payment_receipt_url: receiptUrl || null,
-        p_admin_notes: adminNotes
-      });
-
-      if (error) throw error;
+      setTimeout(() => {
+        router.push('/admin/finance/subscription');
+      }, 1500);
       
-      if (data?.success) {
-        await loadWithdrawalDetails();
-        alert('Вывод успешно завершен');
-      } else {
-        throw new Error(data?.error || 'Ошибка при завершении');
-      }
     } catch (error: any) {
-      alert(error.message || 'Ошибка при завершении вывода');
+      console.error('Error approving subscription:', error);
+      toast.error(`❌ ${error.message || 'Ошибка при одобрении'}`);
     } finally {
-      setProcessingAction(null);
+      setIsProcessing(false);
+      setShowConfirmModal(false);
     }
   };
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      alert('Укажите причину отклонения');
+    if (!subscription || !rejectReason.trim()) {
+      toast.error('❌ Укажите причину отклонения');
       return;
     }
-
-    setProcessingAction('reject');
+    
+    setIsProcessing(true);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Не авторизован');
-
-      const { data, error } = await supabase.rpc('reject_withdrawal_request', {
-        p_request_id: withdrawalId,
-        p_rejector_id: user.id,
-        p_rejection_reason: rejectionReason
-      });
+      const { error } = await supabase
+        .from('subscription_payments')
+        .update({ 
+          status: 'rejected',
+          notes: rejectReason
+        })
+        .eq('id', subscription.id);
 
       if (error) throw error;
+
+      toast.success('✅ Подписка отклонена');
       
-      if (data?.success) {
-        await loadWithdrawalDetails();
-        setShowRejectModal(false);
-        setRejectionReason('');
-        alert('Заявка отклонена');
-      } else {
-        throw new Error(data?.error || 'Ошибка при отклонении');
-      }
+      setTimeout(() => {
+        router.push('/admin/finance/subscription');
+      }, 1500);
+      
     } catch (error: any) {
-      alert(error.message || 'Ошибка при отклонении заявки');
+      console.error('Error rejecting subscription:', error);
+      toast.error(`❌ ${error.message || 'Ошибка при отклонении'}`);
     } finally {
-      setProcessingAction(null);
+      setIsProcessing(false);
+      setShowConfirmModal(false);
+      setRejectReason('');
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ru-RU').format(amount);
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string; icon: any }> = {
-      'pending': { 
-        label: 'Ожидает', 
-        className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-        icon: Clock
-      },
-      'approved': { 
-        label: 'Одобрено', 
-        className: 'bg-blue-50 text-blue-700 border-blue-200',
-        icon: CheckCircle
-      },
-      'processing': { 
-        label: 'В обработке', 
-        className: 'bg-orange-50 text-orange-700 border-orange-200',
-        icon: RefreshCw
-      },
-      'completed': { 
-        label: 'Выполнено', 
-        className: 'bg-green-50 text-green-700 border-green-200',
-        icon: CheckCircle
-      },
-      'rejected': { 
-        label: 'Отклонено', 
-        className: 'bg-red-50 text-red-700 border-red-200',
-        icon: XCircle
-      },
-      'cancelled': { 
-        label: 'Отменено', 
-        className: 'bg-gray-50 text-gray-700 border-gray-200',
-        icon: X
-      }
-    };
-    return statusMap[status] || statusMap.pending;
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-sm font-medium">
+            <Clock className="w-3.5 h-3.5" />
+            Ожидает одобрения
+          </span>
+        );
+      case 'paid':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">
+            <CheckCircle className="w-3.5 h-3.5" />
+            Оплачено
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium">
+            <XCircle className="w-3.5 h-3.5" />
+            Отклонено
+          </span>
+        );
+      default:
+        return null;
+    }
   };
 
-  if (loading) {
+  const getPaymentMethodName = (method: string) => {
+    const methods: any = {
+      'kaspi_transfer': 'Kaspi перевод',
+      'kaspi_qr': 'Kaspi QR',
+      'bank_transfer': 'Банковский перевод',
+      'bank_card': 'Банковская карта'
+    };
+    return methods[method] || method;
+  };
+
+  if (isLoading) {
     return (
-      <div className="w-full h-full p-2 md:p-4 lg:p-6">
-        <div className="flex items-center justify-center h-96">
-          <RefreshCw className="animate-spin text-[#D77E6C]" size={32}/>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D77E6C]" />
       </div>
     );
   }
 
-  if (!withdrawal) {
+  if (!subscription) {
     return (
-      <div className="w-full h-full p-2 md:p-4 lg:p-6">
-        <div className="text-center py-12">
-          <AlertCircle className="mx-auto mb-4 text-gray-400" size={48}/>
-          <p className="text-gray-600">Заявка не найдена</p>
-          <Link href="/admin/finance/transactions" className="mt-4 inline-block text-[#D77E6C] hover:underline">
-            Вернуться к списку
-          </Link>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
+        <p className="text-gray-500">Подписка не найдена</p>
       </div>
     );
   }
-
-  const status = getStatusBadge(withdrawal.status);
-  const StatusIcon = status.icon;
 
   return (
-    <div className="w-full h-full p-2 md:p-4 lg:p-6">
-      <MoreHeaderAD
-        title={
-          <div className="flex items-center gap-3">
-            <Link href="/admin/finance/transactions" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#D77E6C] transition-colors">
-              <ArrowLeft size={18}/> Все заявки
-            </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-gray-900 font-medium">Заявка #{withdrawal.request_id?.slice(0, 8)}</span>
-          </div>
-        }
-        showBackButton={true}
-      />
+    <>
+      <div className="min-h-screen">
+        <div className="">
+          <MoreHeaderAD title="Детали подписки" showBackButton={true} />
 
-      <div className="mt-6 space-y-5 max-w-7xl mx-auto">
-        {/* Верхний блок - компактный */}
-        <div className="bg-white rounded-2xl border-2 border-[#D77E6C]/20 p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#D77E6C] to-[#E89380] rounded-xl flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-white" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* User Info Card */}
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-[#D77E6C] to-[#C66B5A] p-6 text-white">
+                  <div className="flex items-center gap-4">
+                    {subscription.user?.avatar_url ? (
+                      <Image
+                        src={subscription.user.avatar_url}
+                        alt="Avatar"
+                        width={72}
+                        height={72}
+                        className="rounded-full border-3 border-white/20"
+                      />
+                    ) : (
+                      <div className="w-[72px] h-[72px] bg-white/20 rounded-full flex items-center justify-center">
+                        <User className="w-9 h-9 text-white" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold">
+                        {subscription.user?.first_name} {subscription.user?.last_name}
+                      </h3>
+                      <p className="text-white/80">
+                        ID: {subscription.user_id.slice(0, 8)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <h4 className="font-semibold text-gray-900 mb-4">Информация о пользователе</h4>
+                  
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-medium text-sm">{subscription.user?.email}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Телефон</p>
+                        <p className="font-medium text-sm">{subscription.user?.phone || 'Не указан'}</p>
+                      </div>
+                    </div>
+
+                    {subscription.user?.region && (
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">Регион</p>
+                          <p className="font-medium text-sm">{subscription.user.region}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {subscription.user?.instagram && (
+                      <div className="flex items-start gap-3">
+                        <Instagram className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">Instagram</p>
+                          <p className="font-medium text-sm">@{subscription.user.instagram}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Статус аккаунта</p>
+                        <p className="font-medium text-sm">
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            subscription.user?.status === 'active' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {subscription.user?.status || 'Неактивен'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Briefcase className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Роль</p>
+                        <p className="font-medium text-sm capitalize">{subscription.user?.role || 'user'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Личный товарооборот</p>
+                        <p className="font-medium text-sm">
+                          {(subscription.user?.personal_turnover || 0).toLocaleString()} ₸
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Calendar className="w-4 h-4 text-gray-400 mt-1" />
+                      <div>
+                        <p className="text-xs text-gray-500">Дата регистрации</p>
+                        <p className="font-medium text-sm">
+                          {new Date(subscription.user?.created_at || '').toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {subscription.user?.iin && (
+                      <div className="flex items-start gap-3">
+                        <Hash className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">ИИН</p>
+                          <p className="font-medium text-sm font-mono">{subscription.user.iin}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{formatAmount(withdrawal.amount)} ₸</div>
-                <div className="text-sm text-gray-500 mt-0.5">
-                  Заявка от {formatDate(withdrawal.requested_at)}, {formatTime(withdrawal.requested_at)}
+
+              {/* Bonus Recipients Card */}
+              {subscription.bonusDistributions && subscription.bonusDistributions.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#D77E6C]" />
+                    Распределение бонусов
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {subscription.bonusDistributions.map((dist) => {
+                      const levelNames: Record<number, string> = {
+                        1: '1-й уровень (родитель)',
+                        2: '2-й уровень (дед)',
+                        3: '3-й уровень (прадед)'
+                      };
+                      
+                      const levelColors: Record<number, string> = {
+                        1: 'from-emerald-500 to-green-600',
+                        2: 'from-blue-500 to-indigo-600',
+                        3: 'from-purple-500 to-pink-600'
+                      };
+                      
+                      return (
+                        <div 
+                          key={dist.id} 
+                          className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border-l-4 border-[#D77E6C]"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-2 py-0.5 bg-gradient-to-r ${levelColors[dist.hierarchy_level]} text-white text-xs font-semibold rounded-full`}>
+                                  {levelNames[dist.hierarchy_level] || `Уровень ${dist.hierarchy_level}`}
+                                </span>
+                                {dist.status === 'paid' && (
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                )}
+                              </div>
+                              <p className="font-semibold text-lg">
+                                {dist.recipient?.first_name} {dist.recipient?.last_name}
+                              </p>
+                              <p className="text-sm text-gray-500">{dist.recipient?.email}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 mb-1">{dist.percentage}% от суммы</p>
+                              <p className="text-xl font-bold text-green-600">
+                                +{dist.amount.toLocaleString()} ₸
+                              </p>
+                            </div>
+                          </div>
+                          {dist.recipient?.phone && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600 pt-2 border-t border-gray-200">
+                              <Phone className="w-3.5 h-3.5" />
+                              {dist.recipient.phone}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-800">
+                      💡 Бонусы распределяются автоматически по 3 уровням вверх: родитель получает наибольший процент, 
+                      дед и прадед - меньшие проценты согласно настройкам системы.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Если распределений нет, показываем информацию о спонсоре */}
+              {(!subscription.bonusDistributions || subscription.bonusDistributions.length === 0) && subscription.parent && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#D77E6C]" />
+                    Информация о спонсоре
+                  </h3>
+                  
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-lg">
+                          {subscription.parent.first_name} {subscription.parent.last_name}
+                        </p>
+                        <p className="text-sm text-gray-500">{subscription.parent.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Получит бонус</p>
+                        <p className="text-lg font-bold text-green-600">+25,000 ₸</p>
+                      </div>
+                    </div>
+                    {subscription.parent.phone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-3.5 h-3.5" />
+                        {subscription.parent.phone}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Notes */}
+              {subscription.notes && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#D77E6C]" />
+                    Детали платежа от дилера
+                  </h3>
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{subscription.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Details */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h3 className="font-semibold mb-4">Информация о платеже</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Способ оплаты</p>
+                      <p className="font-medium">{getPaymentMethodName(subscription.method)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Дата платежа</p>
+                      <p className="font-medium">
+                        {new Date(subscription.paid_at).toLocaleDateString('ru-RU')}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(subscription.paid_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border ${status.className}`}>
-                <StatusIcon size={16}/>
-                {status.label}
-              </span>
-              
-              <div className="text-center px-4 py-2 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[#D77E6C]" />
-                  <span className="text-2xl font-bold text-gray-900">{withdrawal.risk_score || 0}%</span>
-                  <span className="text-xs text-gray-500">риск</span>
+
+            {/* Sidebar - Actions */}
+            <div className="space-y-6">
+              {/* Actions Card */}
+              {subscription.status === 'pending' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">Детали заявки</h3>
+                      {getStatusBadge(subscription.status)}
+                    </div>
+                    <div className="bg-gradient-to-r from-[#D77E6C]/10 to-[#C66B5A]/10 rounded-xl p-4">
+                      <p className="text-sm text-gray-600 mb-1">Сумма платежа</p>
+                      <p className="text-3xl font-bold text-[#D77E6C]">
+                        {subscription.amount.toLocaleString()} ₸
+                      </p>
+                    </div>
+                  </div>
+
+                  <h3 className="font-semibold mb-4">Действия</h3>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setConfirmAction('approve');
+                        setShowConfirmModal(true);
+                      }}
+                      disabled={isProcessing}
+                      className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      Одобрить и активировать
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setConfirmAction('reject');
+                        setShowConfirmModal(true);
+                      }}
+                      disabled={isProcessing}
+                      className="w-full bg-white hover:bg-gray-50 text-red-600 border-2 border-red-200 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-5 h-5" />
+                      Отклонить заявку
+                    </button>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+                    <p className="text-xs text-amber-800">
+                      При одобрении дилер получит доступ к личному кабинету, а спонсоры получат бонусы.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               
-              {withdrawal.processing_time_hours && (
-                <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 rounded-xl">
-                  <Timer size={14} className="text-gray-500"/>
-                  <span className="text-sm text-gray-600">{withdrawal.processing_time_hours.toFixed(1)}ч обработки</span>
+              {subscription.status === 'paid' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-4">
+                    {getStatusBadge(subscription.status)}
+                  </div>
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-xl p-4">
+                    <p className="text-sm text-gray-600 mb-1">Оплаченная сумма</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {subscription.amount.toLocaleString()} ₸
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-4">
+                    Аккаунт дилера активирован, бонусы распределены.
+                  </p>
+                </div>
+              )}
+              
+              {subscription.status === 'rejected' && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <div className="mb-4">
+                    {getStatusBadge(subscription.status)}
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-4">
+                    <p className="text-sm text-red-700">
+                      Заявка была отклонена администратором.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-            
-            <div className="text-right">
-              <div className="text-xs text-gray-500 mb-1">Баланс при запросе</div>
-              <div className="text-xl font-bold text-gray-900">{formatAmount(withdrawal.balance_at_request)} ₸</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Блок действий - красивый и заметный */}
-        {withdrawal.status === 'pending' && (
-          <div className="bg-gradient-to-r from-white via-gray-50 to-white rounded-2xl border border-gray-200 shadow-lg p-5">
-            <div className="flex items-center gap-4">
-              <textarea
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Комментарий администратора..."
-                rows={1}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D77E6C] text-sm resize-none"
-              />
-              <button
-                onClick={handleApprove}
-                disabled={processingAction === 'approve'}
-                className="group px-8 py-3.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2.5 disabled:opacity-50"
-              >
-                {processingAction === 'approve' ? (
-                  <RefreshCw className="animate-spin" size={18}/>
-                ) : (
-                  <FileCheck size={18} className="group-hover:scale-110 transition-transform"/>
-                )}
-                Одобрить
-              </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                disabled={processingAction !== null}
-                className="group px-8 py-3.5 bg-white border-2 border-red-500 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-600 font-medium transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2.5 disabled:opacity-50"
-              >
-                <Ban size={18} className="group-hover:scale-110 transition-transform"/>
-                Отклонить
-              </button>
-            </div>
-          </div>
-        )}
-
-        {withdrawal.status === 'approved' && (
-          <div className="bg-gradient-to-r from-white via-blue-50/50 to-white rounded-2xl border border-blue-200 shadow-lg p-5">
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                value={receiptUrl}
-                onChange={(e) => setReceiptUrl(e.target.value)}
-                placeholder="Ссылка на чек (необязательно)..."
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <button
-                onClick={handleComplete}
-                disabled={processingAction === 'complete'}
-                className="group px-8 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2.5 disabled:opacity-50"
-              >
-                {processingAction === 'complete' ? (
-                  <RefreshCw className="animate-spin" size={18}/>
-                ) : (
-                  <CheckCircle size={18} className="group-hover:scale-110 transition-transform"/>
-                )}
-                Подтвердить выплату
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Левая колонка - Основная информация */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* 1. Детали транзакций */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-[#D77E6C]" />
-                  Детали транзакции {formatAmount(withdrawal.amount)} ₸
-                </span>
-                <span className="px-2 py-0.5 bg-[#D77E6C]/10 text-[#D77E6C] rounded-lg text-sm font-semibold">
-                  {transactions.length || withdrawal.transactions_details?.length || 0}
-                </span>
-              </h3>
-              
-              <div className="space-y-2">
-                {(transactions.length > 0 ? transactions : withdrawal.transactions_details || []).map((transaction: any, index: number) => (
-                  <div key={transaction.transaction_id || index} 
-                    className="flex items-center justify-between p-3 bg-gray-50 hover:bg-[#D77E6C]/5 rounded-xl transition-colors">
-                    <div className="flex items-center gap-3">
-                      {getSourceIcon(transaction.transaction_type || transaction.type)}
-                      <div>
-                        <div className="font-medium text-sm text-gray-900">
-                          {transaction.source_name || getSourceName(transaction.transaction_type || transaction.type)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatDate(transaction.created_at || transaction.date)} • ID: {(transaction.transaction_id || transaction.id || '').slice(0, 8)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-gray-900">+{formatAmount(transaction.amount)} ₸</div>
-                      {transaction.source_details?.received_percent && (
-                        <div className="text-xs text-[#D77E6C]">{transaction.source_details.received_percent}%</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-3 pt-3 border-t flex justify-between items-center">
-                <span className="text-sm text-gray-500">Итого</span>
-                <span className="text-xl font-bold text-[#D77E6C]">{formatAmount(withdrawal.amount)} ₸</span>
-              </div>
-            </div>
-
-            {/* 2. Реквизиты для вывода */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-[#D77E6C]" />
-                Реквизиты для вывода
-              </h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Способ вывода</div>
-                  <div className="font-medium text-gray-900">{withdrawal.payment_method}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Банк</div>
-                  <div className="font-medium text-gray-900">{withdrawal.payment_details?.bank || '—'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Получатель</div>
-                  <div className="font-medium text-gray-900">{withdrawal.payment_details?.cardHolder || '—'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Номер карты / Телефон</div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-gray-900">
-                      {withdrawal.payment_details?.cardNumber || withdrawal.payment_details?.phone || '—'}
-                    </span>
-                    <button onClick={() => copyToClipboard(withdrawal.payment_details?.cardNumber || withdrawal.payment_details?.phone || '')}
-                      className="p-1 hover:bg-gray-100 rounded">
-                      <Copy size={12} className="text-gray-400"/>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Анализ рисков */}
-            {withdrawal.risk_flags && Object.keys(withdrawal.risk_flags).length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-5">
-                <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-red-600" />
-                  Анализ рисков
-                  <span className={`ml-auto px-2 py-0.5 rounded-full text-xs font-medium ${
-                    withdrawal.risk_score >= 70 ? 'bg-red-100 text-red-700' :
-                    withdrawal.risk_score >= 40 ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {withdrawal.risk_score >= 70 ? 'Высокий риск' :
-                     withdrawal.risk_score >= 40 ? 'Средний риск' :
-                     'Низкий риск'}
-                  </span>
-                </h3>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(withdrawal.risk_flags).map(([key, value]: [string, any]) => {
-                    const isPositive = typeof value === 'boolean' ? !value : value < 50;
-                    
-                    return (
-                      <div key={key} className={`rounded-lg p-2 ${isPositive ? 'bg-green-50' : 'bg-red-50'}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-600">{getRiskFlagTranslation(key)}</span>
-                          {isPositive ? (
-                            <CheckCircle className="w-3 h-3 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="w-3 h-3 text-red-500" />
-                          )}
-                        </div>
-                        <div className={`text-xs font-bold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-                          {typeof value === 'boolean' ? (value ? 'Да' : 'Нет') : value}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {withdrawal.recommendation && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
-                      <div className="text-xs text-blue-700">
-                        <span className="font-medium">Рекомендация системы:</span> {withdrawal.recommendation}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Правая колонка - Информация о пользователе */}
-          <div className="space-y-5">
-            {/* Полная информация о пользователе */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#D77E6C]" />
-                Полная информация
-              </h3>
-              
-              <div className="space-y-3">
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">ФИО</div>
-                  <div className="font-medium text-gray-900">{withdrawal.user_name}</div>
-                </div>
-                
-                {userFullData?.iin && (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">ИИН</div>
-                      <div className="flex items-center gap-2">
-                        <Fingerprint className="w-3 h-3 text-gray-400" />
-                        <span className="font-mono text-sm">{userFullData.iin}</span>
-                      </div>
-                    </div>
-                    <button onClick={() => copyToClipboard(String(userFullData.iin))} 
-                      className="p-1 hover:bg-gray-100 rounded">
-                      <Copy size={12} className="text-gray-400"/>
-                    </button>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1">Телефон</div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm">{withdrawal.user_phone}</span>
-                    </div>
-                  </div>
-                  <button onClick={() => copyToClipboard(withdrawal.user_phone)} 
-                    className="p-1 hover:bg-gray-100 rounded">
-                    <Copy size={12} className="text-gray-400"/>
-                  </button>
-                </div>
-                
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Email</div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3 h-3 text-gray-400" />
-                    <span className="text-sm">{withdrawal.user_email}</span>
-                  </div>
-                </div>
-                
-                {userFullData?.region && (
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1">Регион</div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm">{userFullData.region}</span>
-                    </div>
-                  </div>
-                )}
-                
-                {userFullData?.profession && (
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1">Профессия</div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm">{userFullData.profession}</span>
-                    </div>
-                  </div>
-                )}
-                
-                {userFullData?.instagram && (
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1">Instagram</div>
-                    <div className="flex items-center gap-2">
-                      <Instagram className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm">@{userFullData.instagram}</span>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="pt-3 border-t grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <div className="text-gray-500 mb-1">В системе</div>
-                    <div className="font-bold text-[#D77E6C]">{withdrawal.account_age_days} дней</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500 mb-1">Роль</div>
-                    <div className="font-medium">{withdrawal.user_role}</div>
-                  </div>
-                  {userFullData?.personal_level && (
-                    <div>
-                      <div className="text-gray-500 mb-1">Уровень</div>
-                      <div className="font-medium">{userFullData.personal_level}</div>
-                    </div>
-                  )}
-                  {userFullData?.status && (
-                    <div>
-                      <div className="text-gray-500 mb-1">Статус</div>
-                      <div className="font-medium">{userFullData.status}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Статистика */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#D77E6C]" />
-                Статистика
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Заработано всего</span>
-                  <span className="font-bold text-green-600">{formatAmount(withdrawal.total_earned || 0)} ₸</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">За 30 дней</span>
-                  <span className="font-medium">{formatAmount(withdrawal.income_last_30_days || 0)} ₸</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Выведено всего</span>
-                  <span className="font-bold text-red-600">{formatAmount(withdrawal.total_withdrawn_amount || 0)} ₸</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Количество выводов</span>
-                  <span className="font-medium">{withdrawal.total_withdrawals_count || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Средний вывод</span>
-                  <span className="font-medium">{formatAmount(withdrawal.avg_withdrawal_amount || 0)} ₸</span>
-                </div>
-                
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-gray-500">% выведенных средств</span>
-                    <span className="text-sm font-bold text-[#D77E6C]">{(withdrawal.withdrawal_percentage || 0).toFixed(1)}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#D77E6C] to-[#E89380] rounded-full"
-                      style={{ width: `${Math.min(withdrawal.withdrawal_percentage || 0, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Модальное окно отклонения */}
-      {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowRejectModal(false)}/>
-          <div className="relative bg-white rounded-2xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold mb-4">Отклонение заявки</h3>
-            <div className="space-y-4">
-              <div className="bg-red-50 rounded-xl p-4">
-                <p className="text-sm text-red-700">
-                  Вы отклоняете заявку на <span className="font-bold">{formatAmount(withdrawal.amount)} ₸</span>
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">
+              {confirmAction === 'approve' ? 'Подтвердить одобрение' : 'Отклонить заявку'}
+            </h3>
+            
+            {confirmAction === 'approve' ? (
+              <>
+                <p className="text-gray-600 mb-4">
+                  Вы уверены, что хотите одобрить подписку?
                 </p>
-              </div>
-              <textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Причина отклонения..."
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowRejectModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200"
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={!rejectionReason.trim() || processingAction === 'reject'}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50"
-                >
-                  Отклонить
-                </button>
-              </div>
+                <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Дилер:</span>
+                    <span className="font-medium">
+                      {subscription?.user?.first_name} {subscription?.user?.last_name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Сумма:</span>
+                    <span className="font-medium">{subscription?.amount.toLocaleString()} ₸</span>
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
+                  ✓ Статус пользователя → <strong>active</strong><br/>
+                  ✓ Подтверждение → <strong>is_confirmed: true</strong><br/>
+                  ✓ Роль → <strong>dealer</strong>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-4">
+                  Укажите причину отклонения:
+                </p>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500 transition-colors"
+                  placeholder="Причина отклонения..."
+                  rows={3}
+                />
+              </>
+            )}
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setRejectReason('');
+                }}
+                disabled={isProcessing}
+                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={confirmAction === 'approve' ? handleApprove : handleReject}
+                disabled={isProcessing || (confirmAction === 'reject' && !rejectReason.trim())}
+                className={`flex-1 px-4 py-3 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 ${
+                  confirmAction === 'approve'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                } disabled:bg-gray-400`}
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    {confirmAction === 'approve' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    Подтвердить
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
-}
+};
+
+export default SubscriptionDetailPage;

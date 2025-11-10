@@ -49,6 +49,18 @@ const STORAGE_KEYS = {
   ACTIVE_TAB: 'orders_active_tab'
 };
 
+// ✅ ВЫНЕСЛИ КОМПОНЕНТ ИКОНКИ НАРУЖУ
+const SortIcon = React.memo(({ field, sortConfig }: { field: SortField; sortConfig: SortConfig }) => {
+  if (sortConfig.field !== field) {
+    return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+  }
+  return sortConfig.direction === 'asc' 
+    ? <ArrowUp className="w-4 h-4 text-[#D77E6C]" />
+    : <ArrowDown className="w-4 h-4 text-[#D77E6C]" />;
+});
+
+SortIcon.displayName = 'SortIcon';
+
 const OrdersManagementPage = () => {
   const router = useRouter();
   const { t } = useTranslate();
@@ -263,32 +275,20 @@ const OrdersManagementPage = () => {
   };
 
   // 🔥 Функция сортировки
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     setSortConfig(prev => {
       if (prev.field === field) {
-        // Переключаем направление
         return {
           field,
           direction: prev.direction === 'asc' ? 'desc' : 'asc'
         };
       }
-      // Новое поле - сортируем по убыванию по умолчанию
       return {
         field,
         direction: 'desc'
       };
     });
-  };
-
-  // 🔥 Иконка сортировки
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortConfig.field !== field) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
-    }
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="w-4 h-4 text-[#D77E6C]" />
-      : <ArrowDown className="w-4 h-4 text-[#D77E6C]" />;
-  };
+  }, []);
 
   const stats = useMemo(() => {
     const newOrders = activeOrders.filter(o => 
@@ -305,7 +305,6 @@ const OrdersManagementPage = () => {
     
     const completedCount = completedOrdersLoaded ? completedPagination.total : 0;
 
-    // 🔥 Добавляем расчет общей суммы и среднего чека
     const calculateStats = (orders: any[]) => {
       const total = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
       const average = orders.length > 0 ? total / orders.length : 0;
@@ -336,7 +335,7 @@ const OrdersManagementPage = () => {
     };
   }, [activeOrders, completedOrdersLoaded, completedPagination.total]);
 
-  const getTabOrders = (tab: TabType) => {
+  const getTabOrders = useCallback((tab: TabType) => {
     switch(tab) {
       case 'new':
         return activeOrders.filter(o => 
@@ -351,13 +350,12 @@ const OrdersManagementPage = () => {
       default:
         return [];
     }
-  };
+  }, [activeOrders, completedOrders]);
 
   // 🔥 Мемоизированная фильтрация и сортировка
   const filteredOrders = useMemo(() => {
     let result = getTabOrders(activeTab);
 
-    // Фильтрация по поисковому запросу
     if (debouncedSearch.trim()) {
       const query = debouncedSearch.toLowerCase().trim();
       result = result.filter(order => {
@@ -375,7 +373,6 @@ const OrdersManagementPage = () => {
       });
     }
 
-    // 🔥 Сортировка
     result.sort((a, b) => {
       const direction = sortConfig.direction === 'asc' ? 1 : -1;
 
@@ -407,7 +404,7 @@ const OrdersManagementPage = () => {
     });
 
     return result;
-  }, [activeOrders, completedOrders, activeTab, debouncedSearch, sortConfig]);
+  }, [activeOrders, completedOrders, activeTab, debouncedSearch, sortConfig, getTabOrders]);
 
   const MobileOrderCard = ({ order }: { order: any }) => {
     const config = getStatusConfig(order.order_status);
@@ -564,11 +561,10 @@ const OrdersManagementPage = () => {
           </div>
         </div>
 
-        {/* СТАТИСТИКА - 4 КАРТОЧКИ */}
+        {/* СТАТИСТИКА */}
         <div className="mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             
-            {/* Новые */}
             <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200 hover:shadow-lg transition-all duration-200 cursor-pointer group">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform duration-200">
@@ -587,7 +583,6 @@ const OrdersManagementPage = () => {
               )}
             </div>
 
-            {/* В обработке */}
             <div className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 rounded-xl p-4 border border-yellow-200 hover:shadow-lg transition-all duration-200 cursor-pointer group">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform duration-200">
@@ -606,7 +601,6 @@ const OrdersManagementPage = () => {
               )}
             </div>
 
-            {/* Передан в склад */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200 hover:shadow-lg transition-all duration-200 cursor-pointer group">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform duration-200">
@@ -625,7 +619,6 @@ const OrdersManagementPage = () => {
               )}
             </div>
 
-            {/* Завершенные */}
             <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer group">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform duration-200">
@@ -770,7 +763,7 @@ const OrdersManagementPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           {t('Клиент')}
-                          <SortIcon field="customer" />
+                          <SortIcon field="customer" sortConfig={sortConfig} />
                         </div>
                       </th>
                       <th 
@@ -779,7 +772,7 @@ const OrdersManagementPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           {t('Дата')}
-                          <SortIcon field="date" />
+                          <SortIcon field="date" sortConfig={sortConfig} />
                         </div>
                       </th>
                       <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700">
@@ -791,7 +784,7 @@ const OrdersManagementPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           {t('Товары')}
-                          <SortIcon field="items" />
+                          <SortIcon field="items" sortConfig={sortConfig} />
                         </div>
                       </th>
                       <th 
@@ -800,7 +793,7 @@ const OrdersManagementPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           {t('Сумма')}
-                          <SortIcon field="amount" />
+                          <SortIcon field="amount" sortConfig={sortConfig} />
                         </div>
                       </th>
                       <th 
@@ -809,7 +802,7 @@ const OrdersManagementPage = () => {
                       >
                         <div className="flex items-center gap-2">
                           {t('Статус')}
-                          <SortIcon field="status" />
+                          <SortIcon field="status" sortConfig={sortConfig} />
                         </div>
                       </th>
                     </tr>

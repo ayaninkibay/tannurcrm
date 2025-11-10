@@ -454,7 +454,7 @@ export default function ReferralRegistrationPage() {
                       <p className="text-sm text-gray-600 mb-3">Отсканируйте QR-код или нажмите кнопку ниже</p>
                       <div className="relative w-48 h-48 md:w-64 md:h-64 mx-auto mb-4 bg-gray-50 rounded-xl overflow-hidden">
                         <Image
-                          src="/img/kaspi_qr.png"
+                          src="/img/kaspi_dealer_qr.png"
                           alt="Kaspi QR Code"
                           fill
                           className="object-contain"
@@ -464,7 +464,7 @@ export default function ReferralRegistrationPage() {
 
                     {/* Кнопка открыть Kaspi */}
                     <a
-                      href="https://pay.kaspi.kz/pay/lafnp2v5"
+                      href="https://pay.kaspi.kz/pay/2jzh8tc9"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setPaymentSubStep('waiting')}

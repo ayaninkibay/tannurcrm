@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
+import { toast } from 'react-toastify';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { 
   Loader2, 
@@ -13,7 +14,6 @@ import {
   Calendar,
   CreditCard,
   Users,
-  DollarSign,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -23,7 +23,6 @@ import {
   MapPin,
   Instagram,
   Shield,
-  Banknote,
   Briefcase
 } from 'lucide-react';
 
@@ -65,8 +64,6 @@ type SubscriptionDetail = {
     region?: string;
     instagram?: string;
     avatar_url?: string;
-    personal_level?: number;
-    personal_turnover?: number;
     created_at: string;
     is_confirmed: boolean;
     status: string;
@@ -127,17 +124,6 @@ const SubscriptionDetailPage = () => {
         } else {
           userData = userInfo;
         }
-
-        // Получаем текущий товарооборот пользователя
-        const { data: turnoverData } = await supabase
-          .from('user_turnover_current')
-          .select('personal_turnover')
-          .eq('user_id', subscriptionData.user_id)
-          .single();
-        
-        if (turnoverData && userData) {
-          userData.personal_turnover = turnoverData.personal_turnover;
-        }
       }
       
       // Шаг 3: Загружаем данные спонсора
@@ -190,72 +176,75 @@ const SubscriptionDetailPage = () => {
       };
       
       setSubscription(fullSubscription);
-    } catch (error) {
+      toast.success('✅ Данные подписки загружены');
+      
+    } catch (error: any) {
       console.error('Error loading subscription details:', error);
-      alert('Ошибка загрузки данных подписки');
+      toast.error(`❌ ${error.message || 'Ошибка загрузки данных подписки'}`);
       router.back();
     } finally {
       setIsLoading(false);
     }
   };
 
-const handleApprove = async () => {
-  if (!subscription) return;
-  
-  setIsProcessing(true);
-  
-  try {
-    // Шаг 1: Обновляем статус пользователя на активного дилера
-    const { error: userError } = await supabase
-      .from('users')
-      .update({ 
-        status: 'active',
-        is_confirmed: true,
-        role: 'dealer'
-      })
-      .eq('id', subscription.user_id);
-
-    if (userError) throw userError;
-
-    // Шаг 2: Обновляем статус платежа
-    const { error: paymentError } = await supabase
-      .from('subscription_payments')
-      .update({ 
-        status: 'paid'
-      })
-      .eq('id', subscription.id);
-
-    if (paymentError) throw paymentError;
-
-    // Шаг 3: Вызываем функцию распределения бонусов через RPC
-    const { data, error: bonusError } = await supabase
-      .rpc('process_subscription_payment_bonuses', {
-        p_payment_id: subscription.id
-      });
-
-    if (bonusError) {
-      console.error('Error distributing bonuses:', bonusError);
-      // Не прерываем процесс, но логируем ошибку
-      alert('Подписка одобрена, но возникла ошибка при распределении бонусов');
-    } else if (data && data.success) {
-      console.log('Bonuses distributed:', data.message);
-    }
-
-    alert('Подписка успешно одобрена! Аккаунт дилера активирован, бонусы распределены.');
-    router.push('/admin/finance');
+  const handleApprove = async () => {
+    if (!subscription) return;
     
-  } catch (error: any) {
-    console.error('Error approving subscription:', error);
-    alert(`Ошибка при одобрении: ${error.message}`);
-  } finally {
-    setIsProcessing(false);
-    setShowConfirmModal(false);
-  }
-};
+    setIsProcessing(true);
+    
+    try {
+      // Шаг 1: Обновляем статус пользователя на активного дилера
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ 
+          status: 'active',
+          is_confirmed: true,
+          role: 'dealer'
+        })
+        .eq('id', subscription.user_id);
+
+      if (userError) throw userError;
+
+      // Шаг 2: Обновляем статус платежа
+      const { error: paymentError } = await supabase
+        .from('subscription_payments')
+        .update({ 
+          status: 'paid'
+        })
+        .eq('id', subscription.id);
+
+      if (paymentError) throw paymentError;
+
+      // Шаг 3: Вызываем функцию распределения бонусов через RPC
+      const { data, error: bonusError } = await supabase
+        .rpc('process_subscription_payment_bonuses', {
+          p_payment_id: subscription.id
+        });
+
+      if (bonusError) {
+        console.error('Error distributing bonuses:', bonusError);
+        toast.warning('⚠️ Подписка одобрена, но возникла ошибка при распределении бонусов');
+      } else if (data && data.success) {
+        console.log('Bonuses distributed:', data.message);
+        toast.success('✅ Подписка одобрена! Аккаунт активирован, бонусы распределены.');
+      }
+
+      setTimeout(() => {
+        router.push('/admin/finance/subscription');
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('Error approving subscription:', error);
+      toast.error(`❌ ${error.message || 'Ошибка при одобрении'}`);
+    } finally {
+      setIsProcessing(false);
+      setShowConfirmModal(false);
+    }
+  };
 
   const handleReject = async () => {
     if (!subscription || !rejectReason.trim()) {
-      alert('Укажите причину отклонения');
+      toast.error('❌ Укажите причину отклонения');
       return;
     }
     
@@ -272,12 +261,15 @@ const handleApprove = async () => {
 
       if (error) throw error;
 
-      alert('Подписка отклонена');
-      router.push('/admin/finance');
+      toast.success('✅ Подписка отклонена');
+      
+      setTimeout(() => {
+        router.push('/admin/finance/subscription');
+      }, 1500);
       
     } catch (error: any) {
       console.error('Error rejecting subscription:', error);
-      alert(`Ошибка при отклонении: ${error.message}`);
+      toast.error(`❌ ${error.message || 'Ошибка при отклонении'}`);
     } finally {
       setIsProcessing(false);
       setShowConfirmModal(false);
@@ -344,7 +336,7 @@ const handleApprove = async () => {
     <>
       <div className="min-h-screen">
         <div className="">
-          <MoreHeaderAD title="Детали подписки"  showBackButton={true} />
+          <MoreHeaderAD title="Детали подписки" showBackButton={true} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             {/* Main Content */}
@@ -443,16 +435,6 @@ const handleApprove = async () => {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <DollarSign className="w-4 h-4 text-gray-400 mt-1" />
-                      <div>
-                        <p className="text-xs text-gray-500">Личный товарооборот</p>
-                        <p className="font-medium text-sm">
-                          {(subscription.user?.personal_turnover || 0).toLocaleString()} ₸
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
                       <Calendar className="w-4 h-4 text-gray-400 mt-1" />
                       <div>
                         <p className="text-xs text-gray-500">Дата регистрации</p>
@@ -461,20 +443,21 @@ const handleApprove = async () => {
                         </p>
                       </div>
                     </div>
-                                          {subscription.user?.iin && (
-                        <div className="flex items-start gap-3">
-                          <Hash className="w-4 h-4 text-gray-400 mt-1" />
-                          <div>
-                            <p className="text-xs text-gray-500">ИИН</p>
-                            <p className="font-medium text-sm font-mono">{subscription.user.iin}</p>
-                          </div>
+                    
+                    {subscription.user?.iin && (
+                      <div className="flex items-start gap-3">
+                        <Hash className="w-4 h-4 text-gray-400 mt-1" />
+                        <div>
+                          <p className="text-xs text-gray-500">ИИН</p>
+                          <p className="font-medium text-sm font-mono">{subscription.user.iin}</p>
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Bonus Recipients Card - показываем всех получателей бонусов */}
+              {/* Bonus Recipients Card */}
               {subscription.bonusDistributions && subscription.bonusDistributions.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -543,7 +526,7 @@ const handleApprove = async () => {
                 </div>
               )}
               
-              {/* Если распределений нет, показываем информацию о спонсоре (старый вариант) */}
+              {/* Если распределений нет, показываем информацию о спонсоре */}
               {(!subscription.bonusDistributions || subscription.bonusDistributions.length === 0) && subscription.parent && (
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -622,7 +605,7 @@ const handleApprove = async () => {
 
             {/* Sidebar - Actions */}
             <div className="space-y-6">
-              {/* Actions Card with Amount and Status */}
+              {/* Actions Card */}
               {subscription.status === 'pending' && (
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <div className="mb-6">

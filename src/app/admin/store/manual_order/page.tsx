@@ -173,57 +173,67 @@ export default function CreateManualOrderPage() {
   }
 
   function checkAndApplyGiftPromotions() {
-    // Calculate total for non-gift items only
-    const regularItemsTotal = orderItems
-      .filter(item => !item.is_gift)
-      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+  // Calculate total for non-gift items only
+  const regularItemsTotal = orderItems
+    .filter(item => !item.is_gift)
+    .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
 
-    // Find applicable promotions
-    const applicablePromotions = giftPromotions
-      .filter(promo => regularItemsTotal >= promo.min_purchase_amount)
-      .sort((a, b) => b.min_purchase_amount - a.min_purchase_amount); // Highest threshold first
+  // Find applicable promotions
+  const newAppliedPromotions: string[] = [];
+  const giftsToAdd: OrderItem[] = [];
 
-    // Remove gift items from promotions that are no longer applicable
-    const newAppliedPromotions: string[] = [];
-    const itemsToKeep = orderItems.filter(item => {
-      if (!item.is_gift) return true;
-      
-      const promoStillApplies = applicablePromotions.some(p => p.id === item.promotion_id);
-      if (promoStillApplies && item.promotion_id) {
-        newAppliedPromotions.push(item.promotion_id);
-      }
-      return promoStillApplies;
-    });
-
-    // Add new gift items for newly applicable promotions
-    const newItems = [...itemsToKeep];
+  giftPromotions.forEach(promo => {
+    const multiplier = Math.floor(regularItemsTotal / promo.min_purchase_amount);
     
-    applicablePromotions.forEach(promo => {
-      if (!newAppliedPromotions.includes(promo.id)) {
-        // Add gift items from this promotion
-        promo.products.forEach(giftProduct => {
-          if (giftProduct.product) {
-            newItems.push({
-              id: `gift-${promo.id}-${giftProduct.product_id}-${Math.random().toString(36).substr(2, 9)}`,
-              product_id: giftProduct.product_id,
-              quantity: giftProduct.quantity,
-              price: 0, // Gift items are free
-              product: giftProduct.product,
-              is_gift: true,
-              promotion_id: promo.id
-            });
-          }
-        });
-        newAppliedPromotions.push(promo.id);
-      }
-    });
-
-    // Update state if changed
-    if (JSON.stringify(newItems) !== JSON.stringify(orderItems)) {
-      setOrderItems(newItems);
-      setAppliedPromotions(newAppliedPromotions);
+    if (multiplier > 0) {
+      newAppliedPromotions.push(promo.id);
+      
+      promo.products.forEach(giftProduct => {
+        if (giftProduct.product) {
+          giftsToAdd.push({
+            id: `gift-${promo.id}-${giftProduct.product_id}`,
+            product_id: giftProduct.product_id,
+            quantity: giftProduct.quantity * multiplier,
+            price: 0,
+            product: giftProduct.product,
+            is_gift: true,
+            promotion_id: promo.id
+          });
+        }
+      });
     }
+  });
+
+  // Check if anything changed
+  const currentGiftIds = orderItems
+    .filter(item => item.is_gift)
+    .map(item => item.id)
+    .sort()
+    .join(',');
+    
+  const newGiftIds = giftsToAdd
+    .map(item => item.id)
+    .sort()
+    .join(',');
+
+  const currentGiftQuantities = orderItems
+    .filter(item => item.is_gift)
+    .map(item => `${item.id}:${item.quantity}`)
+    .sort()
+    .join(',');
+    
+  const newGiftQuantities = giftsToAdd
+    .map(item => `${item.id}:${item.quantity}`)
+    .sort()
+    .join(',');
+
+  // Only update if gifts actually changed
+  if (currentGiftIds !== newGiftIds || currentGiftQuantities !== newGiftQuantities) {
+    const regularItems = orderItems.filter(item => !item.is_gift);
+    setOrderItems([...regularItems, ...giftsToAdd]);
+    setAppliedPromotions(newAppliedPromotions);
   }
+}
 
   // Show loading while profile is loading
   if (profileLoading) {

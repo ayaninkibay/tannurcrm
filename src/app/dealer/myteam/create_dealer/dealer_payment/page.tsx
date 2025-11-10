@@ -364,7 +364,7 @@ export default function DealerPaymentPage() {
                           <h4 className="font-semibold text-gray-900 mb-4">Отсканируйте QR-код</h4>
                           <div className="relative w-64 h-64 mx-auto mb-4 bg-gray-50 rounded-xl overflow-hidden">
                             <Image
-                              src="/img/kaspi_qr.png"
+                              src="/img/kaspi_dealer_qr.png"
                               alt="Kaspi QR Code"
                               fill
                               className="object-contain"

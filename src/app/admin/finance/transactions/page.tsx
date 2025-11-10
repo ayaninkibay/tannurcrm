@@ -304,18 +304,7 @@ export default function AdminTransactionsPage() {
 
   return (
     <div className="w-full h-full p-2 md:p-4 lg:p-6">
-      <MoreHeaderAD
-        title={
-          <div className="flex items-center gap-3">
-            <Link href="/admin/finance" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors">
-              <ArrowLeft size={18}/> Назад
-            </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-gray-900 font-medium">Управление выводами</span>
-          </div>
-        }
-        showBackButton={true}
-      />
+<MoreHeaderAD title="Управление выводами" showBackButton={true} />
 
       <div className="space-y-6 mt-6">
         {/* Статистика */}

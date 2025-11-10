@@ -79,25 +79,27 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
     }
   }, [currentUser, product]);
 
-  // Проверяем наличие товара в корзине
-  useEffect(() => {
-    if (cart.cartItems && product) {
-      const cartItem = cart.cartItems.find(item => item.product_id === product.id);
-      setIsInCart(!!cartItem);
-      setCartItemQuantity(cartItem?.quantity || 0);
-      
-      // Считаем общее количество товаров
-      const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
-      setTotalCartItems(total);
-      
-      // Считаем общую сумму ВСЕХ товаров
-      const totalAmount = cart.cartItems.reduce((sum, item) => {
+ // Проверяем наличие товара в корзине
+useEffect(() => {
+  if (cart.cartItems && product) {
+    const cartItem = cart.cartItems.find(item => item.product_id === product.id);
+    setIsInCart(!!cartItem);
+    setCartItemQuantity(cartItem?.quantity || 0);
+    
+    // Считаем общее количество товаров (ВКЛЮЧАЯ подарки - это ОК)
+    const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    setTotalCartItems(total);
+    
+    // ✅ Считаем общую сумму ТОЛЬКО обычных товаров (БЕЗ ПОДАРКОВ)
+    const totalAmount = cart.cartItems
+      .filter(item => !item.is_gift) // ✅ ИСКЛЮЧАЕМ ПОДАРКИ
+      .reduce((sum, item) => {
         const price = item.price_dealer || 0;
         return sum + (item.quantity * price);
       }, 0);
-      setTotalCartAmount(totalAmount);
-    }
-  }, [cart.cartItems, product]);
+    setTotalCartAmount(totalAmount);
+  }
+}, [cart.cartItems, product]);
 
   const loadCartData = async () => {
     if (!currentUser) return;
