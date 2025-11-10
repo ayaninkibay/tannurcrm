@@ -2,9 +2,10 @@
 
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -46,14 +47,7 @@ export default function EventDetailPage({
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    if (eventId) {
-      loadEvent();
-      loadRelatedEvents();
-    }
-  }, [eventId]);
-
-  const loadEvent = async () => {
+  const loadEvent = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -90,9 +84,9 @@ export default function EventDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId]);
 
-  const loadRelatedEvents = async () => {
+  const loadRelatedEvents = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('events')
@@ -100,12 +94,19 @@ export default function EventDetailPage({
         .eq('status', 'published')
         .neq('id', eventId)
         .limit(3);
-      
-      setRelatedEvents(data || []);
+
+      setRelatedEvents((data as any) || []);
     } catch (err) {
       console.error('Error loading related events:', err);
     }
-  };
+  }, [eventId]);
+
+  useEffect(() => {
+    if (eventId) {
+      loadEvent();
+      loadRelatedEvents();
+    }
+  }, [eventId, loadEvent, loadRelatedEvents]);
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -216,10 +217,11 @@ export default function EventDetailPage({
           {/* Фоновое изображение на весь блок */}
           <div className="absolute inset-0">
             {(event.image_url || event.banner_url) ? (
-              <img
-                src={event.banner_url || event.image_url}
+              <Image
+                src={event.banner_url || event.image_url || ''}
                 alt={event.title}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-[#DC7C67]/20 to-[#DC7C67]/10">
@@ -449,7 +451,7 @@ export default function EventDetailPage({
               </button>
               <Link
                 href="/dealer/dashboard/events"
-                className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 block text-center"
+                className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-center"
               >
                 Все события
                 <ChevronRight className="w-4 h-4" />
@@ -525,12 +527,13 @@ export default function EventDetailPage({
                 <div className="grid grid-cols-3 gap-2">
                   {event.gallery.slice(0, 6).map((image, index) => (
                     <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                      <img
+                      <Image
                         src={image}
                         alt={`Фото ${index + 1}`}
-                        className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                        fill
+                        className="object-cover hover:scale-110 transition-transform duration-300"
                       />
-                      {index === 5 && event.gallery.length > 6 && (
+                      {index === 5 && event.gallery && event.gallery.length > 6 && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <span className="text-white text-sm font-medium">
                             +{event.gallery.length - 6}
@@ -559,7 +562,7 @@ export default function EventDetailPage({
                   Удалить событие?
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Вы уверены, что хотите удалить событие "{event.title}"? Это действие нельзя будет отменить.
+                  Вы уверены, что хотите удалить событие &quot;{event.title}&quot;? Это действие нельзя будет отменить.
                 </p>
               </div>
             </div>

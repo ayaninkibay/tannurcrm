@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -36,14 +36,10 @@ export default function NewsEventsCard({
   const [events, setEvents] = useState<NewsEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Загружаем события из Supabase
       const { data, error } = await supabase
         .from('events')
@@ -85,7 +81,11 @@ export default function NewsEventsCard({
     } finally {
       setLoading(false);
     }
-  };
+  }, [maxItems]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -192,9 +192,11 @@ export default function NewsEventsCard({
                         <div className="relative">
                           <div className="w-12 h-12 rounded-xl bg-gray-50 border-2 border-gray-100 flex items-center justify-center group-hover:border-[#DC7C67]/20 transition-colors overflow-hidden">
                             {event.image_url ? (
-                              <img
+                              <Image
                                 src={event.image_url}
                                 alt=""
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   console.error('Failed to load image:', event.image_url);

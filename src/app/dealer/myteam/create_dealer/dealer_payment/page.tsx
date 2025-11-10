@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -40,9 +40,9 @@ const SuccessModal = ({ isOpen, onClose, dealerName }: any) => {
 export default function DealerPaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const dealerId = searchParams.get('dealer_id');
-  const sponsorId = searchParams.get('sponsor_id');
+
+  const dealerId = searchParams?.get('dealer_id');
+  const sponsorId = searchParams?.get('sponsor_id');
   
   const [dealerInfo, setDealerInfo] = useState<any>(null);
   const [sponsorChain, setSponsorChain] = useState<any[]>([]);
@@ -60,44 +60,19 @@ export default function DealerPaymentPage() {
   const SUBSCRIPTION_AMOUNT = 100000;
   const KASPI_LINK = 'https://pay.kaspi.kz/pay/2jzh8tc9';
 
-  useEffect(() => {
-    if (dealerId && sponsorId) {
-      loadData();
-    } else {
-      setError('Отсутствуют необходимые параметры');
-    }
-  }, [dealerId, sponsorId]);
-
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { data: dealer } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', dealerId)
-        .single();
-
-      if (dealer) {
-        setDealerInfo(dealer);
-      } else {
-        setError('Дилер не найден');
-      }
-      
-      await loadSponsorChain();
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Ошибка загрузки данных');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadSponsorChain = async () => {
+  const loadSponsorChain = useCallback(async () => {
     try {
       if (!dealerId) return;
-      
-      const sponsors = [];
+
+      const sponsors: Array<{
+        level_num: number;
+        user_id: string;
+        full_name: string;
+        email: string;
+        phone: string;
+        bonus: number;
+        percent: number;
+      }> = [];
       let currentUserId = dealerId;
       
       for (let level = 1; level <= 3; level++) {
@@ -133,7 +108,40 @@ export default function DealerPaymentPage() {
     } catch (err) {
       console.error('Error loading sponsor chain:', err);
     }
-  };
+  }, [dealerId]);
+
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const { data: dealer } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', dealerId)
+        .single();
+
+      if (dealer) {
+        setDealerInfo(dealer);
+      } else {
+        setError('Дилер не найден');
+      }
+
+      await loadSponsorChain();
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Ошибка загрузки данных');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dealerId, loadSponsorChain]);
+
+  useEffect(() => {
+    if (dealerId && sponsorId) {
+      loadData();
+    } else {
+      setError('Отсутствуют необходимые параметры');
+    }
+  }, [dealerId, sponsorId, loadData]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(KASPI_LINK);
@@ -406,7 +414,7 @@ export default function DealerPaymentPage() {
                               </div>
                               <div className="text-sm text-blue-900">
                                 <p className="font-medium mb-1">После оплаты:</p>
-                                <p className="text-blue-700">Нажмите кнопку "Я оплатил" ниже</p>
+                                <p className="text-blue-700">Нажмите кнопку &quot;Я оплатил&quot; ниже</p>
                               </div>
                             </div>
                           </div>
@@ -486,7 +494,7 @@ export default function DealerPaymentPage() {
                               </div>
                               <div className="text-sm text-blue-900">
                                 <p className="font-medium mb-1">После оплаты:</p>
-                                <p className="text-blue-700">Вернитесь сюда и нажмите кнопку "Я оплатил"</p>
+                                <p className="text-blue-700">Вернитесь сюда и нажмите кнопку &quot;Я оплатил&quot;</p>
                               </div>
                             </div>
                           </div>

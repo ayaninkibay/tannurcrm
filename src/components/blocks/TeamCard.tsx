@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Plus, Sparkles, Trophy, ChevronRight, X } from 'lucide-react'
 import { useTranslate } from '@/hooks/useTranslate'
 import BonusTableBlock from '@/components/blocks/BonusTableBlock'
-import type { TeamStatsData } from '@/types/team.types'
+import type { TeamStatsData } from '../../types/team.types';
 
 // ===============================
 // ТИПЫ

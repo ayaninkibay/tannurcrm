@@ -2,7 +2,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, X, Trash2 } from 'lucide-react';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useProductModule } from '@/lib/product/ProductModule';
@@ -15,7 +15,7 @@ import { toast } from 'react-hot-toast';
 export default function EditProduct() {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string;
+  const productId = params?.id as string;
   const { t } = useTranslate();
   const { updateProduct, isLoading, error } = useProductModule();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,11 +44,7 @@ export default function EditProduct() {
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
 
   // Load product data
-  useEffect(() => {
-    loadProductData();
-  }, [productId]);
-
-  const loadProductData = async () => {
+  const loadProductData = useCallback(async () => {
     try {
       setLoadingProduct(true);
       
@@ -92,7 +88,11 @@ export default function EditProduct() {
     } finally {
       setLoadingProduct(false);
     }
-  };
+  }, [productId, t, router]);
+
+  useEffect(() => {
+    loadProductData();
+  }, [loadProductData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
@@ -280,11 +280,12 @@ export default function EditProduct() {
                   <p className="text-xs text-gray-500 mb-2">{t('Текущие изображения')}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {existingImages.map((url, index) => (
-                      <div key={`existing-${index}`} className="relative group">
-                        <img
+                      <div key={`existing-${index}`} className="relative group h-24">
+                        <Image
                           src={url}
                           alt={`Existing ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          fill
+                          className="object-cover rounded-lg"
                         />
                         <button
                           onClick={() => markImageForDeletion(url)}
@@ -317,11 +318,12 @@ export default function EditProduct() {
                   <p className="text-xs text-gray-500 mb-2">{t('Новые изображения')}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {previewUrls.map((url, index) => (
-                      <div key={`new-${index}`} className="relative group">
-                        <img
+                      <div key={`new-${index}`} className="relative group h-24">
+                        <Image
                           src={url}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          fill
+                          className="object-cover rounded-lg"
                         />
                         <button
                           onClick={() => removeNewImage(index)}

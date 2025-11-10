@@ -3,6 +3,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { Calendar, Gift, Target, Clock, ChevronRight, Edit, Trash2, Eye, Copy, Archive } from 'lucide-react';
 import type { Event } from '@/types/custom.types';
 
@@ -103,13 +104,14 @@ export const EventCard: React.FC<EventCardProps> = ({
       {/* Изображение */}
       {event.image_url && (
         <div className="relative h-48 overflow-hidden rounded-t-lg">
-          <img 
-            src={event.image_url} 
+          <Image
+            src={event.image_url}
             alt={event.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
           {event.badge_icon && (
-            <div 
+            <div
               className="absolute top-3 right-3 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg"
               style={{ backgroundColor: event.badge_color || '#3B82F6' }}
             >
@@ -362,11 +364,12 @@ export const EventDetail: React.FC<EventDetailProps> = ({
 
       {/* Баннер */}
       {event.banner_url && (
-        <div className="h-64 rounded-lg overflow-hidden mb-6">
-          <img 
-            src={event.banner_url} 
+        <div className="relative h-64 rounded-lg overflow-hidden mb-6">
+          <Image
+            src={event.banner_url}
             alt={event.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
       )}
@@ -496,12 +499,14 @@ export const EventDetail: React.FC<EventDetailProps> = ({
           <h2 className="text-xl font-semibold mb-4">Галерея</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {event.gallery.map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt={`Галерея ${index + 1}`}
-                className="rounded-lg w-full h-48 object-cover"
-              />
+              <div key={index} className="relative rounded-lg overflow-hidden w-full h-48">
+                <Image
+                  src={image}
+                  alt={`Галерея ${index + 1}`}
+                  fill
+                  className="object-cover"
+                />
+              </div>
             ))}
           </div>
         </div>

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { 
   BookOpen, Clock, Play, Lock, Award, ArrowLeft, Users, 
@@ -34,7 +35,7 @@ export default function CoursePreviewContent() {
   useEffect(() => {
     if (courseId) {
       setLoadingStates({ course: true, lessons: true });
-      
+
       Promise.all([
         loadCourse(courseId),
         loadLessons(courseId)
@@ -44,7 +45,7 @@ export default function CoursePreviewContent() {
         setLoadingStates({ course: false, lessons: false });
       });
     }
-  }, [courseId]);
+  }, [courseId, loadCourse, loadLessons]);
 
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return '—';
@@ -150,6 +151,34 @@ export default function CoursePreviewContent() {
     );
   }
 
+  // Check if course exists
+  if (!currentCourse) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="p-4 md:p-6">
+          <MoreHeaderDE title={t('Курс')} showBackButton={true} />
+
+          <div className="max-w-2xl mx-auto text-center mt-20">
+            <div className="bg-white rounded-3xl p-12 border border-gray-200">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="w-10 h-10 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('Курс недоступен')}</h2>
+              <p className="text-gray-600 mb-8">{t('Курс не найден или был удален')}</p>
+              <Link
+                href="/dealer/education"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#D77E6C] hover:bg-[#C66B5A] text-white rounded-xl font-medium transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t('Вернуться к курсам')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-4 md:p-6">
@@ -161,7 +190,7 @@ export default function CoursePreviewContent() {
             {/* Decorative elements */}
             <div className="absolute -top-8 -right-8 w-24 h-24 bg-[#D77E6C]/5 rounded-full"></div>
             <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-[#D77E6C]/8 rounded-full"></div>
-            
+
             <div className="relative z-10">
               <div className="flex flex-col lg:flex-row lg:items-start gap-6">
                 <div className="flex-1">
@@ -216,11 +245,14 @@ export default function CoursePreviewContent() {
                 {/* Course Image or Placeholder */}
                 <div className="lg:w-64 lg:flex-shrink-0">
                   {currentCourse.cover_image ? (
-                    <img 
-                      src={currentCourse.cover_image} 
-                      alt={currentCourse.title}
-                      className="w-full h-48 lg:h-56 object-cover rounded-xl"
-                    />
+                    <div className="relative w-full h-48 lg:h-56 rounded-xl overflow-hidden">
+                      <Image
+                        src={currentCourse.cover_image}
+                        alt={currentCourse.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="w-full h-48 lg:h-56 bg-gradient-to-br from-[#D77E6C]/20 to-[#C66B5A]/20 rounded-xl flex items-center justify-center">
                       <BookOpen className="w-16 h-16 text-[#D77E6C]" />

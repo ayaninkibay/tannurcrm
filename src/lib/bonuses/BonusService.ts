@@ -93,15 +93,15 @@ export class BonusService {
       
       // Параллельные запросы для максимальной скорости
       const [levels, turnover, teamStats, bonuses] = await Promise.all([
-        this.getBonusLevels().catch(err => {
+        this.getBonusLevels().catch((err): BonusLevel[] => {
           console.error('Error loading bonus levels:', err);
           return [];
         }),
-        this.getUserTurnover(userId).catch(err => {
+        this.getUserTurnover(userId).catch((err): UserTurnover | null => {
           console.error('Error loading user turnover:', err);
           return null;
         }),
-        this.getTeamStats(userId).catch(err => {
+        this.getTeamStats(userId).catch((err): TeamStatsData => {
           console.error('Error loading team stats:', err);
           return {
             totalMembers: 0,
@@ -113,7 +113,7 @@ export class BonusService {
             remaining: BONUS_CONSTANTS.DEFAULT_GOAL
           };
         }),
-        this.getMonthlyBonuses(currentMonth, userId).catch(err => {
+        this.getMonthlyBonuses(currentMonth, userId).catch((err): MonthlyBonus[] => {
           console.error('Error loading monthly bonuses:', err);
           return [];
         })
@@ -125,16 +125,19 @@ export class BonusService {
       
       if (levels && levels.length > 0 && turnover) {
         const totalAmount = turnover.total_turnover || 0;
-        
+
         // Находим текущий уровень
-        currentLevel = levels.find(
+        const foundLevel = levels.find(
           l => totalAmount >= l.min_amount && (!l.max_amount || totalAmount <= l.max_amount)
-        ) || levels[0];
-        
+        );
+        currentLevel = foundLevel || levels[0];
+
         // Находим следующий уровень
-        const currentIdx = levels.findIndex(l => l.id === currentLevel?.id);
-        if (currentIdx !== -1 && currentIdx < levels.length - 1) {
-          nextLevel = levels[currentIdx + 1];
+        if (currentLevel) {
+          const currentIdx = levels.findIndex(l => l.id === currentLevel!.id);
+          if (currentIdx !== -1 && currentIdx < levels.length - 1) {
+            nextLevel = levels[currentIdx + 1];
+          }
         }
       }
 
@@ -167,8 +170,8 @@ export class BonusService {
     userId: string
   ): BonusStats {
     const personalTurnover = turnover?.personal_turnover || 0;
-    const teamTurnover = turnover?.team_turnover || 0;
     const totalTurnover = turnover?.total_turnover || 0;
+    const teamTurnover = totalTurnover - personalTurnover;
     const bonusPercent = turnover?.bonus_percent || currentLevel?.bonus_percent || BONUS_CONSTANTS.DEFAULT_BONUS_PERCENT;
 
     // Расчет бонусов
@@ -631,7 +634,7 @@ export class BonusService {
         const turnover = turnoverMap.get(member.id);
         const personalTurnover = turnover?.personal_turnover || 0;
         const totalTurnover = turnover?.total_turnover || 0;
-        const teamTurnover = turnover?.team_turnover || 0;
+        const teamTurnover = totalTurnover - personalTurnover;
         const bonusPercent = turnover?.bonus_percent || 0;
         
         const teamMember: TeamMember = {
@@ -718,7 +721,7 @@ export class BonusService {
       const personalTurnover = turnover?.personal_turnover || 0;
       const totalTurnover = turnover?.total_turnover || 0;
       const bonusPercent = turnover?.bonus_percent || 0;
-      const teamTurnover = turnover?.team_turnover || 0;
+      const teamTurnover = totalTurnover - personalTurnover;
       const bonusAmount = personalTurnover * bonusPercent / 100;
 
       return {
@@ -841,7 +844,7 @@ export class BonusService {
     if (!userInfo) throw new Error('User not found');
 
     const turnover = await this.getUserTurnover(userId);
-    const bonusLevel = turnover 
+    const bonusLevel = turnover && turnover.total_turnover
       ? await this.getCurrentBonusLevel(turnover.total_turnover)
       : null;
 
@@ -920,7 +923,7 @@ export class BonusService {
     const currentMonth = new Date().toISOString().substring(0, 7);
     
     const turnover = await this.getUserTurnover(userId);
-    const currentLevel = turnover 
+    const currentLevel = turnover && turnover.total_turnover
       ? await this.getCurrentBonusLevel(turnover.total_turnover)
       : null;
     
@@ -956,15 +959,18 @@ export class BonusService {
       .sort((a, b) => b.total_turnover - a.total_turnover)
       .slice(0, 5);
 
+    const personalTurnover = turnover?.personal_turnover || 0;
+    const totalTurnover = turnover?.total_turnover || 0;
+    const teamTurnover = totalTurnover - personalTurnover;
+    const bonusPercent = turnover?.bonus_percent || 0;
+
     return {
       current_month: {
-        personal_turnover: turnover?.personal_turnover || 0,
-        team_turnover: turnover?.team_turnover || 0,
-        total_turnover: turnover?.total_turnover || 0,
-        expected_bonus: turnover 
-          ? (turnover.personal_turnover * (turnover.bonus_percent / 100))
-          : 0,
-        bonus_percent: turnover?.bonus_percent || 0,
+        personal_turnover: personalTurnover,
+        team_turnover: teamTurnover,
+        total_turnover: totalTurnover,
+        expected_bonus: (personalTurnover * (bonusPercent / 100)),
+        bonus_percent: bonusPercent,
         current_level: currentLevel,
         next_level: nextLevel || null,
         amount_to_next_level: nextLevel 

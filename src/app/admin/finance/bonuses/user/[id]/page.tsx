@@ -2,26 +2,27 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { 
-  ArrowLeft, Users, TrendingUp, DollarSign, Calendar, 
-  ChevronRight, ChevronDown, Package, CreditCard, UserCheck, 
+import {
+  ArrowLeft, Users, TrendingUp, DollarSign, Calendar,
+  ChevronRight, ChevronDown, Package, CreditCard, UserCheck,
   Layers, Activity, RefreshCw, AlertCircle, Info, History,
   CheckCircle, Clock, X
 } from 'lucide-react';
 import { BonusService } from '@/lib/bonuses/BonusService';
+import type { BonusCalculationPreview } from '@/types/bonus.types';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 
 export default function AdminUserDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const userId = params.id as string;
-  
+  const userId = params?.id as string;
+
   // Берем месяц из URL параметра или используем текущий
   const [selectedMonth, setSelectedMonth] = useState(
-    searchParams.get('month') || BonusService.getCurrentMonth()
+    searchParams?.get('month') || BonusService.getCurrentMonth()
   );
   
   const [userDetails, setUserDetails] = useState<any>(null);
@@ -36,26 +37,19 @@ export default function AdminUserDetailsPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedNodes, setExpandedNodes] = useState(new Set<string>());
   const [isCalculating, setIsCalculating] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<BonusCalculationPreview | null>(null);
   const [monthStatus, setMonthStatus] = useState<any>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadUserData();
-      checkMonthStatus();
-    }
-  }, [userId, selectedMonth]);
-
-  const checkMonthStatus = async () => {
+  const checkMonthStatus = useCallback(async () => {
     try {
       const status = await BonusService.getMonthStatus(selectedMonth);
       setMonthStatus(status);
     } catch (err) {
       console.error('Error checking month status:', err);
     }
-  };
+  }, [selectedMonth]);
 
-const loadUserData = async () => {
+const loadUserData = useCallback(async () => {
   try {
     setLoading(true);
     setError(null);
@@ -70,7 +64,7 @@ const loadUserData = async () => {
 
     // Загружаем бонусы за выбранный месяц
     const bonuses = await BonusService.getMonthlyBonuses(selectedMonth, userId);
-    
+
     // Загружаем данные товарооборота за месяц
     const allTurnoverData = await BonusService.getTurnoverForMonth(selectedMonth);
     const userTurnover = allTurnoverData.data.find(
@@ -87,7 +81,7 @@ const loadUserData = async () => {
     setTeamTree(tree);
     setStatistics(stats);
     setTurnoverData(userTurnover);
-    
+
     // Автоматически раскрываем первый уровень команды
     if (tree && tree.children) {
       const initialExpanded = new Set<string>();
@@ -100,7 +94,14 @@ const loadUserData = async () => {
   } finally {
     setLoading(false);
   }
-};
+}, [userId, selectedMonth]);
+
+useEffect(() => {
+  if (userId) {
+    loadUserData();
+    checkMonthStatus();
+  }
+}, [userId, selectedMonth, loadUserData, checkMonthStatus]);
 
 // Добавьте новую функцию для построения дерева с данными за месяц
 const buildTeamTreeWithMonthData = async (
@@ -147,12 +148,12 @@ const buildTeamTreeWithMonthData = async (
       setIsCalculating(true);
       const preview = await BonusService.calculateMonthlyBonuses(selectedMonth);
       setPreviewData(preview);
-      
-      if (preview.success) {
+
+      if (preview) {
         // Перезагружаем данные бонусов
         const bonuses = await BonusService.getMonthlyBonuses(selectedMonth, userId);
         setMonthlyBonuses(bonuses);
-        alert(`Превью рассчитано: ${preview.total_bonuses} бонусов на сумму ${BonusService.formatCurrency(preview.total_amount)}`);
+        alert(`Превью рассчитано`);
       }
     } catch (err) {
       console.error('Calculation error:', err);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { reportService } from './ReportService';
 import type {
   SubscriptionPaymentReport,

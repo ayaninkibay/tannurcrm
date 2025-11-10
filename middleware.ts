@@ -71,18 +71,18 @@ export async function middleware(request: NextRequest) {
         .from('users')
         .select('role, permissions')
         .eq('id', user.id)
-        .single()
+        .single<{ role: string | null; permissions: string[] | null }>()
 
-      if (userError) {
+      if (userError || !userData) {
         return NextResponse.rewrite(new URL('/not-found', request.url))
       }
 
-      const userRole = userData?.role
-      const userPermissions = userData?.permissions || []
+      const userRole = userData.role
+      const userPermissions = userData.permissions || []
 
       const hasAccess = hasPageAccess(
         userRole,
-        userPermissions, 
+        userPermissions,
         request.nextUrl.pathname
       )
 

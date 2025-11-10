@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package,
@@ -62,7 +62,7 @@ const WarehouseOrdersPage = () => {
         setInitialLoadDone(true);
       });
     }
-  }, []);
+  }, [loadAllActiveOrders]);
 
   useEffect(() => {
     if (activeTab === 'completed' && !completedOrdersLoaded) {
@@ -186,7 +186,7 @@ const WarehouseOrdersPage = () => {
   }, [activeOrders, completedOrdersLoaded, completedPagination.total]);
 
   // Фильтрация по вкладкам
-  const getTabOrders = (tab: TabType) => {
+  const getTabOrders = useCallback((tab: TabType) => {
     switch(tab) {
       case 'warehouse':
         return activeOrders.filter(o => o.order_status === 'transferred_to_warehouse');
@@ -201,7 +201,7 @@ const WarehouseOrdersPage = () => {
       default:
         return [];
     }
-  };
+  }, [activeOrders, completedOrders]);
 
   // Поиск
   const filteredOrders = useMemo(() => {
@@ -225,7 +225,7 @@ const WarehouseOrdersPage = () => {
     }
 
     return result;
-  }, [activeOrders, completedOrders, activeTab, searchQuery]);
+  }, [activeTab, searchQuery, getTabOrders]);
 
   const MobileOrderCard = ({ order }: { order: any }) => {
     const config = getStatusConfig(order.order_status);

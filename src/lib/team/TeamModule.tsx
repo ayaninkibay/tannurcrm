@@ -1,9 +1,9 @@
 // lib/team/TeamModule.tsx
 // Модуль с хуками для работы с командой (БЕЗ UI компонентов)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { TeamService, type TeamMember } from './TeamService';
-import type { TeamStatsData } from '@/types/team.types';  // ⭐ ИМПОРТИРУЕМ ПРАВИЛЬНЫЙ ТИП
+import type { TeamStatsData } from '../../types/team.types';  // ⭐ ИМПОРТИРУЕМ НОВЫЙ ТИП
 
 // ===============================
 // ХУКИ ДЛЯ РАБОТЫ С КОМАНДОЙ
@@ -24,21 +24,13 @@ export function useTeamTree(userId?: string, useCache: boolean = true) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadTeamMembers();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadTeamMembers = async () => {
+  const loadTeamMembers = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getMyTeam(userId, useCache);
       setMembers(data);
     } catch (err) {
@@ -48,7 +40,15 @@ export function useTeamTree(userId?: string, useCache: boolean = true) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, useCache]);
+
+  useEffect(() => {
+    if (userId) {
+      loadTeamMembers();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadTeamMembers]);
 
   const refreshTree = () => {
     TeamService.clearCache(userId);
@@ -76,21 +76,13 @@ export function useDirectReferrals(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadDirectReferrals();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadDirectReferrals = async () => {
+  const loadDirectReferrals = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getDirectReferrals(userId);
       setMembers(data);
     } catch (err) {
@@ -100,7 +92,15 @@ export function useDirectReferrals(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadDirectReferrals();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadDirectReferrals]);
 
   const refreshReferrals = () => {
     loadDirectReferrals();
@@ -128,21 +128,13 @@ export function useDirectReferralsWithStats(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadReferralsWithStats();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadReferralsWithStats = async () => {
+  const loadReferralsWithStats = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getDirectReferralsWithStats(userId);
       setReferrals(data);
     } catch (err) {
@@ -152,7 +144,15 @@ export function useDirectReferralsWithStats(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadReferralsWithStats();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadReferralsWithStats]);
 
   const refreshReferrals = () => {
     loadReferralsWithStats();
@@ -188,21 +188,13 @@ export function useTeamStats(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadStats();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       // ⭐ ИСПОЛЬЗУЕМ getTeamStats из TeamService
       const data = await TeamService.getTeamStats(userId);
       setStats(data);
@@ -223,7 +215,15 @@ export function useTeamStats(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadStats();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadStats]);
 
   const refreshStats = () => {
     loadStats();
@@ -251,21 +251,13 @@ export function useTeamByLevel(userId?: string, level: number = 1) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadTeamByLevel();
-    } else {
-      setLoading(false);
-    }
-  }, [userId, level]);
-
-  const loadTeamByLevel = async () => {
+  const loadTeamByLevel = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getTeamByLevel(userId, level);
       setMembers(data);
     } catch (err) {
@@ -275,7 +267,15 @@ export function useTeamByLevel(userId?: string, level: number = 1) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, level]);
+
+  useEffect(() => {
+    if (userId) {
+      loadTeamByLevel();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, level, loadTeamByLevel]);
 
   const refreshTeam = () => {
     loadTeamByLevel();
@@ -303,21 +303,13 @@ export function useTeamStatsByLevel(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadLevelStats();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadLevelStats = async () => {
+  const loadLevelStats = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getTeamStatsByLevel(userId);
       setLevelStats(data);
     } catch (err) {
@@ -327,7 +319,15 @@ export function useTeamStatsByLevel(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadLevelStats();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadLevelStats]);
 
   const refreshStats = () => {
     loadLevelStats();
@@ -405,21 +405,13 @@ export function useTopPerformers(userId?: string, limit: number = 10) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadTopPerformers();
-    } else {
-      setLoading(false);
-    }
-  }, [userId, limit]);
-
-  const loadTopPerformers = async () => {
+  const loadTopPerformers = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getTopPerformers(userId, limit);
       setPerformers(data);
     } catch (err) {
@@ -429,7 +421,15 @@ export function useTopPerformers(userId?: string, limit: number = 10) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, limit]);
+
+  useEffect(() => {
+    if (userId) {
+      loadTopPerformers();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, limit, loadTopPerformers]);
 
   const refreshPerformers = () => {
     loadTopPerformers();
@@ -461,21 +461,13 @@ export function useUserGoalInfo(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadGoalInfo();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const loadGoalInfo = async () => {
+  const loadGoalInfo = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await TeamService.getUserGoalInfo(userId);
       setGoalInfo(data);
     } catch (err) {
@@ -484,7 +476,15 @@ export function useUserGoalInfo(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) {
+      loadGoalInfo();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, loadGoalInfo]);
 
   const refreshGoalInfo = () => {
     loadGoalInfo();
@@ -515,21 +515,13 @@ export function useTeamPagination(userId?: string, pageSize: number = 50) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      loadPage();
-    } else {
-      setLoading(false);
-    }
-  }, [userId, page, pageSize]);
-
-  const loadPage = async () => {
+  const loadPage = useCallback(async () => {
     if (!userId) return;
 
     try {
       setLoading(true);
       setError(null);
-      
+
       const result = await TeamService.getTeamPaginated(userId, page, pageSize);
       setData(result.data);
       setTotal(result.total);
@@ -541,7 +533,15 @@ export function useTeamPagination(userId?: string, pageSize: number = 50) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, page, pageSize]);
+
+  useEffect(() => {
+    if (userId) {
+      loadPage();
+    } else {
+      setLoading(false);
+    }
+  }, [userId, page, pageSize, loadPage]);
 
   const nextPage = () => {
     if (page < totalPages) {

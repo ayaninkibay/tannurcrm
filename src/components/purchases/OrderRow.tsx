@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 
 export type Order = {
   id: number;
@@ -32,9 +33,11 @@ export default function OrderRow({ order }: { order: Order }) {
     <div className="flex flex-col sm:flex-row sm:items-center border border-gray-300 rounded-2xl py-4 gap-2 sm:gap-4 hover:bg-gray-50 transition">
       {/* картинка */}
       <div className="flex-shrink-0 ml-5">
-        <img
+        <Image
           src={order.image}
           alt="Товар"
+          width={60}
+          height={60}
           className="w-12 h-12 sm:w-15 sm:h-15 rounded-lg object-cover"
         />
       </div>

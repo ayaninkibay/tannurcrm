@@ -1,7 +1,7 @@
 // src/app/dealer/bonuses/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/context/UserContext';
 import { useRouter } from 'next/navigation';
 import { 
@@ -54,18 +54,12 @@ export default function DealerBonusesPage() {
   // ============================================
   // ЗАГРУЗКА ДАННЫХ (ОПТИМИЗИРОВАННАЯ)
   // ============================================
-  useEffect(() => {
-    if (profile && !userLoading) {
-      loadData();
-    }
-  }, [profile, userLoading, selectedMonth]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-    
+
     try {
       setLoading(true);
-      
+
       // ✅ ШАГ 1: Все запросы параллельно
       const [levels, turnover, bonuses, transactions, teamMembers] = await Promise.all([
         BonusService.getBonusLevels(),
@@ -76,7 +70,7 @@ export default function DealerBonusesPage() {
       ]);
 
       setBonusLevels(levels);
-      
+
       // Находим данные текущего пользователя
       const userTurnover = turnover.data.find(
         (u: any) => u.user_id === profile.id || u.users?.id === profile.id
@@ -90,7 +84,7 @@ export default function DealerBonusesPage() {
           l => totalAmount >= l.min_amount && (!l.max_amount || totalAmount <= l.max_amount)
         );
         setCurrentLevel(current);
-        
+
         const nextIdx = levels.findIndex(l => l.id === current?.id);
         if (nextIdx !== -1 && nextIdx < levels.length - 1) {
           setNextLevel(levels[nextIdx + 1]);
@@ -102,23 +96,29 @@ export default function DealerBonusesPage() {
       // ✅ ШАГ 2: Обогащаем команду оборотами за выбранный месяц
       const tree = buildTreeWithTurnover(teamMembers, turnover.data, profile.id);
       setTeamTree(tree);
-      
+
       setMonthlyBonuses(bonuses);
       setTransactionHistory(transactions);
-      
+
       // Автоматически раскрываем первый уровень
       if (tree && tree.children) {
         const initialExpanded = new Set<string>();
         initialExpanded.add(tree.id);
         setExpandedNodes(initialExpanded);
       }
-      
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile, selectedMonth]);
+
+  useEffect(() => {
+    if (profile && !userLoading) {
+      loadData();
+    }
+  }, [profile, userLoading, loadData]);
 
   /**
    * ✅ НОВАЯ ФУНКЦИЯ: Построение дерева с оборотом

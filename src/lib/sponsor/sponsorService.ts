@@ -6,6 +6,7 @@ export interface Sponsor {
   name: string;
   avatar: string;
   status: string;
+  profession: string;
   phone: string;
   is_confirmed: boolean;
   referrals_count: number;
@@ -51,6 +52,7 @@ export class SponsorService {
             last_name,
             avatar_url,
             role,
+            profession,
             phone,
             is_confirmed
           `,
@@ -77,6 +79,7 @@ export class SponsorService {
         name: `${sponsor.first_name || ''} ${sponsor.last_name || ''}`.trim() || 'Без имени',
         avatar: sponsor.avatar_url || '/icons/default-avatar.png',
         status: this.mapRoleToStatus(sponsor.role || 'user'),
+        profession: sponsor.profession || '',
         phone: sponsor.phone || '',
         is_confirmed: sponsor.is_confirmed || false,
         referrals_count: referralsCount || 0,
@@ -121,6 +124,7 @@ export class SponsorService {
             last_name,
             avatar_url,
             role,
+            profession,
             phone,
             is_confirmed
           `,
@@ -143,6 +147,7 @@ export class SponsorService {
         name: `${sponsor.first_name || ''} ${sponsor.last_name || ''}`.trim() || 'Без имени',
         avatar: sponsor.avatar_url || '/icons/default-avatar.png',
         status: this.mapRoleToStatus(sponsor.role || 'user'),
+        profession: sponsor.profession || '',
         phone: sponsor.phone || '',
         is_confirmed: sponsor.is_confirmed || false,
         referrals_count: referralsCount || 0,

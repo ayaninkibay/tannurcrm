@@ -1,20 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useUser } from '@/context/UserContext';
-import { SponsorService } from '@/lib/sponsor/sponsorService';
-
-interface Sponsor {
-  id: string;
-  name: string;
-  avatar: string;
-  profession: string;
-  phone: string;
-  is_confirmed: boolean;
-  referrals_count: number;
-}
+import { SponsorService, type Sponsor } from '@/lib/sponsor/sponsorService';
 
 export default function SponsorCard() {
   const { t } = useTranslate();
@@ -24,21 +14,9 @@ export default function SponsorCard() {
   const [error, setError] = useState<string | null>(null);
   const [hasSponsor, setHasSponsor] = useState(false);
 
-  useEffect(() => {
-    if (userLoading) return;
-    
-    if (!profile) {
-      setError('Пользователь не авторизован');
-      setLoading(false);
-      return;
-    }
-
-    fetchSponsorData();
-  }, [profile, userLoading]);
-
-  const fetchSponsorData = async () => {
+  const fetchSponsorData = useCallback(async () => {
     if (!profile?.id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -51,7 +29,19 @@ export default function SponsorCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (userLoading) return;
+
+    if (!profile) {
+      setError('Пользователь не авторизован');
+      setLoading(false);
+      return;
+    }
+
+    fetchSponsorData();
+  }, [profile, userLoading, fetchSponsorData]);
 
   // Загрузка
   if (userLoading || loading) {

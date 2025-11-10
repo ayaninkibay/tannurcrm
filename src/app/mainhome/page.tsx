@@ -66,7 +66,7 @@ export default function HomePage() {
         ...baseVariants,
         backgroundMotion: {
           animate: {},
-          transition: { duration: 0 }
+          transition: undefined
         },
         buttonHover: {
           whileHover: { scale: 1.02 },
@@ -83,7 +83,7 @@ export default function HomePage() {
           x: mousePosition.x * 0.5,
           y: mousePosition.y * 0.5,
         },
-        transition: { type: "spring", stiffness: 30, damping: 20 }
+        transition: { type: "spring" as const, stiffness: 30, damping: 20 }
       },
       buttonHover: {
         whileHover: { scale: 1.05 },
@@ -439,18 +439,23 @@ export default function HomePage() {
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-b from-white via-[#FFF9F7] to-white">
         {/* Упрощенный анимированный фон для мобильных */}
         <div className="absolute inset-0">
-          <motion.div 
+          <motion.div
             className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-[#D77E6C]/10 to-transparent rounded-full blur-3xl"
             {...animationVariants.backgroundMotion}
           />
-          <motion.div 
-            className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-[#FFE8E4]/20 to-transparent rounded-full blur-3xl"
-            animate={isMobile ? {} : {
-              x: -mousePosition.x * 0.5,
-              y: -mousePosition.y * 0.5,
-            }}
-            transition={isMobile ? { duration: 0 } : { type: "spring", stiffness: 30 }}
-          />
+          {!isMobile && (
+            <motion.div
+              className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-[#FFE8E4]/20 to-transparent rounded-full blur-3xl"
+              animate={{
+                x: -mousePosition.x * 0.5,
+                y: -mousePosition.y * 0.5,
+              }}
+              transition={{ type: "spring", stiffness: 30, damping: 20 }}
+            />
+          )}
+          {isMobile && (
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-[#FFE8E4]/20 to-transparent rounded-full blur-3xl" />
+          )}
         </div>
 
         {/* Хедер с логотипом */}
@@ -475,10 +480,10 @@ export default function HomePage() {
                   {...animationVariants.scaleIn}
                   {...animationVariants.buttonHover}
                   onClick={handleProfileClick}
-                  className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all overflow-hidden group"
+                  className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all overflow-hidden group relative"
                 >
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-[#D77E6C] to-[#E89185] flex items-center justify-center text-white">
                       <User className="w-5 h-5" />
@@ -546,12 +551,13 @@ export default function HomePage() {
               >
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg relative">
                       {profile.avatar_url ? (
-                        <img 
-                          src={profile.avatar_url} 
-                          alt="Profile" 
-                          className="w-full h-full object-cover"
+                        <Image
+                          src={profile.avatar_url}
+                          alt="Profile"
+                          fill
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[#D77E6C] to-[#E89185] flex items-center justify-center">
@@ -568,8 +574,8 @@ export default function HomePage() {
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center gap-1 bg-[#D77E6C]/10 text-[#D77E6C] px-3 py-1 rounded-lg text-xs font-medium">
-                        {getRoleInfo(profile.role).icon}
-                        {getRoleInfo(profile.role).label}
+                        {getRoleInfo(profile.role ?? undefined).icon}
+                        {getRoleInfo(profile.role ?? undefined).label}
                       </span>
                     </div>
                     {profile.email && (
@@ -677,10 +683,11 @@ export default function HomePage() {
                     >
                       <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-2xl p-6">
                         <div className="relative h-64 rounded-xl overflow-hidden mb-4 group cursor-pointer">
-                          <img 
-                            src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop" 
+                          <Image
+                            src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop"
                             alt="Завод Tannur"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-700"
                           />
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <Play className="w-16 h-16 text-white" />

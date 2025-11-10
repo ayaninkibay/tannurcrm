@@ -5,19 +5,20 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 import { supabase } from '@/lib/supabase/client';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
-import { 
-  Calendar, 
-  Gift, 
-  Target, 
-  AlertCircle, 
-  Plus, 
-  X, 
-  Save, 
+import {
+  Calendar,
+  Gift,
+  Target,
+  AlertCircle,
+  Plus,
+  X,
+  Save,
   ArrowLeft,
-  Image,
+  Image as ImageIcon,
   Tag,
   Sparkles,
   FileText,
@@ -50,7 +51,7 @@ function CreateOrEditEventPageContent() {
   const { profile, loading: userLoading } = useUser();
   
   // Определяем режим работы (создание или редактирование)
-  const eventId = searchParams.get('id');
+  const eventId = searchParams?.get('id');
   const isEditMode = !!eventId;
   
   const [loading, setLoading] = useState(isEditMode); // Загрузка только в режиме редактирования
@@ -737,7 +738,7 @@ function CreateOrEditEventPageContent() {
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-[#FFF7F5] to-[#FFF2F0] border-b border-gray-100">
                 <h2 className="text-lg font-semibold text-[#B95F4A] flex items-center gap-2">
-                  <Image className="w-5 h-5" />
+                  <ImageIcon className="w-5 h-5" />
                   Изображения
                 </h2>
               </div>
@@ -776,16 +777,17 @@ function CreateOrEditEventPageContent() {
                       />
                     </label>
                   ) : (
-                    <div className="relative">
-                      <img 
-                        src={formData.image_url} 
-                        alt="Preview" 
-                        className="w-full h-32 object-cover rounded-xl"
+                    <div className="relative w-full h-32">
+                      <Image
+                        src={formData.image_url}
+                        alt="Preview"
+                        fill
+                        className="object-cover rounded-xl"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage('main')}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -826,16 +828,17 @@ function CreateOrEditEventPageContent() {
                       />
                     </label>
                   ) : (
-                    <div className="relative">
-                      <img 
-                        src={formData.banner_url} 
-                        alt="Banner Preview" 
-                        className="w-full h-32 object-cover rounded-xl"
+                    <div className="relative w-full h-32">
+                      <Image
+                        src={formData.banner_url}
+                        alt="Banner Preview"
+                        fill
+                        className="object-cover rounded-xl"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage('banner')}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors z-10"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -875,13 +878,13 @@ function CreateOrEditEventPageContent() {
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-700">Выделить событие</span>
-                    <p className="text-xs text-gray-500">Показать с отметкой "Горячее"</p>
+                    <p className="text-xs text-gray-500">Показать с отметкой &ldquo;Горячее&rdquo;</p>
                   </div>
                 </label>
 
                 {/* Теги */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <label className="flex items-center gap-1 text-sm font-medium text-gray-700 mb-2">
                     <Tag className="h-4 w-4" />
                     Теги
                   </label>

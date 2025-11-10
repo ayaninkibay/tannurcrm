@@ -150,21 +150,23 @@ export default function CreateDealer() {
               {previewUrls.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {previewUrls.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
+                    <div key={index} className="relative group h-24">
+                      <Image
                         src={url}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg"
+                        fill
+                        unoptimized
+                        className="object-cover rounded-lg"
                       />
                       <button
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                         aria-label="Remove"
                       >
                         <X size={14} />
                       </button>
                       {index === 0 && (
-                        <span className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        <span className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded z-10">
                           {t('Главное')}
                         </span>
                       )}

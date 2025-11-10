@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { X, FileText, Loader2, Download, Calendar, CheckSquare } from 'lucide-react';
 import { ReportService, ReportFilters } from '@/lib/admin_orders/ReportService';
-import { generateWarehousePDF } from '@/lib/admin_orders/pdfGenerator';
+
 import { OrderStatus } from '@/lib/admin_orders/OrderService';
 
 interface ReportModalProps {
@@ -82,8 +82,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, t }) => {
 
       console.log('✅ Report data loaded:', result.data.summary);
 
-      // Генерируем PDF
-      await generateWarehousePDF(result.data, 'ru');
+
 
       // Закрываем модалку после успешной генерации
       setTimeout(() => {

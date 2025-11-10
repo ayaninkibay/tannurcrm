@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
@@ -143,10 +144,11 @@ export default function EventsPage() {
         {/* Изображение */}
         {event.image_url && (
           <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-100 to-gray-50">
-            <img 
-              src={event.image_url} 
+            <Image
+              src={event.image_url}
               alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
             {event.badge_icon && (
               <div 

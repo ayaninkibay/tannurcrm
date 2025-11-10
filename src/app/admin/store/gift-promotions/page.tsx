@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Plus, Edit2, Trash2, Gift, Calendar, DollarSign, Package, X, Search } from 'lucide-react';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import {
@@ -103,7 +104,7 @@ export default function GiftPromotionsPage() {
               Создание акций
             </h1>
             <p className="text-gray-600 mt-2">
-              Управление акциями "Подарок за покупку"
+              Управление акциями &quot;Подарок за покупку&quot;
             </p>
           </div>
           <button
@@ -248,11 +249,14 @@ export default function GiftPromotionsPage() {
                             className="flex items-center gap-2 bg-gray-50 rounded-lg p-2"
                           >
                             {gp.products.image_url && (
-                              <img
-                                src={gp.products.image_url}
-                                alt={gp.products.name}
-                                className="w-12 h-12 object-cover rounded"
-                              />
+                              <div className="relative w-12 h-12 flex-shrink-0">
+                                <Image
+                                  src={gp.products.image_url}
+                                  alt={gp.products.name}
+                                  fill
+                                  className="object-cover rounded"
+                                />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
@@ -274,7 +278,7 @@ export default function GiftPromotionsPage() {
                       Статус активности
                     </span>
                     <button
-                      onClick={() => handleToggleStatus(promo.id, promo.is_active)}
+                      onClick={() => handleToggleStatus(promo.id, promo.is_active ?? false)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                         promo.is_active ? 'bg-green-500' : 'bg-gray-300'
                       }`}
@@ -629,7 +633,9 @@ function PromotionModal({
                       <div key={sp.product_id} className="flex items-center justify-between bg-white rounded-lg p-3">
                         <div className="flex items-center gap-3">
                           {product.image_url && (
-                            <img src={product.image_url} alt={product.name} className="w-10 h-10 object-cover rounded" />
+                            <div className="relative w-10 h-10 flex-shrink-0">
+                              <Image src={product.image_url} alt={product.name} fill className="object-cover rounded" />
+                            </div>
                           )}
                           <span className="font-medium">{product.name}</span>
                         </div>
@@ -680,11 +686,14 @@ function PromotionModal({
                           className="w-5 h-5 text-[#DC7C67] rounded"
                         />
                         {product.image_url && (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-16 h-16 object-cover rounded"
-                          />
+                          <div className="relative w-16 h-16 flex-shrink-0">
+                            <Image
+                              src={product.image_url}
+                              alt={product.name}
+                              fill
+                              className="object-cover rounded"
+                            />
+                          </div>
                         )}
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{product.name}</h4>

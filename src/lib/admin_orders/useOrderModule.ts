@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { OrderService, OrderWithItems, ActionLog, OrderStatus } from './OrderService';
 
 export interface UseOrderModuleReturn {
@@ -53,8 +53,8 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     pageSize: 50,
     totalPages: 0
   });
-  
-  const orderService = new OrderService();
+
+  const orderService = useMemo(() => new OrderService(), []);
 
   const loadAllActiveOrders = useCallback(async () => {
     try {
@@ -73,7 +73,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   const loadCompletedOrders = useCallback(async (
     page: number = 1,
@@ -89,9 +89,9 @@ export const useOrderModule = (): UseOrderModuleReturn => {
         if (page === 1) {
           setCompletedOrders(result.data.orders);
         } else {
-          setCompletedOrders(prev => [...prev, ...result.data.orders]);
+          setCompletedOrders(prev => [...prev, ...(result.data?.orders || [])]);
         }
-        
+
         setCompletedPagination({
           total: result.data.total,
           page: result.data.page,
@@ -106,7 +106,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoadingCompleted(false);
     }
-  }, []);
+  }, [orderService]);
 
   const loadOrderById = useCallback(async (orderId: string) => {
     try {
@@ -125,7 +125,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   const loadActionLog = useCallback(async (orderId: string) => {
     try {
@@ -141,7 +141,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
     }
-  }, []);
+  }, [orderService]);
 
   const updateOrderStatus = useCallback(async (
     orderId: string,
@@ -186,7 +186,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, completedOrders.length, completedPagination.pageSize, loadAllActiveOrders, loadCompletedOrders, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, completedOrders.length, completedPagination.pageSize, loadAllActiveOrders, loadCompletedOrders, loadOrderById, loadActionLog]);
 
   const transferToWarehouse = useCallback(async (
     orderId: string,
@@ -223,7 +223,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadAllActiveOrders, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadAllActiveOrders, loadOrderById, loadActionLog]);
 
   const updateDepartmentNotes = useCallback(async (
     orderId: string,
@@ -240,7 +240,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       }
 
       const result = await orderService.updateDepartmentNotes(orderId, departmentNotes, user.id);
-      
+
       if (result.success) {
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
@@ -257,7 +257,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadOrderById, loadActionLog]);
 
   const updateNotes = useCallback(async (
     orderId: string,
@@ -274,7 +274,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       }
 
       const result = await orderService.updateOrderNotes(orderId, notes, user.id);
-      
+
       if (result.success) {
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
@@ -291,7 +291,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadOrderById, loadActionLog]);
 
   const updateDeliveryAddress = useCallback(async (
     orderId: string,
@@ -308,7 +308,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       }
 
       const result = await orderService.updateDeliveryAddress(orderId, address, user.id);
-      
+
       if (result.success) {
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
@@ -325,7 +325,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadOrderById, loadActionLog]);
 
   const updateDeliveryDate = useCallback(async (
     orderId: string,
@@ -342,7 +342,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       }
 
       const result = await orderService.updateDeliveryDate(orderId, date, user.id);
-      
+
       if (result.success) {
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
@@ -359,7 +359,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadOrderById, loadActionLog]);
 
   const updateDeliveryMethod = useCallback(async (
     orderId: string,
@@ -376,7 +376,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
       }
 
       const result = await orderService.updateDeliveryMethod(orderId, method, user.id);
-      
+
       if (result.success) {
         if (currentOrder?.id === orderId) {
           await loadOrderById(orderId);
@@ -393,7 +393,7 @@ export const useOrderModule = (): UseOrderModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentOrder, loadOrderById, loadActionLog]);
+  }, [orderService, currentOrder, loadOrderById, loadActionLog]);
 
   const refreshOrders = useCallback(async () => {
     await loadAllActiveOrders();

@@ -70,7 +70,7 @@ function AcademyContent() {
     setMounted(true);
     loadCourses();
     loadDocuments();
-  }, []);
+  }, [loadCourses, loadDocuments]);
 
   const handleDeleteCourse = async (courseId: string) => {
     if (confirm(t('Вы уверены, что хотите удалить этот курс?'))) {

@@ -1,3 +1,42 @@
 {
-    "deno.enable": true
+  // Отключаем Deno, так как у вас Next.js проект
+  "deno.enable": false,
+  
+  // ESLint настройки
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  
+  // TypeScript настройки
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.suggest.autoImports": true,
+  
+  // Форматирование
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  
+  // Error Lens настройки (опционально)
+  "errorLens.enabledDiagnosticLevels": [
+    "error",
+    "warning"
+  ],
+  "errorLens.fontSize": "12",
+  
+  // Дополнительные удобства
+  "files.autoSave": "onFocusChange",
+  "editor.tabSize": 2,
+  "editor.linkedEditing": true
 }

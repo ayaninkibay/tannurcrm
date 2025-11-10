@@ -22,6 +22,19 @@ export interface CartValidation {
   warnings: string[];
 }
 
+export interface DeliveryData {
+  delivery_method: DeliveryMethod;
+  delivery_cost: number;
+}
+
+export interface QuantityUpdateData {
+  new_quantity: number;
+}
+
+export interface DeletedItemsData {
+  deleted_count: number;
+}
+
 // Стоимость доставки (пока 0 для самовывоза)
 export const DELIVERY_COSTS: Record<DeliveryMethod, number> = {
   pickup: 0,
@@ -101,22 +114,25 @@ class CartService {
     // Преобразуем данные
     const items: CartItemView[] = (cartItemsData || [])
       .filter(item => item.products) // Фильтруем удаленные товары
-      .map(item => ({
-        id: item.id,
-        cart_id: item.cart_id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        is_gift: item.is_gift || false,
-        promotion_id: item.promotion_id || null,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        name: item.products.name || 'Товар',
-        category: item.products.category || '',
-        image: item.products.image_url || null,
-        price: item.products.price || 0,
-        price_dealer: item.products.price_dealer || 0,
-        stock: item.products.stock || 0
-      }));
+      .map(item => {
+        const product = Array.isArray(item.products) ? item.products[0] : item.products;
+        return {
+          id: item.id,
+          cart_id: item.cart_id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          is_gift: item.is_gift || false,
+          promotion_id: item.promotion_id || null,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          name: product?.name || 'Товар',
+          category: product?.category || '',
+          image: product?.image_url || null,
+          price: product?.price || 0,
+          price_dealer: product?.price_dealer || 0,
+          stock: product?.stock || 0
+        };
+      });
 
     return { cart: cartData, items };
   }
@@ -174,7 +190,7 @@ class CartService {
    * Обновить количество товара в корзине
    * Использует RPC функцию update_cart_item_quantity (защита от race condition)
    */
-  async updateItemQuantity(itemId: string, quantity: number): Promise<ServiceResult> {
+  async updateItemQuantity(itemId: string, quantity: number): Promise<ServiceResult<QuantityUpdateData>> {
     try {
       const { data, error } = await supabase.rpc('update_cart_item_quantity', {
         p_item_id: itemId,
@@ -273,7 +289,7 @@ class CartService {
    * Очистить выбранные товары из корзины
    * Использует RPC функцию clear_cart_items
    */
-  async clearSelectedItems(cartId: string, itemIds: string[]): Promise<ServiceResult> {
+  async clearSelectedItems(cartId: string, itemIds: string[]): Promise<ServiceResult<DeletedItemsData>> {
     try {
       if (itemIds.length === 0) {
         return {
@@ -313,7 +329,7 @@ class CartService {
    * Обновить способ доставки и стоимость
    * ВАЖНО: Пока только самовывоз ('pickup')
    */
-  async updateDeliveryMethod(cartId: string, method: DeliveryMethod): Promise<ServiceResult> {
+  async updateDeliveryMethod(cartId: string, method: DeliveryMethod): Promise<ServiceResult<DeliveryData>> {
     try {
       // Пока принудительно устанавливаем только pickup
       const finalMethod: DeliveryMethod = 'pickup';

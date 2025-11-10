@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -249,7 +249,7 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
   }, [period, customDateRange]);
 
   // Загрузка данных с RPC функцией
-  const fetchData = async (forceRefresh = false) => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
     if (!dateRange || !userId) return;
 
     setLoading(true);
@@ -260,12 +260,12 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
       // Проверяем кеш (если не принудительное обновление)
       if (!forceRefresh) {
         const cachedData = TurnoverCache.get(
-          userId, 
-          period, 
-          customDateRange.start, 
+          userId,
+          period,
+          customDateRange.start,
           customDateRange.end
         );
-        
+
         if (cachedData) {
           setChartData(cachedData);
           setIsFromCache(true);
@@ -276,10 +276,10 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
 
       // Импортируем Supabase клиент
       const { supabase } = await import('@/lib/supabase/client');
-      
+
       // Получаем текущего пользователя если не передан
       const targetUserId = userId || (await supabase.auth.getUser()).data.user?.id;
-      
+
       if (!targetUserId) {
         throw new Error('Пользователь не авторизован');
       }
@@ -300,27 +300,27 @@ export const TurnoverChart: React.FC<TurnoverChartProps> = ({
 
       // Сохраняем в кеш
       TurnoverCache.set(
-        targetUserId, 
-        period, 
-        data || [], 
-        customDateRange.start, 
+        targetUserId,
+        period,
+        data || [],
+        customDateRange.start,
         customDateRange.end
       );
 
       setChartData(data || []);
-      
+
     } catch (err) {
       console.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange, userId, period, customDateRange.start, customDateRange.end, viewType]);
 
   // Загрузка данных при изменении параметров
   useEffect(() => {
     fetchData();
-  }, [userId, period, dateRange]);
+  }, [fetchData]);
 
   // Подготовка данных для графика
   const graphData = useMemo(() => {

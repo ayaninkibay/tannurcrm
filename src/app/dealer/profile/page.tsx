@@ -403,9 +403,9 @@ export default function ProfilePage() {
   const [photoPreview, setPhotoPreview] = useState<string>('/icons/default-avatar.png');
   const [contractLanguage, setContractLanguage] = useState<'ru' | 'kz' | 'cn'>('ru');
 
-  const roleDisplay = getRoleDisplay(profile?.role, profile?.permissions);
+  const roleDisplay = getRoleDisplay(profile?.role ?? null, profile?.permissions ?? null);
   const RoleIcon = roleDisplay.icon;
-  const permissionsText = getPermissionsDisplay(profile?.permissions);
+  const permissionsText = getPermissionsDisplay(profile?.permissions ?? null);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -585,7 +585,7 @@ export default function ProfilePage() {
               <Users className="w-5 h-5 text-[#DC7C67]" />
               Пригласить в команду
             </h3>
-            <ReferalLink variant="orange" />
+            <ReferalLink/>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -593,7 +593,7 @@ export default function ProfilePage() {
               <Award className="w-5 h-5 text-[#DC7C67]" />
               Ваш спонсор
             </h3>
-            <SponsorCard variant="gray" />
+            <SponsorCard/>
           </div>
         </div>
 
@@ -778,11 +778,11 @@ export default function ProfilePage() {
                     <span>202___年___月___日</span>
                   </div>
                   <p className="text-justify leading-relaxed">
-                    "Tannur Trading Holding"有限责任合伙企业，以下简称"卖方"，由根据公司章程行事的董事Қағыбат М.代表，
+                    &ldquo;Tannur Trading Holding&rdquo;有限责任合伙企业，以下简称&ldquo;卖方&rdquo;，由根据公司章程行事的董事Қағыбат М.代表，
                     一方，和公民{' '}
                     <span className="font-semibold bg-yellow-100 px-1">{profile?.first_name || '___'} {profile?.last_name || '___'}</span>，
                     个人识别号码: <span className="font-semibold bg-yellow-100 px-1">{profile?.iin || '_______________________'}</span>，
-                    以下简称"经销商"，另一方，共同称为"双方"，就以下事项订立本合同：
+                    以下简称&ldquo;经销商&rdquo;，另一方，共同称为&ldquo;双方&rdquo;，就以下事项订立本合同：
                   </p>
 
                   <div className="font-semibold text-base mt-6">1. 合同标的和目的</div>
@@ -791,10 +791,10 @@ export default function ProfilePage() {
                   </p>
                   <p className="text-justify leading-relaxed">
                     1.2. 本合同的目的是确定经销商开展活动的原则、程序和条件，该活动旨在向第三方（消费者和中介）销售
-                    "Tannur Trading Holding"有限责任公司生产和供应的"Tannur cosmetics"商标产品（以下简称"商品"）。
+                    &ldquo;Tannur Trading Holding&rdquo;有限责任公司生产和供应的&ldquo;Tannur cosmetics&rdquo;商标产品（以下简称&ldquo;商品&rdquo;）。
                   </p>
                   <p className="text-justify leading-relaxed">
-                    1.3. 经销商在哈萨克斯坦共和国阿拉木图市境内（以下简称"区域"）获得卖方官方经销商地位，进行商品推广和销售。
+                    1.3. 经销商在哈萨克斯坦共和国阿拉木图市境内（以下简称&ldquo;区域&rdquo;）获得卖方官方经销商地位，进行商品推广和销售。
                   </p>
 
                   <div className="font-semibold text-base mt-6">2. 双方义务</div>

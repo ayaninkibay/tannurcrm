@@ -17,7 +17,7 @@ export interface SubscriptionPaymentReport {
     email: string | null;
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null;
   notes: string | null;
 }
 
@@ -124,18 +124,18 @@ async getSubscriptionPaymentsReport(userId: string): Promise<SubscriptionPayment
     const paymentsWithParent: SubscriptionPaymentReport[] = [];
     
     for (const payment of payments || []) {
-      let parentInfo = null;
-      
+      let parentInfo: { id: string; email: string | null; first_name: string | null; last_name: string | null } | null = null;
+
       if (payment.parent_id) {
         const { data: parent } = await supabase
           .from('users')
           .select('id, email, first_name, last_name')
           .eq('id', payment.parent_id)
           .single();
-        
+
         parentInfo = parent;
       }
-      
+
       paymentsWithParent.push({
         ...payment,
         parent_info: parentInfo

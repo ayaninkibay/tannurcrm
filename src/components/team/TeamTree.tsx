@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { ZoomIn, ZoomOut, Grid3x3, List, Search, Users, User, Phone, Briefcase, CheckCircle } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
 import type { TeamMember } from '@/lib/team/TeamModule';
@@ -94,12 +95,13 @@ const usePanAndZoom = () => {
   const [offset, setOffset] = useState({ x: 0, y: -100 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
+  const lastTouchDistance = useRef<number | null>(null);
 
   const zoomIn = useCallback(() => setZoom(prev => Math.min(2, prev + 0.2)), []);
   const zoomOut = useCallback(() => setZoom(prev => Math.max(0.3, prev - 0.2)), []);
-  const resetPanZoom = useCallback(() => { 
-    setZoom(1); 
-    setOffset({ x: 0, y: -100 }); 
+  const resetPanZoom = useCallback(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: -100 });
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -119,28 +121,45 @@ const usePanAndZoom = () => {
 
   const handleMouseUp = useCallback(() => setIsDragging(false), []);
 
+  const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
-      dragStart.current = { 
-        x: e.touches[0].clientX - offset.x, 
-        y: e.touches[0].clientY - offset.y 
+      dragStart.current = {
+        x: e.touches[0].clientX - offset.x,
+        y: e.touches[0].clientY - offset.y
       };
+      lastTouchDistance.current = null;
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      lastTouchDistance.current = getDistance(e.touches[0], e.touches[1]);
     }
   }, [offset]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isDragging && e.touches.length === 1) {
+    if (e.touches.length === 1 && isDragging) {
       e.preventDefault();
       setOffset({
         x: e.touches[0].clientX - dragStart.current.x,
         y: e.touches[0].clientY - dragStart.current.y
       });
+    } else if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      e.preventDefault();
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const delta = (currentDistance - lastTouchDistance.current) * 0.01;
+      setZoom(prev => Math.max(0.3, Math.min(2, prev + delta)));
+      lastTouchDistance.current = currentDistance;
     }
   }, [isDragging]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
+    lastTouchDistance.current = null;
   }, []);
 
   useEffect(() => {
@@ -229,9 +248,11 @@ const MemberCard: React.FC<MemberCardProps> = React.memo(({
         <div className="px-2 pb-2 text-center">
           <div className="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
             {member.avatar ? (
-              <img 
-                src={member.avatar} 
+              <Image
+                src={member.avatar}
                 alt={member.name || ''}
+                width={48}
+                height={48}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -500,7 +521,7 @@ const TableView: React.FC<TableViewProps> = React.memo(({
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                   {member.avatar ? (
-                    <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                    <Image src={member.avatar} alt={member.name} width={48} height={48} className="w-full h-full object-cover" />
                   ) : (
                     <span className="font-bold text-gray-600 text-sm">
                       {member.name ? member.name.charAt(0).toUpperCase() : '?'}
@@ -619,7 +640,7 @@ const TableView: React.FC<TableViewProps> = React.memo(({
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                         {member.avatar ? (
-                          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                          <Image src={member.avatar} alt={member.name} width={40} height={40} className="w-full h-full object-cover" />
                         ) : (
                           <span className="font-bold text-gray-600 text-sm">
                             {member.name ? member.name.charAt(0).toUpperCase() : '?'}

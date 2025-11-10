@@ -141,7 +141,7 @@ class AcademyService {
 
       // Увеличиваем счетчик просмотров
       if (data) {
-        await supabase.rpc('increment_course_views' as any, { course_id: data.id });
+        await supabase.rpc('increment_course_views', { course_id: data.id });
       }
 
       return data as Course;
@@ -197,7 +197,7 @@ class AcademyService {
 
       const { data, error } = await supabase
         .from('courses')
-        .insert(insertData as DbCourseInsert)
+        .insert(insertData)
         .select()
         .single();
 
@@ -470,7 +470,7 @@ class AcademyService {
   async getCourseProgress(userId: string, courseId: string): Promise<CourseProgress> {
     try {
       const { data, error } = await supabase
-        .rpc('get_course_progress' as any, {
+        .rpc('get_course_progress', {
           p_user_id: userId,
           p_course_id: courseId
         });
@@ -533,7 +533,8 @@ class AcademyService {
         userId,
         courseId: lesson.course_id,
         lessonId,
-        isCompleted: true
+        isCompleted: true,
+        watchTime: 0
       });
     } catch (error) {
       console.error('Error marking lesson complete:', error);
@@ -732,7 +733,8 @@ class AcademyService {
 
       if (error) throw error;
 
-      const categories = [...new Set((data as any[] || []).map(item => item.category))];
+      const categorySet = new Set((data as any[] || []).map(item => item.category));
+      const categories = Array.from(categorySet);
       return categories.sort();
     } catch (error) {
       console.error('Error fetching categories:', error);

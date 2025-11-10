@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   ShoppingCart, 
   Minus, 
@@ -52,6 +53,7 @@ export default function CartPage() {
       cart.loadUserCart(currentUser.id);
       loadActivePromotions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   // Отслеживаем изменения в корзине для анимации
@@ -181,12 +183,12 @@ export default function CartPage() {
   };
 
   // ОТКЛОНЕНИЕ ОПЛАТЫ - НЕ создаем заказ, НЕ очищаем корзину, просто возвращаемся
-  const handlePaymentCancelled = async (declineNotes: string) => {
-    console.log('❌ Payment cancelled:', declineNotes);
-    
+  const handlePaymentCancelled = async () => {
+    console.log('❌ Payment cancelled');
+
     // Просто возвращаемся в корзину
     setOrderStage('cart');
-    
+
     toast('Вы можете попробовать оплатить позже', {
       icon: '💭',
     });
@@ -475,14 +477,12 @@ export default function CartPage() {
                         )}
 
                         {/* IMAGE */}
-                        <div className="relative">
-                          <img
+                        <div className="relative w-28 h-28">
+                          <Image
                             src={item.image || '/placeholder.png'}
                             alt={item.name}
-                            className={`w-28 h-28 object-cover rounded-xl ${isGift ? 'ring-2 ring-purple-300' : ''}`}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder.png';
-                            }}
+                            fill
+                            className={`object-cover rounded-xl ${isGift ? 'ring-2 ring-purple-300' : ''}`}
                           />
                           {isOutOfStock && !isGift && (
                             <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center">

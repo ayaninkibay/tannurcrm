@@ -3,11 +3,12 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
 import { useAcademyModule } from '@/lib/academy/AcademyModule';
-import { 
-  Upload, X, Save, FileText, Video, Image, Paperclip, Play, Clock,
+import {
+  Upload, X, Save, FileText, Video, Image as ImageIcon, Paperclip, Play, Clock,
   BookOpen, Eye, Link as LinkIcon, File, Download, AlertCircle,
   CheckCircle, Settings, Globe
 } from 'lucide-react';
@@ -58,13 +59,13 @@ function CreateLessonForm() {
     if (courseId) {
       loadCourse(courseId);
     }
-  }, [courseId]);
+  }, [courseId, loadCourse]);
 
   useEffect(() => {
     if (isEdit && lessonId) {
       loadLesson(lessonId);
     }
-  }, [lessonId]);
+  }, [lessonId, isEdit, loadLesson]);
 
   useEffect(() => {
     if (isEdit && currentLesson) {
@@ -83,7 +84,7 @@ function CreateLessonForm() {
         quizData: currentLesson.quiz_data || null
       });
     }
-  }, [currentLesson]);
+  }, [currentLesson, isEdit]);
 
   // Парсинг вложений для совместимости
   const parseAttachments = (attachments: string[]) => {
@@ -248,9 +249,9 @@ function CreateLessonForm() {
   // Получение иконки по типу файла
   const getFileIcon = (attachment: { name: string; type: string }) => {
     const ext = attachment.name.split('.').pop()?.toLowerCase();
-    
+
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
-      return <Image className="w-4 h-4 text-blue-500" />;
+      return <ImageIcon className="w-4 h-4 text-blue-500" />;
     }
     if (['pdf'].includes(ext || '')) {
       return <FileText className="w-4 h-4 text-red-500" />;
@@ -407,11 +408,14 @@ function CreateLessonForm() {
                         </span>
                       </div>
                       {youtubeId && (
-                        <img 
-                          src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`}
-                          alt="Video preview"
-                          className="w-32 h-24 object-cover rounded-lg"
-                        />
+                        <div className="relative w-32 h-24">
+                          <NextImage
+                            src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`}
+                            alt="Video preview"
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                        </div>
                       )}
                     </div>
                   )}
@@ -540,11 +544,12 @@ function CreateLessonForm() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">{t('Обложка урока')}</label>
                 {formData.thumbnailUrl ? (
-                  <div className="relative group">
-                    <img
+                  <div className="relative group w-full h-40">
+                    <NextImage
                       src={formData.thumbnailUrl}
                       alt="Thumbnail"
-                      className="w-full h-40 object-cover rounded-xl"
+                      fill
+                      className="object-cover rounded-xl"
                     />
                     <button
                       type="button"

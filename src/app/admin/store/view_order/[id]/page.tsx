@@ -99,7 +99,7 @@ export default function ViewOrderPage() {
     return () => {
       clearCurrentOrder();
     };
-  }, [orderId]);
+  }, [orderId, loadOrderById, loadActionLog, clearCurrentOrder]);
 
   useEffect(() => {
     if (currentOrder) {

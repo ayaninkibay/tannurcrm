@@ -480,7 +480,7 @@ export default function CreateDealer() {
         <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
           <div className="bg-white rounded-2xl p-2">
             <div className="mt-3">
-              <SponsorCard variant="gray"/>
+              <SponsorCard/>
             </div>
           </div>
 

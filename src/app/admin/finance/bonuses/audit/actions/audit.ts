@@ -2,25 +2,29 @@
 
 import { getSupabaseServer } from '@/lib/supabase/server'
 
+interface AuditResult {
+  detailed_log?: any[];
+}
+
 export async function runAuditCheck(purchaseId?: string) {
   try {
     const supabase = await getSupabaseServer()
-    
+
     // Сначала запускаем функцию аудита с детальным логированием
-    const { data: auditResult, error: auditError } = await supabase.rpc('audit_team_purchases')
-    
+    const { data: auditResult, error: auditError } = await supabase.rpc('audit_team_purchases') as { data: AuditResult | null; error: any }
+
     if (auditError) {
       console.error('Audit error:', auditError)
     }
-    
+
     // Получаем результаты проверки
     const { data, error } = await supabase.rpc('check_team_purchase_discrepancies', {
       p_team_purchase_id: purchaseId || null
-    })
-    
-    return { 
-      data, 
-      error, 
+    } as any)
+
+    return {
+      data,
+      error,
       auditResult,
       // Извлекаем детальный лог из результата аудита
       detailedLog: auditResult?.detailed_log || []
@@ -38,13 +42,13 @@ export async function getAuditReport(filters: {
 }) {
   try {
     const supabase = await getSupabaseServer()
-    
+
     const { data, error } = await supabase.rpc('get_audit_report', {
       p_severity: filters.severity || null,
       p_resolved: filters.resolved ?? false,
       p_days_back: filters.daysBack || 7
-    })
-    
+    } as any)
+
     return { data, error }
   } catch (error) {
     console.error('Get audit report error:', error)
@@ -55,16 +59,16 @@ export async function getAuditReport(filters: {
 export async function resolveIssue(issueId: string, userId: string) {
   try {
     const supabase = await getSupabaseServer()
-    
-    const { error } = await supabase
-      .from('team_purchase_audit_logs')
+
+    const { error } = await (supabase
+      .from('team_purchase_audit_logs') as any)
       .update({
         resolved: true,
         resolved_at: new Date().toISOString(),
         resolved_by: userId
       })
       .eq('id', issueId)
-    
+
     return { success: !error, error }
   } catch (error) {
     console.error('Resolve issue error:', error)
@@ -72,24 +76,36 @@ export async function resolveIssue(issueId: string, userId: string) {
   }
 }
 
+interface AuditData {
+  severity?: string;
+  resolved?: boolean;
+  team_purchase_id?: string;
+}
+
+interface PurchaseStats {
+  id: string;
+  status?: string;
+  created_at: string;
+}
+
 export async function getAuditStats() {
   try {
     const supabase = await getSupabaseServer()
-    
+
     // 1. Запускаем аудит для получения свежих данных
-    const { data: auditResult } = await supabase.rpc('audit_team_purchases')
-    
+    const { data: auditResult } = await supabase.rpc('audit_team_purchases') as { data: AuditResult | null; error: any }
+
     // 2. Получаем данные аудита за последние 7 дней
-    const { data: auditData, error: auditError } = await supabase
-      .from('team_purchase_audit_logs')
+    const { data: auditData, error: auditError } = await (supabase
+      .from('team_purchase_audit_logs') as any)
       .select('severity, resolved, team_purchase_id')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-    
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) as { data: AuditData[] | null; error: any }
+
     // 3. Получаем общую статистику по командным закупкам
-    const { data: purchaseStats, error: purchaseError } = await supabase
-      .from('team_purchases')
-      .select('id, status, created_at')
-    
+    const { data: purchaseStats, error: purchaseError } = await (supabase
+      .from('team_purchases') as any)
+      .select('id, status, created_at') as { data: PurchaseStats[] | null; error: any }
+
     if (auditError || purchaseError) {
       console.error('Get audit stats error:', auditError || purchaseError)
       return {
@@ -104,26 +120,26 @@ export async function getAuditStats() {
         lastAuditLog: auditResult?.detailed_log || []
       }
     }
-    
+
     // Обрабатываем статистику аудита
     const critical = auditData?.filter(d => d.severity === 'critical' && !d.resolved).length || 0
     const warning = auditData?.filter(d => d.severity === 'warning' && !d.resolved).length || 0
     const info = auditData?.filter(d => d.severity === 'info' && !d.resolved).length || 0
     const resolved = auditData?.filter(d => d.resolved).length || 0
     const total = auditData?.length || 0
-    
+
     // Обрабатываем статистику закупок
     const totalPurchases = purchaseStats?.length || 0
-    const activePurchases = purchaseStats?.filter(p => 
+    const activePurchases = purchaseStats?.filter(p =>
       ['forming', 'active', 'purchasing', 'confirming'].includes(p.status || '')
     ).length || 0
-    
+
     // Уникальные закупки с проблемами
     const uniquePurchasesWithIssues = new Set(
       auditData?.filter(d => !d.resolved && d.team_purchase_id)
         .map(p => p.team_purchase_id)
     ).size
-    
+
     return {
       critical,
       warning,
@@ -135,7 +151,7 @@ export async function getAuditStats() {
       purchasesWithIssues: uniquePurchasesWithIssues,
       lastAuditLog: auditResult?.detailed_log || []
     }
-    
+
   } catch (error) {
     console.error('Get audit stats error:', error)
     return {

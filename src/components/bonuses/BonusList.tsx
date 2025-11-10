@@ -142,21 +142,10 @@ export default function BonusList({
   // ЗАГРУЗКА ДАННЫХ
   // ===============================
 
-  useEffect(() => {
-    // Проверяем, что профиль загружен и есть id
-    if (profile?.id && !userLoading) {
-      loadBonusData()
-    } else if (!userLoading && !profile) {
-      // Если загрузка завершена, но профиля нет
-      setLoading(false)
-      setHasError(true)
-    }
-  }, [profile?.id, userLoading])
-
   /**
    * ✅ НОВАЯ ВЕРСИЯ - Один оптимизированный запрос
    */
-  const loadBonusData = async () => {
+  const loadBonusData = useCallback(async () => {
     if (!profile?.id) {
       setLoading(false)
       return
@@ -169,14 +158,25 @@ export default function BonusList({
       // ⭐ ОДИН ЗАПРОС ВМЕСТО ПЯТИ
       const data = await BonusService.getUserDashboardData(profile.id)
       setDashboardData(data)
-      
+
     } catch (error) {
       console.error('Error loading bonus data:', error)
       setHasError(true)
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile?.id])
+
+  useEffect(() => {
+    // Проверяем, что профиль загружен и есть id
+    if (profile?.id && !userLoading) {
+      loadBonusData()
+    } else if (!userLoading && !profile) {
+      // Если загрузка завершена, но профиля нет
+      setLoading(false)
+      setHasError(true)
+    }
+  }, [profile, userLoading, loadBonusData])
 
   // ===============================
   // ВЫЧИСЛЕНИЯ (МЕМОИЗИРОВАННЫЕ)

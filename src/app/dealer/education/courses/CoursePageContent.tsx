@@ -49,7 +49,7 @@ export default function CoursePage() {
   useEffect(() => {
     if (courseId) {
       setLoadingStates(prev => ({ ...prev, course: true, lessons: true }));
-      
+
       Promise.all([
         loadCourse(courseId),
         loadLessons(courseId)
@@ -59,13 +59,13 @@ export default function CoursePage() {
         setLoadingStates(prev => ({ ...prev, course: false, lessons: false }));
       });
     }
-  }, [courseId]);
+  }, [courseId, loadCourse, loadLessons]);
 
   useEffect(() => {
     if (lessonId) {
       setLoadingStates(prev => ({ ...prev, currentLesson: true }));
       setVideoError(false);
-      
+
       loadLesson(lessonId).then(() => {
         setLoadingStates(prev => ({ ...prev, currentLesson: false }));
       }).catch(() => {
@@ -74,7 +74,7 @@ export default function CoursePage() {
     } else if (lessons.length > 0 && !currentLesson && !loadingStates.lessons) {
       router.push(`?id=${courseId}&lesson=${lessons[0].id}`);
     }
-  }, [lessonId, lessons, loadingStates.lessons]);
+  }, [lessonId, lessons, loadingStates.lessons, loadLesson, currentLesson, router, courseId]);
 
   const openLesson = (selectedLessonId: string) => {
     router.push(`?id=${courseId}&lesson=${selectedLessonId}`);
@@ -219,6 +219,11 @@ export default function CoursePage() {
         </div>
       </div>
     );
+  }
+
+  // Type guard to ensure currentCourse is not null
+  if (!currentCourse) {
+    return null;
   }
 
   const currentIndex = getCurrentLessonIndex();

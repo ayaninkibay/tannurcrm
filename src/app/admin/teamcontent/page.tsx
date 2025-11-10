@@ -19,10 +19,10 @@ const Pagination = ({
   totalPages: number; 
   onPageChange: (page: number) => void;
 }) => {
-  const getPageNumbers = () => {
-    const pages = [];
+  const getPageNumbers = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
     const showPages = 5;
-    
+
     if (totalPages <= showPages) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -46,7 +46,7 @@ const Pagination = ({
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
 
@@ -257,7 +257,7 @@ export default function Team() {
     }, 500);
 
     return () => clearTimeout(delayDebounce);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   const handleMemberClick = (member: TeamMemberData) => {
     // Переход на страницу редактирования пользователя

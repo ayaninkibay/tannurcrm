@@ -32,12 +32,12 @@ export default function DashboardPage() {
         
         {/* Реферальная ссылка */}
         <div className="flex-1 w-full">
-          <ReferalLink variant="orange" />
+          <ReferalLink />
         </div>
-        
+
         {/* Спонсор */}
         <div className="flex-1 w-full">
-          <SponsorCard variant="minimal" />
+          <SponsorCard />
         </div>
       </div>
 
@@ -62,7 +62,6 @@ export default function DashboardPage() {
         <div className="h-full">
         <TurnoverChart
           userId={user?.id}
-          includeTeam={false} // Без команды
           title="Мой товарооборот"
           subtitle="Личные продажи"
         />

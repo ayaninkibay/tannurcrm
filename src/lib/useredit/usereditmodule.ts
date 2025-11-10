@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   UserEditService,
   UserEditData,
@@ -47,7 +47,30 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const service = new UserEditService();
+  const service = useMemo(() => new UserEditService(), []);
+
+  /**
+   * Загрузить информацию о спонсоре
+   */
+  const loadParentInfo = useCallback(async (parentId: string | null) => {
+    if (!parentId) {
+      setParentInfo(null);
+      return;
+    }
+
+    try {
+      const result = await service.getParentInfo(parentId);
+
+      if (result.success) {
+        setParentInfo(result.data || null);
+      } else {
+        setParentInfo(null);
+      }
+    } catch (err) {
+      console.error('Error loading parent info:', err);
+      setParentInfo(null);
+    }
+  }, [service]);
 
   /**
    * Загрузить данные пользователя
@@ -63,7 +86,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
 
       if (result.success && result.data) {
         setUser(result.data);
-        
+
         // Автоматически загружаем информацию о спонсоре
         if (result.data.parent_id) {
           await loadParentInfo(result.data.parent_id);
@@ -77,7 +100,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, service, loadParentInfo]);
 
   /**
    * Обновить данные пользователя
@@ -95,12 +118,12 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
       if (result.success && result.data) {
         setUser(result.data);
         setSuccessMessage('Данные успешно обновлены!');
-        
+
         // Если изменился parent_id, обновляем информацию о спонсоре
         if (payload.parent_id !== undefined) {
           await loadParentInfo(payload.parent_id);
         }
-        
+
         return true;
       } else {
         setError(result.error || 'Ошибка обновления данных');
@@ -113,7 +136,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
     } finally {
       setSaving(false);
     }
-  }, [userId]);
+  }, [userId, service, loadParentInfo]);
 
   /**
    * Загрузить баланс пользователя
@@ -134,7 +157,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
       console.error('Error loading balance:', err);
       setBalance(null);
     }
-  }, [userId]);
+  }, [userId, service]);
 
   /**
    * Загрузить статистику пользователя
@@ -155,30 +178,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
       console.error('Error loading stats:', err);
       setStats(null);
     }
-  }, [userId]);
-
-  /**
-   * Загрузить информацию о спонсоре
-   */
-  const loadParentInfo = useCallback(async (parentId: string | null) => {
-    if (!parentId) {
-      setParentInfo(null);
-      return;
-    }
-
-    try {
-      const result = await service.getParentInfo(parentId);
-
-      if (result.success) {
-        setParentInfo(result.data);
-      } else {
-        setParentInfo(null);
-      }
-    } catch (err) {
-      console.error('Error loading parent info:', err);
-      setParentInfo(null);
-    }
-  }, []);
+  }, [userId, service]);
 
   /**
    * Поиск пользователя для назначения спонсором
@@ -191,7 +191,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
       console.error('Error searching parent:', err);
       return [];
     }
-  }, []);
+  }, [service]);
 
   /**
    * Обновить все данные
@@ -225,7 +225,7 @@ export const useUserEdit = (userId: string): UseUserEditReturn => {
       loadBalance();
       loadStats();
     }
-  }, [userId]);
+  }, [userId, loadUser, loadBalance, loadStats]);
 
   // Автоматическое скрытие сообщения об успехе через 3 секунды
   useEffect(() => {

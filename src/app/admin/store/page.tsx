@@ -95,7 +95,7 @@ const OrdersManagementPage = () => {
   
   const initialLoadStarted = useRef(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const canAccessSettings = hasPermission(profile?.role, profile?.permissions, 'all');
 
@@ -154,7 +154,7 @@ const OrdersManagementPage = () => {
         setInitialLoadDone(true);
       });
     }
-  }, []);
+  }, [loadAllActiveOrders]);
 
   useEffect(() => {
     if (activeTab === 'completed' && !completedOrdersLoaded) {
@@ -412,7 +412,7 @@ const OrdersManagementPage = () => {
     });
 
     return result;
-  }, [activeOrders, completedOrders, activeTab, debouncedSearch, sortConfig, getTabOrders]);
+  }, [activeTab, debouncedSearch, sortConfig, getTabOrders]);
 
   const MobileOrderCard = ({ order }: { order: any }) => {
     const config = getStatusConfig(order.order_status);

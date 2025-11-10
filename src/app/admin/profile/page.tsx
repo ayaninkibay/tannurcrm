@@ -403,9 +403,9 @@ export default function ProfilePage() {
   
   const overallLoading = userContextLoading || userModuleLoading;
 
-  const roleDisplay = getRoleDisplay(profile?.role, profile?.permissions);
+  const roleDisplay = getRoleDisplay(profile?.role ?? null, profile?.permissions ?? null);
   const RoleIcon = roleDisplay.icon;
-  const permissionsText = getPermissionsDisplay(profile?.permissions);
+  const permissionsText = getPermissionsDisplay(profile?.permissions ?? null);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -592,7 +592,7 @@ export default function ProfilePage() {
               <Users className="w-5 h-5 text-[#DC7C67]" />
               Пригласить в команду
             </h3>
-            <ReferalLink variant="orange" />
+            <ReferalLink />
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -600,7 +600,7 @@ export default function ProfilePage() {
               <Award className="w-5 h-5 text-[#DC7C67]" />
               Ваш спонсор
             </h3>
-            <SponsorCard variant="gray" />
+            <SponsorCard />
           </div>
         </div>
 

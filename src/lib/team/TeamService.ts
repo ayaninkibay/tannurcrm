@@ -1,6 +1,6 @@
 // services/team.service.ts
 import { supabase } from '@/lib/supabase/client';
-import type { TeamStatsData } from '@/types/team.types';  // ⭐ ИМПОРТИРУЕМ НОВЫЙ ТИП
+import type { TeamStatsData } from '../../types/team.types';  // ⭐ ИМПОРТИРУЕМ НОВЫЙ ТИП
 
 export interface TeamMember {
   id: string;

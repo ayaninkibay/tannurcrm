@@ -4,6 +4,17 @@ import { NextResponse } from 'next/server'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+interface ReferralUserData {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  role: string;
+  team_size: number | null;
+  referral_code: string;
+  is_active: boolean;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -22,7 +33,7 @@ export async function GET(request: Request) {
     // Вызываем RPC функцию для получения данных владельца
     const { data, error } = await supabase
       .rpc('get_user_by_referral_code', { p_referral_code: code })
-      .single()
+      .single() as { data: ReferralUserData | null; error: any }
 
     if (error) {
       console.error('RPC error:', error)

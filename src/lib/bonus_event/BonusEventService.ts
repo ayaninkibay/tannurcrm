@@ -55,6 +55,22 @@ export interface AchievedTarget {
   achievement_date: string | null;
 }
 
+// Тип данных, возвращаемых из RPC функции get_user_bonus_turnover
+interface UserTurnoverData {
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  personal_turnover: number;
+  team_turnover: number;
+  total_turnover: number;
+  personal_orders: number;
+  team_orders: number;
+  total_orders: number;
+  last_order_date: string | null;
+  team_members_count: number;
+}
+
 export interface LeaderboardEntry extends UserProgress {
   rank_position: number;
   role: string;
@@ -238,9 +254,9 @@ export class BonusEventService {
           p_end_date: endDate,
           p_include_team: includeTeam
         })
-        .single();
+        .single() as { data: UserTurnoverData | null; error: any };
 
-      if (turnoverError) {
+      if (turnoverError || !turnoverData) {
         console.error('Error getting user turnover:', turnoverError);
         return null;
       }

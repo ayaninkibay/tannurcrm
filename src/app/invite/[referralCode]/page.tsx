@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { referralService, ReferrerInfo } from '@/lib/referral/referralService'
 import { Loader2, UserCheck, CheckCircle2, AlertCircle, Sparkles, Award, Users, TrendingUp, ArrowRight, Eye, EyeOff, LogIn } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useUser } from '@/context/UserContext'
 
 const REGIONS = [
@@ -17,7 +18,7 @@ const REGIONS = [
 export default function ReferralRegistrationPage() {
   const params = useParams()
   const router = useRouter()
-  const referralCode = params.referralCode as string
+  const referralCode = params?.referralCode as string
   const year = new Date().getFullYear()
   const { profile } = useUser()
 
@@ -301,11 +302,11 @@ export default function ReferralRegistrationPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-6 md:mb-8"
         >
-          <a href="/" className="inline-block hover:opacity-80 transition-opacity">
+          <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
             <div className="flex items-center justify-center gap-2 md:gap-3 mb-2 md:mb-4">
               <Image src="/icons/company/tannur_black.svg" alt="Tannur" width={40} height={40} className="w-20 h-20 md:w-25 md:h-25" />
             </div>
-          </a>
+          </Link>
           <p className="text-gray-600 text-xs md:text-base">Регистрация в Tannur Business Academy</p>
         </motion.div>
 
@@ -477,7 +478,7 @@ export default function ReferralRegistrationPage() {
                     </a>
 
                     <p className="text-xs md:text-sm text-gray-600 text-center">
-                      После оплаты вернитесь сюда и нажмите "Я оплатил"
+                      После оплаты вернитесь сюда и нажмите &quot;Я оплатил&quot;
                     </p>
                   </div>
 
@@ -515,7 +516,7 @@ export default function ReferralRegistrationPage() {
                       </div>
                       <div className="text-sm md:text-base text-blue-900">
                         <p className="font-bold mb-2">После оплаты:</p>
-                        <p className="text-blue-700">Вернитесь сюда и нажмите кнопку "Я оплатил" ниже</p>
+                        <p className="text-blue-700">Вернитесь сюда и нажмите кнопку &quot;Я оплатил&quot; ниже</p>
                       </div>
                     </div>
                   </div>

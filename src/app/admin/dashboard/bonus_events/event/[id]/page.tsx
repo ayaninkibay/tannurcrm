@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslate } from '@/hooks/useTranslate';
 import { bonusEventService, BonusEvent, LeaderboardEntry } from '@/lib/bonus_event/BonusEventService';
@@ -59,34 +59,7 @@ export default function EventDetailPage() {
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  useEffect(() => {
-    if (eventId) {
-      loadEventData();
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    if (event) {
-      loadLeaderboard(event);
-    }
-  }, [includeTeam]);
-
-  const loadEventData = async () => {
-    setLoading(true);
-    try {
-      const eventData = await bonusEventService.getBonusEventById(eventId);
-      setEvent(eventData);
-      if (eventData) {
-        loadLeaderboard(eventData);
-      }
-    } catch (error) {
-      console.error('Error loading event:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadLeaderboard = async (eventData: BonusEvent) => {
+  const loadLeaderboard = useCallback(async (eventData: BonusEvent) => {
     setLoadingLeaderboard(true);
     try {
       // Загружаем ВСЕ данные сразу (limit = 1000)
@@ -124,7 +97,34 @@ export default function EventDetailPage() {
     } finally {
       setLoadingLeaderboard(false);
     }
-  };
+  }, [includeTeam]);
+
+  const loadEventData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const eventData = await bonusEventService.getBonusEventById(eventId);
+      setEvent(eventData);
+      if (eventData) {
+        loadLeaderboard(eventData);
+      }
+    } catch (error) {
+      console.error('Error loading event:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId, loadLeaderboard]);
+
+  useEffect(() => {
+    if (eventId) {
+      loadEventData();
+    }
+  }, [eventId, loadEventData]);
+
+  useEffect(() => {
+    if (event) {
+      loadLeaderboard(event);
+    }
+  }, [event, loadLeaderboard]);
 
   const handleIncludeTeamToggle = () => {
     setIncludeTeam(!includeTeam);

@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ChevronLeft, ChevronRight, Sparkles, Play,
@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
 import { useCartModule } from '@/lib/cart/CartModule';
 import { useTranslate } from '@/hooks/useTranslate';
+import Image from 'next/image';
 
 import { Database } from '@/types/supabase';
 type ProductRow = Database['public']['Tables']['products']['Row'];
@@ -69,15 +70,52 @@ export default function ProductInfoBlock({ product }: ProductInfoBlockProps) {
   // ==========================================
   // ЗАГРУЗКА ДАННЫХ
   // ==========================================
-  
+
+  const loadProductStock = useCallback(async () => {
+    if (!product?.id) return;
+
+    setLoadingStock(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('stock, article')
+        .eq('id', product.id)
+        .single();
+
+      if (error) throw error;
+
+      console.log('📦 Stock loaded with article:', {
+        stock: data?.stock,
+        article: data?.article
+      });
+
+      setProductStock(data?.stock || 0);
+    } catch (error) {
+      console.error('❌ Error loading stock:', error);
+      setProductStock(0);
+    } finally {
+      setLoadingStock(false);
+    }
+  }, [product?.id]);
+
   useEffect(() => {
-    if (currentUser) {
-      loadCartData();
-    }
-    if (product) {
-      loadProductStock();
-    }
-  }, [currentUser, product]);
+    if (!currentUser?.id) return;
+
+    const loadCartData = async () => {
+      try {
+        await cart.loadUserCart(currentUser.id);
+      } catch (error) {
+        console.error('❌ Error loading cart:', error);
+      }
+    };
+
+    loadCartData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    loadProductStock();
+  }, [loadProductStock]);
 
  // Проверяем наличие товара в корзине
 useEffect(() => {
@@ -85,11 +123,11 @@ useEffect(() => {
     const cartItem = cart.cartItems.find(item => item.product_id === product.id);
     setIsInCart(!!cartItem);
     setCartItemQuantity(cartItem?.quantity || 0);
-    
+
     // Считаем общее количество товаров (ВКЛЮЧАЯ подарки - это ОК)
     const total = cart.cartItems.reduce((sum, item) => sum + item.quantity, 0);
     setTotalCartItems(total);
-    
+
     // ✅ Считаем общую сумму ТОЛЬКО обычных товаров (БЕЗ ПОДАРКОВ)
     const totalAmount = cart.cartItems
       .filter(item => !item.is_gift) // ✅ ИСКЛЮЧАЕМ ПОДАРКИ
@@ -100,42 +138,6 @@ useEffect(() => {
     setTotalCartAmount(totalAmount);
   }
 }, [cart.cartItems, product]);
-
-  const loadCartData = async () => {
-    if (!currentUser) return;
-    try {
-      await cart.loadUserCart(currentUser.id);
-    } catch (error) {
-      console.error('❌ Error loading cart:', error);
-    }
-  };
-
-  const loadProductStock = async () => {
-    if (!product) return;
-    
-    setLoadingStock(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('stock, article')
-        .eq('id', product.id)
-        .single();
-
-      if (error) throw error;
-      
-      console.log('📦 Stock loaded with article:', {
-        stock: data?.stock,
-        article: data?.article
-      });
-      
-      setProductStock(data?.stock || 0);
-    } catch (error) {
-      console.error('❌ Error loading stock:', error);
-      setProductStock(0);
-    } finally {
-      setLoadingStock(false);
-    }
-  };
 
   // ==========================================
   // ДОБАВИТЬ В КОРЗИНУ
@@ -315,10 +317,12 @@ useEffect(() => {
                       style={{ transform: `translateX(-${activeImage * 100}%)` }}
                     >
                       {productImages.map((src, index) => (
-                        <img
+                        <Image
                           key={index}
                           src={src}
                           alt={`${product.name}-${index}`}
+                          width={600}
+                          height={600}
                           className="w-full h-full object-cover flex-shrink-0"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg';
@@ -389,9 +393,11 @@ useEffect(() => {
                           activeImage === index ? 'border-[#D77E6C]' : 'border-transparent'
                         }`}
                       >
-                        <img
+                        <Image
                           src={src}
                           alt={`preview-${index}`}
+                          width={150}
+                          height={150}
                           className="w-full h-full object-cover hover:scale-110 transition-transform"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/icons/Photo_icon_1.jpg';

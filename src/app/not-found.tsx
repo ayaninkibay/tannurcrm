@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Lottie from 'lottie-react'
 import animationData from '@/components/lotties/404.json'
 
@@ -107,7 +108,7 @@ export default function NotFound() {
         </p>
 
         {/* Кнопка Home */}
-        <a 
+        <Link
           href="/"
           style={{
             display: 'inline-block',
@@ -131,7 +132,7 @@ export default function NotFound() {
           }}
         >
           {t.button}
-        </a>
+        </Link>
       </div>
 
       {/* Footer */}

@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -42,14 +42,14 @@ function CreateBonusEventPageContent() {
     }
   ]);
 
-  // Load existing event data if in edit mode
-  useEffect(() => {
-    if (isEditMode && eventId) {
-      loadEventData(eventId);
-    }
-  }, [eventId, isEditMode]);
+  const showNotification = useCallback((message: string, type: 'success' | 'error') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
+  }, []);
 
-  const loadEventData = async (id: string) => {
+  const loadEventData = useCallback(async (id: string) => {
     setInitialLoading(true);
     try {
       const event = await bonusEventService.getBonusEventById(id);
@@ -61,7 +61,7 @@ function CreateBonusEventPageContent() {
           end_date: event.end_date,
           priority: event.priority || 0
         });
-        
+
         if (event.targets && event.targets.length > 0) {
           setTargets(event.targets);
         }
@@ -75,14 +75,14 @@ function CreateBonusEventPageContent() {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [showNotification, router]);
 
-  const showNotification = (message: string, type: 'success' | 'error') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: '', type: 'success' });
-    }, 3000);
-  };
+  // Load existing event data if in edit mode
+  useEffect(() => {
+    if (isEditMode && eventId) {
+      loadEventData(eventId);
+    }
+  }, [eventId, isEditMode, loadEventData]);
 
   const addTarget = () => {
     setTargets([...targets, {

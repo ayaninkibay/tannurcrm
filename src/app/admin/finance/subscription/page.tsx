@@ -84,7 +84,7 @@ const SubscriptionsListPage = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'date', direction: 'desc' });
   const [showFilters, setShowFilters] = useState(false);
 
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Загрузка сохраненных настроек
   useEffect(() => {

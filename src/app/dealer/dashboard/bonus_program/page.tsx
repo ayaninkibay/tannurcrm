@@ -45,11 +45,12 @@ class SimpleCache {
   }
 
   static set<T>(key: string, data: T): void {
+    const cached: CachedData<T> = {
+      data,
+      timestamp: Date.now()
+    };
+
     try {
-      const cached: CachedData<T> = {
-        data,
-        timestamp: Date.now()
-      };
       localStorage.setItem(this.CACHE_PREFIX + key, JSON.stringify(cached));
     } catch (e) {
       // Если localStorage переполнен, очищаем старые записи
@@ -210,7 +211,7 @@ export default function BonusProgramPage() {
       SimpleCache.clearProgress(user.id);
       loadData(true); // Принудительное обновление
     }
-  }, [includeTeam, user?.id]);
+  }, [includeTeam, user?.id, loadData]);
 
   // Автообновление каждые 5 минут (с кешем)
   useEffect(() => {

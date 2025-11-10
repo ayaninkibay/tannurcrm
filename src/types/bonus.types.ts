@@ -113,24 +113,31 @@ export interface TeamMember {
   user_id: string
   email: string | null
   full_name: string
+  first_name: string | null
+  last_name: string | null
   phone: string | null
   avatar_url: string | null
   parent_id: string | null
   level: number
-  
+
   // Финансовые данные
   personal_turnover: number
   team_turnover: number
   total_turnover: number
   bonus_percent: number
   bonus_amount: number
-  
+
   // Команда
   team_size: number
-  
+
   // Статус
   status: string | null
   joined_date: string | null
+  profession: string | null
+  role: string | null
+  is_confirmed: boolean
+  created_at: string
+  referral_code: string | null
 }
 
 /**
@@ -140,7 +147,8 @@ export interface TeamTreeNode {
   id: string
   name: string
   email: string | null
-  
+  avatar_url: string | null
+
   // Финансы
   turnover: number
   personal_turnover: number
@@ -148,11 +156,16 @@ export interface TeamTreeNode {
   total_turnover: number
   bonus_percent: number
   bonus_amount: number
-  
+
   // Структура
   children: TeamTreeNode[]
   expanded: boolean
   level: number
+
+  // Статус
+  status: string | null
+  is_confirmed: boolean
+  joined_date: string | null
 }
 
 /**

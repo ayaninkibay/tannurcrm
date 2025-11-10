@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useTranslate } from '@/hooks/useTranslate';
 
 export interface TeamMember {
@@ -68,11 +69,13 @@ const TeamMemberRow: React.FC<TeamMemberRowProps> = ({
     >
       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
         <div className="flex items-center">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-[#DC7C67] to-[#BE345D] rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+          <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-[#DC7C67] to-[#BE345D] rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0 overflow-hidden">
             {member.avatar ? (
-              <img
+              <Image
                 src={member.avatar}
                 alt={member.name}
+                width={40}
+                height={40}
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (

@@ -268,6 +268,7 @@ export interface Cart {
   promo_discount?: number;
   delivery_method: 'pickup' | 'delivery';
   delivery_address?: string;
+  delivery_cost?: number;
   notes?: string;
 }
 
@@ -454,8 +455,6 @@ export type DbUser = DbTables['users']['Row'];
 export type DbOrder = DbTables['orders']['Row'];
 export type DbProduct = DbTables['products']['Row'];
 export type DbOrderItem = DbTables['order_items']['Row'];
-export type DbBonusPayout = DbTables['bonus_payots']['Row'];
-export type DbTeamRelation = DbTables['team_relations']['Row'];
 export type DbCart = DbTables['carts']['Row'];
 export type DbCartItem = DbTables['cart_items']['Row'];
 
@@ -813,4 +812,31 @@ export interface LessonFilters {
   moduleNme?: string;
   isPublished?: boolean;
   isPreview?: boolean;
+}
+
+// ========================================
+// ПРОГРЕСС СТУДЕНТОВ
+// ========================================
+
+export interface StudentProgress {
+  id: string;
+  created_at: string;
+  updated_at?: string;
+  user_id: string;
+  course_id: string;
+  lesson_id: string;
+  is_completed: boolean;
+  watch_time: number;
+  quiz_score?: number;
+  completed_at?: string;
+  last_accessed: string;
+}
+
+export interface StudentProgressInput {
+  userId: string;
+  courseId: string;
+  lessonId: string;
+  isCompleted: boolean;
+  watchTime: number;
+  quizScore?: number;
 }

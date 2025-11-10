@@ -1,7 +1,7 @@
 // src/components/header/MoreHeaderDE.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,52 +44,52 @@ export default function MoreHeader({ title, showBackButton = false }: MoreHeader
 
   const currentLanguage = languages.find(lang => lang.code === language) || languages[0];
 
+  // Загрузка количества товаров в корзине
+  const loadCartCount = useCallback(async () => {
+    if (!profile?.id) return;
+
+    try {
+      // Получаем последнюю корзину (БЕЗ .single())
+      const { data: carts } = await supabase
+        .from('carts')
+        .select('id')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!carts || carts.length === 0) {
+        setCartCount(0);
+        return;
+      }
+
+      const cart = carts[0]; // Берем первую (последнюю по дате)
+
+      // Считаем товары в корзине
+      const { data: items } = await supabase
+        .from('cart_items')
+        .select('quantity')
+        .eq('cart_id', cart.id);
+
+      const total = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+      setCartCount(total);
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      setCartCount(0);
+    }
+  }, [profile?.id]);
+
   useEffect(() => {
     if (!loading && profile) {
       setName(`${profile.first_name} ${profile.last_name}`);
       setAvatarUrl(profile.avatar_url || '/img/avatar-default.png');
       loadCartCount();
     }
-  }, [profile, loading]);
-
-  // Загрузка количества товаров в корзине
-const loadCartCount = async () => {
-  if (!profile?.id) return;
-  
-  try {
-    // Получаем последнюю корзину (БЕЗ .single())
-    const { data: carts } = await supabase
-      .from('carts')
-      .select('id')
-      .eq('user_id', profile.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (!carts || carts.length === 0) {
-      setCartCount(0);
-      return;
-    }
-
-    const cart = carts[0]; // Берем первую (последнюю по дате)
-
-    // Считаем товары в корзине
-    const { data: items } = await supabase
-      .from('cart_items')
-      .select('quantity')
-      .eq('cart_id', cart.id);
-
-    const total = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-    setCartCount(total);
-  } catch (error) {
-    console.error('Error loading cart:', error);
-    setCartCount(0);
-  }
-};
+  }, [profile, loading, loadCartCount]);
 
   // Перезагружаем при смене страницы
   useEffect(() => {
     if (profile?.id) loadCartCount();
-  }, [pathname, profile?.id]);
+  }, [pathname, profile?.id, loadCartCount]);
 
   const handleProfile = () => {
     setIsNavigatingToProfile(true);

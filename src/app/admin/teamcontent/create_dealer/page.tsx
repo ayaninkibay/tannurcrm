@@ -11,6 +11,28 @@ import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
 import { referralService } from '@/lib/referral/referralService';
 
+interface SponsorUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  role: string;
+  iin?: string;
+  region?: string;
+  profession?: string;
+  instagram?: string;
+  parent?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+  };
+  created_at?: string;
+  is_confirmed?: boolean;
+  referral_code?: string;
+}
+
 export default function AdminCreateDealer() {
   const router = useRouter();
   const { profile } = useUser();
@@ -29,16 +51,16 @@ export default function AdminCreateDealer() {
   });
   
   // Состояния для спонсора
-  const [selectedSponsor, setSelectedSponsor] = useState(null);
+  const [selectedSponsor, setSelectedSponsor] = useState<SponsorUser | null>(null);
   const [sponsorSearchQuery, setSponsorSearchQuery] = useState('');
-  const [sponsorSearchResults, setSponsorSearchResults] = useState([]);
+  const [sponsorSearchResults, setSponsorSearchResults] = useState<SponsorUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const searchRef = useRef(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Состояния для созданного дилера
   const [isCreated, setIsCreated] = useState(false);
-  const [createdDealerData, setCreatedDealerData] = useState(null);
+  const [createdDealerData, setCreatedDealerData] = useState<SponsorUser | null>(null);
   
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
@@ -246,7 +268,7 @@ export default function AdminCreateDealer() {
 
       if (dealerError) throw dealerError;
 
-      let parentData = null;
+      let parentData: { id: string; first_name: string; last_name: string; email: string; phone: string; } | null = null;
       if (dealerData.parent_id) {
         const { data: parent, error: parentError } = await supabase
           .from('users')
@@ -254,7 +276,7 @@ export default function AdminCreateDealer() {
           .eq('id', dealerData.parent_id)
           .single();
 
-        if (!parentError) {
+        if (!parentError && parent) {
           parentData = parent;
         }
       }
@@ -281,12 +303,17 @@ export default function AdminCreateDealer() {
       return;
     }
 
+    if (!selectedSponsor) {
+      setError('Необходимо выбрать спонсора');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
       const { data: session } = await supabase.auth.getSession();
-      
+
       if (!session.session?.access_token) {
         throw new Error('Нет активной сессии');
       }
@@ -480,18 +507,20 @@ export default function AdminCreateDealer() {
                     </div>
                   )}
 
-                  <div>
-                    <label className="text-xs text-gray-500">Дата создания</label>
-                    <p className="text-sm text-gray-800">
-                      {new Date(createdDealerData.created_at).toLocaleDateString('ru-RU', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
+                  {createdDealerData.created_at && (
+                    <div>
+                      <label className="text-xs text-gray-500">Дата создания</label>
+                      <p className="text-sm text-gray-800">
+                        {new Date(createdDealerData.created_at).toLocaleDateString('ru-RU', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs text-gray-500">Статус профиля</label>

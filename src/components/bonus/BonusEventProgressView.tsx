@@ -7,9 +7,10 @@ import { Trophy, Target, TrendingUp, Calendar, Star, Gift, Clock, CheckCircle2, 
 
 interface BonusEventProgressViewProps {
   userId: string;
+  includeTeam?: boolean;
 }
 
-export const BonusEventProgressView: React.FC<BonusEventProgressViewProps> = ({ userId }) => {
+export const BonusEventProgressView: React.FC<BonusEventProgressViewProps> = ({ userId, includeTeam }) => {
   const { t } = useTranslate();
   const [events, setEvents] = useState<BonusEvent[]>([]);
   const [userProgress, setUserProgress] = useState<Map<string, UserProgress>>(new Map());

@@ -43,7 +43,7 @@ function CoursePageContent() {
       loadCourse(courseId);
       loadLessons(courseId);
     }
-  }, [courseId]);
+  }, [courseId, loadCourse, loadLessons]);
 
   const handleDeleteLesson = async (lessonId: string) => {
     if (confirm(t('Вы уверены, что хотите удалить этот урок?'))) {

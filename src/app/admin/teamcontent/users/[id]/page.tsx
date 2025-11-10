@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useUserEdit } from '@/lib/useredit/usereditmodule';
 import { UpdateUserPayload } from '@/lib/useredit/usereditservice';
@@ -42,7 +43,7 @@ const REGIONS = [
 export default function UserEditPage() {
   const params = useParams();
   const router = useRouter();
-  const userId = params.id as string;
+  const userId = params?.id as string;
 
   const {
     user,
@@ -298,11 +299,14 @@ export default function UserEditPage() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               {user?.avatar_url ? (
-                <img
-                  src={user.avatar_url}
-                  alt={`${user.first_name} ${user.last_name}`}
-                  className="w-20 h-20 rounded-2xl ring-4 ring-white shadow-lg"
-                />
+                <div className="w-20 h-20 rounded-2xl ring-4 ring-white shadow-lg overflow-hidden relative">
+                  <Image
+                    src={user.avatar_url}
+                    alt={`${user.first_name} ${user.last_name}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               ) : (
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#DC7C67] to-[#E89580] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
                   {user?.first_name?.[0]}{user?.last_name?.[0]}

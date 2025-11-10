@@ -41,7 +41,7 @@ export default function BonusEventsPage() {
   useEffect(() => {
     setMounted(true);
     loadActiveEvents();
-  }, []);
+  }, [loadActiveEvents]);
 
   const handleDeleteEvent = async (eventId: string) => {
     if (confirm(t('Вы уверены, что хотите деактивировать это событие?'))) {

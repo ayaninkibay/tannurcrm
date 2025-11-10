@@ -3,8 +3,9 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Package, 
   Clock, 
@@ -50,43 +51,30 @@ export default function OrdersPage() {
     completedOrders: 0
   });
 
-  useEffect(() => {
-    if (!userLoading && !currentUser) {
-      router.push('/signin');
-    }
-  }, [userLoading, currentUser, router]);
-
-  useEffect(() => {
-    if (currentUser) {
-      loadOrders();
-      loadStats();
-    }
-  }, [currentUser]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     if (!currentUser) return;
-    
+
     setLoading(true);
     try {
       console.log('📦 Loading orders...');
-      
+
       const result = await orderService.getUserOrders(currentUser.id);
-      
+
       if (!result.success) {
         toast.error(result.error || 'Ошибка загрузки заказов');
         return;
       }
-      
+
       setOrders(result.data || []);
       console.log('✅ Orders loaded:', result.data?.length);
-      
+
       // Умное определение фильтра по умолчанию
       if (result.data && result.data.length > 0) {
         const hasNew = result.data.some(o => o.order_status === 'new');
         const hasProcessing = result.data.some(o => o.order_status === 'processing');
         const hasReady = result.data.some(o => o.order_status === 'ready_for_pickup');
         const hasDelivered = result.data.some(o => o.order_status === 'delivered');
-        
+
         if (hasNew) {
           setFilterStatus('new');
         } else if (hasProcessing) {
@@ -99,21 +87,21 @@ export default function OrdersPage() {
           setFilterStatus('new'); // Если только отмененные - покажем "новые" с пустым списком
         }
       }
-      
+
     } catch (error: any) {
       console.error('❌ Error loading orders:', error);
       toast.error('Ошибка загрузки заказов');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!currentUser) return;
-    
+
     try {
       const result = await orderService.getUserOrdersStats(currentUser.id);
-      
+
       if (result.success && result.data) {
         setStats({
           totalOrders: result.data.totalOrders,
@@ -125,7 +113,20 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('❌ Error loading stats:', error);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!userLoading && !currentUser) {
+      router.push('/signin');
+    }
+  }, [userLoading, currentUser, router]);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadOrders();
+      loadStats();
+    }
+  }, [currentUser, loadOrders, loadStats]);
 
   const handleCancelOrder = async (orderId: string) => {
     if (!currentUser) return;
@@ -535,14 +536,12 @@ export default function OrdersPage() {
                       <div className="border-t border-gray-100 pt-4 mb-4">
                         <div className="flex items-center gap-2 overflow-x-auto pb-2">
                           {order.order_items.slice(0, 5).map((item, idx) => (
-                            <div key={idx} className="flex-shrink-0 relative group">
-                              <img
+                            <div key={idx} className="flex-shrink-0 relative group w-14 h-14 md:w-16 md:h-16">
+                              <Image
                                 src={item.product?.image_url || '/placeholder.png'}
-                                alt={item.product?.name}
-                                className="w-14 h-14 md:w-16 md:h-16 object-cover rounded-xl border-2 border-gray-100 group-hover:border-[#D77E6C] transition-all"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.png';
-                                }}
+                                alt={item.product?.name || 'Product'}
+                                fill
+                                className="object-cover rounded-xl border-2 border-gray-100 group-hover:border-[#D77E6C] transition-all"
                               />
                               {item.quantity > 1 && (
                                 <span className="absolute -top-2 -right-2 w-6 h-6 bg-[#D77E6C] text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -647,14 +646,14 @@ export default function OrdersPage() {
                 <div className="space-y-3">
                   {selectedOrder.order_items?.map(item => (
                     <div key={item.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                      <img
-                        src={item.product?.image_url || '/placeholder.png'}
-                        alt={item.product?.name}
-                        className="w-20 h-20 object-cover rounded-xl border-2 border-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.png';
-                        }}
-                      />
+                      <div className="relative w-20 h-20 flex-shrink-0">
+                        <Image
+                          src={item.product?.image_url || '/placeholder.png'}
+                          alt={item.product?.name || 'Product'}
+                          fill
+                          className="object-cover rounded-xl border-2 border-gray-200"
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 truncate">
                           {item.product?.name || 'Товар'}
@@ -744,7 +743,7 @@ export default function OrdersPage() {
                     <>
                       <span className="font-semibold text-orange-600">Заказ был оплачен.</span>
                       <br />
-                      После отмены статус изменится на <span className="font-semibold">"Возврат средств"</span>.
+                      После отмены статус изменится на <span className="font-semibold">&ldquo;Возврат средств&rdquo;</span>.
                       <br />
                       Менеджер свяжется с вами для возврата денег.
                     </>

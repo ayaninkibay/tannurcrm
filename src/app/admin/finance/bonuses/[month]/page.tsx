@@ -2,10 +2,17 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { BonusService } from '@/lib/bonuses/BonusService';
+import type {
+  MonthStatus,
+  BonusCalculationPreview,
+  SystemHealth,
+  TurnoverAuditResult,
+  BonusLevel
+} from '@/types/bonus.types';
 import {
   Search,
   TrendingUp,
@@ -34,23 +41,23 @@ import { toast } from 'react-toastify';
 export default function MonthBonusesPage() {
   const router = useRouter();
   const params = useParams();
-  const selectedMonth = params.month as string;
+  const selectedMonth = params?.month as string;
 
-  const [users, setUsers] = useState([]);
-  const [bonusLevels, setBonusLevels] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [bonusLevels, setBonusLevels] = useState<BonusLevel[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [monthStatus, setMonthStatus] = useState(null);
+  const [monthStatus, setMonthStatus] = useState<MonthStatus | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isCheckingAudit, setIsCheckingAudit] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
+  const [previewData, setPreviewData] = useState<BonusCalculationPreview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [systemHealth, setSystemHealth] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [showMoreInfo, setShowMoreInfo] = useState(false);
   const [dataSource, setDataSource] = useState('current');
-  const [auditResults, setAuditResults] = useState(null);
+  const [auditResults, setAuditResults] = useState<TurnoverAuditResult[] | null>(null);
   const [showAuditPopup, setShowAuditPopup] = useState(false);
   const [showPreviewPopup, setShowPreviewPopup] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
@@ -61,29 +68,16 @@ export default function MonthBonusesPage() {
     averagePercent: 0
   });
 
-  useEffect(() => {
-    if (!selectedMonth) return;
-    
-    setSearchQuery('');
-    loadData();
-    checkMonthStatus();
-    
-    const timer = setTimeout(() => {
-      checkSystemHealth();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [selectedMonth]);
-
-  const checkMonthStatus = async () => {
+  const checkMonthStatus = useCallback(async () => {
     try {
       const status = await BonusService.getMonthStatus(selectedMonth);
       setMonthStatus(status);
     } catch (err) {
       console.error('Error checking month status:', err);
     }
-  };
+  }, [selectedMonth]);
 
-  const checkSystemHealth = async () => {
+  const checkSystemHealth = useCallback(async () => {
     try {
       setIsCheckingAudit(true);
       
@@ -135,9 +129,9 @@ export default function MonthBonusesPage() {
     } finally {
       setIsCheckingAudit(false);
     }
-  };
+  }, [monthStatus, selectedMonth]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -186,7 +180,20 @@ export default function MonthBonusesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, searchQuery]);
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+
+    setSearchQuery('');
+    loadData();
+    checkMonthStatus();
+
+    const timer = setTimeout(() => {
+      checkSystemHealth();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [selectedMonth, loadData, checkMonthStatus, checkSystemHealth]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -257,8 +264,8 @@ export default function MonthBonusesPage() {
       const preview = await BonusService.calculateMonthlyBonuses(selectedMonth);
       
       setPreviewData(preview);
-      
-      if (preview.success) {
+
+      if (preview) {
         setShowPreviewPopup(true);
         toast.success('Превью успешно рассчитано');
       } else {
@@ -336,9 +343,9 @@ export default function MonthBonusesPage() {
     const lastMonthStr = lastMonth.toISOString().substring(0, 7);
     
     return selectedMonth === lastMonthStr &&
-           !monthStatus?.isFinalized && 
+           !monthStatus?.isFinalized &&
            !monthStatus?.isPaid &&
-           previewData?.success &&
+           previewData !== null &&
            !systemHealth?.hasIssues;
   };
 
@@ -393,7 +400,7 @@ export default function MonthBonusesPage() {
                         Выплачен
                       </span>
                     )}
-                    {previewData?.success && (
+                    {previewData && (
                       <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                         Превью рассчитано
                       </span>

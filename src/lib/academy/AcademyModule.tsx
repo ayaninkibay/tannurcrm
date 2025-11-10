@@ -213,11 +213,9 @@ export function AcademyProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const success = await academyService.deleteCourse(id);
-      if (success) {
-        await loadCourses();
-      }
-      return success;
+      await academyService.deleteCourse(id);
+      await loadCourses();
+      return true;
     } catch (err: any) {
       setError(err.message || 'Failed to delete course');
       return false;
@@ -329,8 +327,8 @@ export function AcademyProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const success = await academyService.deleteLesson(id);
-      return success;
+      await academyService.deleteLesson(id);
+      return true;
     } catch (err: any) {
       setError(err.message || 'Failed to delete lesson');
       return false;

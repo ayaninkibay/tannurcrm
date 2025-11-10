@@ -20,7 +20,7 @@ export const PAGE_PERMISSIONS: Record<string, string[]> = {
   '/admin/warehouse/warehouse_control/create_product': ['all'],
   '/admin/warehouse/create_gift': ['all'],
   '/admin/warehouse/create_distributor': ['all'],
-  '/admin/warehouse': ['all', 'warehouse'],
+
   
   // Orders (заказы)
   '/admin/store': ['all', 'orders'],

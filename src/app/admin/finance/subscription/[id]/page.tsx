@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase/client';
@@ -91,16 +91,10 @@ const SubscriptionDetailPage = () => {
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  useEffect(() => {
-    if (subscriptionId) {
-      loadSubscriptionDetails();
-    }
-  }, [subscriptionId]);
-
-  const loadSubscriptionDetails = async () => {
+  const loadSubscriptionDetails = useCallback(async () => {
     try {
       setIsLoading(true);
-      
+
       // Шаг 1: Загружаем основную подписку
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscription_payments')
@@ -109,36 +103,36 @@ const SubscriptionDetailPage = () => {
         .single();
 
       if (subscriptionError) throw subscriptionError;
-      
+
       // Шаг 2: Загружаем данные пользователя
-      let userData = null;
+      let userData: SubscriptionDetail['user'] | null = null;
       if (subscriptionData.user_id) {
         const { data: userInfo, error: userError } = await supabase
           .from('users')
           .select('id, first_name, last_name, email, phone, iin, region, instagram, avatar_url, created_at, is_confirmed, status, role')
           .eq('id', subscriptionData.user_id)
           .single();
-        
+
         if (userError) {
           console.warn('Error loading user data:', userError);
         } else {
-          userData = userInfo;
+          userData = userInfo as SubscriptionDetail['user'];
         }
       }
-      
+
       // Шаг 3: Загружаем данные спонсора
-      let parentData = null;
+      let parentData: SubscriptionDetail['parent'] | null = null;
       if (subscriptionData.parent_id) {
         const { data: parentInfo, error: parentError } = await supabase
           .from('users')
           .select('id, first_name, last_name, email, phone')
           .eq('id', subscriptionData.parent_id)
           .single();
-        
+
         if (parentError) {
           console.warn('Error loading parent data:', parentError);
         } else {
-          parentData = parentInfo;
+          parentData = parentInfo as SubscriptionDetail['parent'];
         }
       }
       
@@ -177,7 +171,7 @@ const SubscriptionDetailPage = () => {
       
       setSubscription(fullSubscription);
       toast.success('✅ Данные подписки загружены');
-      
+
     } catch (error: any) {
       console.error('Error loading subscription details:', error);
       toast.error(`❌ ${error.message || 'Ошибка загрузки данных подписки'}`);
@@ -185,7 +179,13 @@ const SubscriptionDetailPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [subscriptionId, router]);
+
+  useEffect(() => {
+    if (subscriptionId) {
+      loadSubscriptionDetails();
+    }
+  }, [subscriptionId, loadSubscriptionDetails]);
 
   const handleApprove = async () => {
     if (!subscription) return;

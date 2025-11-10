@@ -33,6 +33,34 @@ export const useGiftModule = (): UseGiftModuleReturn => {
     issuedGifts: 0,
   });
 
+  // Загрузка статистики
+  const loadStats = useCallback(async () => {
+    try {
+      const newStats = await giftService.getGiftStats();
+      setStats(newStats);
+    } catch (error: any) {
+      console.error('Error loading gift stats:', error);
+    }
+  }, []);
+
+  // Загрузка списка подарков
+  const loadGifts = useCallback(async (options?: {
+    limit?: number;
+    offset?: number;
+    status?: string
+  }) => {
+    try {
+      setLoading(true);
+      const result = await giftService.getGifts(options);
+      setGifts(result.gifts);
+    } catch (error: any) {
+      console.error('Error loading gifts:', error);
+      toast.error(error.message || 'Ошибка загрузки подарков');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Создание подарка
   const createGift = useCallback(async (data: CreateGiftData) => {
     try {
@@ -49,25 +77,7 @@ export const useGiftModule = (): UseGiftModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Загрузка списка подарков
-  const loadGifts = useCallback(async (options?: { 
-    limit?: number; 
-    offset?: number; 
-    status?: string 
-  }) => {
-    try {
-      setLoading(true);
-      const result = await giftService.getGifts(options);
-      setGifts(result.gifts);
-    } catch (error: any) {
-      console.error('Error loading gifts:', error);
-      toast.error(error.message || 'Ошибка загрузки подарков');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [loadGifts, loadStats]);
 
   // Загрузка конкретного подарка
   const loadGiftById = useCallback(async (id: string) => {
@@ -85,26 +95,26 @@ export const useGiftModule = (): UseGiftModuleReturn => {
 
   // Обновление статуса подарка
   const updateGiftStatus = useCallback(async (
-    id: string, 
+    id: string,
     status: 'pending' | 'issued' | 'cancelled'
   ) => {
     try {
       setLoading(true);
       await giftService.updateGiftStatus(id, status);
-      
+
       const statusText = {
         pending: 'ожидает выдачи',
         issued: 'выдан',
         cancelled: 'отменен'
       }[status];
-      
+
       toast.success(`Подарок ${statusText}`);
-      
+
       // Обновляем текущий подарок если он загружен
       if (currentGift?.id === id) {
         await loadGiftById(id);
       }
-      
+
       // Перезагружаем список и статистику
       await loadGifts();
       await loadStats();
@@ -114,17 +124,7 @@ export const useGiftModule = (): UseGiftModuleReturn => {
     } finally {
       setLoading(false);
     }
-  }, [currentGift, loadGiftById, loadGifts]);
-
-  // Загрузка статистики
-  const loadStats = useCallback(async () => {
-    try {
-      const newStats = await giftService.getGiftStats();
-      setStats(newStats);
-    } catch (error: any) {
-      console.error('Error loading gift stats:', error);
-    }
-  }, []);
+  }, [currentGift, loadGiftById, loadGifts, loadStats]);
 
   return {
     // State

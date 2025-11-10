@@ -1,7 +1,7 @@
 // app/admin/finance/transactions/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
@@ -68,11 +68,7 @@ export default function AdminTransactionsPage() {
     monthRequests: 0
   });
 
-  useEffect(() => {
-    loadWithdrawals();
-  }, []);
-
-  const loadWithdrawals = async () => {
+  const loadWithdrawals = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -109,7 +105,11 @@ export default function AdminTransactionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadWithdrawals();
+  }, [loadWithdrawals]);
 
   const calculateStats = (data: any[]) => {
     const today = new Date();

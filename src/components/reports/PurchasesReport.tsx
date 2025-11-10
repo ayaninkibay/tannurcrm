@@ -68,21 +68,21 @@ const Pagination = ({
   if (totalPages <= 1) return null;
 
   const getVisiblePages = () => {
-    const pages = [];
+    const pages: number[] = [];
     const showPages = 5; // Максимум страниц для показа
-    
+
     let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
     let endPage = Math.min(totalPages, startPage + showPages - 1);
-    
+
     // Корректируем начальную страницу если мало страниц в конце
     if (endPage - startPage + 1 < showPages) {
       startPage = Math.max(1, endPage - showPages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-    
+
     return pages;
   };
 
@@ -170,6 +170,7 @@ export default function PurchasesReport({}: PurchasesReportProps) {
     if (profile?.id) {
       reportModule.loadOrdersReport(profile.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
   // Получаем все заказы

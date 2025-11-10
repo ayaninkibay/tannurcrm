@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase/client';
 import { Database } from '@/types/supabase';
+import type { TeamStatsData } from '@/types/team.types';
 
 type UserRow = Database['public']['Tables']['users']['Row'];
 type UserUpdate = Database['public']['Tables']['users']['Update'];
@@ -44,6 +45,7 @@ export interface UpdateUserPayload {
   permissions?: string[] | null;
   parent_id?: string | null;
   star_id?: string | null;
+  referral_code?: string | null;
   temp_bonus_percent?: number | null;
   temp_bonus_until?: string | null;
 }
@@ -202,7 +204,7 @@ export class UserEditService {
       // Получаем размер команды
       const { data: teamData, error: teamError } = await supabase
         .rpc('get_team_stats', { root_user_id: userId })
-        .maybeSingle();
+        .maybeSingle<TeamStatsData>();
 
       if (teamError) {
         console.error('Error fetching team stats:', teamError);
@@ -224,7 +226,7 @@ export class UserEditService {
           personal_turnover: turnoverData?.personal_turnover || 0,
           total_turnover: turnoverData?.total_turnover || 0,
           bonus_percent: turnoverData?.bonus_percent || null,
-          team_size: teamData?.total_members || 0,
+          team_size: teamData?.totalMembers || 0,
           orders_count: ordersCount || 0
         }
       };

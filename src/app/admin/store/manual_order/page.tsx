@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import {
@@ -71,6 +72,70 @@ export default function CreateManualOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Gift promotion logic (must be before useEffect that uses it)
+  const checkAndApplyGiftPromotions = useCallback(() => {
+    // Calculate total for non-gift items only
+    const regularItemsTotal = orderItems
+      .filter(item => !item.is_gift)
+      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+
+    // Find applicable promotions
+    const newAppliedPromotions: string[] = [];
+    const giftsToAdd: OrderItem[] = [];
+
+    giftPromotions.forEach(promo => {
+      const multiplier = Math.floor(regularItemsTotal / promo.min_purchase_amount);
+
+      if (multiplier > 0) {
+        newAppliedPromotions.push(promo.id);
+
+        promo.products.forEach(giftProduct => {
+          if (giftProduct.product) {
+            giftsToAdd.push({
+              id: `gift-${promo.id}-${giftProduct.product_id}`,
+              product_id: giftProduct.product_id,
+              quantity: giftProduct.quantity * multiplier,
+              price: 0,
+              product: giftProduct.product,
+              is_gift: true,
+              promotion_id: promo.id
+            });
+          }
+        });
+      }
+    });
+
+    // Check if anything changed
+    const currentGiftIds = orderItems
+      .filter(item => item.is_gift)
+      .map(item => item.id)
+      .sort()
+      .join(',');
+
+    const newGiftIds = giftsToAdd
+      .map(item => item.id)
+      .sort()
+      .join(',');
+
+    const currentGiftQuantities = orderItems
+      .filter(item => item.is_gift)
+      .map(item => `${item.id}:${item.quantity}`)
+      .sort()
+      .join(',');
+
+    const newGiftQuantities = giftsToAdd
+      .map(item => `${item.id}:${item.quantity}`)
+      .sort()
+      .join(',');
+
+    // Only update if gifts actually changed
+    if (currentGiftIds !== newGiftIds || currentGiftQuantities !== newGiftQuantities) {
+      const regularItems = orderItems.filter(item => !item.is_gift);
+      setOrderItems([...regularItems, ...giftsToAdd]);
+      setAppliedPromotions(newAppliedPromotions);
+    }
+  }, [orderItems, giftPromotions]);
+
   // Load all products and gift promotions on mount
   useEffect(() => {
     loadProducts();
@@ -80,7 +145,7 @@ export default function CreateManualOrderPage() {
   // Check gift promotions whenever order items change
   useEffect(() => {
     checkAndApplyGiftPromotions();
-  }, [orderItems, giftPromotions]);
+  }, [checkAndApplyGiftPromotions]);
 
   // Search users with debounce
   useEffect(() => {
@@ -95,7 +160,7 @@ export default function CreateManualOrderPage() {
       setIsSearchingUsers(false);
 
       if (!error && data) {
-        setUserSearchResults(data);
+        setUserSearchResults(data as UserType[]);
       }
     }, 300);
 
@@ -106,7 +171,7 @@ export default function CreateManualOrderPage() {
     setLoadingProducts(true);
     const { data, error } = await getAllProducts();
     if (!error && data) {
-      setProducts(data);
+      setProducts(data as Product[]);
     }
     setLoadingProducts(false);
   }
@@ -171,69 +236,6 @@ export default function CreateManualOrderPage() {
       console.error('Error loading gift promotions:', error);
     }
   }
-
-  function checkAndApplyGiftPromotions() {
-  // Calculate total for non-gift items only
-  const regularItemsTotal = orderItems
-    .filter(item => !item.is_gift)
-    .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
-
-  // Find applicable promotions
-  const newAppliedPromotions: string[] = [];
-  const giftsToAdd: OrderItem[] = [];
-
-  giftPromotions.forEach(promo => {
-    const multiplier = Math.floor(regularItemsTotal / promo.min_purchase_amount);
-    
-    if (multiplier > 0) {
-      newAppliedPromotions.push(promo.id);
-      
-      promo.products.forEach(giftProduct => {
-        if (giftProduct.product) {
-          giftsToAdd.push({
-            id: `gift-${promo.id}-${giftProduct.product_id}`,
-            product_id: giftProduct.product_id,
-            quantity: giftProduct.quantity * multiplier,
-            price: 0,
-            product: giftProduct.product,
-            is_gift: true,
-            promotion_id: promo.id
-          });
-        }
-      });
-    }
-  });
-
-  // Check if anything changed
-  const currentGiftIds = orderItems
-    .filter(item => item.is_gift)
-    .map(item => item.id)
-    .sort()
-    .join(',');
-    
-  const newGiftIds = giftsToAdd
-    .map(item => item.id)
-    .sort()
-    .join(',');
-
-  const currentGiftQuantities = orderItems
-    .filter(item => item.is_gift)
-    .map(item => `${item.id}:${item.quantity}`)
-    .sort()
-    .join(',');
-    
-  const newGiftQuantities = giftsToAdd
-    .map(item => `${item.id}:${item.quantity}`)
-    .sort()
-    .join(',');
-
-  // Only update if gifts actually changed
-  if (currentGiftIds !== newGiftIds || currentGiftQuantities !== newGiftQuantities) {
-    const regularItems = orderItems.filter(item => !item.is_gift);
-    setOrderItems([...regularItems, ...giftsToAdd]);
-    setAppliedPromotions(newAppliedPromotions);
-  }
-}
 
   // Show loading while profile is loading
   if (profileLoading) {
@@ -434,7 +436,7 @@ export default function CreateManualOrderPage() {
             <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-yellow-800 text-sm">
-                <strong>Внимание:</strong> У вас роль "{profile?.role}". Эта страница предназначена для администраторов. 
+                <strong>Внимание:</strong> У вас роль &ldquo;{profile?.role}&rdquo;. Эта страница предназначена для администраторов.
                 Создание заказа может быть отклонено системой.
               </p>
             </div>
@@ -600,7 +602,7 @@ export default function CreateManualOrderPage() {
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => setSelectedCategory(cat || 'all')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
                       selectedCategory === cat
                         ? 'bg-[#D77E6C] text-white shadow-sm'
@@ -639,10 +641,11 @@ export default function CreateManualOrderPage() {
                       {/* Product Image */}
                       <div className="aspect-square rounded-md bg-gray-100 mb-1.5 overflow-hidden relative">
                         {product.image_url ? (
-                          <img
+                          <Image
                             src={product.image_url}
                             alt={product.name || ''}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -702,12 +705,13 @@ export default function CreateManualOrderPage() {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex gap-3 flex-1 min-w-0">
                             {/* Image */}
-                            <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                            <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0 relative">
                               {item.product?.image_url ? (
-                                <img
+                                <Image
                                   src={item.product.image_url}
                                   alt={item.product.name || ''}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
@@ -790,12 +794,13 @@ export default function CreateManualOrderPage() {
                           <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative">
                                   {item.product?.image_url ? (
-                                    <img
+                                    <Image
                                       src={item.product.image_url}
                                       alt={item.product.name || ''}
-                                      className="w-full h-full object-cover"
+                                      fill
+                                      className="object-cover"
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">
@@ -868,12 +873,13 @@ export default function CreateManualOrderPage() {
                     {giftItems.map((item) => (
                       <div key={item.id} className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
                         <div className="flex items-start gap-3">
-                          <div className="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200">
+                          <div className="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200 relative">
                             {item.product?.image_url ? (
-                              <img
+                              <Image
                                 src={item.product.image_url}
                                 alt={item.product.name || ''}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -923,12 +929,13 @@ export default function CreateManualOrderPage() {
                           <tr key={item.id} className="bg-gradient-to-r from-purple-50 to-pink-50">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200">
+                                <div className="w-12 h-12 rounded-lg bg-white overflow-hidden flex-shrink-0 border-2 border-purple-200 relative">
                                   {item.product?.image_url ? (
-                                    <img
+                                    <Image
                                       src={item.product.image_url}
                                       alt={item.product.name || ''}
-                                      className="w-full h-full object-cover"
+                                      fill
+                                      className="object-cover"
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">

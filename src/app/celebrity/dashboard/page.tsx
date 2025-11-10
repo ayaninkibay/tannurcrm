@@ -2,7 +2,7 @@
 'use client'
 
 import MoreHeaderCE from '@/components/header/MoreHeaderCE'
-import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
+import { TurnoverChart } from '@/components/TurnoverChart';
 import React, { useMemo } from 'react';
 import UserProfileCard from '@/components/profile/UserProfileCard'
 import ReferalLink from '@/components/blocks/ReferralLink'
@@ -15,14 +15,7 @@ export default function CelebrityDashboardPage() {
   const { t } = useTranslate();
   const now = new Date();
   // Пример данных — замените на реальные из API
-  const sampleData: MonthValue[] = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, i) => ({
-        date: new Date(now.getFullYear(), i, 1),
-        value: Math.floor(Math.random() * 5_000_000) + 5_000_000,
-      })),
-    [now.getFullYear()]
-  );
+
 
   return (
     <main className="bg-[#F6F6F6]">
@@ -33,7 +26,7 @@ export default function CelebrityDashboardPage() {
       <div className="grid grid-cols-4 gap-4 mt-5">
         <div className="grid col-span-1 grid-rows-5 rounded-2xl gap-4">
           <div className="grid row-span-3 h-full w-full bg-white rounded-2xl ">
-            <BalanceCard balance="890 020" variant="dark" />
+            <BalanceCard/>
           </div>
           <div className="grid row-span-1 h-full w-full bg-white rounded-2xl ">
             <TannurButton
@@ -61,7 +54,6 @@ export default function CelebrityDashboardPage() {
           </div>
           <div className="mt-5">
             <TurnoverChart
-              data={sampleData}
               colorBar="#E9D9D6"
               colorLine="#D77E6C"
             />
@@ -78,7 +70,7 @@ export default function CelebrityDashboardPage() {
             variant="gray"
           />
           <div className="mt-1">
-            <ReferalLink variant="gray" />
+            <ReferalLink/>
           </div>
         </div>
       </div>

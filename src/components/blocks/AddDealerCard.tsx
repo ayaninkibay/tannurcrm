@@ -41,7 +41,7 @@ export default function AddDealerCard({
             className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex-shrink-0"
             title={t('Аватар')}
           >
-            <img src={avatarSrc} alt={t('Аватар')} className="w-full h-full object-cover" />
+            <Image src={avatarSrc} alt={t('Аватар')} className="w-full h-full object-cover" />
           </button>
 
           {/* Кнопка «Добавить» с навигацией через Link */}

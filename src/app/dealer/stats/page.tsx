@@ -3,8 +3,7 @@
 import React, { useMemo } from 'react';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import BalanceCard from '@/components/blocks/BalanceCard';
-import { TurnoverChart, MonthValue } from '@/components/TurnoverChart';
-import { generateMonthlyData } from '@/components/generateData';
+import { TurnoverChart } from '@/components/TurnoverChart';
 import ReportsSection from '@/components/reports/ReportsSection';
 import CooperationTerms from '@/components/blocks/CooperationTerms';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -42,7 +41,6 @@ export default function StatsContent() {
         <div className="col-span-8 md:col-span-4 xl:col-span-5 bg-white p-2 rounded-2xl">
         <TurnoverChart
           userId={user?.id}
-          includeTeam={false} // Без команды
           title="Мой товарооборот"
           subtitle="Личные продажи"
         />

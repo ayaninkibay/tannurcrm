@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import MoreHeaderDE from '@/components/header/MoreHeaderDE'
 import DealerProductCard from '@/components/product/DealerProductCard'
 import DealerBigProductCard from '@/components/product/DealerBigProductCard'
@@ -70,36 +71,7 @@ export default function ShopPage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true)
-      
-      // Проверяем кеш
-      const cached = ProductCache.get()
-      if (cached) {
-        setProducts(cached.products)
-        setBigProducts(cached.bigProducts)
-        setLoading(false)
-        
-        // Обновляем в фоне
-        fetchFromDatabase()
-        return
-      }
-      
-      await fetchFromDatabase()
-    } catch (error) {
-      console.error('Error fetching products:', error)
-      toast.error(t('Ошибка загрузки товаров'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchFromDatabase = async () => {
+  const fetchFromDatabase = useCallback(async () => {
     // Загружаем ВСЕ флагманские товары для большой карточки
     const { data: bigProductsData, error: bigError } = await supabase
       .from('products')
@@ -125,7 +97,36 @@ export default function ShopPage() {
       setProducts(productsData)
       ProductCache.set(productsData, bigProductsData || [])
     }
-  }
+  }, [])
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      // Проверяем кеш
+      const cached = ProductCache.get()
+      if (cached) {
+        setProducts(cached.products)
+        setBigProducts(cached.bigProducts)
+        setLoading(false)
+
+        // Обновляем в фоне
+        fetchFromDatabase()
+        return
+      }
+
+      await fetchFromDatabase()
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      toast.error(t('Ошибка загрузки товаров'))
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchFromDatabase, t])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   // Фильтрация по категории
   const filteredProducts = selectedCategory === 'all' 
@@ -238,7 +239,7 @@ export default function ShopPage() {
                   {categories.map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => setSelectedCategory(cat)}
+                      onClick={() => setSelectedCategory(cat || 'all')}
                       className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs lg:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                         selectedCategory === cat
                           ? 'bg-[#D77E6C] text-white shadow-md'
@@ -305,7 +306,7 @@ export default function ShopPage() {
                     <button
                       key={cat}
                       onClick={() => {
-                        setSelectedCategory(cat)
+                        setSelectedCategory(cat || 'all')
                         setFilterOpen(false)
                       }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
@@ -379,12 +380,13 @@ export default function ShopPage() {
                 className="group bg-white rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-2 sm:gap-3 lg:gap-4"
               >
                 {/* Изображение - КОМПАКТНОЕ */}
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                   {product.image_url ? (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name || ''} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    <Image
+                      src={product.image_url}
+                      alt={product.name || ''}
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">

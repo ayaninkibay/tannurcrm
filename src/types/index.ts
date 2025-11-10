@@ -36,15 +36,4 @@ export type Maybe<T> = T | undefined;
 // ========================================
 // TYPE GUARDS (проверки типов)
 // ========================================
-
-export const isUser = (obj: any): obj is User => {
-  return obj && typeof obj.id === 'string' && typeof obj.email === 'string';
-};
-
-export const isOrder = (obj: any): obj is Order => {
-  return obj && typeof obj.id === 'string' && Array.isArray(obj.user_id);
-};
-
-export const isTeamOrder = (order: Order): order is TeamOrder => {
-  return order.user_id.length > 1;
-};
+// Note: Type guards are defined in custom.types.ts and exported via export *

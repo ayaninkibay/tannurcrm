@@ -27,8 +27,8 @@ export function FastLink({
   const router = useRouter()
   const pathname = usePathname()
   const [isNavigating, setIsNavigating] = useState(false)
-  const prefetchTimer = useRef<NodeJS.Timeout>()
-  const navigationStartTime = useRef<number>()
+  const prefetchTimer = useRef<NodeJS.Timeout | undefined>(undefined)
+  const navigationStartTime = useRef<number | undefined>(undefined)
 
   // Отслеживаем изменение маршрута для остановки загрузки
   useEffect(() => {

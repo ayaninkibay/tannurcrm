@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import SubscriptionsReport, { Period } from './SubscriptionsReport';
+import SubscriptionsReport from './SubscriptionsReport';
 import PurchasesReport from './PurchasesReport';
 import SalesReport from './SalesReport';
 import UsersReport from './UsersReport';
@@ -73,7 +73,6 @@ interface ReportsSectionProps {
 const ReportsSection: React.FC<ReportsSectionProps> = ({ role }) => {
   const tabs = reportsConfig[role];
   const [active, setActive] = useState<string>(tabs[0].key);
-  const [period, setPeriod] = useState<Period>('all');
 
   const activeIndex = tabs.findIndex((t) => t.key === active);
 
@@ -145,16 +144,16 @@ const ReportsSection: React.FC<ReportsSectionProps> = ({ role }) => {
         
         <div className="relative z-10 animate-fadeIn w-full overflow-auto">
           {active === 'subscriptions' && (
-            <SubscriptionsReport period={period} onPeriodChange={setPeriod} />
+            <SubscriptionsReport />
           )}
           {active === 'purchases' && (
-            <PurchasesReport period={period} onPeriodChange={setPeriod} />
+            <PurchasesReport />
           )}
           {active === 'sales' && (
-            <SalesReport period={period} onPeriodChange={setPeriod} />
+            <SalesReport />
           )}
           {active === 'users' && (
-            <UsersReport period={period} onPeriodChange={setPeriod} />
+            <UsersReport />
           )}
         </div>
       </div>

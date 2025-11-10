@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import { stockService } from './StockService';
 import type { Product, StockMovement } from '@/types';
 
@@ -291,7 +291,7 @@ export const useStockModule = (userId?: string): UseStockModuleReturn => {
     if (userId) {
       loadAlerts();
     }
-  }, [userId]);
+  }, [userId, loadAlerts]);
 
   return {
     // State

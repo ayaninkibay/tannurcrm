@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderDE from '@/components/header/MoreHeaderDE';
 import { useUser } from '@/context/UserContext';
@@ -36,19 +36,9 @@ const WithdrawPage = () => {
   const [transactionHistory, setTransactionHistory] = useState<TransactionHistory[]>([]);
   const [myWithdrawals, setMyWithdrawals] = useState<WithdrawalRequest[]>([]);
 
-  useEffect(() => {
-    if (profile?.id) {
-      loadAllData();
-      setWithdrawDetails(prev => ({
-        ...prev,
-        cardHolder: `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
-      }));
-    }
-  }, [profile]);
-
-  const loadAllData = async () => {
+  const loadAllData = useCallback(async () => {
     if (!profile?.id) return;
-    
+
     setLoading(true);
     try {
       const [balanceData, transactions, history, withdrawals] = await Promise.all([
@@ -57,7 +47,7 @@ const WithdrawPage = () => {
         withdrawalService.getTransactionHistory(profile.id, 100),
         withdrawalService.getMyWithdrawals(profile.id)
       ]);
-      
+
       setBalance(balanceData);
       setAvailableTransactions(transactions);
       setTransactionHistory(history);
@@ -67,7 +57,17 @@ const WithdrawPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (profile?.id) {
+      loadAllData();
+      setWithdrawDetails(prev => ({
+        ...prev,
+        cardHolder: `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+      }));
+    }
+  }, [profile, loadAllData]);
 
   const selectedAmount = availableTransactions
     .filter(t => selectedTransactions.has(t.transaction_id))
@@ -173,7 +173,7 @@ const WithdrawPage = () => {
   };
 
   const getTransactionIcon = (type: string) => {
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, React.ReactElement> = {
       'order_bonus': (
         <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

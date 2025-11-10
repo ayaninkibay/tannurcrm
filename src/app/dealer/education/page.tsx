@@ -454,10 +454,11 @@ function EducationContent() {
                 >
                   <div className="relative h-48 overflow-hidden bg-gray-100">
                     {lesson.thumbnail_url ? (
-                      <img 
-                        src={lesson.thumbnail_url} 
+                      <Image
+                        src={lesson.thumbnail_url}
                         alt={lesson.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

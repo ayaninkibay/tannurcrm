@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { supabase } from '@/lib/supabase/client';
@@ -59,13 +59,7 @@ export default function StockMovementsPage() {
     setDateFrom(thirtyDaysAgo.toISOString().split('T')[0]);
   }, []);
 
-  useEffect(() => {
-    if (dateFrom && dateTo) {
-      fetchMovements();
-    }
-  }, [dateFrom, dateTo]);
-
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     try {
       setLoading(true);
       const query = supabase
@@ -119,7 +113,13 @@ export default function StockMovementsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFrom, dateTo, t]);
+
+  useEffect(() => {
+    if (dateFrom && dateTo) {
+      fetchMovements();
+    }
+  }, [dateFrom, dateTo, fetchMovements]);
 
   const setQuickDateFilter = (type: 'today' | 'week' | 'month' | 'year') => {
     const today = new Date();
@@ -198,7 +198,8 @@ export default function StockMovementsPage() {
       adjustment: 'bg-blue-100 text-blue-700',
       write_off: 'bg-red-100 text-red-700',
       transfer: 'bg-purple-100 text-purple-700',
-      production: 'bg-indigo-100 text-indigo-700'
+      production: 'bg-indigo-100 text-indigo-700',
+      gift: 'bg-pink-100 text-pink-700'
     };
     return styles[source] || 'bg-gray-100 text-gray-700';
   };
@@ -212,7 +213,8 @@ export default function StockMovementsPage() {
       adjustment: t('Корректировка'),
       write_off: t('Списание'),
       transfer: t('Перемещение'),
-      production: t('Производство')
+      production: t('Производство'),
+      gift: t('Подарок')
     };
     return texts[source] || source;
   };

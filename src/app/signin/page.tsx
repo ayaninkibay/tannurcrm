@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useUser } from '@/context/UserContext';
 import { Eye, EyeOff, LogIn, User, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import { useTranslate } from '@/hooks/useTranslate';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const { t } = useTranslate();
@@ -179,7 +180,7 @@ export default function LoginPage() {
 
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-[#D77E6C]/10 to-[#E89185]/10 rounded-2xl">
-                <img src="/icons/company/tannur_black.svg" alt="Logo" className="w-10 h-10 object-contain" />
+                <Image src="/icons/company/tannur_black.svg" alt="Logo" className="w-10 h-10 object-contain" />
               </div>
 
               <h1 className="text-3xl font-bold bg-gradient-to-r from-[#D77E6C] to-[#E89185] bg-clip-text text-transparent mb-2">

@@ -1,13 +1,19 @@
 // app/admin/audit/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { AuditDashboard } from './components/AuditDashboard'
 import { AuditTable } from './components/AuditTable'
 import { runAuditCheck, getAuditReport } from './actions/audit'
 import { RefreshCw, Play } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'react-toastify'
 import MoreHeaderAD from '@/components/header/MoreHeaderAD'
+
+interface AuditResult {
+  new_issues?: number;
+  auto_resolved?: number;
+  detailed_log?: any[];
+}
 
 export default function AuditPage() {
   const [data, setData] = useState<any[]>([])
@@ -20,11 +26,7 @@ export default function AuditPage() {
     daysBack: 7
   })
 
-  useEffect(() => {
-    loadData()
-  }, [filters])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const result = await getAuditReport(filters)
@@ -40,21 +42,26 @@ export default function AuditPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const runAudit = async () => {
     setRunning(true)
     try {
       const result = await runAuditCheck()
-      
+
       if (result.error) {
         toast.error('Ошибка выполнения аудита')
       } else {
         // Сохраняем детальный лог
         setDetailedLog(result.detailedLog || [])
-        
-        toast.success(`Аудит выполнен. ${result.auditResult?.new_issues || 0} новых проблем, ${result.auditResult?.auto_resolved || 0} решено автоматически`)
-        
+
+        const auditResult = result.auditResult as AuditResult | null
+        toast.success(`Аудит выполнен. ${auditResult?.new_issues || 0} новых проблем, ${auditResult?.auto_resolved || 0} решено автоматически`)
+
         // Обновляем данные
         await loadData()
       }

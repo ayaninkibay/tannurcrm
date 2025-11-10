@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { TeamService, User, TeamMemberData, PaginationParams } from './team.service';
 
 export interface TeamStatistics {
@@ -60,8 +60,8 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  
-  const service = new TeamService();
+
+  const service = useMemo(() => new TeamService(), []);
 
   const loadUsers = useCallback(async (page: number = pagination.page) => {
     try {
@@ -75,7 +75,7 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
       };
 
       let result;
-      
+
       switch (selectedTab) {
         case 'dealers':
           result = await service.getDealers(params);
@@ -90,7 +90,7 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
 
       if (result.success && result.data) {
         const transformed = result.data.map(user => service.transformToTeamMember(user));
-        
+
         if (selectedTab === 'dealers') setDealers(transformed);
         if (selectedTab === 'stars') setCelebrities(transformed);
         if (selectedTab === 'employees') setEmployees(transformed);
@@ -108,14 +108,14 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
     } finally {
       setLoading(false);
     }
-  }, [selectedTab, pagination.pageSize]);
+  }, [selectedTab, pagination.page, pagination.pageSize, service]);
 
   const loadStatistics = useCallback(async () => {
     const result = await service.getUsersStatistics();
     if (result.success && result.data) {
       setStatistics(result.data);
     }
-  }, []);
+  }, [service]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -135,11 +135,11 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
       };
 
       const result = await service.searchUsers(query, params);
-      
+
       if (result.success && result.data) {
         const dealerUsers = result.data.filter(u => u.role === 'dealer');
         const celebrityUsers = result.data.filter(u => u.role === 'celebrity');
-        const employeeUsers = result.data.filter(u => 
+        const employeeUsers = result.data.filter(u =>
           ['admin', 'financier', 'user'].includes(u.role || '')
         );
 
@@ -158,7 +158,7 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageSize, loadUsers]);
+  }, [pagination.pageSize, service, loadUsers]);
 
   const goToPage = useCallback(async (page: number) => {
     if (isSearching) {
@@ -187,7 +187,7 @@ export const useTeamModule = (selectedTab: 'dealers' | 'stars' | 'employees' = '
   useEffect(() => {
     loadUsers(1);
     loadStatistics();
-  }, [selectedTab]);
+  }, [selectedTab, loadUsers, loadStatistics]);
 
   return {
     dealers,

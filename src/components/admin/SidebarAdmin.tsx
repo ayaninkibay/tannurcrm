@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { useLayoutEffect, useRef, useState, useEffect, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FastLink } from '@/components/FastLink';
@@ -92,11 +92,14 @@ export default function DashboardSidebarAdmin() {
   const [activeTop, setActiveTop] = useState<number | null>(null);
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
 
-  const visibleNavItems = loading 
-    ? []
-    : adminNavItems.filter(item => 
-        hasAnyPermission(profile?.role, profile?.permissions, item.requiredPermissions)
-      );
+  const visibleNavItems = useMemo(() =>
+    loading
+      ? []
+      : adminNavItems.filter(item =>
+          hasAnyPermission(profile?.role, profile?.permissions, item.requiredPermissions)
+        ),
+    [loading, profile?.role, profile?.permissions]
+  );
 
   useLayoutEffect(() => {
     const updateActiveTop = () => {

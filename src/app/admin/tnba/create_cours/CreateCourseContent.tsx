@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useTranslate } from '@/hooks/useTranslate';
@@ -71,7 +72,7 @@ function CreateCourseForm() {
     if (isEdit && courseId) {
       loadCourse(courseId);
     }
-  }, [courseId]);
+  }, [courseId, isEdit, loadCourse]);
 
   useEffect(() => {
     if (isEdit && currentCourse) {
@@ -88,7 +89,7 @@ function CreateCourseForm() {
         coverImageUrl: currentCourse.cover_image || ''
       });
     }
-  }, [currentCourse]);
+  }, [currentCourse, isEdit]);
 
   // Функции для управления категориями
   const addCategory = () => {
@@ -501,16 +502,17 @@ function CreateCourseForm() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">{t('Обложка курса')}</label>
                 {formData.coverImageUrl ? (
-                  <div className="relative group">
-                    <img
+                  <div className="relative group h-40 rounded-xl overflow-hidden">
+                    <Image
                       src={formData.coverImageUrl}
                       alt="Cover"
-                      className="w-full h-40 object-cover rounded-xl"
+                      fill
+                      className="object-cover"
                     />
                     <button
                       type="button"
                       onClick={removeImage}
-                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     >
                       <X className="w-4 h-4" />
                     </button>

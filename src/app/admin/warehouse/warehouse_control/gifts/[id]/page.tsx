@@ -2,10 +2,11 @@
 
 import React, { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import MoreHeaderAD from '@/components/header/MoreHeaderAD';
 import { useGiftModule } from '@/lib/gift/useGiftModule';
 import {
-  Gift, User, Calendar, Package, DollarSign, 
+  Gift, User, Calendar, Package, DollarSign,
   ArrowLeft, CheckCircle, XCircle, Clock,
   FileText, Box, Trash2, RotateCcw
 } from 'lucide-react';
@@ -152,9 +153,11 @@ export default function GiftViewPage() {
                     <StatusIcon className="w-4 h-4" />
                     {t(status.label)}
                   </span>
-                  <span className="text-sm text-gray-500">
-                    {t('Создан')} {formatDate(currentGift.created_at)}
-                  </span>
+                  {currentGift.created_at && (
+                    <span className="text-sm text-gray-500">
+                      {t('Создан')} {formatDate(currentGift.created_at)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -251,11 +254,14 @@ export default function GiftViewPage() {
                   {currentGift.gift_items.map((item) => (
                     <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                       {item.product?.image_url && (
-                        <img 
-                          src={item.product.image_url} 
-                          alt={item.product.name || ''}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
+                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
+                          <Image
+                            src={item.product.image_url}
+                            alt={item.product.name || ''}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                       )}
                       <div className="flex-1">
                         <div className="font-medium">{item.product?.name || t('Товар удален')}</div>
@@ -309,10 +315,12 @@ export default function GiftViewPage() {
                     </div>
                   )}
 
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="text-sm text-gray-600 mb-1">{t('Дата создания')}</div>
-                    <div className="font-medium">{formatDate(currentGift.created_at)}</div>
-                  </div>
+                  {currentGift.created_at && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="text-sm text-gray-600 mb-1">{t('Дата создания')}</div>
+                      <div className="font-medium">{formatDate(currentGift.created_at)}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
