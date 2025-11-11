@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
@@ -103,32 +103,13 @@ export default function CartPage() {
     }, 0);
   }, [regularItems, cart.selectedItems]);
 
-  // ✅ ПРИМЕНЕНИЕ ПОДАРКОВ при изменении суммы С DEBOUNCE
-  useEffect(() => {
-    if (!cart.cart || loadingPromotions || activePromotions.length === 0) {
-      return;
-    }
-
-    // ⚠️ ЗАЩИТА: применяем подарки только если сумма РЕАЛЬНО изменилась
-    if (lastAppliedTotal === regularItemsTotal) {
-      return;
-    }
-
-    // Debounce: ждём 500мс перед применением
-    const timer = setTimeout(() => {
-      applyGiftPromotions();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [regularItemsTotal, cart.cart, activePromotions, loadingPromotions, lastAppliedTotal]);
-
   // ✅ ФУНКЦИЯ применения подарков
-  async function applyGiftPromotions() {
+  const applyGiftPromotions = useCallback(async () => {
     if (!cart.cart || isApplyingGifts) return;
 
     try {
       setIsApplyingGifts(true);
-      
+
       const { data, error } = await supabase.rpc('apply_gift_promotions', {
         p_cart_id: cart.cart.id
       });
@@ -152,7 +133,26 @@ export default function CartPage() {
     } finally {
       setIsApplyingGifts(false);
     }
-  }
+  }, [cart, isApplyingGifts, regularItemsTotal, currentUser]);
+
+  // ✅ ПРИМЕНЕНИЕ ПОДАРКОВ при изменении суммы С DEBOUNCE
+  useEffect(() => {
+    if (!cart.cart || loadingPromotions || activePromotions.length === 0) {
+      return;
+    }
+
+    // ⚠️ ЗАЩИТА: применяем подарки только если сумма РЕАЛЬНО изменилась
+    if (lastAppliedTotal === regularItemsTotal) {
+      return;
+    }
+
+    // Debounce: ждём 500мс перед применением
+    const timer = setTimeout(() => {
+      applyGiftPromotions();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [regularItemsTotal, cart.cart, activePromotions, loadingPromotions, lastAppliedTotal, applyGiftPromotions]);
 
   const handleUpdateQuantity = async (itemId: string, change: number) => {
     const item = cart.cartItems.find(i => i.id === itemId);
