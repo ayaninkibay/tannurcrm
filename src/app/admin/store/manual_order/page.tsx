@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/context/UserContext';
@@ -56,7 +56,6 @@ export default function CreateManualOrderPage() {
 
   // Gift Promotions
   const [giftPromotions, setGiftPromotions] = useState<GiftPromotion[]>([]);
-  const [appliedPromotions, setAppliedPromotions] = useState<string[]>([]);
 
   // Order data
   const [orderDate, setOrderDate] = useState(
@@ -72,22 +71,33 @@ export default function CreateManualOrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Gift promotion logic (must be before useEffect that uses it)
-  const checkAndApplyGiftPromotions = useCallback(() => {
-    // Calculate total for non-gift items only
-    const regularItemsTotal = orderItems
-      .filter(item => !item.is_gift)
-      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+  // ✅ Разделяем товары на обычные и подарки
+  const regularItems = useMemo(
+    () => orderItems.filter(item => !item.is_gift),
+    [orderItems]
+  );
 
-    // Find applicable promotions
-    const newAppliedPromotions: string[] = [];
+  const giftItems = useMemo(
+    () => orderItems.filter(item => item.is_gift),
+    [orderItems]
+  );
+
+  // ✅ Вычисляем сумму только обычных товаров
+  const regularItemsTotal = useMemo(
+    () => regularItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0),
+    [regularItems]
+  );
+
+  // ✅ Вычисляем применимые акции и подарки
+  const applicableGifts = useMemo(() => {
     const giftsToAdd: OrderItem[] = [];
+    const appliedPromoIds: string[] = [];
 
     giftPromotions.forEach(promo => {
       const multiplier = Math.floor(regularItemsTotal / promo.min_purchase_amount);
 
       if (multiplier > 0) {
-        newAppliedPromotions.push(promo.id);
+        appliedPromoIds.push(promo.id);
 
         promo.products.forEach(giftProduct => {
           if (giftProduct.product) {
@@ -105,47 +115,36 @@ export default function CreateManualOrderPage() {
       }
     });
 
-    // Check if anything changed
-    const currentGiftIds = orderItems
+    return { giftsToAdd, appliedPromoIds };
+  }, [regularItemsTotal, giftPromotions]);
+
+  // ✅ Синхронизируем подарки с корзиной ТОЛЬКО когда они реально изменились
+  useEffect(() => {
+    const { giftsToAdd } = applicableGifts;
+
+    // Создаём строку для сравнения (ID + количество) из текущих заказов
+    const currentGiftsSignature = orderItems
       .filter(item => item.is_gift)
-      .map(item => item.id)
+      .map(item => `${item.promotion_id}-${item.product_id}:${item.quantity}`)
       .sort()
-      .join(',');
+      .join('|');
 
-    const newGiftIds = giftsToAdd
-      .map(item => item.id)
+    const newGiftsSignature = giftsToAdd
+      .map(item => `${item.promotion_id}-${item.product_id}:${item.quantity}`)
       .sort()
-      .join(',');
+      .join('|');
 
-    const currentGiftQuantities = orderItems
-      .filter(item => item.is_gift)
-      .map(item => `${item.id}:${item.quantity}`)
-      .sort()
-      .join(',');
-
-    const newGiftQuantities = giftsToAdd
-      .map(item => `${item.id}:${item.quantity}`)
-      .sort()
-      .join(',');
-
-    // Only update if gifts actually changed
-    if (currentGiftIds !== newGiftIds || currentGiftQuantities !== newGiftQuantities) {
-      const regularItems = orderItems.filter(item => !item.is_gift);
+    // Обновляем ТОЛЬКО если подарки реально изменились
+    if (currentGiftsSignature !== newGiftsSignature) {
       setOrderItems([...regularItems, ...giftsToAdd]);
-      setAppliedPromotions(newAppliedPromotions);
     }
-  }, [orderItems, giftPromotions]);
+  }, [applicableGifts, regularItems, orderItems]);
 
   // Load all products and gift promotions on mount
   useEffect(() => {
     loadProducts();
     loadGiftPromotions();
   }, []);
-
-  // Check gift promotions whenever order items change
-  useEffect(() => {
-    checkAndApplyGiftPromotions();
-  }, [checkAndApplyGiftPromotions]);
 
   // Search users with debounce
   useEffect(() => {
@@ -265,28 +264,28 @@ export default function CreateManualOrderPage() {
     setUserSearchResults([]);
   }
 
-  // Add/update product quantity
+  // ✅ Add/update product quantity - работает ТОЛЬКО с обычными товарами
   function handleToggleProduct(product: Product) {
-    const existingItem = orderItems.find((item) => item.product_id === product.id && !item.is_gift);
+    const existingItem = regularItems.find((item) => item.product_id === product.id);
 
     if (existingItem) {
       // Remove if quantity is 1
       if (existingItem.quantity === 1) {
-        setOrderItems(orderItems.filter((item) => !(item.product_id === product.id && !item.is_gift)));
+        // Удаляем только этот товар, подарки обновятся автоматически
+        setOrderItems(orderItems.filter((item) => item.id !== existingItem.id));
       }
     } else {
       // Add new item with quantity 1
-      setOrderItems([
-        ...orderItems,
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          product_id: product.id,
-          quantity: 1,
-          price: product.price_dealer || product.price || 0,
-          product,
-          is_gift: false,
-        },
-      ]);
+      const newItem: OrderItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        product_id: product.id,
+        quantity: 1,
+        price: product.price_dealer || product.price || 0,
+        product,
+        is_gift: false,
+      };
+      // Добавляем к обычным товарам, подарки обновятся автоматически
+      setOrderItems([...orderItems, newItem]);
     }
   }
 
@@ -320,19 +319,17 @@ export default function CreateManualOrderPage() {
 
   // Calculate total (excluding gifts)
   function calculateTotal() {
-    return orderItems
-      .filter(item => !item.is_gift)
-      .reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+    return regularItemsTotal;
   }
 
   // Check if product is selected
   function isProductSelected(productId: string) {
-    return orderItems.some((item) => item.product_id === productId && !item.is_gift);
+    return regularItems.some((item) => item.product_id === productId);
   }
 
   // Get product quantity
   function getProductQuantity(productId: string) {
-    const item = orderItems.find((item) => item.product_id === productId && !item.is_gift);
+    const item = regularItems.find((item) => item.product_id === productId);
     return item?.quantity || 0;
   }
 
@@ -355,7 +352,6 @@ export default function CreateManualOrderPage() {
       return;
     }
 
-    const regularItems = orderItems.filter(item => !item.is_gift);
     if (regularItems.length === 0) {
       setError('Добавьте хотя бы один товар');
       return;
@@ -393,7 +389,7 @@ export default function CreateManualOrderPage() {
       });
 
       if (result.success) {
-        const giftCount = orderItems.filter(i => i.is_gift).length;
+        const giftCount = giftItems.length;
         const giftMessage = giftCount > 0 ? ` (включая ${giftCount} подарочных позиций)` : '';
         
         setSuccess(
@@ -407,7 +403,6 @@ export default function CreateManualOrderPage() {
         setDeliveryMethod('pickup');
         setNotes('');
         setOrderDate(new Date().toISOString().slice(0, 16));
-        setAppliedPromotions([]);
         
         // Scroll to top to show success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -420,9 +415,6 @@ export default function CreateManualOrderPage() {
       setIsSubmitting(false);
     }
   }
-
-  const regularItems = orderItems.filter(item => !item.is_gift);
-  const giftItems = orderItems.filter(item => item.is_gift);
 
   return (
     <div className="min-h-screen">
@@ -476,16 +468,18 @@ export default function CreateManualOrderPage() {
         )}
 
         {/* Gift Promotion Alert */}
-        {appliedPromotions.length > 0 && (
+        {applicableGifts.appliedPromoIds.length > 0 && (
           <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl flex items-start gap-3">
             <Gift className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-purple-900 text-sm font-medium mb-1">🎁 Применены акции с подарками!</p>
               <ul className="text-purple-800 text-xs space-y-0.5">
-                {appliedPromotions.map(promoId => {
+                {applicableGifts.appliedPromoIds.map(promoId => {
                   const promo = giftPromotions.find(p => p.id === promoId);
+                  const promoGifts = applicableGifts.giftsToAdd.filter(g => g.promotion_id === promoId);
+                  const totalGiftQty = promoGifts.reduce((sum, g) => sum + g.quantity, 0);
                   return promo ? (
-                    <li key={promoId}>• {promo.name} - {promo.products.length} подарок(ов)</li>
+                    <li key={promoId}>• {promo.name} - {totalGiftQty} подарок(ов)</li>
                   ) : null;
                 })}
               </ul>

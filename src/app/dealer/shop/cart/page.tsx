@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
@@ -25,6 +25,7 @@ import { useCartModule } from '@/lib/cart/CartModule';
 import { orderService } from '@/lib/order/OrderService';
 import KaspiPaymentFlow from '@/components/payment/KaspiPaymentFlow';
 import { getActivePromotions, type GiftPromotionWithProducts } from '@/lib/gift_promotions/giftPromotions';
+import { supabase } from '@/lib/supabase/client';
 
 type OrderStage = 'cart' | 'payment' | 'success';
 
@@ -39,6 +40,8 @@ export default function CartPage() {
   const [activePromotions, setActivePromotions] = useState<GiftPromotionWithProducts[]>([]);
   const [loadingPromotions, setLoadingPromotions] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isApplyingGifts, setIsApplyingGifts] = useState(false);
+  const [lastAppliedTotal, setLastAppliedTotal] = useState<number | null>(null);
 
   // Проверка авторизации
   useEffect(() => {
@@ -61,7 +64,6 @@ export default function CartPage() {
     if (cart.loading) {
       setIsRefreshing(true);
     } else {
-      // Небольшая задержка для плавности анимации
       const timer = setTimeout(() => setIsRefreshing(false), 300);
       return () => clearTimeout(timer);
     }
@@ -80,17 +82,93 @@ export default function CartPage() {
     }
   }
 
+  // ✅ РАЗДЕЛЯЕМ товары на обычные и подарки
+  const regularItems = useMemo(
+    () => cart.cartItems.filter(item => !item.is_gift),
+    [cart.cartItems]
+  );
+
+  const giftItems = useMemo(
+    () => cart.cartItems.filter(item => item.is_gift),
+    [cart.cartItems]
+  );
+
+  // ✅ СУММА только обычных товаров
+  const regularItemsTotal = useMemo(() => {
+    return regularItems.reduce((sum, item) => {
+      if (cart.selectedItems.has(item.id)) {
+        return sum + (item.price_dealer * item.quantity);
+      }
+      return sum;
+    }, 0);
+  }, [regularItems, cart.selectedItems]);
+
+  // ✅ ПРИМЕНЕНИЕ ПОДАРКОВ при изменении суммы С DEBOUNCE
+  useEffect(() => {
+    if (!cart.cart || loadingPromotions || activePromotions.length === 0) {
+      return;
+    }
+
+    // ⚠️ ЗАЩИТА: применяем подарки только если сумма РЕАЛЬНО изменилась
+    if (lastAppliedTotal === regularItemsTotal) {
+      return;
+    }
+
+    // Debounce: ждём 500мс перед применением
+    const timer = setTimeout(() => {
+      applyGiftPromotions();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [regularItemsTotal, cart.cart, activePromotions, loadingPromotions, lastAppliedTotal]);
+
+  // ✅ ФУНКЦИЯ применения подарков
+  async function applyGiftPromotions() {
+    if (!cart.cart || isApplyingGifts) return;
+
+    try {
+      setIsApplyingGifts(true);
+      
+      const { data, error } = await supabase.rpc('apply_gift_promotions', {
+        p_cart_id: cart.cart.id
+      });
+
+      if (error) {
+        console.error('Ошибка применения подарков:', error);
+        return;
+      }
+
+      console.log('✅ Подарки применены:', data);
+
+      // ⚠️ ЗАПОМИНАЕМ сумму, для которой применили подарки
+      setLastAppliedTotal(regularItemsTotal);
+
+      // Перезагружаем корзину, чтобы увидеть обновлённые подарки
+      if (currentUser) {
+        await cart.loadUserCart(currentUser.id);
+      }
+    } catch (error) {
+      console.error('Ошибка в applyGiftPromotions:', error);
+    } finally {
+      setIsApplyingGifts(false);
+    }
+  }
+
   const handleUpdateQuantity = async (itemId: string, change: number) => {
     const item = cart.cartItems.find(i => i.id === itemId);
     if (!item) return;
     
     const newQuantity = item.quantity + change;
     await cart.updateQuantity(itemId, newQuantity);
+    
+    // ✅ Подарки обновятся автоматически через useEffect выше
   };
 
   const handleRemoveItem = async (itemId: string) => {
     if (!confirm('Удалить товар из корзины?')) return;
     await cart.removeItem(itemId);
+    
+    // ✅ Подарки обновятся автоматически через useEffect выше
   };
 
   // Валидация перед оформлением
@@ -197,13 +275,9 @@ export default function CartPage() {
   const totals = cart.calculateTotals();
   const formatPrice = (price: number) => `${price.toLocaleString('ru-RU')} ₸`;
 
-  // Разделяем товары на обычные и подарки
-  const regularItems = cart.cartItems.filter(item => !item.is_gift);
-  const giftItems = cart.cartItems.filter(item => item.is_gift);
-
-  // Находим применимую акцию
+  // ✅ Находим применимую акцию на основе ТОЛЬКО обычных товаров
   const applicablePromotion = activePromotions.find(
-    promo => promo.min_purchase_amount <= totals.subtotal
+    promo => promo.min_purchase_amount <= regularItemsTotal
   );
 
   // ==========================================
@@ -325,7 +399,7 @@ export default function CartPage() {
             
             {/* АКЦИЯ - БАННЕР */}
             {!loadingPromotions && applicablePromotion && (
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-lg animate-fadeIn">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <Gift className="w-6 h-6" />
@@ -345,16 +419,16 @@ export default function CartPage() {
               </div>
             )}
 
-            {/* ПРОГРЕСС ДО АКЦИИ */}
+            {/* ПРОГРЕСС ДО АКЦИИ - используем regularItemsTotal */}
             {!loadingPromotions && !applicablePromotion && activePromotions.length > 0 && (
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-purple-200">
                 <div className="flex items-start gap-4">
                   <Gift className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
                   <div className="flex-1">
                     {activePromotions.map(promo => {
-                      const remaining = promo.min_purchase_amount - totals.subtotal;
+                      const remaining = promo.min_purchase_amount - regularItemsTotal;
                       if (remaining > 0) {
-                        const progress = (totals.subtotal / promo.min_purchase_amount) * 100;
+                        const progress = (regularItemsTotal / promo.min_purchase_amount) * 100;
                         return (
                           <div key={promo.id} className="mb-4 last:mb-0">
                             <p className="text-gray-900 font-medium mb-2">
@@ -412,7 +486,7 @@ export default function CartPage() {
                     </span>
                   </div>
                   <span className="text-lg font-bold text-[#D77E6C]">
-                    {formatPrice(totals.subtotal)}
+                    {formatPrice(regularItemsTotal)}
                   </span>
                 </label>
               </div>
@@ -421,16 +495,18 @@ export default function CartPage() {
             {/* ВСЕ ТОВАРЫ (ОБЫЧНЫЕ + ПОДАРКИ) С АНИМАЦИЕЙ */}
             <div className="relative">
               {/* Оверлей при обновлении */}
-              {isRefreshing && (
+              {(isRefreshing || isApplyingGifts) && (
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 rounded-2xl flex items-center justify-center">
                   <div className="bg-white rounded-xl shadow-lg p-4 flex items-center gap-3">
                     <Loader2 className="w-6 h-6 text-[#D77E6C] animate-spin" />
-                    <span className="text-gray-700 font-medium">Обновление корзины...</span>
+                    <span className="text-gray-700 font-medium">
+                      {isApplyingGifts ? 'Применяем подарки...' : 'Обновление корзины...'}
+                    </span>
                   </div>
                 </div>
               )}
               
-              <div className={`space-y-4 transition-opacity duration-300 ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
+              <div className={`space-y-4 transition-opacity duration-300 ${(isRefreshing || isApplyingGifts) ? 'opacity-50' : 'opacity-100'}`}>
                 {cart.cartItems.map(item => {
                   const isOutOfStock = item.stock === 0;
                   const isUpdating = cart.loadingStates.updatingItem.get(item.id);
@@ -637,7 +713,7 @@ export default function CartPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Товары ({regularItems.length} шт.)</span>
-                  <span className="font-medium">{formatPrice(totals.subtotal)}</span>
+                  <span className="font-medium">{formatPrice(regularItemsTotal)}</span>
                 </div>
 
                 {giftItems.length > 0 && (
@@ -660,7 +736,7 @@ export default function CartPage() {
                     <div>
                       <p className="text-sm text-gray-500">К оплате</p>
                       <p className="text-3xl font-bold text-gray-900">
-                        {formatPrice(totals.total)}
+                        {formatPrice(regularItemsTotal)}
                       </p>
                     </div>
                   </div>
