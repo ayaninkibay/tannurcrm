@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
         {/* Header */}
         <div className="relative">
           <header className="relative">
-            <MoreHeaderAD title={t('Админ панель')} />
+            <MoreHeaderAD title="Админ Панель Tannur" />
           </header>
         </div>
 
