@@ -21,7 +21,7 @@ const KaspiPaymentFlow: React.FC<KaspiPaymentFlowProps> = ({
   const [step, setStep] = useState<'initial' | 'waiting' | 'confirm'>('initial');
   const [paymentNotes, setPaymentNotes] = useState('');
 
-  const KASPI_LINK = 'https://pay.kaspi.kz/pay/lafnp2v5';
+  const KASPI_LINK = 'https://pay.kaspi.kz/pay/oh6n1rwa';
 
   const handleOpenKaspi = () => {
     window.open(KASPI_LINK, '_blank');
